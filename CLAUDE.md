@@ -26,5 +26,6 @@ pnpm exec agent-browser --session <name> close
 ## Hard rules
 
 - Facts in `content/` belong to the owner. Never change them; only change how they are presented.
-- Never push to `main` or merge pull requests. Work on a `claude/` branch and open a PR.
+- Never push to `main`. Work on a `claude/` branch and open a PR. Only Atlas merges, and only its
+  own sprint PR after review, QA, design review and CI all pass.
 - Keep each change small and verified: `pnpm lint` and `pnpm build` must pass.

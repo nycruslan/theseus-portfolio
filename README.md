@@ -5,7 +5,8 @@ A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead.
 Atlas picks the next item from [`ROADMAP.md`](ROADMAP.md) and runs it through the team:
 the Product Owner writes the ticket, the Researcher checks current docs, and the Engineer builds
-it. The Code Reviewer, QA and the Design Director gate it, then Atlas opens a pull request. Every
+it. The Code Reviewer, QA and the Design Director gate it, then Atlas opens a pull request, posts
+the team's reviews on it and merges it once CI is green. Every
 action is broadcast live to the Studio, where visitors watch the team work.
 
 ## How it works

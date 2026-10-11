@@ -4,6 +4,14 @@
     "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"
   },
   "permissions": {
+    "allow": [
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr review *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr merge *)"
+    ],
     "deny": [
       "Edit(/content/**)",
       "Edit(/.claude/settings.json)",
