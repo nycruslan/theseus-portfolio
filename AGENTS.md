@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Code standards
+
+- TypeScript strict mode. No `any`; model data with explicit types.
+- Server Components by default. Add `"use client"` only where interactivity requires it.
+- Small, focused components with named exports (route files keep the default export Next.js requires).
+- Comments explain *why*, not *what*.
+- `pnpm lint` (Biome) and `pnpm build` must pass before any commit.
