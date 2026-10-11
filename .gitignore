@@ -42,3 +42,6 @@ next-env.d.ts
 
 # claude code
 .claude/settings.local.json
+
+# sprint screenshots (QA and design review)
+.studio/screenshots/
