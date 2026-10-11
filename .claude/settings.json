@@ -136,7 +136,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Agent|Edit|Write|Bash|SendMessage|WebSearch|WebFetch|TaskUpdate",
+        "matcher": "Edit|Write|Bash|SendMessage|SubagentHandback|WebSearch|WebFetch|TaskUpdate",
         "hooks": [
           {
             "type": "command",
