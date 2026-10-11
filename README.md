@@ -2,10 +2,11 @@
 
 A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
-Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead,
-picks the next item from [`ROADMAP.md`](ROADMAP.md), delegates it to the team, verifies the
-result, and opens a pull request. Every action is broadcast live to the Studio, where visitors
-watch the team work.
+Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead.
+Atlas picks the next item from [`ROADMAP.md`](ROADMAP.md) and runs it through the team:
+the Product Owner writes the ticket, the Researcher checks current docs, and the Engineer builds
+it. The Code Reviewer, QA and the Design Director gate it, then Atlas opens a pull request. Every
+action is broadcast live to the Studio, where visitors watch the team work.
 
 ## How it works
 
@@ -13,7 +14,9 @@ watch the team work.
 |---|---|
 | The team's roles | [`.claude/agents/`](.claude/agents) |
 | The sprint process | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
+| The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
+| Each sprint's tickets, reviews and scores | [`.studio/sprint/`](.studio/sprint) |
 | What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
