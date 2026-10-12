@@ -4,26 +4,28 @@
 // - Writers: the lead (the main session, which has no agent_type) and the engineers change the
 //   repository. Every agent may write in the sprint folder and in its own memory, and Quill also
 //   owns ROADMAP.md. A memory directory belongs to its role alone.
-// It fails closed: a write it can't verify is blocked, and settings.json blocks if it crashes.
-// Blocks are broadcast so they show on air. Roles with Bash could still write through the shell;
-// their prompts, not this hook, keep them from it.
+// It checks the file a write would really reach: symlinks are followed, and paths match without
+// regard to case, as the macOS file system does. It fails closed: a write it can't verify is
+// blocked, and settings.json blocks if it crashes. Blocks are broadcast so they show on air. Roles
+// with Bash could still write through the shell; their prompts, not this hook, keep them from it.
 
-import { readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { broadcast } from "./post.mjs";
 
 const WRITERS = new Set(["engineer", "creative-engineer"]);
 const PROTECTED = [
-  /^content\//,
-  /^(CLAUDE|AGENTS)\.md$/,
-  /^\.mcp\.json$/,
-  /^\.claude\/(settings(\.local)?\.json$|agents\/|skills\/)/,
+  /^content\//iu,
+  // Instruction files load wherever they are: the root ones at launch, nested ones on demand.
+  /(^|\/)(CLAUDE|AGENTS)(\.local)?\.md$/iu,
+  /^\.mcp\.json$/iu,
+  /^\.claude\/(?!agent-memory\/)/iu,
   // The harness is the owner's; the team's state (STATE.md and the sprint folder) is the team's.
-  /^\.studio\/(?!sprint\/|STATE\.md$)/,
-  /^\.github\//,
-  /^design\/rubric\.md$/,
+  /^\.studio\/(?!sprint\/|STATE\.md$)/iu,
+  /^\.github\//iu,
+  /^design\/rubric\.md$/iu,
 ];
-const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//;
+const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//iu;
 
 let hook;
 let path;
@@ -43,7 +45,21 @@ if (reason) {
 function targetOf({ tool_input: input, cwd }) {
   const root = process.env.CLAUDE_PROJECT_DIR ?? cwd;
   const target = resolve(cwd ?? root, input.file_path ?? input.notebook_path);
-  return relative(root, target).replace(/^\.claude\/worktrees\/[^/]+\//, "");
+  return relative(real(root), real(target)).replace(
+    /^\.claude\/worktrees\/[^/]+\//,
+    "",
+  );
+}
+
+// The real path of the part that exists, plus the rest. A link to a missing file throws, since
+// writing through it creates whatever it points at.
+function real(path) {
+  try {
+    return realpathSync.native(path);
+  } catch (error) {
+    if (lstatSync(path, { throwIfNoEntry: false })) throw error;
+    return join(real(dirname(path)), basename(path));
+  }
 }
 
 function refusal(path, agent) {

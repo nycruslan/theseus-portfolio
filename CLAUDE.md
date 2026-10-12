@@ -8,7 +8,8 @@ with `/sprint`; Atlas, the lead, is the main session and runs it.
 - **Roles** (`.claude/agents/`): Quill owns what's worth building and what "done" means, Scout what's
   true today, Iris taste, Forge and Pixel the code, Lens code review, Probe whether it works.
 - **Who writes what:** only Forge and Pixel change product code. Everyone writes their own work in
-  the sprint folder and their own memory. `.studio/guard.mjs` enforces this.
+  the sprint folder and their own memory. `.studio/guard.mjs` enforces this for file edits, and
+  the same rules hold in the shell.
 - **Shared state:** `.studio/STATE.md` (what the team learned), `ROADMAP.md` (what's next, owned by
   Quill), `.studio/sprint/<n>/` (the contract, positions, decisions and notes),
   `design/rubric.md` (the design bar). Production is https://theseus-portfolio.vercel.app.
