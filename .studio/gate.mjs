@@ -1,13 +1,16 @@
 // PreToolUse gate on handing a sprint PR on: `merge` in the portfolio, `ready` in the Studio, given
 // as the first argument (see .claude/settings.json). The builder is never the judge, so the call goes
 // through only when every CI check on the PR head passed, nothing waits for the owner, and Lens,
-// Probe and, when visual files changed, Iris said ship about the code being handed on. Each run is
-// broadcast as the Studio's roll call. It fails closed: anything it can't check is a NO-GO.
+// Probe and, when visual files changed, Iris said ship about the code being handed on, with none of
+// them still asking for changes. Each run is broadcast as the Studio's roll call. It fails closed:
+// anything it can't check, or a command it can't be sure it read right, is a NO-GO. The ledger is a
+// local file, so this holds the lead to the process; it can't stop an agent that forges it through
+// the shell, which only a check outside this machine could.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { broadcast } from "./post.mjs";
-import { ledgerPath } from "./verdict.mjs";
+import { readLedger } from "./verdict.mjs";
 
 const REVIEWERS = {
   "code-reviewer": "Lens",
@@ -37,9 +40,9 @@ const VALUE_FLAGS = new Set([
   "-A",
   "--author-email",
   "--match-head-commit",
-  "-R",
-  "--repo",
 ]);
+// gh can be pointed at another repository, while the gate checks this checkout's PR.
+const ELSEWHERE = /\s(-R|--repo)|\bGH_(REPO|HOST)\b|\b(cd|pushd)\b/;
 
 const target = process.argv[2];
 if (target !== "merge" && target !== "ready") {
@@ -55,6 +58,7 @@ if (!call) process.exit(0);
 
 let rollCall;
 try {
+  if (call.refusal) throw new Error(call.refusal);
   const pr = view(call);
   const items = [...checks(pr), ...ownerHold(pr), ...verdicts(pr)];
   rollCall = { pr: pr.number, head: pr.headRefOid, items };
@@ -87,17 +91,26 @@ function prCall({ tool_name: tool, tool_input: input = {} }) {
     };
   }
   const command = String(input.command ?? "");
-  const match = command.match(
-    new RegExp(`\\bgh\\s+pr\\s+${target}\\b([^;&|\\n]*)`),
-  );
-  const args = match?.[1].match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
-  if (!match || args.includes("--undo")) return null;
+  const calls = [
+    ...command.matchAll(
+      new RegExp(`\\bgh\\s+pr\\s+${target}\\b([^;&|\\n]*)`, "g"),
+    ),
+  ];
+  if (!calls.length) return null;
+  if (calls.length > 1 || ELSEWHERE.test(command)) {
+    return {
+      refusal: `run one \`gh pr ${target}\` per command, from this checkout, without -R, --repo, GH_REPO or cd`,
+    };
+  }
+  const args = calls[0][1].match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+  if (args.includes("--undo")) return null;
   let selector;
   for (let i = 0; i < args.length; i++) {
     if (VALUE_FLAGS.has(args[i])) i++;
     else if (!args[i].startsWith("-")) selector ??= args[i];
   }
-  return { selector };
+  // Through `bash -c "…"`, the closing quote sticks to the PR.
+  return { selector: selector?.replace(/^["']|["']$/g, "") };
 }
 
 function view({ selector, repo }) {
@@ -147,35 +160,50 @@ function verdicts({ files, headRefOid }) {
   const visual = files.some(({ path }) => VISUAL.test(path));
   if (visual || files.length >= MAX_FILES) roles.push("design-director");
 
-  const ledger = ledgerPath(hook.session_id);
-  const entries = existsSync(ledger)
-    ? readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse)
-    : [];
+  const given = readLedger(hook.session_id).filter(
+    (entry) => "verdict" in entry,
+  );
   return roles.map((role) => {
     const who = REVIEWERS[role];
-    const entry = entries.findLast((candidate) => candidate.role === role);
-    if (!entry) {
+    // Each reviewer's latest verdict stands, so one still asking for changes holds the merge even
+    // when another reviewer in the same role said ship.
+    const latest = [
+      ...new Map(
+        given
+          .filter((entry) => entry.role === role)
+          .map((entry) => [entry.agentId, entry]),
+      ).values(),
+    ];
+    if (!latest.length) {
       return nogo(
         who,
         "verdict",
         `${who}: no verdict on record in this session; ask ${role} to review. If the review happened before the session restarted, leave the PR for the owner.`,
       );
     }
-    if (entry.verdict !== "ship") {
+    const open = latest.filter((entry) => entry.verdict !== "ship");
+    if (open.length) {
+      const said = open
+        .map(
+          ({ agentId, verdict }) =>
+            `${who} (agent ${agentId}) said "${verdict}"`,
+        )
+        .join("; ");
       return nogo(
         who,
         "verdict",
-        `${who} said "${entry.verdict}": resolve it and send the change back to ${who} for re-review.`,
+        `${said}: resolve it and send the change back to the same reviewer for re-review.`,
       );
     }
-    if (!covers(entry.head, headRefOid)) {
+    const fresh = latest.find((entry) => covers(entry.head, headRefOid));
+    if (!fresh) {
       return nogo(
         who,
         "verdict",
         `${who}: no ship on the current code; send the change back to ${who} for re-review.`,
       );
     }
-    return { who, kind: "verdict", state: "go", score: entry.score };
+    return { who, kind: "verdict", state: "go", score: fresh.score };
   });
 }
 

@@ -93,7 +93,9 @@ const ship = (role, extra = {}) => ({
   head: reviewed,
   ...extra,
 });
-const BOTH = [ship("code-reviewer"), ship("qa-engineer")];
+// verdict.mjs also notes when each reviewer started; the gate reads only the verdicts.
+const started = { role: "code-reviewer", agentId: "lens-2", started: reviewed };
+const BOTH = [started, ship("code-reviewer"), ship("qa-engineer")];
 
 test("GO on fresh ships and green CI", () => {
   const { code, gh } = gate({ ledger: BOTH });
@@ -113,13 +115,40 @@ test("NO-GO when the code changed after the review", () => {
     /Lens: no ship on the current code; send the change back to Lens/,
   );
   assert.match(stderr, /Probe: no ship on the current code/);
+  const unknown = [ship("code-reviewer", { head: null }), ship("qa-engineer")];
+  assert.match(
+    gate({ ledger: unknown }).stderr,
+    /Lens: no ship on the current code/,
+  );
 });
 
-test("the latest verdict counts", () => {
+test("each reviewer's latest verdict counts", () => {
   const ledger = [...BOTH, ship("code-reviewer", { verdict: "changes" })];
   const { code, stderr } = gate({ ledger });
   assert.equal(code, 2);
-  assert.match(stderr, /Lens said "changes"/);
+  assert.match(stderr, /Lens \(agent code-reviewer-1\) said "changes"/);
+  const resolved = [...ledger, ship("code-reviewer")];
+  assert.equal(gate({ ledger: resolved }).code, 0);
+});
+
+test("one reviewer's ship doesn't hide another's open changes", () => {
+  const ledger = [
+    ship("qa-engineer"),
+    ship("code-reviewer", { agentId: "lens-perf", verdict: "changes" }),
+    ship("code-reviewer", { agentId: "lens-security" }),
+  ];
+  const { code, stderr } = gate({ ledger });
+  assert.equal(code, 2);
+  assert.match(stderr, /Lens \(agent lens-perf\) said "changes"/);
+});
+
+test("a fresh ship counts even when another reviewer's ship is stale", () => {
+  const ledger = [
+    ship("qa-engineer", { head: codeChange }),
+    ship("code-reviewer", { agentId: "lens-perf" }),
+    ship("code-reviewer", { agentId: "lens-security", head: codeChange }),
+  ];
+  assert.equal(gate({ ledger, head: codeChange }).code, 0);
 });
 
 test("NO-GO while CI is red or still running", () => {
@@ -194,6 +223,32 @@ test("finds the PR among the options", () => {
   assert.deepEqual(gh.slice(0, 3), ["pr", "view", "14"]);
   const current = gate({ ledger: BOTH, payload: bash("gh pr merge --squash") });
   assert.deepEqual(current.gh.slice(0, 3), ["pr", "view", "--json"]);
+});
+
+test("NO-GO, without asking GitHub, when gh could reach another PR than the one it checks", () => {
+  for (const command of [
+    "gh pr merge 12 --squash --repo nycruslan/theseus-studio",
+    "gh pr merge 12 --squash -R nycruslan/theseus-studio",
+    "GH_REPO=nycruslan/theseus-studio gh pr merge 12 --squash",
+    "cd ../studio && gh pr merge 12 --squash",
+    "gh pr merge 12 --squash && gh pr merge 13 --squash",
+  ]) {
+    const { code, stderr, gh } = gate({ ledger: BOTH, payload: bash(command) });
+    assert.equal(code, 2, command);
+    assert.match(
+      stderr,
+      /run one `gh pr merge` per command, from this checkout/,
+    );
+    assert.equal(gh, false, command);
+  }
+});
+
+test("reads a PR given through bash -c", () => {
+  const { gh } = gate({
+    ledger: BOTH,
+    payload: bash('bash -c "gh pr merge 5"'),
+  });
+  assert.deepEqual(gh.slice(0, 3), ["pr", "view", "5"]);
 });
 
 test("gates a merge through the GitHub connector", () => {

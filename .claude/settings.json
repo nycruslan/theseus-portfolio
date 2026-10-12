@@ -178,6 +178,17 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "code-reviewer|qa-engineer|design-director",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SubagentStop": [

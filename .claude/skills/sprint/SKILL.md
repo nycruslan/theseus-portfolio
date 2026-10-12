@@ -32,7 +32,8 @@ sprints need no meeting and one builder.
   in a real browser, and Iris judges anything visual. Check a finding before acting on it, send back
   what affects correctness or the contract, and leave nits in the PR. Two rounds of fixes at most;
   then cut scope or stop. For a wide review or many independent units, a workflow can hold the
-  fan-out: give its agents the role they act as.
+  fan-out: give its builders the role they act as, but not its reviewers; Lens checks what they
+  found and gives the verdict.
 - **Escalate to whoever owns the question.** Scope goes to Quill, taste to Iris, and owner facts or
   anything risky to the human owner. When the owner isn't there to answer, write the question under
   "Needs owner decision" in the PR and don't merge.
