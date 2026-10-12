@@ -73,7 +73,7 @@ function gate({
   };
   const ghArgs = join(tmp, "gh-args.json");
   const result = runHook("gate.mjs", payload, {
-    args: [target],
+    args: target ? [target] : [],
     env: {
       PATH: `${bin}:${process.env.PATH}`,
       TMPDIR: tmp,
@@ -172,6 +172,12 @@ test("NO-GO, on air too, when it can't read the PR", async () => {
   } finally {
     studio.close();
   }
+});
+
+test("blocks every merge when settings.json doesn't name the target", () => {
+  const { code, stderr } = gate({ ledger: BOTH, target: "" });
+  assert.equal(code, 2);
+  assert.match(stderr, /needs "merge" or "ready"/);
 });
 
 test("lets other commands through without asking GitHub", () => {

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { gitRepo, runHook, tempDir } from "./kit.mjs";
+import { gitRepo, runHook, STUDIO, tempDir } from "./kit.mjs";
 
 const { dir: repo, shas } = gitRepo({ "app/page.tsx": "page" });
 
@@ -25,9 +25,9 @@ function stop(agent, message, extra = {}) {
   };
 }
 
-function verdict(payload) {
+function verdict(payload, script = "verdict.mjs") {
   const tmp = tempDir();
-  const result = runHook("verdict.mjs", payload, { env: { TMPDIR: tmp } });
+  const result = runHook(script, payload, { env: { TMPDIR: tmp } });
   const ledger = join(tmp, "theseus-verdicts-abc123.jsonl");
   const entries = existsSync(ledger)
     ? readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse)
@@ -100,4 +100,14 @@ test("records a still-missing verdict as none instead of looping", () => {
   );
   assert.equal(code, 0);
   assert.equal(entries[0].verdict, "none");
+});
+
+test("runs when the project path goes through a symlink", () => {
+  const link = join(tempDir(), "project");
+  symlinkSync(STUDIO, link);
+  const { entries } = verdict(
+    stop("code-reviewer", "Verdict: ship"),
+    join(link, "verdict.mjs"),
+  );
+  assert.equal(entries[0]?.verdict, "ship");
 });

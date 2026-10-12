@@ -5,25 +5,29 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const STUDIO = dirname(dirname(fileURLToPath(import.meta.url)));
+export const STUDIO = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/** Runs `.studio/<script>` with the hook payload on stdin, as Claude Code does. */
+/** Runs a script in `.studio/` (or at an absolute path) with the hook payload on stdin, as Claude Code does. */
 export function runHook(script, payload, { env = {}, cwd, args = [] } = {}) {
-  const result = spawnSync(process.execPath, [join(STUDIO, script), ...args], {
-    input: typeof payload === "string" ? payload : JSON.stringify(payload),
-    cwd,
-    encoding: "utf8",
-    // Isolate the run from the developer's own Studio settings.
-    env: {
-      HOME: process.env.HOME,
-      PATH: process.env.PATH,
-      TMPDIR: tempDir(),
-      ...env,
+  const result = spawnSync(
+    process.execPath,
+    [resolve(STUDIO, script), ...args],
+    {
+      input: typeof payload === "string" ? payload : JSON.stringify(payload),
+      cwd,
+      encoding: "utf8",
+      // Isolate the run from the developer's own Studio settings.
+      env: {
+        HOME: process.env.HOME,
+        PATH: process.env.PATH,
+        TMPDIR: tempDir(),
+        ...env,
+      },
     },
-  });
+  );
   return { code: result.status, stderr: result.stderr };
 }
 

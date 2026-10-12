@@ -42,6 +42,12 @@ const VALUE_FLAGS = new Set([
 ]);
 
 const target = process.argv[2];
+if (target !== "merge" && target !== "ready") {
+  console.error(
+    `gate.mjs needs "merge" or "ready" in settings.json, not ${target}.`,
+  );
+  process.exit(2);
+}
 const hook = JSON.parse(readFileSync(0, "utf8"));
 const call = prCall(hook);
 // The settings' `if` filter is best-effort, so this may be some other command.

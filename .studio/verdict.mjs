@@ -3,7 +3,7 @@
 // (gate.mjs) can tell whether it still covers the code being handed on.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +17,9 @@ export function ledgerPath(sessionId) {
   return join(tmpdir(), `theseus-verdicts-${id}.jsonl`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Run as the hook, not imported by the gate. Node reports this module by its real path, while
+// argv keeps the path Claude Code called, which may go through a symlink.
+if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const hook = JSON.parse(readFileSync(0, "utf8"));
   const found =
     verdictIn(hook.last_assistant_message) ??
