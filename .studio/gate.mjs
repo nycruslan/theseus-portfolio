@@ -47,24 +47,30 @@ const call = prCall(hook);
 // The settings' `if` filter is best-effort, so this may be some other command.
 if (!call) process.exit(0);
 
+let rollCall;
 try {
   const pr = view(call);
   const items = [...checks(pr), ...ownerHold(pr), ...verdicts(pr)];
-  const pass = items.every((item) => item.state === "go");
-  broadcast({
-    ...hook,
-    hook_event_name: "StudioGateChecked",
-    gate: { target, pr: pr.number, head: pr.headRefOid, items, pass },
-  });
-  if (!pass) {
-    const notes = items.filter((item) => item.state !== "go");
-    refuse([
-      `NO-GO for PR #${pr.number}:`,
-      ...notes.map((item) => `- ${item.note}`),
-    ]);
-  }
+  rollCall = { pr: pr.number, head: pr.headRefOid, items };
 } catch (error) {
-  refuse([`NO-GO: the gate couldn't check this PR (${error.message}).`]);
+  const note = `The gate couldn't check this PR (${error.message.trim()}).`;
+  rollCall = { items: [nogo("gate", "check", note)] };
+}
+const pass = rollCall.items.every((item) => item.state === "go");
+broadcast({
+  ...hook,
+  hook_event_name: "StudioGateChecked",
+  gate: { target, ...rollCall, pass },
+});
+if (!pass) {
+  const notes = rollCall.items.filter((item) => item.state !== "go");
+  console.error(
+    [
+      `NO-GO for ${rollCall.pr ? `PR #${rollCall.pr}` : "this PR"}:`,
+      ...notes.map((item) => `- ${item.note}`),
+    ].join("\n"),
+  );
+  process.exit(2);
 }
 
 function prCall({ tool_name: tool, tool_input: input = {} }) {
@@ -186,9 +192,4 @@ function pending(who, note) {
 
 function nogo(who, kind, note) {
   return { who, kind, state: "nogo", note };
-}
-
-function refuse(lines) {
-  console.error(lines.join("\n"));
-  process.exit(2);
 }

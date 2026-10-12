@@ -157,13 +157,21 @@ test("NO-GO while the PR waits for the owner's decision", () => {
   assert.match(stderr, /labelled needs-owner/);
 });
 
-test("NO-GO when it can't read the PR", () => {
-  const { code, stderr } = gate({
-    ledger: BOTH,
-    env: { GH_PR: "gh: not found" },
-  });
-  assert.equal(code, 2);
-  assert.match(stderr, /couldn't check this PR/);
+test("NO-GO, on air too, when it can't read the PR", async () => {
+  const studio = await ingest();
+  try {
+    const { code, stderr } = gate({
+      ledger: BOTH,
+      env: { GH_PR: "gh: not found", STUDIO_INGEST_URL: studio.url },
+    });
+    assert.equal(code, 2);
+    assert.match(stderr, /couldn't check this PR/);
+    const [{ body }] = await studio.until(1);
+    assert.equal(body.gate.pass, false);
+    assert.equal(body.gate.items[0].who, "gate");
+  } finally {
+    studio.close();
+  }
 });
 
 test("lets other commands through without asking GitHub", () => {
