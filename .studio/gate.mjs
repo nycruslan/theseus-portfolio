@@ -60,7 +60,7 @@ let rollCall;
 try {
   if (call.refusal) throw new Error(call.refusal);
   const pr = view(call);
-  const items = [...checks(pr), ...ownerHold(pr), ...verdicts(pr)];
+  const items = [...checks(pr), ...ownerHold(pr, call), ...verdicts(pr)];
   rollCall = { pr: pr.number, head: pr.headRefOid, items };
 } catch (error) {
   const note = `The gate couldn't check this PR (${error.message.trim()}).`;
@@ -143,13 +143,27 @@ function checks({ statusCheckRollup: rollup }) {
   });
 }
 
-function ownerHold({ labels }) {
-  return labels.some(({ name }) => name === "needs-owner")
+// Every gh call runs as the owner, so removing the label can't be told apart from the owner's own
+// decision. Once a PR has carried needs-owner, only the owner merges it.
+function ownerHold({ number, labels }, { repo }) {
+  const events = execFileSync(
+    "gh",
+    [
+      "api",
+      `repos/${repo ?? "{owner}/{repo}"}/issues/${number}/events`,
+      "--paginate",
+      "--jq",
+      '.[] | select(.event == "labeled") | .label.name',
+    ],
+    { cwd: hook.cwd, encoding: "utf8" },
+  );
+  const held = [...labels.map(({ name }) => name), ...events.split("\n")];
+  return held.includes("needs-owner")
     ? [
         nogo(
           "owner",
           "decision",
-          "The PR is labelled needs-owner: it waits for the owner's decision.",
+          "The PR has carried needs-owner, so the owner decides and merges it.",
         ),
       ]
     : [];

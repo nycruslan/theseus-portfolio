@@ -24,13 +24,18 @@ const VERCEL = {
   state: "SUCCESS",
 };
 
-// A stand-in for gh that records its arguments and prints the PR it was given.
+// A stand-in for gh: \`gh pr\` records its arguments and prints the PR it was given, and \`gh api\`
+// prints the labels the PR has ever carried.
 const bin = tempDir();
 writeFileSync(
   join(bin, "gh"),
   `#!/usr/bin/env node
-require("node:fs").writeFileSync(process.env.GH_ARGS, JSON.stringify(process.argv.slice(2)));
-process.stdout.write(process.env.GH_PR);
+const args = process.argv.slice(2);
+if (args[0] === "api") process.stdout.write(process.env.GH_LABELED);
+else {
+  require("node:fs").writeFileSync(process.env.GH_ARGS, JSON.stringify(args));
+  process.stdout.write(process.env.GH_PR);
+}
 `,
 );
 chmodSync(join(bin, "gh"), 0o755);
@@ -55,6 +60,7 @@ function gate({
   files = ["lib/data.ts"],
   checks = [GREEN, VERCEL],
   labels = [],
+  labeled = [],
   payload = bash("gh pr merge 12 --squash --delete-branch"),
   target = "merge",
   env = {},
@@ -78,6 +84,7 @@ function gate({
       PATH: `${bin}:${process.env.PATH}`,
       TMPDIR: tmp,
       GH_PR: JSON.stringify(pr),
+      GH_LABELED: labeled.join("\n"),
       GH_ARGS: ghArgs,
       ...env,
     },
@@ -183,7 +190,15 @@ test("NO-GO without a ledger: the PR waits for the owner", () => {
 test("NO-GO while the PR waits for the owner's decision", () => {
   const { code, stderr } = gate({ ledger: BOTH, labels: ["needs-owner"] });
   assert.equal(code, 2);
-  assert.match(stderr, /labelled needs-owner/);
+  assert.match(stderr, /carried needs-owner/);
+});
+
+test("NO-GO after the needs-owner label was removed: the owner merges", () => {
+  const labeled = ["sprint", "needs-owner"];
+  const { code, stderr } = gate({ ledger: BOTH, labeled });
+  assert.equal(code, 2);
+  assert.match(stderr, /carried needs-owner/);
+  assert.equal(gate({ ledger: BOTH, labeled: ["sprint"] }).code, 0);
 });
 
 test("NO-GO, on air too, when it can't read the PR", async () => {
