@@ -1,0 +1,1 @@
+- [Seed dark block in globals.css](project_scoping_seed_dark_block.md) — a token contract must decide the fate of the existing prefers-color-scheme block
