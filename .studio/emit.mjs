@@ -1,102 +1,118 @@
 // Forwards Claude Code hook events to the Theseus Studio so visitors can watch the team work.
-// Registered as an async hook in .claude/settings.json: it never blocks the agents, and any
-// failure is ignored because the build matters more than the broadcast.
+// It stays dumb on purpose: the Studio owns the mapping (lib/events.ts), so emit only trims each
+// payload to what the Studio reads, with whitelisted tool results and digests instead of dumps,
+// and hands it to post.mjs. Registered in .claude/settings.json; it never blocks or decides.
 
-import { readFile } from "node:fs/promises";
+import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
+import { broadcast } from "./post.mjs";
 
-const MAX_STRING_LENGTH = 4000;
+// The parts of a tool's result the Studio joins and captions events on; raw output stays local.
+const RESULT_FIELDS = {
+  Agent: [
+    "agentId",
+    "status",
+    "agentType",
+    "resolvedModel",
+    "worktreeBranch",
+    "totalDurationMs",
+    "totalToolUseCount",
+  ],
+  Workflow: ["runId", "workflowName", "summary", "error"],
+  TaskCreate: ["task"],
+  // Claude Code's own reading of git and gh commands: commits, pushes, and the PR's number, URL
+  // and action (created, ready, merged).
+  Bash: ["gitOperation"],
+};
+const NARRATION_LENGTH = 1200;
+const PROMPT_LENGTH = 1000;
+const ERROR_LINES = 3;
 
-const url = process.env.STUDIO_INGEST_URL;
-if (!url) process.exit(0);
-
-// The Studio is public, so mask anything that looks like a credential before it leaves:
-// the values of secret-named environment variables, then common key and token formats.
-const SECRET_ENV =
-  /TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH|DATABASE_URL|POSTGRES/i;
-const secretValues = Object.entries(process.env)
-  .filter(
-    ([name, value]) => SECRET_ENV.test(name) && value && value.length >= 8,
-  )
-  .map(([, value]) => value);
-const SECRET_PATTERNS = [
-  /\b(?:sk|pk|rk)-[\w-]{16,}/g,
-  /\bgh[pousr]_\w{20,}/g,
-  /\bAKIA[0-9A-Z]{16}\b/g,
-  /\b(?:Bearer|Basic)\s+[\w.~+/-]{16,}=*/gi,
-  /\b[a-z][\w+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/gi,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
-];
-
-function redact(text) {
-  let clean = text;
-  for (const value of secretValues)
-    clean = clean.split(value).join("[redacted]");
-  for (const pattern of SECRET_PATTERNS)
-    clean = clean.replace(pattern, "[redacted]");
-  return clean;
-}
-
-// Hook payloads can carry whole files; the Studio only needs a redacted preview.
-function sanitize(value) {
-  if (typeof value === "string")
-    return redact(value).slice(0, MAX_STRING_LENGTH);
-  if (Array.isArray(value)) return value.map(sanitize);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, inner]) => [key, sanitize(inner)]),
-    );
-  }
-  return value;
-}
-
-// Hooks don't report token usage, so total it from the transcript when an agent finishes.
-// A message can appear on several transcript lines; the last one has its final usage.
-async function usageOf(transcriptPath) {
-  const messages = new Map();
-  for (const line of (await readFile(transcriptPath, "utf8")).split("\n")) {
-    if (!line.includes('"usage"')) continue;
-    const { message } = JSON.parse(line);
-    if (message?.usage) messages.set(message.id, message);
-  }
-
-  let tokens = 0;
-  let outputTokens = 0;
-  let model;
-  for (const { usage, model: messageModel } of messages.values()) {
-    outputTokens += usage.output_tokens ?? 0;
-    tokens +=
-      (usage.input_tokens ?? 0) +
-      (usage.cache_creation_input_tokens ?? 0) +
-      (usage.cache_read_input_tokens ?? 0) +
-      (usage.output_tokens ?? 0);
-    model = messageModel;
-  }
-  return { tokens, outputTokens, model };
-}
+if (!process.env.STUDIO_INGEST_URL) process.exit(0);
 
 try {
-  let input = "";
-  for await (const chunk of process.stdin) input += chunk;
-  // Raw tool output (command results, file reads) is the riskiest part and the Studio doesn't use it.
-  const { tool_response: _, ...hook } = JSON.parse(input);
-
-  const transcript =
-    hook.hook_event_name === "SubagentStop"
-      ? hook.agent_transcript_path
-      : hook.hook_event_name === "SessionEnd" && hook.transcript_path;
-  if (transcript) hook.studio_usage = await usageOf(transcript);
-
-  // In cloud sessions a network secret injects the Authorization header instead.
-  const token = process.env.STUDIO_INGEST_TOKEN;
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(token && { authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(sanitize(hook)),
-    signal: AbortSignal.timeout(5000),
-  });
+  const hook = JSON.parse(readFileSync(0, "utf8"));
+  const payload = trim(hook);
+  if (payload) broadcast(payload, transcriptToMeasure(hook));
 } catch {
-  // Swallowed on purpose: see the header comment.
+  // Ignored: the build matters more than the broadcast.
+}
+
+function trim({ tool_response: result, tool_calls: calls, ...hook }) {
+  const fields = RESULT_FIELDS[hook.tool_name];
+  if (fields && result && typeof result === "object") {
+    hook.tool_response = Object.fromEntries(
+      fields.filter((key) => key in result).map((key) => [key, result[key]]),
+    );
+  }
+
+  switch (hook.hook_event_name) {
+    case "PostToolBatch":
+      return { ...hook, batch: digest(calls ?? [], hook.cwd) };
+    case "PostToolUseFailure":
+      // The first line is "Exit code N" for commands; the rest is raw output.
+      return {
+        ...hook,
+        error: String(hook.error ?? "")
+          .split("\n")
+          .slice(0, ERROR_LINES)
+          .join("\n"),
+      };
+    case "UserPromptSubmit":
+      return hook.agent_id
+        ? null
+        : { ...hook, prompt: hook.prompt?.slice(0, PROMPT_LENGTH) };
+    case "MessageDisplay":
+      return narration(hook);
+    default:
+      return hook;
+  }
+}
+
+// A batch can carry whole files. The Studio needs who was convened together and what was read.
+function digest(calls, cwd = "") {
+  const counts = {};
+  const dirs = {};
+  const agentCalls = [];
+  for (const { tool_name: tool, tool_input: input = {} } of calls) {
+    counts[tool] = (counts[tool] ?? 0) + 1;
+    if (tool === "Agent") {
+      const { name, subagent_type, description } = input;
+      agentCalls.push({ name, subagent_type, description });
+    }
+    const target = input.file_path ? dirname(input.file_path) : input.path;
+    if (typeof target === "string") {
+      const dir = relative(cwd, target) || ".";
+      dirs[dir] = (dirs[dir] ?? 0) + 1;
+    }
+  }
+  const busiest = Object.entries(dirs)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([dir]) => dir);
+  return { agentCalls, counts, dirs: busiest };
+}
+
+// Atlas's own words between tool calls. Headless runs send each message whole; interactive ones
+// stream it in batches, which are collected here until the final one (the hook runs in sync, so
+// batches arrive in order).
+function narration(hook) {
+  if (hook.agent_id || process.env.STUDIO_NARRATION === "0") return null;
+  const id = String(hook.message_id).replace(/\W/g, "");
+  const file = join(tmpdir(), `theseus-message-${id}.txt`);
+  if (!hook.final) {
+    appendFileSync(file, hook.delta ?? "");
+    return null;
+  }
+  const earlier = existsSync(file) ? readFileSync(file, "utf8") : "";
+  rmSync(file, { force: true });
+  const text = earlier + (hook.delta ?? "");
+  return { ...hook, delta: text.slice(0, NARRATION_LENGTH) };
+}
+
+function transcriptToMeasure(hook) {
+  if (hook.hook_event_name === "SubagentStop")
+    return hook.agent_transcript_path;
+  if (hook.hook_event_name === "SessionEnd") return hook.transcript_path;
 }
