@@ -8,10 +8,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Code standards
+## Engineering standards
 
 - TypeScript strict mode. No `any`; model data with explicit types.
 - Server Components by default. Add `"use client"` only where interactivity requires it.
 - Small, focused components with named exports (route files keep the default export Next.js requires).
 - Comments explain *why*, not *what*.
-- `pnpm lint` (Biome) and `pnpm build` must pass before any commit.
+- Prove it works: `pnpm lint` and `pnpm build` pass, and the change behaves as intended in a real
+  browser (the next-dev-loop skill; run agent-browser with `--session <name>` so agents don't share one).
+- When something breaks, find the root cause before changing code.

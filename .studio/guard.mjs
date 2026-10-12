@@ -1,29 +1,48 @@
-// PreToolUse guard for Edit, Write and NotebookEdit (see .claude/settings.json). It enforces the
-// single-writer rule: only the Lead (the main session, which has no agent_type) and the engineer
-// change the repository. Every other role returns its work to the Lead and may only write inside
-// its own memory directory. It fails closed: a write it can't verify is blocked.
-//
-// QA and design have Bash for agent-browser, so they could still write through the shell. Their
-// prompts keep them from it, not this hook.
+// PreToolUse guard for Edit, Write and NotebookEdit (see .claude/settings.json).
+// - Protected files: the owner's facts and the team's own setup stay out of every agent's reach,
+//   in the main checkout and in worktrees alike.
+// - Writers: only the lead (the main session, which has no agent_type) and the engineers change
+//   the repository; every other role may only write to its own memory directory.
+// It fails closed: a write it can't verify is blocked. Roles with Bash could still write through
+// the shell; their prompts, not this hook, keep them from it.
 
-import { resolve, sep } from "node:path";
+import { relative, resolve } from "node:path";
 
-const WRITERS = new Set(["engineer"]);
+const WRITERS = new Set(["engineer", "creative-engineer"]);
+const PROTECTED = [
+  /^content\//,
+  /^\.claude\/(settings\.json$|agents\/|skills\/)/,
+  /^\.studio\/[^/]+\.(mjs|sh)$/,
+  /^\.github\//,
+  /^design\/rubric\.md$/,
+];
 
 try {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
-
   const { agent_type: agent, tool_input: toolInput, cwd } = JSON.parse(input);
-  if (!agent || WRITERS.has(agent)) process.exit(0);
 
   const root = process.env.CLAUDE_PROJECT_DIR ?? cwd;
-  const target = resolve(root, toolInput.file_path ?? toolInput.notebook_path);
-  const ownMemory = resolve(root, ".claude/agent-memory", agent) + sep;
+  const target = resolve(
+    cwd ?? root,
+    toolInput.file_path ?? toolInput.notebook_path,
+  );
+  // Worktrees live under .claude/worktrees/<name>/, so judge paths as they are inside a checkout.
+  const path = relative(root, target).replace(
+    /^\.claude\/worktrees\/[^/]+\//,
+    "",
+  );
 
-  if (!target.startsWith(ownMemory)) {
+  if (path.startsWith("..") || PROTECTED.some((rule) => rule.test(path))) {
+    block(`${path} is protected: only the owner changes it.`);
+  }
+  if (
+    agent &&
+    !WRITERS.has(agent) &&
+    !path.startsWith(`.claude/agent-memory/${agent}/`)
+  ) {
     block(
-      `${agent} is read-only: return your output to the Lead instead of writing ${target}.`,
+      `${agent} doesn't edit files: return your work to the lead instead of writing ${path}.`,
     );
   }
 } catch {

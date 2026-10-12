@@ -10,20 +10,14 @@
       "Bash(gh pr checks *)",
       "Bash(gh pr review *)",
       "Bash(gh pr comment *)",
-      "Bash(gh pr merge *)"
-    ],
-    "deny": [
-      "Edit(/content/**)",
-      "Edit(/.claude/settings.json)",
-      "Edit(/.claude/agents/**)",
-      "Edit(/.claude/skills/**)",
-      "Edit(/.studio/emit.mjs)",
-      "Edit(/.studio/install.sh)",
-      "Edit(/.studio/guard.mjs)",
-      "Edit(/design/rubric.md)",
-      "Edit(/.github/**)"
+      "Bash(gh pr merge *)",
+      "Workflow"
     ]
   },
+  "worktree": {
+    "baseRef": "head"
+  },
+  "workflowSizeGuideline": "medium",
   "hooks": {
     "SessionStart": [
       {
