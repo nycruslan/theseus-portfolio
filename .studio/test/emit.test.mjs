@@ -145,19 +145,31 @@ test("keeps only the whitelisted parts of a tool result", async () => {
       tool_response: { file: { content: "hi" } },
       tool_use_id: "toolu_03",
     },
+    {
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: { command: "pnpm lint" },
+      tool_response: {
+        stdout: "Checked 22 files",
+        stderr: "",
+        interrupted: false,
+      },
+      tool_use_id: "toolu_04",
+    },
   ]);
-  const byTool = Object.fromEntries(
-    posts.map((post) => [post.tool_name, post]),
+  const byId = Object.fromEntries(
+    posts.map((post) => [post.tool_use_id, post]),
   );
-  assert.deepEqual(byTool.Agent.tool_response, {
+  assert.deepEqual(byId.toolu_01.tool_response, {
     agentId: "a4d2c8f1e0b3a297",
     status: "completed",
     resolvedModel: "claude-opus-5-5",
     totalDurationMs: 48211,
     totalToolUseCount: 7,
   });
-  assert.deepEqual(Object.keys(byTool.Bash.tool_response), ["gitOperation"]);
-  assert.equal(byTool.Read.tool_response, undefined);
+  assert.deepEqual(Object.keys(byId.toolu_02.tool_response), ["gitOperation"]);
+  assert.equal(byId.toolu_03.tool_response, undefined);
+  assert.equal(byId.toolu_04.tool_response, undefined);
 });
 
 test("digests a batch: who was convened and what was read", async () => {

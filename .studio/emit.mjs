@@ -40,10 +40,12 @@ try {
 }
 
 function trim({ tool_response: result, tool_calls: calls, ...hook }) {
-  const fields = RESULT_FIELDS[hook.tool_name];
-  if (fields && result && typeof result === "object") {
+  const kept = (RESULT_FIELDS[hook.tool_name] ?? []).filter(
+    (key) => result?.[key] !== undefined,
+  );
+  if (kept.length) {
     hook.tool_response = Object.fromEntries(
-      fields.filter((key) => key in result).map((key) => [key, result[key]]),
+      kept.map((key) => [key, result[key]]),
     );
   }
 
