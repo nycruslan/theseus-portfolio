@@ -1,7 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"
+    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
   },
   "permissions": {
     "allow": [
@@ -10,9 +11,12 @@
       "Bash(gh pr checks *)",
       "Bash(gh pr review *)",
       "Bash(gh pr comment *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr ready *)",
       "Bash(gh pr merge *)",
       "Workflow"
-    ]
+    ],
+    "deny": ["Bash(gh api *)"]
   },
   "worktree": {
     "baseRef": "head"
@@ -41,7 +45,7 @@
         ]
       }
     ],
-    "SessionEnd": [
+    "UserPromptSubmit": [
       {
         "hooks": [
           {
@@ -49,6 +53,118 @@
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
             "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
+            "timeout": 10,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr merge *)",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
+            "timeout": 60,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__github__merge_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
+            "timeout": 60,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash|Agent|Workflow|SendMessage|SubagentHandback|WebSearch|WebFetch|TaskCreate|TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|Agent|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "timeout": 5
           }
         ]
       }
@@ -63,6 +179,17 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "code-reviewer|qa-engineer|design-director",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SubagentStop": [
@@ -75,16 +202,15 @@
             "async": true
           }
         ]
-      }
-    ],
-    "Stop": [
+      },
       {
+        "matcher": "code-reviewer|qa-engineer|design-director",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
-            "async": true
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
+            "timeout": 10
           }
         ]
       }
@@ -113,19 +239,8 @@
         ]
       }
     ],
-    "PreToolUse": [
+    "TeammateIdle": [
       {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"]
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
@@ -136,15 +251,37 @@
         ]
       }
     ],
-    "PostToolUse": [
+    "Stop": [
       {
-        "matcher": "Edit|Write|Bash|SendMessage|SubagentHandback|WebSearch|WebFetch|TaskUpdate",
         "hooks": [
           {
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
-            "async": true
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"]
           }
         ]
       }

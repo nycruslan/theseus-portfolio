@@ -1,6 +1,7 @@
 # Roadmap
 
-The Lead picks the first unchecked item each sprint. Keep items small enough for one sprint.
+Quill owns this list and picks what matters most each sprint. Keep items small enough for one
+sprint.
 
 - [ ] Design tokens: a color palette and a fluid typography scale in `app/globals.css`, used across the page.
 - [ ] Dark mode that follows the system preference, with accessible contrast in both themes.
