@@ -15,7 +15,8 @@
       "Bash(gh pr ready *)",
       "Bash(gh pr merge *)",
       "Workflow"
-    ]
+    ],
+    "deny": ["Bash(gh api *)"]
   },
   "worktree": {
     "baseRef": "head"
