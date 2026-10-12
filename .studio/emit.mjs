@@ -9,13 +9,41 @@ const MAX_STRING_LENGTH = 4000;
 const url = process.env.STUDIO_INGEST_URL;
 if (!url) process.exit(0);
 
-// Hook payloads can carry whole files or command output; the Studio only needs a preview.
-function truncate(value) {
-  if (typeof value === "string") return value.slice(0, MAX_STRING_LENGTH);
-  if (Array.isArray(value)) return value.map(truncate);
+// The Studio is public, so mask anything that looks like a credential before it leaves:
+// the values of secret-named environment variables, then common key and token formats.
+const SECRET_ENV =
+  /TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH|DATABASE_URL|POSTGRES/i;
+const secretValues = Object.entries(process.env)
+  .filter(
+    ([name, value]) => SECRET_ENV.test(name) && value && value.length >= 8,
+  )
+  .map(([, value]) => value);
+const SECRET_PATTERNS = [
+  /\b(?:sk|pk|rk)-[\w-]{16,}/g,
+  /\bgh[pousr]_\w{20,}/g,
+  /\bAKIA[0-9A-Z]{16}\b/g,
+  /\b(?:Bearer|Basic)\s+[\w.~+/-]{16,}=*/gi,
+  /\b[a-z][\w+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/gi,
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
+];
+
+function redact(text) {
+  let clean = text;
+  for (const value of secretValues)
+    clean = clean.split(value).join("[redacted]");
+  for (const pattern of SECRET_PATTERNS)
+    clean = clean.replace(pattern, "[redacted]");
+  return clean;
+}
+
+// Hook payloads can carry whole files; the Studio only needs a redacted preview.
+function sanitize(value) {
+  if (typeof value === "string")
+    return redact(value).slice(0, MAX_STRING_LENGTH);
+  if (Array.isArray(value)) return value.map(sanitize);
   if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([key, inner]) => [key, truncate(inner)]),
+      Object.entries(value).map(([key, inner]) => [key, sanitize(inner)]),
     );
   }
   return value;
@@ -49,7 +77,8 @@ async function usageOf(transcriptPath) {
 try {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
-  const hook = JSON.parse(input);
+  // Raw tool output (command results, file reads) is the riskiest part and the Studio doesn't use it.
+  const { tool_response: _, ...hook } = JSON.parse(input);
 
   const transcript =
     hook.hook_event_name === "SubagentStop"
@@ -65,7 +94,7 @@ try {
       "content-type": "application/json",
       ...(token && { authorization: `Bearer ${token}` }),
     },
-    body: JSON.stringify(truncate(hook)),
+    body: JSON.stringify(sanitize(hook)),
     signal: AbortSignal.timeout(5000),
   });
 } catch {
