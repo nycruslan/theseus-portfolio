@@ -9,7 +9,7 @@ import { gitRepo, ingest, runHook, tempDir } from "./kit.mjs";
 const studio = await ingest();
 after(() => studio.close());
 
-const { dir: repo } = gitRepo({ "README.md": "hi" });
+const { dir: repo } = gitRepo({ "README.md": "hi", ".gitignore": ".env*\n" });
 execFileSync(
   "git",
   [
@@ -302,16 +302,61 @@ test("keeps the first lines of a failure", async () => {
   assert.equal(posts[0].error, "Exit code 1\nType error: x\n  at page.tsx:3");
 });
 
+test("shows a file git won't publish by its path alone", async () => {
+  const outside = join(tempDir(), "notes.md");
+  writeFileSync(outside, "x");
+  const { posts } = await emit([
+    {
+      hook_event_name: "PostToolUse",
+      tool_name: "Write",
+      tool_input: { file_path: `${repo}/.env.local`, content: "A=1" },
+      tool_use_id: "toolu_ignored",
+    },
+    {
+      hook_event_name: "PostToolUse",
+      tool_name: "Edit",
+      tool_input: { file_path: outside, old_string: "x", new_string: "y" },
+      tool_use_id: "toolu_outside",
+    },
+    {
+      hook_event_name: "PostToolUse",
+      tool_name: "Write",
+      tool_input: { file_path: `${repo}/README.md`, content: "hello" },
+      tool_use_id: "toolu_tracked",
+    },
+  ]);
+  const byId = Object.fromEntries(
+    posts.map((post) => [post.tool_use_id, post.tool_input]),
+  );
+  assert.deepEqual(byId.toolu_ignored, { file_path: `${repo}/.env.local` });
+  assert.deepEqual(byId.toolu_outside, { file_path: outside });
+  assert.equal(byId.toolu_tracked.content, "hello");
+});
+
 test("masks secrets, stamps time and repository, and leaves no temp files", async () => {
   const before = Date.now();
+  // Built here so the file itself holds nothing a secret scanner flags.
+  const fake = (prefix) => `${prefix}${"0123456789abcdefghij".repeat(2)}`;
+  const tokens = [
+    fake("ghp_"),
+    fake("github_pat_"),
+    fake("glpat-"),
+    fake("xoxb-"),
+    fake("AIza"),
+    fake("sk_live_"),
+  ];
   const { tmp } = await emit(
     [
       {
         hook_event_name: "PostToolUse",
         tool_name: "Bash",
         tool_input: {
-          command:
-            "curl -H 'x: supersecretvalue123' https://x.dev ghp_abcdefghijklmnopqrstuvwxyz0123",
+          command: [
+            "curl -H 'x: supersecretvalue123' https://x.dev",
+            ...tokens,
+            `git push https://${fake("github_pat_")}@github.com/o/r.git`,
+            "VERCEL_TOKEN=plain-value-1 vercel",
+          ].join(" "),
         },
         tool_use_id: "toolu_05",
       },
@@ -325,10 +370,18 @@ test("masks secrets, stamps time and repository, and leaves no temp files", asyn
   );
   const [{ headers, raw, body }] = studio.received;
   assert.equal(headers.authorization, "Bearer ingest-token-0123456789");
-  assert.doesNotMatch(raw, /supersecretvalue123|ghp_|ingest-token/);
+  assert.doesNotMatch(
+    raw,
+    /supersecretvalue123|ingest-token|0123456789abcdefghij|plain-value/,
+  );
   assert.equal(
     body.tool_input.command,
-    "curl -H 'x: [redacted]' https://x.dev [redacted]",
+    [
+      "curl -H 'x: [redacted]' https://x.dev",
+      ...tokens.map(() => "[redacted]"),
+      "git push [redacted]github.com/o/r.git",
+      "VERCEL_TOKEN=[redacted] vercel",
+    ].join(" "),
   );
   assert.ok(body.at >= before && body.at <= Date.now());
   assert.equal(body.repo, "theseus-portfolio");

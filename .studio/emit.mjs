@@ -3,6 +3,7 @@
 // payload to what the Studio reads, with whitelisted tool results and digests instead of dumps,
 // and hands it to post.mjs. Registered in .claude/settings.json; it never blocks or decides.
 
+import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
@@ -48,6 +49,13 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
       kept.map((key) => [key, result[key]]),
     );
   }
+  // Only text that goes public with the code anyway: a file git ignores (.env.local, build output)
+  // or one outside the repository shows by its path alone.
+  const file = hook.tool_input?.file_path;
+  if (file && !published(file)) {
+    const { content, old_string, new_string, ...input } = hook.tool_input;
+    hook.tool_input = input;
+  }
 
   switch (hook.hook_event_name) {
     case "PostToolBatch":
@@ -70,6 +78,14 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
     default:
       return hook;
   }
+}
+
+// check-ignore exits 1 for a file git would track, 0 for an ignored one and 128 outside a repository.
+function published(file) {
+  const check = spawnSync("git", ["check-ignore", "--quiet", file], {
+    cwd: dirname(file),
+  });
+  return check.status === 1;
 }
 
 // A batch can carry whole files. The Studio needs who was convened together and what was read.
@@ -104,7 +120,7 @@ function narration(hook) {
   const id = String(hook.message_id).replace(/\W/g, "");
   const file = join(tmpdir(), `theseus-message-${id}.txt`);
   if (!hook.final) {
-    appendFileSync(file, hook.delta ?? "");
+    appendFileSync(file, hook.delta ?? "", { mode: 0o600 });
     return null;
   }
   const earlier = existsSync(file) ? readFileSync(file, "utf8") : "";

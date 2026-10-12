@@ -14,16 +14,27 @@ import { fileURLToPath } from "node:url";
 const SELF = fileURLToPath(import.meta.url);
 const MAX_STRING_LENGTH = 4000;
 
-// The Studio is public, so mask anything that looks like a credential before it leaves:
-// the values of secret-named environment variables, then common key and token formats.
-const SECRET_ENV =
-  /TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH|DATABASE_URL|POSTGRES/i;
+// The Studio is public, so mask anything that looks like a credential before it leaves: the values
+// of secret-named environment variables, values assigned to secret-named variables (.env files,
+// shell commands), then common key and token formats.
+const SECRET_NAMES =
+  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH|DATABASE_URL|POSTGRES";
+const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const SECRET_PATTERNS = [
-  /\b(?:sk|pk|rk)-[\w-]{16,}/g,
+  new RegExp(
+    `(?<=\\b[A-Z0-9_]*(?:${SECRET_NAMES})[A-Z0-9_]*=["']?)[^\\s"']+`,
+    "g",
+  ),
+  /\b(?:sk|pk|rk)(?:-|_live_|_test_)[\w-]{16,}/g,
   /\bgh[pousr]_\w{20,}/g,
+  /\bgithub_pat_\w{20,}/g,
+  /\bglpat-[\w-]{20,}/g,
+  /\bxox[abprs]-[\w-]{10,}/g,
+  /\bAIza[\w-]{30,}/g,
   /\bAKIA[0-9A-Z]{16}\b/g,
   /\b(?:Bearer|Basic)\s+[\w.~+/-]{16,}=*/gi,
-  /\b[a-z][\w+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/gi,
+  // Credentials in a URL, as user:password@ or token@.
+  /\b[a-z][\w+.-]*:\/\/[^\s/@]+@/gi,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
 ];
 const secretValues = Object.entries(process.env)
