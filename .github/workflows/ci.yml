@@ -20,4 +20,6 @@ jobs:
           cache: true
           require-lockfile: true
       - run: pnpm lint
+      # The team's harness: hooks for the broadcast, the write guard, verdicts and the merge gate.
+      - run: node --test .studio/test/*.test.mjs
       - run: pnpm build
