@@ -2,19 +2,18 @@
 
 A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
-Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead.
-Atlas picks the next item from [`ROADMAP.md`](ROADMAP.md) and runs it through the team:
-the Product Owner writes the ticket, the Researcher checks current docs, and the Engineer builds
-it. The Code Reviewer, QA and the Design Director gate it, then Atlas opens a pull request, posts
-the team's reviews on it and merges it once CI is green. Every
-action is broadcast live to the Studio, where visitors watch the team work.
+Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead, and
+runs a sprint the way a real team would: a kickoff meeting, engineers building in parallel in their
+own git worktrees, code review, QA in a real browser and a design critique, then a pull request that
+Atlas merges once CI is green. Every action streams live to the Studio, where visitors watch.
 
 ## How it works
 
 | Piece | Where |
 |---|---|
 | The team's roles | [`.claude/agents/`](.claude/agents) |
-| The sprint process | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
+| How the team works | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
+| Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
 | Each sprint's tickets, reviews and scores | [`.studio/sprint/`](.studio/sprint) |
