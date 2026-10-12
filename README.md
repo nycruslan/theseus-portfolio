@@ -4,10 +4,10 @@ A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
 Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead. The
 team agrees what *done* means before anyone builds, meets only when a decision is genuinely open,
-builds with one writer per area, and has every change reviewed, tested in a real browser and
-design-critiqued by someone who didn't build it. Atlas merges only when a script confirms CI is
-green and the reviews approve that exact code; if something needs the owner, the PR waits. Every
-step streams live to the Studio.
+builds with one writer per area, and has every change reviewed and tested in a real browser by
+someone who didn't build it, and design-critiqued when it changes how the site looks. Atlas merges
+only when a script confirms CI is green and the reviews approve that exact code; if something needs
+the owner, the PR waits. Every step streams live to the Studio.
 
 ## How it works
 
