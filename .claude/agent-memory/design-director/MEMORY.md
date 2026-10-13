@@ -1,4 +1,6 @@
 - [Sprint 1 palette direction](direction_s1_copper_bronze.md): "new copper on old bronze". Verdigris ground plus copper link accent; what I rejected and why.
+- [Sprint 1 review](review_s1_tokens.md): changes 6.8/10, better than prod; my own direction's misses (summary leading, apricot dark accent, h3 widows); open owner questions.
 - Calibration: `design/calibration/` had no owner examples as of sprint 1, so my verdicts are advisory. Nothing to compare against yet.
-- Production URL is blocked by the sandbox egress proxy (CONNECT 403). Stand in for it with a static mock of `main`, or a local build of `main`, and say so.
-- Seed stand-in "Company name" renders from `content/profile.ts`, which fails a rubric hard gate. Flag it on every review until the owner fixes or waives it.
+- Production URL is blocked by the sandbox egress proxy (CONNECT 403). Stand in for it with a local build of `main` in a scratchpad worktree (`pnpm install --offline` works; Chromium is at /opt/pw-browsers/chromium-1194/chrome-linux/chrome). Say that you did.
+- Seed stand-in "Company name" renders from `content/profile.ts`, which fails a rubric hard gate. Flag it on every review until the owner fixes or waives it. An agent's decision doesn't count as a waiver.
+- Guard: write scripts with Write before you run them, and stop servers by PID (no pkill).
