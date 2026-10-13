@@ -1,25 +1,71 @@
-@import "tailwindcss";
+/* Scan only the code that holds class names. Automatic detection also reads the team's notes and
+   skills (.studio, .claude), which shipped utilities no component uses. */
+@import "tailwindcss" source(none);
+@source "../app";
+@source "../components";
 
+/*
+ * Design tokens. Mood: weathered bronze gone to sea-glass verdigris, with the links as the one
+ * freshly fitted part, bright copper. Hex values are used so computed styles come back as rgb();
+ * the oklch intent is kept beside each one. Direction: .studio/sprint/1/direction.md.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e6f3f1; /* oklch(95.5% 0.014 185) pale sea-glass */
+  --foreground: #0f2220; /* oklch(23.5% 0.025 185) tinted ink */
+  --muted: #455e5a; /* oklch(46% 0.03 185) secondary text */
+  --accent: #944126; /* oklch(48% 0.12 38) copper, links only */
+  --rule: #c5d5d2; /* oklch(86% 0.018 185) decorative, never text */
+
+  /* Fluid type: a modular scale of 1.2 at 320px opening to 1.333 at 1440px, base 16px to 18px.
+     Each clamp() is linear between those two widths. 2xl is an off-scale display step. */
+  --step-sm: clamp(0.8333rem, 0.8304rem + 0.0149vw, 0.8438rem);
+  --step-base: clamp(1rem, 0.9643rem + 0.1786vw, 1.125rem);
+  --step-lg: clamp(1.2rem, 1.1143rem + 0.4286vw, 1.5rem);
+  --step-xl: clamp(1.44rem, 1.28rem + 0.8vw, 2rem);
+  --step-2xl: clamp(3rem, 2.5rem + 2.5vw, 4.75rem);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-rule: var(--rule);
+
+  /* Each step carries its own leading, so the large name doesn't inherit the body's. */
+  --text-step-sm: var(--step-sm);
+  --text-step-sm--line-height: 1.5;
+  --text-step-base: var(--step-base);
+  --text-step-base--line-height: 1.6;
+  --text-step-lg: var(--step-lg);
+  --text-step-lg--line-height: 1.45;
+  --text-step-xl: var(--step-xl);
+  --text-step-xl--line-height: 1.2;
+  --text-step-2xl: var(--step-2xl);
+  --text-step-2xl--line-height: 1;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+/* Parity with the old dark mode only; the real dark theme is roadmap item 2. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #091413; /* oklch(18% 0.016 190) */
+    --foreground: #e1eae9; /* oklch(93% 0.01 185) */
+    --muted: #96a9a6; /* oklch(72% 0.022 185) */
+    --accent: #e79d73; /* oklch(76% 0.105 50) */
+    --rule: #283635; /* oklch(32% 0.018 190) */
   }
 }
 
 body {
   background: var(--background);
+  color: var(--foreground);
+  font-size: var(--step-base);
+}
+
+::selection {
+  background: var(--rule);
   color: var(--foreground);
 }

@@ -1,0 +1,48 @@
+{
+  "sprint": 1,
+  "goal": "Roadmap item 1: design tokens (5 colors, 5 fluid type steps in app/globals.css, used across the page)",
+  "outcome": "not merged: PR #9 is left open with needs-owner. Lens ship x2, Probe ship x2 and CI green on 9461555; Iris's advisory verdict is changes 6.8/10, on owner-only items; and the theseus/* verdict statuses could not be posted from the cloud session, so merge.mjs cannot pass",
+  "size": "M",
+  "fix_rounds": 1,
+  "builder_dispatches": 2,
+  "pr": 9,
+  "head_reviewed": "9461555f9ae70d47c43695f22d2e0903a1491e9d",
+  "lens_important_findings": 0,
+  "lens_important_acted_on": 0,
+  "lens_minor_findings": 5,
+  "lens_minor_acted_on": 2,
+  "went_wrong": [
+    {
+      "what": "verdict.mjs could not post any theseus/* status: the cloud proxy returns 'Write access to this GitHub API path is not permitted through this proxy' for the commit statuses API, so the merge gate can never see a verdict from a cloud routine",
+      "evidence": "the session ledger in the temp directory (theseus-verdicts-<session>.jsonl), 'not posted' entries for the probe, lens and iris verdicts; decisions.md item 5"
+    },
+    {
+      "what": "The sandbox's Playwright browser is build 1194 but Playwright 1.64 wants 1248, and `playwright install` is blocked by the proxy, so every agent had to build its own PLAYWRIGHT_BROWSERS_PATH shim. agent-browser is not installed either",
+      "evidence": ".studio/sprint/1/probe-checks.md (environment note); review-lens.md Evidence; Forge's report"
+    },
+    {
+      "what": "Iris's rubric gates fail on owner content that was already on main (the 'Company name' stand-ins), and the absolute 7.0 bar can't be reached by a scoped, layout-frozen sprint, so a sprint that is better than production still gets 'changes'",
+      "evidence": ".studio/sprint/1/review-iris.md and review-iris-2.md"
+    }
+  ],
+  "proposed_setup_changes": [
+    {
+      "change": "Let cloud routines post the theseus/* verdicts: either allow write access to repos/<owner>/<repo>/statuses through the session's GitHub proxy, or have verdict.mjs also record the verdict as a PR comment that gate.mjs accepts when it comes from the hook",
+      "moves": "sprints merged by an unattended routine: 0 of 1 now"
+    },
+    {
+      "change": "Have install.sh match Playwright's browser to the image (pin @playwright/test to the build at /opt/pw-browsers, or use executablePath in playwright.config.ts), and install agent-browser",
+      "moves": "agents that hand-built a browser shim: 4 of 4 this sprint"
+    },
+    {
+      "change": "In design/rubric.md, decide whether the placeholder gate applies to owner-pending content that was already on main, and whether 'better than production, all gates pass, nothing under 6' passes a scoped sprint",
+      "moves": "Iris 'changes' verdicts on a change she rated better than production: 2 of 2"
+    }
+  ],
+  "follow_ups": [
+    "Item 2 (dark mode): move the dark --accent toward hue 40-45 and keep it at 7:1 or more (review-iris.md finding 3)",
+    "Item 3 (cards): give the company its own element so balanced titles don't start a line with '·' (review-lens-2.md Nit 1); give the 1440 layout structure using --rule",
+    "Next globals.css change: a comment line telling builders to add an @source for any new folder with class names (review-lens-2.md Nit 2)",
+    "Item 6: the project link is told apart by color alone at rest (review-lens.md Nit 3)"
+  ]
+}

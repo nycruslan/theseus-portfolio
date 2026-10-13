@@ -1,1 +1,2 @@
 - [Seed dark block in globals.css](project_scoping_seed_dark_block.md) — a token contract must decide the fate of the existing prefers-color-scheme block
+- Name tokens in the contract (fixed custom-property names) so Probe's e2e checks are deterministic; dark-block default is "kept, parity only"
