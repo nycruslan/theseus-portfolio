@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -9,17 +8,8 @@ import { gitRepo, ingest, runHook, tempDir } from "./kit.mjs";
 const studio = await ingest();
 after(() => studio.close());
 
+// Its origin is https://github.com/nycruslan/theseus-portfolio.git.
 const { dir: repo } = gitRepo({ "README.md": "hi", ".gitignore": ".env*\n" });
-execFileSync(
-  "git",
-  [
-    "remote",
-    "add",
-    "origin",
-    "https://github.com/nycruslan/theseus-portfolio.git",
-  ],
-  { cwd: repo },
-);
 
 // Payloads are shaped like the examples in https://code.claude.com/docs/en/hooks.
 const common = {
@@ -170,6 +160,53 @@ test("keeps only the whitelisted parts of a tool result", async () => {
   assert.deepEqual(Object.keys(byId.toolu_02.tool_response), ["gitOperation"]);
   assert.equal(byId.toolu_03.tool_response, undefined);
   assert.equal(byId.toolu_04.tool_response, undefined);
+});
+
+test("forwards only the PR's URL from opening it through REST or merging it with merge.mjs", async () => {
+  const url = "https://github.com/nycruslan/theseus-portfolio/pull/14";
+  // What `gh api …/pulls` prints: the whole PR, whose body may link other PRs.
+  const opened = JSON.stringify({
+    url: "https://api.github.com/repos/nycruslan/theseus-portfolio/pulls/14",
+    id: 1,
+    html_url: url,
+    diff_url: `${url}.diff`,
+    number: 14,
+    body: "Follows https://github.com/nycruslan/theseus-portfolio/pull/9. Secret plan inside.",
+  });
+  const bash = (tool_use_id, command, stdout) => ({
+    hook_event_name: "PostToolUse",
+    tool_name: "Bash",
+    tool_input: { command },
+    tool_response: { stdout, stderr: "", interrupted: false },
+    tool_use_id,
+  });
+  const { posts } = await emit([
+    bash(
+      "open",
+      "gh api repos/nycruslan/theseus-portfolio/pulls -f title='Sprint 3' -f head=sprint-3 -f base=main -F body=@.studio/sprint/3/pr.md",
+      opened,
+    ),
+    bash(
+      "short",
+      "gh api repos/nycruslan/theseus-portfolio/pulls -f title=x -f head=y -f base=main --jq .html_url",
+      `${url}\n`,
+    ),
+    bash(
+      "merge",
+      "node .studio/merge.mjs 14",
+      `Waiting for CI on PR #14 at abc1234: check still running; 0 of 1 done (0:15 of 9:00).\nMerged PR #14 (abc1234) as def5678: ${url}\n`,
+    ),
+    bash("read", "gh api repos/nycruslan/theseus-portfolio/pulls/14", opened),
+    bash("echo", `echo ${url}`, `${url}\n`),
+  ]);
+  const byId = Object.fromEntries(
+    posts.map((post) => [post.tool_use_id, post]),
+  );
+  for (const id of ["open", "short", "merge"]) {
+    assert.deepEqual(byId[id].tool_response, { prUrl: url }, id);
+  }
+  assert.equal(byId.read.tool_response, undefined);
+  assert.equal(byId.echo.tool_response, undefined);
 });
 
 test("digests a batch: who was convened and what was read", async () => {

@@ -1,8 +1,15 @@
 // Shared test helpers: run a hook script the way Claude Code does, stand in for the Studio's
-// ingest, and build throwaway git repositories.
+// ingest and for gh's REST calls, and build throwaway git repositories.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -19,16 +26,48 @@ export function runHook(script, payload, { env = {}, cwd, args = [] } = {}) {
       input: typeof payload === "string" ? payload : JSON.stringify(payload),
       cwd,
       encoding: "utf8",
-      // Isolate the run from the developer's own Studio settings.
+      // Isolate the run from the developer's own Studio settings, and from the real gh: no test
+      // may post to GitHub.
       env: {
         HOME: process.env.HOME,
-        PATH: process.env.PATH,
+        PATH: `${GH}:${process.env.PATH}`,
         TMPDIR: tempDir(),
         ...env,
       },
     },
   );
-  return { code: result.status, stderr: result.stderr };
+  return { code: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
+/** The hook's JSON answer on stdout, or null when it printed none. */
+export function answer({ stdout }) {
+  return stdout.trim() ? JSON.parse(stdout) : null;
+}
+
+// fake-gh.cjs stands in for gh, first on every hook's PATH: no test may reach GitHub. It answers
+// `gh api` from GH_ROUTES (see that file).
+const GH = mkdtempSync(join(tmpdir(), "theseus-gh-"));
+writeFileSync(
+  join(GH, "gh"),
+  `#!/bin/sh\nexec "${process.execPath}" "${join(dirname(fileURLToPath(import.meta.url)), "fake-gh.cjs")}" "$@"\n`,
+);
+chmodSync(join(GH, "gh"), 0o755);
+
+/** GH_ROUTES for the fake gh, from an object of routes. */
+export function routes(table) {
+  return JSON.stringify(table);
+}
+
+/** A log for the fake gh, and a reader for the calls it saw. */
+export function ghLog() {
+  const file = join(tempDir(), "gh.jsonl");
+  return {
+    file,
+    calls: () =>
+      existsSync(file)
+        ? readFileSync(file, "utf8").trim().split("\n").map(JSON.parse)
+        : [],
+  };
 }
 
 export function tempDir() {
@@ -77,14 +116,19 @@ export async function ingest() {
   };
 }
 
-/** A git repository with one commit per entry: each maps paths to contents. */
+/** The repository test checkouts claim as their origin, and the URL they claim it from. */
+export const REPO = "nycruslan/theseus-portfolio";
+export const ORIGIN = `https://github.com/${REPO}.git`;
+
+/** A git repository with one commit per entry: each maps paths to contents. Its origin is ORIGIN. */
 export function gitRepo(...commits) {
   const dir = tempDir();
   const git = (...args) =>
     execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
-  git("init", "--quiet");
+  git("init", "--quiet", "--initial-branch", "main");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "Test");
+  git("remote", "add", "origin", ORIGIN);
   const shas = commits.map((files, index) => {
     for (const [path, content] of Object.entries(files)) {
       mkdirSync(dirname(join(dir, path)), { recursive: true });

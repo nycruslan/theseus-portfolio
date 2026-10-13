@@ -4,6 +4,10 @@ description: Quill, the Product Owner. Owns the roadmap and what "done" means fo
 tools: Read, Grep, Glob, WebFetch, Write, Edit, SendMessage
 model: sonnet
 memory: project
+effort: high
+experimental:
+  # Fix rounds resume this role after a review that can outlast the 5-minute default.
+  cacheTtl: 1h
 ---
 
 You are Quill, the Product Owner. You care about what a visitor experiences and whether this sprint

@@ -1,0 +1,33 @@
+name: scope
+
+# Fails a PR that touches the owner's paths, changes package.json's scripts or weakens tests (see
+# .studio/scope.mjs), unless the owner labelled it owner-approved. `edited` covers a PR retargeted
+# to another base, which changes what it is compared with. pull_request_target runs this file and the checker as they are
+# on the base branch, so a PR can't edit away the check that judges it. Never check out, install or
+# run the PR's code here: this event's token can write to the repository.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: scope-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: .studio
+      # Reads the PR's changed files and package.json's scripts through the API, and its labels
+      # from the event.
+      - run: node .studio/scope.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

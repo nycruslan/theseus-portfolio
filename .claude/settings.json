@@ -5,18 +5,29 @@
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
   },
   "permissions": {
-    "allow": [
-      "Bash(gh pr create *)",
-      "Bash(gh pr view *)",
-      "Bash(gh pr checks *)",
-      "Bash(gh pr review *)",
-      "Bash(gh pr comment *)",
-      "Bash(gh pr edit *)",
-      "Bash(gh pr ready *)",
+    "allow": ["Bash(gh api *)", "Bash(node .studio/merge.mjs *)", "Workflow"],
+    "deny": [
       "Bash(gh pr merge *)",
-      "Workflow"
-    ],
-    "deny": ["Bash(gh api *)"]
+      "Bash(gh alias *)",
+      "Bash(gh auth *)",
+      "Bash(gh config *)",
+      "Bash(*owner-approved*)",
+      "Bash(pkill *)",
+      "Bash(killall *)",
+      "mcp__github",
+      "Edit(~/.claude.json)",
+      "Edit(~/.claude/settings*.json)",
+      "Edit(~/.claude/CLAUDE.md)",
+      "Edit(~/.claude/agents/**)",
+      "Edit(~/.claude/skills/**)",
+      "Edit(~/.claude/commands/**)",
+      "Edit(~/.claude/rules/**)",
+      "Edit(~/.claude/hooks/**)",
+      "Edit(~/.claude/plugins/**)",
+      "Edit(~/.config/gh/**)",
+      "Edit(~/.gitconfig)",
+      "Agent(model:*fable*)"
+    ]
   },
   "worktree": {
     "baseRef": "head"
@@ -75,22 +86,21 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(gh pr merge *)",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
-            "timeout": 60,
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
+            "timeout": 10,
             "onFailure": "block"
           }
         ]
       },
       {
-        "matcher": "mcp__github__merge_pull_request",
+        "matcher": "mcp__.*",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
-            "timeout": 60,
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
+            "timeout": 10,
             "onFailure": "block"
           }
         ]
@@ -105,6 +115,17 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Agent|SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -115,6 +136,17 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash|Write|Edit|TaskUpdate|mcp__.*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
             "async": true
           }
         ]
@@ -187,7 +219,18 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 10
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "matcher": "engineer|creative-engineer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
+            "async": true
           }
         ]
       }
@@ -210,7 +253,18 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 10
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "matcher": "engineer|creative-engineer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verify-stop.mjs", "300"],
+            "timeout": 330
           }
         ]
       }
@@ -223,6 +277,12 @@
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
+            "async": true
           }
         ]
       }
@@ -234,6 +294,12 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
             "async": true
           }
         ]
@@ -259,6 +325,12 @@
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
+            "timeout": 10
           }
         ]
       }
@@ -281,7 +353,8 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"]
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
+            "timeout": 5
           }
         ]
       }
