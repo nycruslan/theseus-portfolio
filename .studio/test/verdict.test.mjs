@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { gitRepo, runHook, STUDIO, tempDir } from "./kit.mjs";
+import { ghLog, gitRepo, runHook, STUDIO, tempDir } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const git = (...args) =>
@@ -40,12 +40,28 @@ function stop(agent, message, extra = {}) {
   };
 }
 
-/** One session: run the hook on payloads in turn, then read its ledger. */
-function session() {
+/** One session: run the hook on payloads in turn, then read its ledger and what it posted. */
+function session(env = {}) {
   const tmp = tempDir();
+  const gh = ghLog();
   return {
     run: (payload, script = "verdict.mjs") =>
-      runHook(script, payload, { env: { TMPDIR: tmp } }),
+      runHook(script, payload, {
+        env: { TMPDIR: tmp, GH_LOG: gh.file, ...env },
+      }),
+    /** The commit statuses posted, as { sha, state, context, description }. */
+    statuses: () =>
+      gh.calls().map((args) => ({
+        sha: args
+          .find((arg) => arg.startsWith("repos/"))
+          .split("/")
+          .at(-1),
+        ...Object.fromEntries(
+          args
+            .filter((_, i) => args[i - 1] === "-f")
+            .map((field) => field.split(/=(.*)/s).slice(0, 2)),
+        ),
+      })),
     entries() {
       const ledger = join(tmp, "theseus-verdicts-abc123.jsonl");
       return existsSync(ledger)
@@ -160,4 +176,100 @@ test("runs when the project path goes through a symlink", () => {
     join(link, "verdict.mjs"),
   );
   assert.equal(entries[0]?.verdict, "ship");
+});
+
+test("posts the verdict as a commit status on the commit the review started on", () => {
+  const reviewed = git("rev-parse", "HEAD");
+  const review = session();
+  review.run(start("code-reviewer"));
+  commit("a fix lands while the review runs");
+  review.run(
+    stop("code-reviewer", "**Verdict: ship** - no Important findings"),
+  );
+  assert.deepEqual(review.statuses(), [
+    {
+      sha: reviewed,
+      state: "success",
+      context: "theseus/lens",
+      description: "Verdict: ship - no Important findings",
+    },
+  ]);
+  assert.equal(review.entries().at(-1).status, "posted");
+});
+
+test("posts changes and blocked as failures, under each reviewer's context", () => {
+  const review = session();
+  review.run(start("design-director"));
+  review.run(stop("design-director", "Verdict: changes · 6.8/10"));
+  review.run(start("qa-engineer"));
+  review.run(stop("qa-engineer", "Verdict: blocked: the build fails"));
+  assert.deepEqual(
+    review
+      .statuses()
+      .map(({ state, context, description }) => [state, context, description]),
+    [
+      ["failure", "theseus/iris", "Verdict: changes · 6.8/10"],
+      ["failure", "theseus/probe", "Verdict: blocked: the build fails"],
+    ],
+  );
+});
+
+test("a second reviewer's ship on the same commit doesn't hide the first one's changes", () => {
+  const review = session();
+  const lens = (id) => ({ agent_id: id });
+  review.run({ ...start("code-reviewer"), ...lens("lens-perf") });
+  review.run({
+    ...stop("code-reviewer", "Verdict: changes - an N+1 fetch"),
+    ...lens("lens-perf"),
+  });
+  review.run({ ...start("code-reviewer"), ...lens("lens-security") });
+  review.run({
+    ...stop("code-reviewer", "Verdict: ship"),
+    ...lens("lens-security"),
+  });
+  const [, second] = review.statuses();
+  assert.equal(second.state, "failure");
+  assert.equal(second.description, "Verdict: changes - an N+1 fetch");
+  // The same reviewer clearing its own finding turns the status green.
+  review.run({ ...start("code-reviewer"), ...lens("lens-perf") });
+  review.run({
+    ...stop("code-reviewer", "Verdict: ship"),
+    ...lens("lens-perf"),
+  });
+  assert.equal(review.statuses().at(-1).state, "success");
+});
+
+test("posts a missing verdict as a failure", () => {
+  const review = session();
+  review.run(start("code-reviewer"));
+  review.run(stop("code-reviewer", "Looks fine.", { stop_hook_active: true }));
+  const [status] = review.statuses();
+  assert.equal(status.state, "failure");
+  assert.match(status.description, /^Verdict: none/);
+});
+
+test("keeps the description to GitHub's 140 characters", () => {
+  const review = session();
+  review.run(start("code-reviewer"));
+  review.run(stop("code-reviewer", `Verdict: ship ${"x".repeat(200)}`));
+  const [status] = review.statuses();
+  assert.equal(status.description.length, 140);
+  assert.match(status.description, /…$/);
+});
+
+test("posts nothing when it doesn't know the reviewed commit", () => {
+  const review = session();
+  review.run(stop("code-reviewer", "Verdict: ship"));
+  assert.deepEqual(review.statuses(), []);
+  assert.match(review.entries()[0].status, /commit is unknown/);
+});
+
+test("fails open when GitHub can't take the status: the ledger still has it", () => {
+  const review = session({ GH_FAIL: "HTTP 422: No commit found for SHA" });
+  review.run(start("code-reviewer"));
+  const { code } = review.run(stop("code-reviewer", "Verdict: ship"));
+  assert.equal(code, 0);
+  const given = review.entries().at(-1);
+  assert.equal(given.verdict, "ship");
+  assert.equal(given.status, "not posted: HTTP 422: No commit found for SHA");
 });
