@@ -19,7 +19,8 @@ you're unsure, take the smaller lane and let review push back.
   motion. The existing suite stays green. Then one fresh Lens review.
 - **M: a new section or component.** Probe first writes the contract as failing Playwright checks
   in `e2e/`, one per numbered check in `contract.md`. The builder makes them pass. Lens reviews,
-  and Iris too if it's visual.
+  Probe verifies the pushed head (merge.mjs needs her verdict whenever `e2e/` changed), and Iris
+  too if it's visual.
 - **L: ambiguous or cross-cutting.** Quill writes `contract.md`, and the owner approves it in a PR
   labelled `needs-owner`. Scout researches only what's new. When two approaches compete and the
   call matters, run the `decide` skill. Then split the work into S and M pull requests and run
@@ -44,9 +45,11 @@ risky, go to the owner under "Needs owner decision" in the PR, with the `needs-o
 
 **Ship.** Everything on GitHub goes through REST (`gh api`), which works the same on a laptop and
 in a cloud session; `gh pr` and `gh issue` use GraphQL, which cloud sessions can't reach. Take
-`<owner>/<repo>` from the last two path segments of `git remote get-url origin`. Put PR text,
-comments and anything that mentions merging or statuses in a file: the guard refuses those words in
-a command.
+`<owner>/<repo>` from the last two path segments of `git remote get-url origin`, and write it out
+in each command: a shell variable doesn't carry from one command to the next, and the guard won't
+pass a write it can't read. Pass PR bodies and comments as files (`-F body=@<file>`), since a gh
+call that writes may not carry words like "merge" or "statuses" inline. Files carry message text
+only, never commands or endpoints.
 - Open the PR early, as a normal PR: REST can't mark a draft ready. Its body says "Work in progress"
   at the top until the close-out, then the goal, size, contract and its results, the decisions and
   the verdicts:
@@ -60,8 +63,9 @@ a command.
 Commit and push the close-out below first, and take "Work in progress" out of the body: merge.mjs
 carries the verdicts over commits that only touch notes, and a commit after the merge has no
 review. Then run `node .studio/merge.mjs <n>` from the repository root, on its own, with the Bash
-timeout at 10 minutes (600000 ms). It is the only way to merge: it checks the PR, waits for CI,
-and squash-merges the head it checked, or says why not. Act on what it says, or stop. If the PR
+timeout at 10 minutes (600000 ms); it reports within 8. It is the only way to merge: it checks the
+PR, waits for CI (every required check, `check` and `scope` included), and squash-merges the head
+it checked, or says why not. Act on what it says, or stop. If the PR
 touches owner paths or anything needs the owner, don't run it: leave the PR open with "Needs owner
 decision" and the `needs-owner` label. A smaller ship, or no ship with the reason, is a fine
 outcome. A quiet downgrade isn't. Say what nobody verified.

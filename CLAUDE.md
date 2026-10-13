@@ -8,10 +8,11 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
 
 - **Roles** (`.claude/agents/`): Quill owns what's worth building and what "done" means, Scout what's
   true today, Iris taste, Forge and Pixel the code, Lens code review, Probe whether it works.
-- **Who writes what:** only Forge and Pixel change product code. Probe owns the end-to-end
-  checks in `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder
-  and their own memory. `.studio/guard.mjs` holds to this for file edits, MCP tools and, as far as
-  it can, the shell.
+- **Who writes what:** Forge and Pixel change product code. Probe owns the end-to-end checks in
+  `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder and their
+  own memory. `.studio/guard.mjs` holds to this for file edits, MCP tools and, as far as it can,
+  the shell. The lead doesn't write product code either, but that's the sprint skill's rule, not
+  the guard's: the guard lets the main session write, since the owner's own sessions run as it.
 - **Shared state:**
   - `.studio/STATE.md`: what the team learned.
   - `ROADMAP.md`: what's next, owned by Quill.
@@ -34,7 +35,8 @@ Atlas merges the sprint PR with `node .studio/merge.mjs <number>`, the only way 
 GitHub through REST, so it works the same on a laptop and in a cloud session, where GraphQL (and
 with it `gh pr`, `gh issue` and auto-merge) is blocked. It waits for CI on the PR's head and
 squash-merges that exact commit once:
-- CI is green;
+- CI is green: every check that reported passed, and every check the base branch's ruleset
+  requires, plus CI's `check` and `scope`, reported (one that never ran hasn't passed);
 - the reviewers' verdicts, posted as `theseus/*` statuses on GitHub, say ship about the code being
   merged: Lens always, Probe when `e2e/` changed, and Iris or Probe whenever they gave a verdict on
   the PR. Iris is advisory until calibrated, so she isn't required otherwise;
@@ -46,8 +48,12 @@ reviews are posted as comments. If anything needs the owner, leave the PR open w
 decision" section and the `needs-owner` label. Never push to `main`.
 
 The team acts as the owner's GitHub identity, so the hooks are layered defence against shortcuts,
-not a security boundary. CI and the scope check are binding through branch protection that requires
-them from GitHub Actions; the `theseus/*` verdicts rely on the hooks.
+not a security boundary. A check is binding only once the base branch's ruleset requires it from
+GitHub Actions: today that's `check`, and `scope` becomes binding when the owner adds it to the
+`protect-main` ruleset. The `theseus/*` verdicts rely on the hooks. Known limits: checking out an
+older commit swaps in its older harness, the hooks' records in the temp directory can be deleted,
+and a program that writes files itself (`git apply`, a formatter, a script it runs) or text
+encoded past the rules isn't seen.
 
 ## The owner's
 
