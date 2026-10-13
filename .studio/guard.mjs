@@ -7,18 +7,20 @@
 // - Writers: the lead (the main session, which has no agent_type) and the engineers change the
 //   repository. Every agent may write in the sprint folder and in its own memory; Quill also owns
 //   ROADMAP.md and the content drafts. A memory directory belongs to its role alone.
-// - Outside the project only the temp directories may be written, and never the hooks' ledgers.
+// - Outside the project only the temp directories may be written, never the hooks' ledgers, and
+//   the main session may also write this project's auto-memory and the saved plans.
 // It checks the file a write would really reach: symlinks are followed, and paths match without
 // regard to case, as the macOS file system does. For file and MCP tools it fails closed: a call it
 // can't verify is blocked, and settings.json blocks if it crashes.
 // For Bash it applies the same rules to the files a command writes, read best-effort by shell.mjs:
 // a target it can't resolve, or a command whose writes it can't read, is refused when the command
-// mentions a path the agent may not write. It refuses process kills that can't name a PID, and
-// what remote.mjs refuses on GitHub and in git push. For MCP tools it refuses the ones that could
-// merge, push, write files, branches, labels or statuses as the owner. Blocks are broadcast so
-// they show on air.
+// mentions a path the agent may not write. Script files a line runs (sh, bash, source, node,
+// python) are read with the same rules. It refuses process kills that can't name a PID, and what
+// remote.mjs refuses on GitHub and in git push. For MCP tools it lets through only the ones whose
+// name says they read (get, list, search…). Blocks are broadcast so they show on air.
 // All of it is layered defence against shortcuts, not a security boundary: an agent runs as the
-// owner, and a script or a program can still write what a command can't.
+// owner, and a program that writes files itself, text encoded past the rules, or an older
+// checkout of the harness still gets through.
 
 import { spawnSync } from "node:child_process";
 import {
@@ -41,24 +43,19 @@ import { repoOf, toplevel } from "./github.mjs";
 import { broadcast } from "./post.mjs";
 import { remoteRefusal } from "./remote.mjs";
 import { isOwnerPath } from "./scope.mjs";
-import { readCommand } from "./shell.mjs";
+import { readCommand, scriptsRun } from "./shell.mjs";
 
 const WRITERS = new Set(["engineer", "creative-engineer"]);
 const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//iu;
 const E2E = /^e2e(\/|$)/iu;
 const DRAFTS = /^content\/drafts\//iu;
-// Claude Code's own notes outside the project: each project's auto-memory and the saved plans. They
-// configure nothing, and the owner's sessions in this repo write them too.
-const CLAUDE_HOME = (() => {
-  const dir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-  try {
-    return realpathSync.native(dir);
-  } catch {
-    return dir;
-  }
-})();
-const CLAUDE_NOTES = new RegExp(
-  `^${CLAUDE_HOME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(projects/[^/]+/memory|plans)/[^/]`,
+// Claude Code's own notes outside the project: this project's auto-memory and the saved plans.
+// MEMORY.md loads into every session in this repository, as CLAUDE.md does, so only the main
+// session (the lead, or the owner's own session) writes them, and only this project's folder:
+// Claude Code keys it to the git repository, by its path with every other character than a
+// letter or digit turned into "-", shared across worktrees.
+const CLAUDE_HOME = realOrSame(
+  process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
 );
 
 // The hooks' own records in tmpdir: verdicts for the watchdog, rounds for its fix-round cap.
@@ -66,12 +63,27 @@ const LEDGER = /^theseus-(verdicts|watchdog)-/;
 // Outside the project, what a target built at run time must not be able to reach.
 const SENSITIVE =
   /\.claude\b|\.config\/gh\b|\.gitconfig\b|theseus-(verdicts|watchdog)/i;
-// MCP tools that could merge, push, write files or branches, or set labels and statuses. GitHub's
-// issue_write sets a PR's labels too, owner-approved included.
-const MCP_WRITES =
-  /merge|push_files|create_or_update_file|delete_file|label|status|create_branch|update_pull_request|issue_write/i;
+// MCP tools are judged by the verb in their own name: one that only reads passes, everything else
+// (create, update, merge, push, label, run…) could act on GitHub or elsewhere as the owner.
+const MCP_READS = new Set([
+  "get",
+  "list",
+  "search",
+  "read",
+  "query",
+  "fetch",
+  "resolve",
+  "guide",
+  "view",
+  "find",
+  "describe",
+]);
+const MCP_ACTS =
+  /^(create|update|delete|remove|add|set|put|post|patch|push|merge|write|edit|run|execute|dispatch|trigger|approve|close|reopen|lock|transfer|fork|upload|send|cancel|rerun|enable|disable|apply|import|accept|assign|buy|pause|unpause|stage|restore|invalidate|kill|stop|start|complete|activate|revoke|record|mark|trash|untrash|forward|reply|follow|unfollow)$/;
 const GLOB = /[*?[]/;
 const MAX_MATCHES = 1000;
+const SCRIPT_BYTES = 64 * 1024;
+const MAX_SCRIPT_DEPTH = 2;
 
 let hook;
 try {
@@ -104,35 +116,125 @@ function checkFile() {
 
 function checkMcp() {
   const tool = String(hook.tool_name);
-  if (!MCP_WRITES.test(tool)) return;
+  const words = tool
+    .split("__")
+    .at(-1)
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .split(/[_-]+/);
+  if (
+    words.some((word) => MCP_READS.has(word)) &&
+    !words.some((word) => MCP_ACTS.test(word))
+  ) {
+    return;
+  }
   refuse(
     "StudioCommandBlocked",
-    `${tool} can merge, push or change files, branches, labels or statuses on GitHub as the owner, around the merge gate. Use the REST calls in the sprint skill, and \`node .studio/merge.mjs <number>\` to merge.`,
+    `${tool} isn't a read, so it could merge, push or change files, branches, labels or statuses on GitHub as the owner, around the merge gate. MCP tools that get, list, search or read pass; use the REST calls in the sprint skill to write, and \`node .studio/merge.mjs <number>\` to merge.`,
   );
 }
 
 function checkShell() {
-  const command = String(hook.tool_input?.command ?? "");
+  const found = lineRefusal(
+    String(hook.tool_input?.command ?? ""),
+    hook.cwd,
+    0,
+  );
+  if (found) refuse(found.event, found.reason, found.path);
+}
+
+// The rules for one line of shell, and again for each script file it runs.
+function lineRefusal(command, cwd, depth) {
   let read = null;
   try {
-    read = readCommand(command, hook.cwd);
+    read = readCommand(command, cwd);
   } catch {
     // Read best-effort: the remote rules still apply to the text.
   }
+  const scripts = read ? scriptRefusal(read, depth) : { unreadable: false };
+  if (scripts.found) return scripts.found;
   const remote = remoteRefusal(command, read, {
     project,
-    repo: repoOf(project ?? hook.cwd),
+    repo: repoOf(project ?? cwd),
+    unreadable: scripts.unreadable,
   });
-  if (remote) refuse("StudioCommandBlocked", remote);
-  if (!read) return;
+  if (remote) return { event: "StudioCommandBlocked", reason: remote };
+  if (!read) return null;
   if (read.kill) {
-    refuse(
-      "StudioCommandBlocked",
-      `\`${read.kill}\` can stop processes nobody here started, such as the owner's own dev server: \`pkill -f next-server\` once stopped every Next.js server on this machine. Stop only processes you started, by PID: note it when you start one (\`echo $!\`), then run \`kill <pid>\`.`,
-    );
+    return {
+      event: "StudioCommandBlocked",
+      reason: `\`${read.kill}\` can stop processes nobody here started, such as the owner's own dev server: \`pkill -f next-server\` once stopped every Next.js server on this machine. Stop only processes you started, by PID: note it when you start one (\`echo $!\`), then run \`kill <pid>\`.`,
+    };
   }
   const found = writeRefusal(command, read);
-  if (found) refuse("StudioWriteBlocked", found.reason, found.path);
+  return found && { event: "StudioWriteBlocked", ...found };
+}
+
+// Script files the line runs are read with the same rules: a shell script line by line, other
+// code (node, python) for the words remote.mjs refuses. The owner's own scripts (the harness and
+// its tests) are trusted, since no agent can change them. A script the guard can't read (missing,
+// over 64 KB, or named at run time) makes the line opaque, and is refused when the line also
+// writes, since it may be writing that very script.
+function scriptRefusal(read, depth) {
+  let unreadable = false;
+  for (const command of read.commands) {
+    for (const { word, kind } of scriptsRun(command)) {
+      const path =
+        word.dynamic || !command.dir ? null : resolve(command.dir, word.text);
+      const files = path && GLOB.test(path) ? glob(path) : path ? [path] : [];
+      if (!files.length) unreadable = true;
+      for (const file of files) {
+        const where = safeLocate(file);
+        if (where?.rel !== undefined && isOwnerPath(where.rel)) continue;
+        const size = statSync(file, { throwIfNoEntry: false });
+        if (
+          !size?.isFile() ||
+          size.size > SCRIPT_BYTES ||
+          depth >= MAX_SCRIPT_DEPTH
+        ) {
+          unreadable = true;
+          continue;
+        }
+        const text = readFileSync(file, "utf8");
+        const found =
+          kind === "shell"
+            ? lineRefusal(text, dirname(file), depth + 1)
+            : codeRefusal(text);
+        if (found) {
+          return {
+            found: {
+              ...found,
+              reason: `${word.text} runs as part of this command, and the guard read it: ${found.reason}`,
+            },
+          };
+        }
+      }
+    }
+  }
+  if (unreadable && read.writes.length) {
+    return {
+      found: {
+        event: "StudioCommandBlocked",
+        reason:
+          "This line runs a script the guard can't read (missing, too large, or named at run time) and also writes files, so it may be writing that very script. Write the script first, in its own step, then run it.",
+      },
+    };
+  }
+  return { unreadable };
+}
+
+// Code the guard can't parse is held to remote.mjs's text rules, as an unreadable line is.
+function codeRefusal(text) {
+  const reason = remoteRefusal(text, null, { project, repo: repoOf(project) });
+  return reason && { event: "StudioCommandBlocked", reason };
+}
+
+function safeLocate(path) {
+  try {
+    return locate(path);
+  } catch {
+    return null;
+  }
 }
 
 function writeRefusal(command, { writes, unsure }) {
@@ -290,6 +392,44 @@ function projectRoot() {
   }
 }
 
+// This project's auto-memory folder or the saved plans, by real path.
+function claudeNotes(path) {
+  const under = (dir) =>
+    path.startsWith(`${dir}/`) && path.length > dir.length + 1;
+  if (under(join(CLAUDE_HOME, "plans"))) return true;
+  return projectSlugs().some((slug) =>
+    under(join(CLAUDE_HOME, "projects", slug, "memory")),
+  );
+}
+
+// The names Claude Code gives this project's folder: from the git repository (the main checkout,
+// which worktrees share) and from the project directory itself, as given and as its real path.
+function projectSlugs() {
+  const roots = [project, realOrSame(project)];
+  const common = spawnSync(
+    "git",
+    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    { cwd: project, encoding: "utf8" },
+  );
+  if (common.status === 0) {
+    const main = dirname(common.stdout.trim());
+    roots.push(main, realOrSame(main));
+  }
+  return [
+    ...new Set(
+      roots.filter(Boolean).map((root) => root.replace(/[^a-zA-Z0-9]/g, "-")),
+    ),
+  ];
+}
+
+function realOrSame(path) {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return path;
+  }
+}
+
 function outsideRefusal(path) {
   const temps = [tmpdir(), process.env.TMPDIR, "/tmp", "/private/tmp"]
     .filter(Boolean)
@@ -303,7 +443,11 @@ function outsideRefusal(path) {
     .filter(Boolean);
   const inside = (dir) => path === dir || path.startsWith(`${dir}/`);
   if (path.startsWith("/dev/")) return null;
-  if (CLAUDE_NOTES.test(path)) return null;
+  if (claudeNotes(path)) {
+    return hook.agent_type
+      ? `${path} is Claude Code's memory or plans, which load into the lead's sessions: only the main session writes them. Report what you learned instead.`
+      : null;
+  }
   if (temps.some(inside)) {
     return LEDGER.test(basename(path))
       ? `${basename(path)} is written by the hooks alone.`

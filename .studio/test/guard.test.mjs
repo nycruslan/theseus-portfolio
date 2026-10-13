@@ -122,19 +122,26 @@ test("keeps writes outside the project to the temp directories, and never the le
   assert.match(stderr, /written by the hooks alone/);
 });
 
-test("lets Claude Code keep its own memory and plans, but not its settings", () => {
+test("lets the main session keep this project's memory and plans, and nothing else", () => {
   const home = tempDir();
   const env = { CLAUDE_CONFIG_DIR: home };
+  // Claude Code names the project's folder after its path: /repo becomes -repo.
   for (const path of [
-    join(home, "projects/-Users-me-portfolio/memory/MEMORY.md"),
+    join(home, "projects/-repo/memory/MEMORY.md"),
+    join(home, "projects/-repo/memory/feedback_tone.md"),
     join(home, "plans/next-sprint.md"),
   ]) {
     assert.equal(guard(path, undefined, env).code, 0, path);
+    // Memory loads into the lead's sessions, so subagents don't write it.
+    const { code, stderr } = guard(path, "engineer", env);
+    assert.equal(code, 2, `${path} by engineer`);
+    assert.match(stderr, /only the main session writes them/);
   }
   for (const path of [
+    join(home, "projects/-Users-me-other-project/memory/MEMORY.md"),
     join(home, "settings.json"),
     join(home, "agents/engineer.md"),
-    join(home, "projects/-Users-me-portfolio/settings.json"),
+    join(home, "projects/-repo/settings.json"),
     join(home, "projects/memory"),
   ]) {
     assert.equal(guard(path, undefined, env).code, 2, path);
@@ -620,6 +627,16 @@ test("allows gh api writes only to open, edit, comment on and label this reposit
     `gh api ${R}/commits/abc/status`,
     "gh pr view 12",
     "gh run list",
+    // Reads pass whatever they name: they can't write.
+    `gh api ${R}/rulesets`,
+    `gh api ${R}/rules/branches/main`,
+    `gh api ${R}/commits/abc/statuses`,
+    `gh api "repos/$REPO/pulls/$N"`,
+    "gh api repos/vercel/next.js/releases/latest --jq .tag_name",
+    "gh release view -R vercel/next.js",
+    "gh issue view 12345 -R vercel/next.js",
+    "gh pr view https://github.com/nycruslan/theseus-studio/pull/5",
+    `gh api ${R}/pulls -F title=@.studio/sprint/3/title.txt -f head=sprint-3 -f base=main -F body=@.studio/sprint/3/pr.md`,
   ]) {
     const { code, stderr } = shell(command, "engineer", dir);
     assert.equal(code, 0, `${command}: ${stderr}`);
@@ -663,8 +680,26 @@ test("allows gh api writes only to open, edit, comment on and label this reposit
       `gh api -X PUT ${R}/branches/main/protection`,
       /mentions `branches\/main\/protection`/,
     ],
-    [`gh api ${R}/rulesets`, /mentions `rulesets`/],
-    [`gh api ${R}/actions/secrets`, /mentions `actions\/secrets`/],
+    [
+      `gh api -X PUT ${R}/rulesets/1 -f enforcement=disabled`,
+      /mentions `rulesets`/,
+    ],
+    [
+      `gh api ${R}/actions/secrets/X -X PUT -f encrypted_value=y`,
+      /mentions `actions\/secrets`/,
+    ],
+    [
+      `gh api ${R}/issues/12/labels -F 'labels[]=@/tmp/label.txt'`,
+      /`labels\[\]` comes from a file here/,
+    ],
+    [
+      `repo=$(git remote get-url origin | sed 's/x/y/'); gh api repos/$repo/pulls -f title=x -f head=y -f base=main`,
+      /write the endpoint out literally/,
+    ],
+    [
+      "curl -s https://api.github.com/repos/vercel/next.js/releases/latest",
+      /reached through `gh api <path>`/,
+    ],
     [
       `gh api repos/nycruslan/theseus-studio/issues/5/comments -f body=x`,
       /this repository only/,
@@ -694,13 +729,8 @@ test("allows gh api writes only to open, edit, comment on and label this reposit
     ["GH_TOKEN=abc gh api user", /GitHub tokens aren't set in commands/],
     ["export GITHUB_TOKEN=abc", /GitHub tokens aren't set in commands/],
     [
-      "gh pr view https://github.com/nycruslan/theseus-studio/pull/5",
-      /names another repository/,
-    ],
-    ["gh pr view nycruslan/theseus-studio#5", /names another repository/],
-    [
-      "gh pr view 5 -R nycruslan/theseus-studio",
-      /points gh at nycruslan\/theseus-studio/,
+      "gh pr comment 5 -R nycruslan/theseus-studio --body x",
+      /points a gh call that writes at nycruslan\/theseus-studio/,
     ],
     ["gh alias set shipit 'pr merge'", /merge/],
     ["gh config set editor vim", /`gh config set` isn't a command/],
@@ -766,21 +796,9 @@ test("refuses pushes to main, forced or deleting pushes, and a plain push from m
   }
 });
 
-test("refuses MCP tools that could merge or write around the gate, from any server", () => {
-  for (const tool of [
-    "mcp__github__merge_pull_request",
-    "mcp__github__push_files",
-    "mcp__github__create_or_update_file",
-    "mcp__github__delete_file",
-    "mcp__github__create_branch",
-    "mcp__github__update_pull_request",
-    "mcp__github__update_pull_request_branch",
-    "mcp__github__issue_write",
-    "mcp__claude_ai_GitHub__merge_pull_request",
-    "mcp__plugin_tools_github__add_labels",
-    "mcp__acme__set_commit_status",
-  ]) {
-    const { code, stderr } = runHook(
+test("lets MCP tools through only when their name says they read, from any server", () => {
+  const call = (tool) =>
+    runHook(
       "guard.mjs",
       {
         ...write("x"),
@@ -793,19 +811,206 @@ test("refuses MCP tools that could merge or write around the gate, from any serv
       },
       { env: { CLAUDE_PROJECT_DIR: ROOT } },
     );
+  for (const tool of [
+    "mcp__github__merge_pull_request",
+    "mcp__github__push_files",
+    "mcp__github__create_or_update_file",
+    "mcp__github__delete_file",
+    "mcp__github__create_branch",
+    "mcp__github__update_pull_request",
+    "mcp__github__update_pull_request_branch",
+    "mcp__github__issue_write",
+    "mcp__github__create_pull_request",
+    "mcp__github__pull_request_review_write",
+    "mcp__github__update_issue",
+    "mcp__claude_ai_GitHub__merge_pull_request",
+    "mcp__claude_ai_GitHub__update_issue",
+    "mcp__claude_ai_GitHub__create_ref",
+    "mcp__claude_ai_GitHub__update_ref",
+    "mcp__claude_ai_GitHub__create_commit",
+    "mcp__claude_ai_GitHub__create_tree",
+    "mcp__claude_ai_GitHub__run_workflow",
+    "mcp__claude_ai_Zapier__execute_zapier_write_action",
+    "mcp__claude_ai_Zapier__execute_zapier_read_action",
+    "mcp__plugin_tools_github__add_labels",
+    "mcp__acme__set_commit_status",
+  ]) {
+    const { code, stderr } = call(tool);
     assert.equal(code, 2, tool);
     assert.match(stderr, /node \.studio\/merge\.mjs <number>/, tool);
   }
   for (const tool of [
     "mcp__github__get_file_contents",
     "mcp__github__pull_request_read",
+    "mcp__github__get_label",
+    "mcp__github__list_pull_requests",
+    "mcp__github__search_code",
+    "mcp__claude_ai_Vercel__get_remote_cache_status",
+    "mcp__claude_ai_Vercel__list_deployments",
     "mcp__plugin_context7_context7__query-docs",
+    "mcp__plugin_context7_context7__resolve-library-id",
+    "mcp__claude_ai_Claude_Docs__guide",
   ]) {
-    const { code } = runHook(
-      "guard.mjs",
-      { ...write("x"), tool_name: tool, tool_input: {} },
-      { env: { CLAUDE_PROJECT_DIR: ROOT } },
+    assert.equal(call(tool).code, 0, tool);
+  }
+});
+
+test("reads gh fed by another program as gh, and refuses it when it can write", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  const endpoint = join(tempDir(), "endpoint.txt");
+  writeFileSync(endpoint, `${R}/statuses/0123\n`);
+  for (const command of [
+    `xargs gh api -X POST -f state=success -f context=theseus/lens -f "description=Verdict: ship" < ${endpoint}`,
+    `cat ${endpoint} | xargs gh api -X POST -f state=success -f context=theseus/lens`,
+    `echo ${R}/pulls/12/merge | xargs gh api -X PUT`,
+    `echo 12 | parallel gh pr comment {} --body x`,
+    "find . -name '*.txt' -exec gh api -X PUT {} \\;",
+    `env -S "gh api -X PUT ${R}/pulls/12/merge"`,
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, `${command}: ${stderr}`);
+  }
+  for (const command of [
+    `echo ${R}/pulls/12 | xargs gh api --jq .title`,
+    "ls ~/.config/gh",
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 0, `${command}: ${stderr}`);
+  }
+});
+
+test("reads the script files a line runs with the same rules", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  const scripts = tempDir();
+  const file = (name, text) => {
+    writeFileSync(join(scripts, name), text);
+    return join(scripts, name);
+  };
+  const merge = file(
+    "ship.sh",
+    `gh api -X PUT ${R}/pulls/12/merge -f merge_method=squash\n`,
+  );
+  const status = file(
+    "verdict.sh",
+    `#!/bin/sh\nset -e\ngh api ${R}/statuses/$1 -f state=success -f context=theseus/lens\n`,
+  );
+  const js = file(
+    "ship.mjs",
+    `import { execFileSync } from "node:child_process";\nexecFileSync("gh", ["api", "-X", "PUT", "${R}/pulls/12/merge"]);\n`,
+  );
+  const py = file(
+    "post.py",
+    `import subprocess\nsubprocess.run(["gh", "api", "${R}/statuses/abc", "-f", "state=success"])\n`,
+  );
+  const push = file("push.sh", "git checkout main\ngit push\n");
+  for (const command of [
+    `sh ${merge}`,
+    `bash ${merge}`,
+    `source ${merge}`,
+    `. ${merge}`,
+    `zsh ${status} abc`,
+    `node ${js}`,
+    `python3 ${py}`,
+    `bash ${push}`,
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, `${command}: ${stderr}`);
+    assert.match(
+      stderr,
+      /runs as part of this command, and the guard read it/,
+      command,
     );
-    assert.equal(code, 0, tool);
+  }
+  const fine = file("ok.sh", "echo hi\npnpm verify\n");
+  assert.equal(shell(`bash ${fine}`, "engineer", dir).code, 0);
+  // A script it can't read, written in the same line, may be that very script.
+  const fresh = join(scripts, "fresh.sh");
+  const { code, stderr } = shell(
+    `printf 'echo hi\\n' > ${fresh} && sh ${fresh}`,
+    undefined,
+    dir,
+  );
+  assert.equal(code, 2);
+  assert.match(
+    stderr,
+    /runs a script the guard can't read .* and also writes files/,
+  );
+});
+
+test("lets reads and messages that only mention merging or statuses through", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  for (const command of [
+    `gh api ${R}/pulls/12 --jq '.mergeable, .mergeable_state'`,
+    `gh api ${R}/pulls/12 --jq '{state, merged, head: .head.sha}'`,
+    `gh api '${R}/pulls?state=closed&per_page=5' --jq '.[] | {number, merged_at}'`,
+    `gh api ${R}/commits/abc/status --jq '.statuses[] | {context, state, description}'`,
+    `git fetch origin && git merge origin/main && gh api ${R}/pulls/12 --jq .head.sha`,
+    `git merge-base HEAD origin/main && gh api ${R}/pulls/12/files --jq '.[].filename'`,
+    `git log --oneline --merges -5 && gh api ${R}/pulls/12 --jq .title`,
+    `rg -n "merge" .studio/merge.mjs && gh api ${R}/pulls/12/files`,
+    'grep -rn "statuses" .studio/ app/',
+    'git commit -m "Record Lens verdict statuses in the retro"',
+    'git commit -m "Merge main into sprint-3 and fix the hero conflict"',
+    'cat > .studio/sprint/7/retro.json <<\'EOF\'\n{"notes":"opened with gh api, merged by merge.mjs"}\nEOF',
+    "node --test .studio/test/merge.test.mjs",
+    "node --test .studio/test/*.test.mjs",
+    "node --check .studio/merge.mjs",
+    "node .studio/merge.mjs 12 2>&1",
+    `cd ${dir} && node .studio/merge.mjs 12`,
+    "find e2e -name '*.spec.ts' -exec grep -n 'test(' {} +",
+    "find content -type f -exec wc -l {} +",
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 0, `${command}: ${stderr}`);
+  }
+  // Text that could reach GitHub still may not carry such words: files carry message text only.
+  const { stderr } = shell(
+    `gh api ${R}/issues/12/comments -f body="Lens's statuses are green"`,
+    undefined,
+    dir,
+  );
+  assert.match(
+    stderr,
+    /files carry message text only, never commands or endpoints/,
+  );
+});
+
+test("runs merge.mjs only on its own: nothing piped, chained or written", () => {
+  const dir = checkout();
+  for (const command of [
+    "node .studio/merge.mjs 12 > /tmp/merge.log",
+    "node .studio/merge.mjs 12 | tail -20",
+    "node .studio/merge.mjs 12 && echo merged",
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, command);
+    assert.match(stderr, /on its own/, command);
+  }
+});
+
+test("refuses a push that doesn't name its branch after the line switched one, or that globs", () => {
+  const dir = checkout();
+  for (const command of [
+    'git checkout main && git merge --squash sprint-3 && git commit -m "Add a skip link" && git push',
+    "git switch main && git merge sprint-3 && git push",
+    "git checkout main && git reset --hard sprint-3 && git push",
+    "git checkout main && git push origin HEAD",
+    "git push origin 'refs/heads/*:refs/heads/*'",
+    "git push origin 'sprint-*'",
+    "git -c push.default=upstream -c branch.sprint-3.merge=refs/heads/main push",
+    "git push origin HEAD:refs/heads/main~1",
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, `${command}: ${stderr}`);
+  }
+  for (const command of [
+    "git checkout -b sprint-4 && git push -u origin sprint-4",
+    "git commit -am x && git push",
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 0, `${command}: ${stderr}`);
   }
 });

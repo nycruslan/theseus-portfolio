@@ -98,8 +98,36 @@ const INLINE = [
   [/^php$/, /^-r$/],
   [/^deno$/, /^eval$/],
 ];
-// Actions that make find write or run something per file.
-const FIND_ACTIONS = /^-(delete|exec|execdir|ok|okdir|fprint0?|fprintf|fls)$/;
+// Actions that make find write, or run another command per file.
+const FIND_WRITES = /^-(delete|fprint0?|fprintf|fls)$/;
+const FIND_RUNS = /^-(exec|execdir|ok|okdir)$/;
+// Commands that only read, so find may run them on every file it finds.
+const READERS = new Set([
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "cat",
+  "head",
+  "tail",
+  "wc",
+  "ls",
+  "file",
+  "stat",
+  "du",
+  "echo",
+  "printf",
+  "basename",
+  "dirname",
+  "realpath",
+  "readlink",
+  "md5",
+  "md5sum",
+  "shasum",
+  "sha256sum",
+  "test",
+  "[",
+]);
 // Programs that write files the reader can't name.
 const OPAQUE = new Set([
   "patch",
@@ -108,8 +136,6 @@ const OPAQUE = new Set([
   "git clean",
   "unzip",
   "wget",
-  "source",
-  ".",
 ]);
 // Variables whose value the guard knows, so a path built from them isn't dynamic.
 const KNOWN = /\$\{?(TMPDIR|HOME|PWD|CLAUDE_PROJECT_DIR)\}?(?!\w)/g;
@@ -127,7 +153,13 @@ const MAX_BRACES = 64;
  * @typedef {{ text: string, dynamic: boolean }} Word
  */
 export function readCommand(command, cwd) {
-  const found = { writes: [], kill: null, commands: [], unsure: [] };
+  const found = {
+    writes: [],
+    kill: null,
+    commands: [],
+    unsure: [],
+    opaque: false,
+  };
   read(String(command ?? ""), cwd, found, 0);
   return found;
 }
@@ -164,12 +196,16 @@ function read(command, cwd, found, depth) {
       const script = scriptOf(args);
       if (script && !script.dynamic && depth < MAX_DEPTH) {
         read(script.text, base, found, depth + 1);
-      } else {
-        found.unsure.push(`${name} running a script the guard can't read`);
+      } else if (script || !operand(args)) {
+        // Commands built at run time, or read from its input: the guard can't see them. A script
+        // file it runs is read by the guard itself (see scriptsRun).
+        found.unsure.push(`${name} running commands the guard can't read`);
+        found.opaque = true;
       }
     } else if (name === "eval") {
       if (args.some((arg) => arg.dynamic) || depth >= MAX_DEPTH) {
         found.unsure.push("eval of text built at run time");
+        found.opaque = true;
       } else {
         read(args.map((arg) => arg.text).join(" "), base, found, depth + 1);
       }
@@ -180,11 +216,93 @@ function read(command, cwd, found, depth) {
       };
       const unsure = unsureOf(name, args);
       if (unsure) found.unsure.push(unsure);
+      if (unsure?.endsWith("running inline code")) found.opaque = true;
       for (const { word, tree } of writesOf(name, args, exists)) {
         keep(word, tree, base);
       }
     }
   }
+}
+
+function isSplitString({ text }) {
+  return /^(-S|--split-string)/.test(text);
+}
+
+// The first operand of a shell: the script file it runs. Options like -o errexit take a value.
+function operand(args) {
+  for (let i = 0; i < args.length; i++) {
+    const { text } = args[i];
+    if (/^[-+]o$|^-O$/.test(text)) i++;
+    else if (text === "--") return args[i + 1];
+    else if (!/^[-+]/.test(text)) return args[i];
+  }
+  return undefined;
+}
+
+// Interpreters that run a script file named among their arguments, and their options that take a
+// value or mean the file isn't run.
+const RUNS_FILE = [
+  [
+    /^node$|^bun$/,
+    [
+      "-r",
+      "--require",
+      "--import",
+      "--loader",
+      "--experimental-loader",
+      "-C",
+      "--conditions",
+      "--env-file",
+      "--input-type",
+    ],
+    /^(-c|--check)$/,
+  ],
+  [/^python\d*(\.\d+)?$/, ["-W", "-X"], /^-m$/],
+];
+
+/**
+ * The script files a command runs, for the guard to read with the same rules: a shell's script,
+ * a sourced file, node's or python's script (every test file with node --test). `kind` is "shell"
+ * when the file holds shell commands, "code" otherwise. A word built at run time stays dynamic.
+ * @returns {{ word: Word, kind: "shell" | "code" }[]}
+ */
+export function scriptsRun({ name, args }) {
+  if (SHELLS.has(name)) {
+    if (scriptOf(args)) return [];
+    const file = operand(args);
+    return file ? [{ word: file, kind: "shell" }] : [];
+  }
+  if (name === "source" || name === ".") {
+    return args[0] ? [{ word: args[0], kind: "shell" }] : [];
+  }
+  const texts = args.map(({ text }) => text);
+  // Inline code (node -e, python -c) is opaque already: no file to read.
+  if (
+    INLINE.some(
+      ([program, option]) =>
+        program.test(name) && texts.some((t) => option.test(t)),
+    )
+  ) {
+    return [];
+  }
+  for (const [program, valued, notRun] of RUNS_FILE) {
+    if (!program.test(name)) continue;
+    if (texts.some((t) => notRun.test(t))) {
+      // node --check only parses; python -m runs a module the guard can't find.
+      return name.startsWith("python")
+        ? [{ word: { text: "", dynamic: true }, kind: "code" }]
+        : [];
+    }
+    const files = [];
+    for (let i = 0; i < args.length; i++) {
+      const { text } = args[i];
+      if (valued.includes(text)) i++;
+      else if (!text.startsWith("-")) files.push(args[i]);
+    }
+    const runs = texts.includes("--test") ? files : files.slice(0, 1);
+    return runs.map((word) => ({ word, kind: "code" }));
+  }
+  return [];
 }
 
 // The script a shell runs with -c (bash -c "…", bash -lc "…", bash -c -- "…"). Null when it
@@ -207,7 +325,15 @@ function unwrap(words, at) {
     // `command -v pkill` only looks a command up.
     else if (name === "command" && /^-[vV]$/.test(words[i + 1]?.text))
       return [];
-    else if (WRAPPERS.has(name)) {
+    else if (name === "env" && words.slice(i + 1).some(isSplitString)) {
+      // env -S "cmd args" runs the string as a command line: read it like eval.
+      const at = words.findIndex((word, j) => j > i && isSplitString(word));
+      const inline = words[at].text.match(/^(?:-S|--split-string=?)(.+)$/)?.[1];
+      const line = inline
+        ? { text: inline, dynamic: words[at].dynamic }
+        : words[at + 1];
+      return line ? ["eval", [line, ...words.slice(at + 2)]] : [];
+    } else if (WRAPPERS.has(name)) {
       i++;
       while (words[i] && /^-|^[A-Za-z_]\w*=/.test(words[i].text)) {
         // nice -n 5, timeout -s KILL, env -u NAME: skip the value too.
@@ -410,8 +536,14 @@ function unsureOf(name, args) {
     }
   }
   if (name === "find") {
-    const action = texts.find((t) => FIND_ACTIONS.test(t));
+    const action = texts.find((t) => FIND_WRITES.test(t));
     if (action) return `find … ${action}`;
+    // find -exec gh … is judged as gh by remote.mjs.
+    const runs = texts
+      .map((t, i) => (FIND_RUNS.test(t) ? basename(texts[i + 1] ?? "") : null))
+      .filter((program) => program !== null && program !== "gh");
+    const writer = runs.find((program) => !READERS.has(program));
+    if (writer !== undefined) return `find … -exec ${writer}`;
   }
   if (name === "xargs" || name === "parallel") {
     const writer = texts.find((t) => {
