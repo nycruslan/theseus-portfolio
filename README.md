@@ -6,8 +6,10 @@ Every few hours a Claude Code session wakes up in this repository as **Atlas**, 
 team agrees what *done* means before anyone builds, meets only when a decision is genuinely open,
 builds with one writer per area, and has every change reviewed and tested in a real browser by
 someone who didn't build it, and design-critiqued when it changes how the site looks. Atlas merges
-only when a script confirms CI is green and the reviews approve that exact code; if something needs
-the owner, the PR waits. Every step streams live to the Studio.
+only through one script, which waits for CI and merges only when CI is green and the reviews
+approve that exact code; if something needs the owner, the PR waits. It all runs through GitHub's
+REST API, so the team works the same on a laptop and as a cloud routine. Every step streams live
+to the Studio.
 
 ## How it works
 
@@ -18,6 +20,7 @@ the owner, the PR waits. Every step streams live to the Studio.
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
+| The one way a sprint PR merges | [`.studio/merge.mjs`](.studio/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
 | What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
@@ -30,7 +33,8 @@ pnpm install
 pnpm exec playwright install --only-shell chromium   # once, for the end-to-end checks
 pnpm dev            # http://localhost:3000
 pnpm verify         # lint, typecheck, knip and build, failing fast
-pnpm test:e2e       # Playwright + axe against a production build (PLAYWRIGHT_BASE_URL to test a deploy)
+pnpm test:e2e       # Playwright + axe against a production build on port 3300
+                    # (PLAYWRIGHT_PORT for another port, PLAYWRIGHT_BASE_URL to test a deploy)
 pnpm test:harness   # the team's hooks
 ```
 
