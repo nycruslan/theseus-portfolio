@@ -31,7 +31,16 @@ if (env.FAKE_HANG) {
 );
 chmodSync(join(bin, "pnpm"), 0o755);
 
-function project(scripts = { verify: "pnpm lint && pnpm build" }) {
+// The project's own scripts, as in package.json.
+const SCRIPTS = {
+  verify: "pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
+  lint: "biome ci --error-on-warnings",
+  typecheck: "next typegen && tsc --noEmit",
+  knip: "knip",
+  build: "next build",
+};
+
+function project(scripts = SCRIPTS) {
   const dir = tempDir();
   writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts }));
   return dir;
@@ -68,20 +77,26 @@ function verifyStop(payload, env = {}, limit = "30") {
   return { ...result, answer: answer(result), runs };
 }
 
-// pnpm prints a header for each script it runs; verify runs its steps as scripts.
+// pnpm 12 prints each script's command as `$ <command>` before running it (checked with pnpm
+// 12.5.1, the version packageManager pins); verify runs its steps as scripts.
 const FAILED_TYPECHECK = [
-  "> portfolio@0.1.0 verify /repo",
-  "> pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
-  "",
-  "> portfolio@0.1.0 lint /repo",
-  "> biome ci --error-on-warnings",
+  "$ pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
+  "$ biome ci --error-on-warnings",
   "Checked 24 files in 40ms. No fixes applied.",
-  "",
-  "> portfolio@0.1.0 typecheck /repo",
-  "> next typegen && tsc --noEmit",
+  "$ next typegen && tsc --noEmit",
   "app/page.tsx(12,7): error TS2322: Type 'string' is not assignable to type 'number'.",
   "Error: ENOENT: no such file or directory, open '.next/types/routes.d.ts'",
-  " ELIFECYCLE  Command failed with exit code 2.",
+  "[ELIFECYCLE] Command failed with exit code 2.",
+  "[ELIFECYCLE] Command failed with exit code 2.",
+].join("\n");
+// Older pnpm and npm printed a header naming the script instead.
+const FAILED_KNIP_OLD = [
+  "> portfolio@0.1.0 verify /repo",
+  "> pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
+  "> portfolio@0.1.0 knip /repo",
+  "> knip",
+  "Unused files (1)",
+  " ELIFECYCLE  Command failed with exit code 1.",
 ].join("\n");
 
 test("lets a builder stop once pnpm verify passes in its directory", () => {
@@ -111,6 +126,14 @@ test("blocks with the failing step and its last lines", () => {
   assert.match(answer.reason, /error TS2322/);
   // Said in JSON, a missing-file message still blocks.
   assert.match(answer.reason, /no such file or directory/);
+  const older = verifyStop(stop(project()), {
+    FAKE_OUTPUT: FAILED_KNIP_OLD,
+    FAKE_EXIT: "1",
+  });
+  assert.match(
+    older.answer.reason,
+    /^`pnpm verify` failed at `knip` \(exit 1\)\./,
+  );
 });
 
 test("keeps only the tail of a long failure", () => {
@@ -161,7 +184,7 @@ test("time-boxes verify and stops everything it started", async () => {
   const started = Date.now();
   const { answer } = verifyStop(
     stop(project()),
-    { FAKE_HANG: pidFile, FAKE_OUTPUT: "> portfolio@0.1.0 build /repo\n" },
+    { FAKE_HANG: pidFile, FAKE_OUTPUT: "$ next build\n" },
     "1",
   );
   assert.ok(Date.now() - started < 10_000);

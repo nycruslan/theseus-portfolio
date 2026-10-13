@@ -22,19 +22,11 @@ const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 const limit = Number(process.argv[2] || 300);
 
 const hook = JSON.parse(readFileSync(0, "utf8"));
-if (
-  !BUILDERS.has(hook.agent_type) ||
-  hook.stop_hook_active ||
-  !hasVerify(hook.cwd)
-) {
-  process.exit(0);
-}
+const scripts = BUILDERS.has(hook.agent_type) ? scriptsOf(hook.cwd) : null;
+if (hook.stop_hook_active || !scripts?.verify) process.exit(0);
 const run = await verify(hook.cwd);
 if (run.code !== 0) {
-  const step = run.output
-    .match(/^> \S+@\S+ (\S+) /gm)
-    ?.at(-1)
-    ?.split(" ")[2];
+  const step = failedStep(run.output, scripts);
   const what = run.timedOut
     ? `\`pnpm verify\` didn't finish within ${limit} s, so it was stopped`
     : `\`pnpm verify\` failed${step && step !== "verify" ? ` at \`${step}\`` : ""} (exit ${run.code})`;
@@ -52,20 +44,37 @@ if (run.code !== 0) {
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
 }
 
-// Only a project that defines `verify` has anything to run.
-function hasVerify(cwd) {
+// The scripts of the package `cwd` is in. Only a project that defines `verify` has anything to run.
+function scriptsOf(cwd) {
   for (let dir = cwd; dir; dir = dirname(dir) === dir ? null : dirname(dir)) {
     const manifest = join(dir, "package.json");
     if (!existsSync(manifest)) continue;
     try {
-      return Boolean(
-        JSON.parse(readFileSync(manifest, "utf8")).scripts?.verify,
-      );
+      return JSON.parse(readFileSync(manifest, "utf8")).scripts ?? {};
     } catch {
-      return false;
+      return null;
     }
   }
-  return false;
+  return null;
+}
+
+// The script that was running when verify stopped. pnpm 12 prints each script's command as
+// `$ <command>`, which maps back to its name; older versions printed `> pkg@1.0.0 <name> /dir`.
+function failedStep(output, scripts) {
+  const commands = [...output.matchAll(/^\$ (.+)$/gm)].map(([, command]) =>
+    command.trim(),
+  );
+  const last = commands.at(-1);
+  if (last !== undefined) {
+    const name = Object.keys(scripts).find(
+      (key) => key !== "verify" && scripts[key].trim() === last,
+    );
+    if (name) return name;
+  }
+  return output
+    .match(/^> \S+@\S+ (\S+) /gm)
+    ?.at(-1)
+    ?.split(" ")[2];
 }
 
 // Runs in its own process group, so the time-box can stop pnpm and every step it started.
