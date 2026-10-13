@@ -27,9 +27,11 @@ the owner, the PR waits. Every step streams live to the Studio.
 
 ```bash
 pnpm install
-pnpm dev     # http://localhost:3000
-pnpm lint
-pnpm build
+pnpm exec playwright install --only-shell chromium   # once, for the end-to-end checks
+pnpm dev            # http://localhost:3000
+pnpm verify         # lint, typecheck, knip and build, failing fast
+pnpm test:e2e       # Playwright + axe against a production build (PLAYWRIGHT_BASE_URL to test a deploy)
+pnpm test:harness   # the team's hooks
 ```
 
 Built with Next.js 16, React 19, Tailwind CSS 4 and Claude Code.
