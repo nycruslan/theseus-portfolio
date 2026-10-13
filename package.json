@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "biome ci --error-on-warnings",
     "typecheck": "next typegen && tsc --noEmit",
+    "knip": "knip",
+    "test:harness": "node --test .studio/test/*.test.mjs",
     "format": "biome format --write"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19",
     "agent-browser": "0.39.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "knip": "6.41.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
