@@ -5,8 +5,8 @@
 //   gate (gate.mjs) counts. It lives on GitHub, so it survives resumed sessions, cloud VMs and
 //   routines. This hook is the harness's own process, not an agent's Bash call, which is why it
 //   may post statuses while the guard refuses agents that try;
-// - in this session's ledger, which the watchdog's fix-round cap counts and which is never
-//   evidence for a merge.
+// - in this session's ledger, written first, which the watchdog's fix-round cap counts and which
+//   is never evidence for a merge.
 // Only an explicit `Verdict: ship|changes|blocked` line is posted. Lens always reviews, so a Lens
 // report without one is sent back once. Probe and Iris also write contracts and give direction, so
 // they are reminded once and may then stop without a verdict, which posts nothing.
@@ -22,7 +22,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { api, repoOf } from "./github.mjs";
+import { api, configure, repoOf } from "./github.mjs";
 
 /** The commit status each reviewer's verdict is posted as. */
 export const CONTEXTS = {
@@ -66,9 +66,14 @@ function ledgerPath(sessionId) {
 
 // Run as the hook, not imported by the gate. Node reports this module by its real path, while
 // argv keeps the path Claude Code called, which may go through a symlink.
-if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const hook = JSON.parse(readFileSync(0, "utf8"));
   const { agent_type: role, agent_id: agentId, session_id: session } = hook;
+  // Inside the hook's own 45 s, so a slow GitHub can't get the hook killed first.
+  configure({ timeout: 25_000 });
   const record = (fields) => {
     const entry = { role, agentId, ...fields, at: Date.now() };
     appendFileSync(ledgerPath(session), `${JSON.stringify(entry)}\n`);
@@ -96,8 +101,11 @@ if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
       // Asked once already: not a review, or one without a verdict. Nothing is posted for it.
       record({ verdict: "none", head, status: "not posted: no verdict" });
     } else {
+      // The verdict is on record before GitHub is asked, so the watchdog counts it even if
+      // posting is slow or fails. The outcome follows as its own line.
       const given = { ...found, head };
-      record({ ...given, status: postStatus(hook, ledger, given) });
+      record(given);
+      record({ statusOf: head, status: postStatus(hook, ledger, given) });
     }
   }
 }

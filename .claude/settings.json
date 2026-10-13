@@ -219,7 +219,7 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 20
+            "timeout": 45
           }
         ]
       },
@@ -253,7 +253,7 @@
             "type": "command",
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 20
+            "timeout": 45
           }
         ]
       },

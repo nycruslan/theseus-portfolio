@@ -75,13 +75,22 @@ function session(env = {}) {
             .map((field) => field.split(/=(.*)/s).slice(0, 2)),
         ),
       })),
+    /** The ledger's starts and verdicts, in order. */
     entries() {
-      const ledger = join(tmp, "theseus-verdicts-abc123.jsonl");
-      return existsSync(ledger)
-        ? readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse)
-        : [];
+      return lines().filter((entry) => !("statusOf" in entry));
     },
+    /** What became of each verdict on GitHub, recorded after it. */
+    outcomes() {
+      return lines().filter((entry) => "statusOf" in entry);
+    },
+    lines,
   };
+  function lines() {
+    const ledger = join(tmp, "theseus-verdicts-abc123.jsonl");
+    return existsSync(ledger)
+      ? readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse)
+      : [];
+  }
 }
 
 function verdict(payload, script) {
@@ -229,7 +238,7 @@ test("posts the verdict as a commit status on the commit the review started on",
       description: "Verdict: ship - no Important findings",
     },
   ]);
-  assert.equal(review.entries().at(-1).status, "posted");
+  assert.equal(review.outcomes().at(-1).status, "posted");
 });
 
 test("posts changes and blocked as failures, under each reviewer's context", () => {
@@ -315,7 +324,7 @@ test("posts to the repository its origin names, also through the cloud's git pro
   try {
     review.run(start("code-reviewer"));
     review.run(stop("code-reviewer", "Verdict: ship"));
-    assert.equal(review.entries().at(-1).status, "posted");
+    assert.equal(review.outcomes().at(-1).status, "posted");
   } finally {
     execFileSync(
       "git",
@@ -332,7 +341,7 @@ test("posts nothing without an origin remote", () => {
   review.run({ ...start("code-reviewer"), cwd: dir });
   review.run({ ...stop("code-reviewer", "Verdict: ship"), cwd: dir });
   assert.deepEqual(review.statuses(), []);
-  assert.match(review.entries().at(-1).status, /no origin remote/);
+  assert.match(review.outcomes().at(-1).status, /no origin remote/);
 });
 
 test("keeps the description to GitHub's 140 characters", () => {
@@ -348,7 +357,7 @@ test("posts nothing when it doesn't know the reviewed commit", () => {
   const review = session();
   review.run(stop("code-reviewer", "Verdict: ship"));
   assert.deepEqual(review.statuses(), []);
-  assert.match(review.entries()[0].status, /commit is unknown/);
+  assert.match(review.outcomes()[0].status, /commit is unknown/);
 });
 
 test("fails open when GitHub can't take the status: the ledger still has it", () => {
@@ -358,5 +367,18 @@ test("fails open when GitHub can't take the status: the ledger still has it", ()
   assert.equal(code, 0);
   const given = review.entries().at(-1);
   assert.equal(given.verdict, "ship");
-  assert.equal(given.status, "not posted: HTTP 422: No commit found for SHA");
+  assert.equal(
+    review.outcomes().at(-1).status,
+    "not posted: HTTP 422: No commit found for SHA",
+  );
+});
+
+test("records the verdict before asking GitHub, so a slow post can't lose it", () => {
+  const review = session({ GH_FAIL: "timed out" });
+  review.run(start("code-reviewer"));
+  review.run(stop("code-reviewer", "Verdict: changes - a missing key"));
+  const lines = review.lines();
+  const given = lines.findIndex((entry) => entry.verdict === "changes");
+  const outcome = lines.findIndex((entry) => "statusOf" in entry);
+  assert.ok(given >= 0 && outcome > given, JSON.stringify(lines));
 });
