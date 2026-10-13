@@ -19,9 +19,9 @@ import { broadcast } from "./post.mjs";
 import { changedFiles, scopeNotes } from "./scope.mjs";
 import {
   CONTEXTS,
-  describe,
   latestPerReviewer,
   readLedger,
+  statusText,
 } from "./verdict.mjs";
 
 const REVIEWERS = {
@@ -316,7 +316,7 @@ function carryForward({ head, items }, { repo }) {
         "-f",
         `context=${carried.context}`,
         "-f",
-        `description=${describe(`${line} (from ${from}; only notes changed since)`)}`,
+        `description=${statusText(`${line} (from ${from}; only notes changed since)`)}`,
       ],
       { cwd: hook.cwd, stdio: "ignore", timeout: 15_000 },
     );

@@ -50,7 +50,7 @@ export function latestPerReviewer(entries) {
 }
 
 /** A status description: one line, short enough for GitHub. */
-export function describe(text) {
+export function statusText(text) {
   const line = String(text).split("\n")[0].trim();
   return line.length > DESCRIPTION_LENGTH
     ? `${line.slice(0, DESCRIPTION_LENGTH - 1)}…`
@@ -127,7 +127,7 @@ function postStatus(hook, ledger, given) {
         "-f",
         `context=${CONTEXTS[hook.agent_type]}`,
         "-f",
-        `description=${describe(decisive.line ?? `Verdict: ${decisive.verdict}`)}`,
+        `description=${statusText(decisive.line ?? `Verdict: ${decisive.verdict}`)}`,
       ],
       {
         cwd: hook.cwd,
@@ -137,7 +137,7 @@ function postStatus(hook, ledger, given) {
     );
     return "posted";
   } catch (error) {
-    return `not posted: ${describe(error.stderr?.toString() || error.message)}`;
+    return `not posted: ${statusText(error.stderr?.toString() || error.message)}`;
   }
 }
 
