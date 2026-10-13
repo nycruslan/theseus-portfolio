@@ -6,9 +6,10 @@
 // 2. waits for CI on the head, polling its check runs and statuses every 15 s, and says what it's
 //    waiting for. CI is done when every check that reported passed and every required one (the
 //    base branch's, plus `check` and `scope`) reported; a check that never ran hasn't passed;
-// 3. runs the roll call again on fresh data, posts any verdict carried over notes-only commits,
-//    and squash-merges with `sha` set to the head it checked, so a push in between makes GitHub
-//    refuse the merge rather than take unreviewed code;
+// 3. runs the roll call again on fresh data, posts any verdict carried over notes-only commits as
+//    a status on the head (best effort, for GitHub's UI), and squash-merges with `sha` set to the
+//    head it checked, so a push in between makes GitHub refuse the merge rather than take
+//    unreviewed code;
 // 4. puts the roll call on air as StudioGateChecked, merged or not.
 // It fails closed: anything missing, red or unreadable is a NO-GO, with the reason, and exit 1.
 // The guard (guard.mjs) refuses every other way to merge. Run it with the Bash tool's timeout at
@@ -112,17 +113,23 @@ async function merge() {
   if (items.some((item) => item.state !== "go"))
     return { pr: number, head, items };
 
+  // Best effort, for GitHub's UI: the verdict comments already decided, and the cloud's proxy
+  // refuses commit statuses.
   for (const { carried } of items) {
     if (!carried) continue;
-    api(`repos/${repo}/statuses/${head}`, {
-      method: "POST",
-      fields: {
-        state: "success",
-        context: carried.context,
-        description: carried.description.slice(0, 140),
-      },
-      cwd,
-    });
+    try {
+      api(`repos/${repo}/statuses/${head}`, {
+        method: "POST",
+        fields: {
+          state: "success",
+          context: carried.context,
+          description: carried.description.slice(0, 140),
+        },
+        cwd,
+      });
+    } catch {
+      // Noted nowhere on purpose: the merge doesn't depend on it.
+    }
   }
   try {
     const merged = api(`repos/${repo}/pulls/${number}/merge`, {

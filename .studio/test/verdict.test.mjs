@@ -3,7 +3,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { readVerdictComment, verdictComment } from "../verdict.mjs";
 import {
+  answer,
   ghLog,
   gitRepo,
   REPO,
@@ -48,15 +50,35 @@ function stop(agent, message, extra = {}) {
   };
 }
 
-// GitHub takes every status, as REST does.
-const GITHUB = routes({
+// PR #12 is open on the reviewed commit, and GitHub takes every comment and status, as REST does.
+const OPEN_PR = { number: 12, state: "open", head: { sha: "0".repeat(40) } };
+const TABLE = {
+  [`repos/${REPO}/commits/*/pulls`]: [OPEN_PR],
+  [`repos/${REPO}/pulls`]: [],
+  [`POST repos/${REPO}/issues/*/comments`]: { id: 1 },
   [`POST repos/${REPO}/statuses/*`]: { state: "success" },
-});
+};
+const GITHUB = routes(TABLE);
 
 /** One session: run the hook on payloads in turn, then read its ledger and what it posted. */
 function session(env = {}) {
   const tmp = tempDir();
   const gh = ghLog();
+  const posts = (kind) =>
+    gh
+      .calls()
+      .filter((args) =>
+        args.some((arg) => arg.startsWith("repos/") && arg.includes(kind)),
+      )
+      .filter((args) => args.includes("POST"))
+      .map((args) => ({
+        path: args.find((arg) => arg.startsWith("repos/")),
+        ...Object.fromEntries(
+          args
+            .filter((_, i) => args[i - 1] === "-f")
+            .map((field) => field.split(/=(.*)/s).slice(0, 2)),
+        ),
+      }));
   return {
     run: (payload, script = "verdict.mjs") =>
       runHook(script, payload, {
@@ -64,24 +86,31 @@ function session(env = {}) {
       }),
     /** The commit statuses posted, as { sha, state, context, description }. */
     statuses: () =>
-      gh.calls().map((args) => ({
-        sha: args
-          .find((arg) => arg.startsWith("repos/"))
-          .split("/")
-          .at(-1),
-        ...Object.fromEntries(
-          args
-            .filter((_, i) => args[i - 1] === "-f")
-            .map((field) => field.split(/=(.*)/s).slice(0, 2)),
-        ),
+      posts("/statuses/").map(({ path, ...fields }) => ({
+        sha: path.split("/").at(-1),
+        ...fields,
       })),
+    /** The comments posted, as { pr, body }. */
+    comments: () =>
+      posts("/comments").map(({ path, body }) => ({
+        pr: Number(path.split("/").at(-2)),
+        body,
+      })),
+    /** Every gh call, as its arguments. */
+    calls: () => gh.calls(),
     /** The ledger's starts and verdicts, in order. */
     entries() {
-      return lines().filter((entry) => !("statusOf" in entry));
+      return lines().filter(
+        (entry) => !("statusOf" in entry) && !("commentOf" in entry),
+      );
     },
-    /** What became of each verdict on GitHub, recorded after it. */
+    /** What became of each verdict's status on GitHub, recorded after it. */
     outcomes() {
       return lines().filter((entry) => "statusOf" in entry);
+    },
+    /** What became of each verdict's comment, recorded after it. */
+    commented() {
+      return lines().filter((entry) => "commentOf" in entry);
     },
     lines,
   };
@@ -360,7 +389,7 @@ test("posts nothing when it doesn't know the reviewed commit", () => {
   assert.match(review.outcomes()[0].status, /commit is unknown/);
 });
 
-test("fails open when GitHub can't take the status: the ledger still has it", () => {
+test("fails open when GitHub can't be reached: the ledger still has it", () => {
   const review = session({ GH_FAIL: "HTTP 422: No commit found for SHA" });
   review.run(start("code-reviewer"));
   const { code } = review.run(stop("code-reviewer", "Verdict: ship"));
@@ -369,6 +398,10 @@ test("fails open when GitHub can't take the status: the ledger still has it", ()
   assert.equal(given.verdict, "ship");
   assert.equal(
     review.outcomes().at(-1).status,
+    "not posted: HTTP 422: No commit found for SHA",
+  );
+  assert.equal(
+    review.commented().at(-1).comment,
     "not posted: HTTP 422: No commit found for SHA",
   );
 });
@@ -381,4 +414,167 @@ test("records the verdict before asking GitHub, so a slow post can't lose it", (
   const given = lines.findIndex((entry) => entry.verdict === "changes");
   const outcome = lines.findIndex((entry) => "statusOf" in entry);
   assert.ok(given >= 0 && outcome > given, JSON.stringify(lines));
+});
+
+test("posts the verdict as a comment on the open PR, with the marker the gate reads", () => {
+  const reviewed = git("rev-parse", "HEAD");
+  const review = session();
+  review.run(start("code-reviewer"));
+  review.run(
+    stop("code-reviewer", "**Verdict: ship** - no Important findings"),
+  );
+  const [comment] = review.comments();
+  assert.equal(comment.pr, 12);
+  assert.equal(
+    comment.body,
+    `Lens: ship on ${reviewed.slice(0, 7)} — Verdict: ship - no Important findings\n\n<!-- theseus-verdict v1 role=code-reviewer verdict=ship head=${reviewed} -->`,
+  );
+  const { commentOf, comment: outcome, pr } = review.commented().at(-1);
+  assert.deepEqual([commentOf, outcome, pr], [reviewed, "posted", 12]);
+});
+
+test("the comment carries the role's verdict: a second reviewer's ship doesn't hide the first one's changes", () => {
+  const review = session();
+  review.run({ ...start("design-director"), agent_id: "iris-1" });
+  review.run({
+    ...stop("design-director", "Verdict: changes · 6.8/10"),
+    agent_id: "iris-1",
+  });
+  review.run({ ...start("design-director"), agent_id: "iris-2" });
+  review.run({
+    ...stop("design-director", "Verdict: ship · 7.4/10"),
+    agent_id: "iris-2",
+  });
+  const said = review.comments().map(({ body }) => readVerdictComment(body));
+  assert.deepEqual(
+    said.map(({ role, verdict, line, score }) => [role, verdict, line, score]),
+    [
+      ["design-director", "changes", "Verdict: changes · 6.8/10", 6.8],
+      ["design-director", "changes", "Verdict: changes · 6.8/10", 6.8],
+    ],
+  );
+});
+
+test("a verdict comment reads back as it was written", () => {
+  const head = "a".repeat(40);
+  const body = verdictComment({
+    role: "qa-engineer",
+    verdict: "blocked",
+    head,
+    line: "Verdict: blocked — the build fails",
+  });
+  assert.deepEqual(readVerdictComment(body), {
+    role: "qa-engineer",
+    verdict: "blocked",
+    head,
+    line: "Verdict: blocked — the build fails",
+  });
+  assert.equal(readVerdictComment("Verdict: ship, trust me"), null);
+});
+
+test("prefers the PR whose head is the reviewed commit, and finds it by branch when GitHub hasn't linked the commit yet", () => {
+  const reviewed = git("rev-parse", "HEAD");
+  const older = { number: 7, state: "open", head: { sha: "1".repeat(40) } };
+  const closed = { number: 3, state: "closed", head: { sha: reviewed } };
+  const exact = { number: 12, state: "open", head: { sha: reviewed } };
+  const linked = session({
+    GH_ROUTES: routes({
+      ...TABLE,
+      [`repos/${REPO}/commits/*/pulls`]: [closed, older, exact],
+    }),
+  });
+  linked.run(start("code-reviewer"));
+  linked.run(stop("code-reviewer", "Verdict: ship"));
+  assert.equal(linked.comments()[0].pr, 12);
+  const unlinked = session({
+    GH_ROUTES: routes({
+      ...TABLE,
+      [`repos/${REPO}/commits/*/pulls`]: [],
+      [`repos/${REPO}/pulls`]: [{ ...exact, number: 14 }],
+    }),
+  });
+  unlinked.run(start("code-reviewer"));
+  unlinked.run(stop("code-reviewer", "Verdict: ship"));
+  assert.equal(unlinked.comments()[0].pr, 14);
+  const lookup = unlinked
+    .calls()
+    .find((args) => args.some((arg) => /\/pulls\?/.test(arg)));
+  assert.match(lookup.join(" "), /pulls\?state=open&head=nycruslan:main/);
+});
+
+test("without an open PR: tells the reviewer at the start, records it, and tells the owner at the stop", () => {
+  const reviewed = git("rev-parse", "HEAD");
+  const review = session({
+    GH_ROUTES: routes({ ...TABLE, [`repos/${REPO}/commits/*/pulls`]: [] }),
+  });
+  const started = review.run(start("code-reviewer"));
+  assert.equal(started.code, 0);
+  const context = answer(started).hookSpecificOutput;
+  assert.equal(context.hookEventName, "SubagentStart");
+  assert.match(
+    context.additionalContext,
+    new RegExp(
+      `Not posted: no open PR for ${reviewed.slice(0, 7)}\\. Atlas: open the PR before review`,
+    ),
+  );
+  const stopped = review.run(stop("code-reviewer", "Verdict: ship"));
+  assert.equal(stopped.code, 0);
+  assert.match(
+    answer(stopped).systemMessage,
+    /Lens's verdict on [0-9a-f]{7} wasn't posted: no open PR has [0-9a-f]{7} on it yet\. Atlas: open the PR before reviews/,
+  );
+  assert.deepEqual(review.comments(), []);
+  assert.equal(
+    review.commented().at(-1).comment,
+    `not posted: no open PR has ${reviewed.slice(0, 7)} on it yet`,
+  );
+  assert.equal(review.entries().at(-1).verdict, "ship");
+});
+
+test("says to push when GitHub doesn't have the reviewed commit", () => {
+  const review = session({
+    GH_ROUTES: routes({
+      ...TABLE,
+      [`repos/${REPO}/commits/*/pulls`]: {
+        $error: 422,
+        message: "No commit found for SHA",
+      },
+    }),
+  });
+  const started = review.run(start("code-reviewer"));
+  assert.match(
+    answer(started).hookSpecificOutput.additionalContext,
+    /GitHub doesn't have [0-9a-f]{7}: push the branch/,
+  );
+  review.run(stop("code-reviewer", "Verdict: ship"));
+  assert.match(review.commented().at(-1).comment, /push the branch/);
+});
+
+test("says nothing at the start when there's a PR, or when GitHub can't be asked", () => {
+  assert.equal(session().run(start("code-reviewer")).stdout, "");
+  assert.equal(
+    session({ GH_FAIL: "HTTP 502" }).run(start("code-reviewer")).stdout,
+    "",
+  );
+});
+
+test("posts the comment even when the cloud's proxy refuses the status, and the hook still passes", () => {
+  const review = session({
+    GH_ROUTES: routes({
+      ...TABLE,
+      [`POST repos/${REPO}/statuses/*`]: {
+        $error: 403,
+        message:
+          "Write access to this GitHub API path is not permitted through this proxy",
+      },
+    }),
+  });
+  review.run(start("qa-engineer"));
+  const { code } = review.run(stop("qa-engineer", "Verdict: ship"));
+  assert.equal(code, 0);
+  assert.equal(review.commented().at(-1).comment, "posted");
+  assert.match(
+    review.outcomes().at(-1).status,
+    /^not posted: Write access to this GitHub API path is not permitted/,
+  );
 });

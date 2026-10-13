@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { covers } from "../gate.mjs";
 import { repoFromRemote } from "../github.mjs";
+import { verdictComment } from "../verdict.mjs";
 import {
   ghLog,
   gitRepo,
@@ -64,9 +65,24 @@ const changed = (filename, extra = {}) => ({
   ...extra,
 });
 
+// A verdict comment as REST lists it, with the body verdict.mjs writes.
+let commentId = 100;
+const said = (
+  role,
+  verdict,
+  head,
+  { line = `Verdict: ${verdict}`, score, association = "OWNER" } = {},
+) => ({
+  id: commentId++,
+  author_association: association,
+  user: { login: association === "OWNER" ? "nycruslan" : "someone" },
+  body: verdictComment({ role, verdict, head, line, score }),
+});
+
 /**
  * The GitHub side of PR #12, as REST serves it.
  * @param statuses commit statuses by sha; CI statuses and the reviewers' verdicts alike.
+ * @param comments the PR's comments, oldest first.
  */
 function github({
   head = reviewed,
@@ -76,6 +92,7 @@ function github({
   rules = RULES,
   workflowRuns = [],
   statuses = { [head]: [LENS] },
+  comments = [],
   labels = [],
   events = [],
   pr = {},
@@ -103,6 +120,7 @@ function github({
     [`${R}/pulls/12/files`]: files,
     [`${R}/pulls/12/commits`]: commits.map((sha) => ({ sha })),
     [`${R}/issues/12/events`]: events,
+    [`${R}/issues/12/comments`]: comments,
     [`${R}/commits/*/check-runs`]: { check_runs: checks },
     [`${R}/rules/branches/main`]: rules,
     [`${R}/actions/runs`]: { workflow_runs: workflowRuns },
@@ -621,4 +639,161 @@ test("works from a subdirectory of the checkout", () => {
   const sub = join(repo, "app", "nested");
   mkdirSync(sub, { recursive: true });
   assert.equal(merge(github(), { cwd: sub }).code, 0);
+});
+
+test("reads the verdicts from the PR's comments, as cloud sessions post them", () => {
+  const files = [changed("app/page.tsx"), changed("e2e/nav.spec.ts")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("qa-engineer", "ship", reviewed),
+  ];
+  const { code, stderr, merged } = merge(
+    github({ files, statuses: {}, comments }),
+  );
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
+});
+
+test("the latest comment per role and commit stands, quoted when it says no", () => {
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("code-reviewer", "changes", reviewed, {
+      line: "Verdict: changes - an N+1 fetch",
+    }),
+  ];
+  const { code, stderr, merged } = merge(github({ statuses: {}, comments }));
+  assert.equal(code, 1);
+  assert.match(
+    stderr,
+    /Lens said "Verdict: changes - an N\+1 fetch" on this commit/,
+  );
+  assert.deepEqual(merged, []);
+  const cleared = merge(
+    github({
+      statuses: {},
+      comments: [...comments, said("code-reviewer", "ship", reviewed)],
+    }),
+  );
+  assert.equal(cleared.code, 0, cleared.stderr);
+});
+
+test("a role's comment outranks its status; a role without one falls back to its status", () => {
+  const files = [changed("app/page.tsx"), changed("e2e/nav.spec.ts")];
+  // Lens's status says ship, her comment says changes: the comment decides.
+  const held = merge(
+    github({
+      statuses: { [reviewed]: [LENS] },
+      comments: [said("code-reviewer", "changes", reviewed)],
+    }),
+  );
+  assert.equal(held.code, 1);
+  assert.match(held.stderr, /Lens said "Verdict: changes"/);
+  // Lens commented; Probe only has a status, posted from a laptop.
+  const mixed = merge(
+    github({
+      files,
+      statuses: { [reviewed]: [verdict("probe")] },
+      comments: [said("code-reviewer", "ship", reviewed)],
+    }),
+  );
+  assert.equal(mixed.code, 0, mixed.stderr);
+});
+
+test("Iris's comment brings her in, score and all, and her changes holds the merge", () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("design-director", "changes", reviewed, {
+      line: "Verdict: changes · 6.8/10",
+      score: 6.8,
+    }),
+  ];
+  const { code, stderr } = merge(github({ files, statuses: {}, comments }));
+  assert.equal(code, 1);
+  assert.match(
+    stderr,
+    /Iris said "Verdict: changes · 6\.8\/10" on this commit/,
+  );
+});
+
+test("counts only the repository's own people: anyone can comment on a public PR", () => {
+  for (const association of ["NONE", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR"]) {
+    const comments = [said("code-reviewer", "ship", reviewed, { association })];
+    const { code, stderr, merged } = merge(github({ statuses: {}, comments }));
+    assert.equal(code, 1, association);
+    assert.match(stderr, /Lens: no verdict on GitHub for this PR/, association);
+    assert.deepEqual(merged, [], association);
+  }
+});
+
+test("ignores a comment without a well-formed marker, or about a commit not in the PR", () => {
+  const comments = [
+    {
+      id: 1,
+      author_association: "OWNER",
+      body: "Lens: ship on abc1234 — Verdict: ship\n\n<!-- theseus-verdict v1 role=code-reviewer verdict=ship head=abc1234 -->",
+    },
+    {
+      id: 2,
+      author_association: "OWNER",
+      body:
+        "<!-- theseus-verdict v1 role=lead verdict=ship head=" +
+        reviewed +
+        " -->",
+    },
+    {
+      id: 3,
+      author_association: "OWNER",
+      body:
+        "<!-- theseus-verdict v2 role=code-reviewer verdict=ship head=" +
+        reviewed +
+        " -->",
+    },
+    said("code-reviewer", "ship", "f".repeat(40)),
+  ];
+  const { code, stderr } = merge(github({ statuses: {}, comments }));
+  assert.equal(code, 1);
+  assert.match(stderr, /Lens: no verdict on GitHub for this PR/);
+});
+
+test("carries a comment's ship over notes-only commits, and merges even when the status can't be posted", () => {
+  const commits = [reviewed, notesOnly];
+  const table = github({
+    head: notesOnly,
+    commits,
+    statuses: {},
+    comments: [said("code-reviewer", "ship", reviewed)],
+  });
+  // The cloud's proxy refuses commit statuses.
+  table[`POST ${R}/statuses/*`] = {
+    $error: 403,
+    message:
+      "Write access to this GitHub API path is not permitted through this proxy",
+  };
+  const { code, stderr, posted, merged } = merge(table);
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(
+    posted.map(({ path, context }) => [path, context]),
+    [[`${R}/statuses/${notesOnly}`, "theseus/lens"]],
+  );
+  assert.deepEqual(merged, [{ merge_method: "squash", sha: notesOnly }]);
+  const changedSince = merge(
+    github({
+      head: codeChange,
+      commits: [reviewed, notesOnly, codeChange],
+      statuses: {},
+      comments: [said("code-reviewer", "ship", reviewed)],
+    }),
+  );
+  assert.equal(changedSince.code, 1);
+  assert.match(changedSince.stderr, /and the product changed since/);
+});
+
+test("fails closed when it can't read the PR's comments", () => {
+  const table = github();
+  table[`${R}/issues/12/comments`] = { $error: 502, message: "Bad Gateway" };
+  const { code, stderr, merged } = merge(table);
+  assert.equal(code, 1);
+  assert.match(stderr, /couldn't check PR #12 \(Bad Gateway/);
+  assert.deepEqual(merged, []);
 });
