@@ -48,3 +48,7 @@ next-env.d.ts
 
 # parallel agents work in their own worktrees
 .claude/worktrees/
+
+# playwright
+/test-results/
+/playwright-report/

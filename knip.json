@@ -1,0 +1,7 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [".studio/*.mjs"],
+  "project": ["**/*.{js,mjs,cjs,ts,tsx,mts,css}", "!.claude/**"],
+  "ignoreDependencies": ["agent-browser"],
+  "ignoreExportsUsedInFile": { "interface": true, "type": true }
+}

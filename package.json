@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
+    "lint": "biome ci --error-on-warnings",
+    "typecheck": "next typegen && tsc --noEmit",
+    "knip": "knip",
+    "verify": "pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
+    "test:e2e": "playwright test",
+    "test:harness": "node --test .studio/test/*.test.mjs",
     "format": "biome format --write"
   },
   "dependencies": {
@@ -15,13 +20,16 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.2",
+    "@axe-core/playwright": "4.13.0",
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "1.64.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "agent-browser": "0.39.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "knip": "6.41.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
