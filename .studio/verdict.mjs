@@ -1,12 +1,15 @@
 // SubagentStart and SubagentStop hook for the reviewers: Lens, Probe and Iris (see
-// .claude/settings.json). It notes the commit each reviewer starts (or is resumed) on, and requires
-// their report to open with its verdict. The verdict is recorded against that commit twice:
-// - as a GitHub commit status (theseus/lens, theseus/probe, theseus/iris), which the merge gate and
-//   branch protection read. It lives on GitHub, so it survives resumed sessions, cloud VMs and
-//   routines. This hook runs outside the agents' permission rules, which is why it may call
-//   `gh api` while the agents may not;
-// - in this session's ledger, the fallback for when GitHub can't be reached or the commit was never
-//   pushed, and the record of review rounds that the watchdog's fix-round cap counts.
+// .claude/settings.json). It notes the commit each reviewer starts (or is resumed) on, and records
+// the verdict their report opens with against that commit:
+// - as a GitHub commit status (theseus/lens, theseus/probe, theseus/iris), the only form the merge
+//   gate (gate.mjs) counts. It lives on GitHub, so it survives resumed sessions, cloud VMs and
+//   routines. This hook is the harness's own process, not an agent's Bash call, which is why it
+//   may post statuses while the guard refuses agents that try;
+// - in this session's ledger, which the watchdog's fix-round cap counts and which is never
+//   evidence for a merge.
+// Only an explicit `Verdict: ship|changes|blocked` line is posted. Lens always reviews, so a Lens
+// report without one is sent back once. Probe and Iris also write contracts and give direction, so
+// they are reminded once and may then stop without a verdict, which posts nothing.
 // Posting fails open: a reviewer is never held up because GitHub is.
 
 import { execFileSync } from "node:child_process";
@@ -19,6 +22,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { api, repoOf } from "./github.mjs";
 
 /** The commit status each reviewer's verdict is posted as. */
 export const CONTEXTS = {
@@ -35,22 +39,20 @@ const DESCRIPTION_LENGTH = 140;
 export function readLedger(sessionId) {
   const path = ledgerPath(sessionId);
   if (!existsSync(path)) return [];
-  return readFileSync(path, "utf8").trim().split("\n").map(JSON.parse);
-}
-
-/** Each reviewer's latest verdict among these entries. */
-export function latestPerReviewer(entries) {
-  return [
-    ...new Map(
-      entries
-        .filter((entry) => "verdict" in entry)
-        .map((entry) => [entry.agentId, entry]),
-    ).values(),
-  ];
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        return [JSON.parse(line)];
+      } catch {
+        return [];
+      }
+    });
 }
 
 /** A status description: one line, short enough for GitHub. */
-export function statusText(text) {
+function statusText(text) {
   const line = String(text).split("\n")[0].trim();
   return line.length > DESCRIPTION_LENGTH
     ? `${line.slice(0, DESCRIPTION_LENGTH - 1)}…`
@@ -79,24 +81,24 @@ if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
       verdictIn(handback(hook.agent_transcript_path));
     if (!found && !hook.stop_hook_active) {
       console.error(
-        "Start your report with `Verdict: ship`, `Verdict: changes` or `Verdict: blocked` on its own line.",
+        role === "code-reviewer"
+          ? "Start your report with `Verdict: ship`, `Verdict: changes` or `Verdict: blocked` on its own line."
+          : "If this was a review, end it with a report that opens with `Verdict: ship`, `Verdict: changes` or `Verdict: blocked` on its own line; otherwise stop again.",
       );
       process.exit(2);
     }
-    // Asked once already: record the missing verdict rather than loop. Without a recorded start
-    // the head is unknown, and the gate treats the verdict as stale.
     const ledger = readLedger(session);
     const start = ledger.findLast(
       (entry) => entry.agentId === agentId && "started" in entry,
     );
-    const given = {
-      ...(found ?? {
-        verdict: "none",
-        line: "Verdict: none (the report gave none)",
-      }),
-      head: start?.started ?? null,
-    };
-    record({ ...given, status: postStatus(hook, ledger, given) });
+    const head = start?.started ?? null;
+    if (!found) {
+      // Asked once already: not a review, or one without a verdict. Nothing is posted for it.
+      record({ verdict: "none", head, status: "not posted: no verdict" });
+    } else {
+      const given = { ...found, head };
+      record({ ...given, status: postStatus(hook, ledger, given) });
+    }
   }
 }
 
@@ -105,40 +107,44 @@ if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
 // description is the line of the verdict that decides it.
 function postStatus(hook, ledger, given) {
   if (!given.head) return "not posted: the reviewed commit is unknown";
-  const onHead = ledger.filter(
-    (entry) => entry.role === hook.agent_type && entry.head === given.head,
-  );
+  const repo = repoOf(hook.cwd);
+  if (!repo) return "not posted: the checkout has no origin remote";
   const latest = latestPerReviewer([
-    ...onHead,
+    ...ledger.filter(
+      (entry) =>
+        entry.role === hook.agent_type &&
+        entry.head === given.head &&
+        entry.verdict !== "none",
+    ),
     { ...given, agentId: hook.agent_id },
   ]);
   const open = latest.filter((entry) => entry.verdict !== "ship");
   const decisive = open.at(-1) ?? given;
   try {
-    execFileSync(
-      "gh",
-      [
-        "api",
-        "--method",
-        "POST",
-        `repos/{owner}/{repo}/statuses/${given.head}`,
-        "-f",
-        `state=${open.length ? "failure" : "success"}`,
-        "-f",
-        `context=${CONTEXTS[hook.agent_type]}`,
-        "-f",
-        `description=${statusText(decisive.line ?? `Verdict: ${decisive.verdict}`)}`,
-      ],
-      {
-        cwd: hook.cwd,
-        stdio: ["ignore", "ignore", "pipe"],
-        timeout: 15_000,
+    api(`repos/${repo}/statuses/${given.head}`, {
+      method: "POST",
+      fields: {
+        state: open.length ? "failure" : "success",
+        context: CONTEXTS[hook.agent_type],
+        description: statusText(decisive.line),
       },
-    );
+      cwd: hook.cwd,
+    });
     return "posted";
   } catch (error) {
-    return `not posted: ${statusText(error.stderr?.toString() || error.message)}`;
+    return `not posted: ${statusText(error.message)}`;
   }
+}
+
+/** Each reviewer's latest verdict among these entries. */
+function latestPerReviewer(entries) {
+  return [
+    ...new Map(
+      entries
+        .filter((entry) => "verdict" in entry)
+        .map((entry) => [entry.agentId, entry]),
+    ).values(),
+  ];
 }
 
 // The verdict line is one of the report's first three lines; markdown around it is fine.

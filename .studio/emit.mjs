@@ -26,6 +26,12 @@ const RESULT_FIELDS = {
   // and action (created, ready, merged).
   Bash: ["gitOperation"],
 };
+// A PR opened through REST, or merged by merge.mjs: the Studio shows its number, which only the
+// command's output has. Only the PR's URL leaves; the rest of stdout stays local.
+const OPENS_PR =
+  /\bgh\s+api\b(?=[^;&|\n]*\brepos\/[\w.-]+\/[\w.-]+\/pulls(?![\w/]))(?=[^;&|\n]*\s(-f|-F|--field|--raw-field)\s)/;
+const MERGES_PR = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
+const PR_URL = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/;
 const NARRATION_LENGTH = 1200;
 const PROMPT_LENGTH = 1000;
 const ERROR_LINES = 3;
@@ -44,10 +50,12 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
   const kept = (RESULT_FIELDS[hook.tool_name] ?? []).filter(
     (key) => result?.[key] !== undefined,
   );
-  if (kept.length) {
-    hook.tool_response = Object.fromEntries(
-      kept.map((key) => [key, result[key]]),
-    );
+  const prUrl = pullRequestUrl(hook, result);
+  if (kept.length || prUrl) {
+    hook.tool_response = {
+      ...Object.fromEntries(kept.map((key) => [key, result[key]])),
+      ...(prUrl && { prUrl }),
+    };
   }
   // Only text that goes public with the code anyway: a file git ignores (.env.local, build output)
   // or one outside the repository shows by its path alone.
@@ -78,6 +86,14 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
     default:
       return hook;
   }
+}
+
+function pullRequestUrl({ tool_name: tool, tool_input: input }, result) {
+  const command = String(input?.command ?? "");
+  if (tool !== "Bash" || !(OPENS_PR.test(command) || MERGES_PR.test(command))) {
+    return undefined;
+  }
+  return String(result?.stdout ?? "").match(PR_URL)?.[0];
 }
 
 // check-ignore exits 1 for a file git would track, 0 for an ignored one and 128 outside a repository.

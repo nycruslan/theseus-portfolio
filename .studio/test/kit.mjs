@@ -1,5 +1,5 @@
 // Shared test helpers: run a hook script the way Claude Code does, stand in for the Studio's
-// ingest and for gh, and build throwaway git repositories.
+// ingest and for gh's REST calls, and build throwaway git repositories.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -44,28 +44,19 @@ export function answer({ stdout }) {
   return stdout.trim() ? JSON.parse(stdout) : null;
 }
 
-// A stand-in for gh, first on every hook's PATH. It answers from the environment: `gh pr view`
-// prints GH_PR, the PR's files GH_FILES and its label history GH_LABELED (each already shaped by
-// the caller's --jq). It fails with GH_FAIL when set, and logs each call's arguments to GH_LOG.
+// fake-gh.cjs stands in for gh, first on every hook's PATH: no test may reach GitHub. It answers
+// `gh api` from GH_ROUTES (see that file).
 const GH = mkdtempSync(join(tmpdir(), "theseus-gh-"));
 writeFileSync(
   join(GH, "gh"),
-  `#!/usr/bin/env node
-const { appendFileSync } = require("node:fs");
-const args = process.argv.slice(2);
-const env = process.env;
-if (env.GH_LOG) appendFileSync(env.GH_LOG, JSON.stringify(args) + "\\n");
-if (env.GH_FAIL) {
-  process.stderr.write(env.GH_FAIL + "\\n");
-  process.exit(1);
-}
-const path = args.find((arg) => arg.startsWith("repos/")) ?? "";
-if (args[0] === "pr") process.stdout.write(env.GH_PR ?? "");
-else if (path.endsWith("/events")) process.stdout.write(env.GH_LABELED ?? "");
-else if (path.endsWith("/files")) process.stdout.write(env.GH_FILES ?? "");
-`,
+  `#!/bin/sh\nexec "${process.execPath}" "${join(dirname(fileURLToPath(import.meta.url)), "fake-gh.cjs")}" "$@"\n`,
 );
 chmodSync(join(GH, "gh"), 0o755);
+
+/** GH_ROUTES for the fake gh, from an object of routes. */
+export function routes(table) {
+  return JSON.stringify(table);
+}
 
 /** A log for the fake gh, and a reader for the calls it saw. */
 export function ghLog() {
@@ -125,14 +116,19 @@ export async function ingest() {
   };
 }
 
-/** A git repository with one commit per entry: each maps paths to contents. */
+/** The repository test checkouts claim as their origin, and the URL they claim it from. */
+export const REPO = "nycruslan/theseus-portfolio";
+export const ORIGIN = `https://github.com/${REPO}.git`;
+
+/** A git repository with one commit per entry: each maps paths to contents. Its origin is ORIGIN. */
 export function gitRepo(...commits) {
   const dir = tempDir();
   const git = (...args) =>
     execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
-  git("init", "--quiet");
+  git("init", "--quiet", "--initial-branch", "main");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "Test");
+  git("remote", "add", "origin", ORIGIN);
   const shas = commits.map((files, index) => {
     for (const [path, content] of Object.entries(files)) {
       mkdirSync(dirname(join(dir, path)), { recursive: true });
