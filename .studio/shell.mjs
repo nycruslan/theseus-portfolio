@@ -67,12 +67,12 @@ const RUNNERS = new Set(["xargs", "npx", "bunx", "pnpm", "yarn", "npm"]);
 const MAX_DEPTH = 4;
 
 /**
- * @returns {{ writes: { path: string, tree: boolean }[], unknownCwd: boolean, kill: string | null }}
- *   the absolute paths the command writes, whether a cd hid where relative ones land, and the kill
- *   it refuses, if any.
+ * @returns {{ writes: { path: string, tree: boolean }[], kill: string | null }} the absolute paths
+ *   the command writes, and the kill it refuses, if any. After a cd it can't follow, relative paths
+ *   are unknown and left out.
  */
 export function readCommand(command, cwd) {
-  const found = { writes: [], unknownCwd: false, kill: null };
+  const found = { writes: [], kill: null };
   read(String(command ?? ""), cwd, found, 0);
   return found;
 }
@@ -85,7 +85,6 @@ function read(command, cwd, found, depth) {
       if (path.startsWith("~/")) {
         return resolve(process.env.HOME ?? "/", path.slice(2));
       }
-      if (!base) found.unknownCwd = true;
       return base ? resolve(base, path) : null;
     };
     const keep = (path, tree) => {
