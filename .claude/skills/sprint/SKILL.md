@@ -27,18 +27,24 @@ written down, each in its own worktree. Builders run `pnpm verify` before every 
 won't let them stop until it passes or they report what failed. Name everyone you bring in
 (`forge`, `forge-2` …) and track each piece as a task with its owner.
 
-**Verify.** Reviewers start fresh. They judge the diff, the contract and the running site, not the
-builder's account, and their verdicts post to the pull request as checks. Send findings back to
+**Verify.** Push the branch first, and start reviewers where the pushed head is checked out:
+their verdicts post as checks on the commit they reviewed. Reviewers start fresh. They judge the
+diff, the contract and the running site, not the builder's account. Send findings back to
 the same builder. After a fix round, the final verdict comes from a fresh reviewer. Two fix rounds
-at most (a hook enforces it); then cut scope or stop.
+at most: after that a hook refuses further builder work, so cut scope yourself (revert or record a
+contract change) or stop. Keep to one pull request per session.
 
 **Escalate** to whoever owns the question: scope to Quill, taste to Iris. Owner facts, or anything
 risky, go to the owner under "Needs owner decision" in the PR, with the `needs-owner` label.
 
 **Ship.** Open the PR as a draft early, with the goal, size, contract and its results, the
-decisions and the verdicts. When CI and the verdicts are green, run `gh pr merge --squash --auto`.
+decisions and the verdicts. Commit the close-out below first: a commit after auto-merge has no
+verdicts. When CI and the verdicts are green, run `gh pr merge --squash --auto`.
 The gate refuses owner paths and weakened tests. A smaller ship, or no ship with the reason, is a
 fine outcome. A quiet downgrade isn't. Say what nobody verified.
+
+Don't end the session with "waiting for …" unless background work is still running. Otherwise
+ship, or write the not-shipped report and its STATE.md entry.
 
 **Close** with `.studio/sprint/<n>/retro.json`. Record:
 - the outcome, the size and the fix rounds;

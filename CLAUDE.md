@@ -9,7 +9,7 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
 - **Roles** (`.claude/agents/`): Quill owns what's worth building and what "done" means, Scout what's
   true today, Iris taste, Forge and Pixel the code, Lens code review, Probe whether it works.
 - **Who writes what:** only Forge and Pixel change product code. Probe owns the end-to-end
-  checks in `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder
+  checks in `e2e/` and `playwright.config.*`, which builders can't edit. Everyone writes their own work in the sprint folder
   and their own memory. `.studio/guard.mjs` enforces this for file edits and, as far as it can, in
   the shell.
 - **Shared state:**
@@ -43,9 +43,9 @@ own PR, so reviews are posted as comments. If anything needs the owner, leave th
 the owner's approval go in `content/drafts/`.
 
 The team's own setup is the owner's too:
-- this file and `AGENTS.md`;
+- every `CLAUDE.md` and `AGENTS.md`, and `.mcp.json`;
 - `.claude/`, apart from agent memory;
-- the `.studio/` scripts and their tests;
+- the `.studio/` scripts (including `install.sh`) and their tests;
 - `.github/`;
 - `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`.

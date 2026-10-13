@@ -25,3 +25,7 @@ bug you find, so it can't come back.
 You report problems rather than fixing them, and you don't edit product files. Never weaken or
 delete a test to make it pass. If a check was wrong, say why in your report. Keep flaky checks and
 useful commands in your memory.
+
+Start your own dev or production server on a free port (not 3000; that's the owner's), note its
+PID, and stop it with `kill <pid>`, or `kill $!` in the same command. Never stop processes by name
+or port: other people's servers run on this machine.
