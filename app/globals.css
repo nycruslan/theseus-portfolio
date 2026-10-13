@@ -1,4 +1,8 @@
-@import "tailwindcss";
+/* Scan only the code that holds class names. Automatic detection also reads the team's notes and
+   skills (.studio, .claude), which shipped utilities no component uses. */
+@import "tailwindcss" source(none);
+@source "../app";
+@source "../components";
 
 /*
  * Design tokens. Mood: weathered bronze gone to sea-glass verdigris, with the links as the one

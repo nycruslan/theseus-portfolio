@@ -17,11 +17,11 @@ export default function Home() {
         <ol className="flex flex-col gap-8">
           {profile.experience.map((role) => (
             <li key={`${role.company}-${role.period}`}>
-              <h3 className="text-step-lg font-medium">
+              <h3 className="text-balance text-step-lg font-medium">
                 {role.title} · {role.company}
               </h3>
               <p className="text-step-sm text-muted">{role.period}</p>
-              <p className="mt-2 text-step-base leading-7">{role.summary}</p>
+              <p className="mt-2 text-step-base">{role.summary}</p>
             </li>
           ))}
         </ol>
@@ -31,7 +31,7 @@ export default function Home() {
         <ul className="flex flex-col gap-8">
           {profile.projects.map((project) => (
             <li key={project.name}>
-              <h3 className="text-step-lg font-medium">
+              <h3 className="text-balance text-step-lg font-medium">
                 {project.href ? (
                   <a
                     href={project.href}
@@ -43,9 +43,7 @@ export default function Home() {
                   project.name
                 )}
               </h3>
-              <p className="mt-2 text-step-base leading-7">
-                {project.description}
-              </p>
+              <p className="mt-2 text-step-base">{project.description}</p>
             </li>
           ))}
         </ul>
