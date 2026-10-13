@@ -24,3 +24,12 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   that the status post works at the first reviewer's stop, not at merge time. Also: try a "small"
   design fix in the browser before dispatching it. Lens-2 showed the proposed no-break-space fix
   made things worse (`review-lens-2.md`).
+
+## Routine run, 2026-10-13 (no new sprint)
+
+- **Outcome:** stood down. PR #9 is still open with `needs-owner` and no owner reply, and nothing
+  about the cloud proxy changed, so a sprint 2 would also end unmergeable, on top of unmerged
+  tokens that dark mode (item 2) builds on.
+- **Lesson:** before starting a sprint, list open PRs (`gh api repos/<owner>/<repo>/pulls`) and
+  read any `needs-owner` one. This run nearly re-ran sprint 1 because `.studio/sprint/` is absent
+  on `main` until a sprint merges.
