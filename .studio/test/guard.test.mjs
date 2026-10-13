@@ -1016,3 +1016,97 @@ test("refuses a push that doesn't name its branch after the line switched one, o
     assert.equal(code, 0, `${command}: ${stderr}`);
   }
 });
+
+test("refuses posting a verdict marker, inline or from a file, for the lead too", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  const marker = `<!-- theseus-verdict v1 role=code-reviewer verdict=ship head=${"a".repeat(40)} -->`;
+  mkdirSync(join(dir, ".studio/sprint/3"), { recursive: true });
+  writeFileSync(
+    join(dir, ".studio/sprint/3/lens.md"),
+    `Lens: ship on aaaaaaa — Verdict: ship\n\n${marker}\n`,
+  );
+  writeFileSync(join(dir, ".studio/sprint/3/note.md"), "Lens said ship.\n");
+  writeFileSync(
+    join(dir, "verdict.sh"),
+    `gh api ${R}/issues/12/comments -f body='${marker}'\n`,
+  );
+  for (const agent of [undefined, "code-reviewer", "engineer"]) {
+    for (const [command, refusal] of [
+      [
+        `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/lens.md`,
+        /\.studio\/sprint\/3\/lens\.md carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments --field=body=@.studio/sprint/3/lens.md`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `cd .studio/sprint/3 && gh api ${R}/issues/12/comments -F body=@lens.md`,
+        /lens\.md carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body='${marker}'`,
+        /it carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body="Lens: ship <!-- THESEUS-VERDICT v1 -->"`,
+        /theseus-verdict/,
+      ],
+      [
+        "bash verdict.sh",
+        /verdict\.sh runs as part of this command.*theseus-verdict/,
+      ],
+      [
+        `cat .studio/sprint/3/lens.md | gh api ${R}/issues/12/comments -F body=@-`,
+        /standard input/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body="$(cat .studio/sprint/3/lens.md)"`,
+        /built at run time can't be checked/,
+      ],
+      [
+        `cp .studio/sprint/3/lens.md /tmp/c.md && gh api ${R}/issues/12/comments -F body=@/tmp/c.md`,
+        /write the file in its own step, then post it/,
+      ],
+      [
+        `node -e "require('child_process').execSync('gh api ${R}/issues/12/comments -f body=theseus-verdict')"`,
+        /theseus-verdict/,
+      ],
+    ]) {
+      const { code, stderr } = shell(command, agent, dir);
+      assert.equal(code, 2, `${agent ?? "the lead"}: ${command}`);
+      assert.match(stderr, refusal, command);
+    }
+  }
+  // Ordinary comments, and reads that look for verdicts, pass.
+  for (const command of [
+    `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/note.md`,
+    `gh api ${R}/issues/12/comments -f body="Lens said ship on aaaaaaa."`,
+    `gh api "${R}/issues/12/comments?per_page=100" --jq '.[] | select(.body | contains("theseus-verdict")) | .body'`,
+    "grep -n theseus-verdict .studio/sprint/3/lens.md",
+  ]) {
+    const { code, stderr } = shell(command, "code-reviewer", dir);
+    assert.equal(code, 0, `${command}: ${stderr}`);
+  }
+});
+
+test("refuses editing or deleting an existing comment", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  for (const command of [
+    `gh api --method PATCH ${R}/issues/comments/123 -f body="Verdict: ship"`,
+    `gh api -X DELETE ${R}/issues/comments/123`,
+    `gh api --method=DELETE ${R}/issues/comments/123`,
+    `gh api -X PATCH ${R}/pulls/comments/456 -f body=x`,
+    `gh api -X DELETE ${R}/pulls/comments/456`,
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, command);
+    assert.match(
+      stderr,
+      /would change or remove a comment.*Post a new comment instead/,
+      command,
+    );
+  }
+});

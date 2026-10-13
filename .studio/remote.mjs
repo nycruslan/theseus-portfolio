@@ -8,7 +8,12 @@
 // - gh: the read-only subcommands, also against other repositories, and `gh api`. Its writes
 //   (another method than GET, or any -f/-F/--input) go only to this repository's pulls (to open
 //   one), pulls/<n> (title and body), issues/<n>/comments and issues/<n>/labels (literal labels,
-//   never owner-approved). Only a body or title may come from a file.
+//   never owner-approved). Only a body or title may come from a file. Existing comments are never
+//   edited or deleted.
+// - Verdicts: the reviewers' verdicts are PR comments carrying a theseus-verdict marker, which only
+//   the verdict hook posts. A line that could write to GitHub may not carry the marker, and a
+//   comment's body file is read for it: it must be a literal path the guard can read, not
+//   standard input, and not a file the same line writes.
 // - A line that could write to GitHub may not mention statuses, owner-approved, git refs,
 //   contents, rulesets, branch protection, secrets or api.github.com. No line may run
 //   `gh auth token`, set a GitHub token, or send curl an Authorization header.
@@ -20,7 +25,7 @@
 // harness still gets through. A required check in the base branch's ruleset is what's binding.
 
 import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 export const SANCTIONED = "node .studio/merge.mjs <number>";
@@ -43,6 +48,9 @@ const DENIED = [
     "GitHub's API is reached through `gh api <path>`, which the guard can read; `gh api repos/<owner>/<repo>/…` reads other repositories too",
   ],
 ];
+// The marker of a reviewer's verdict comment (verdict.mjs), which the merge gate reads.
+const VERDICT_MARKER = /theseus-verdict/i;
+const BODY_BYTES = 1024 * 1024;
 const ALWAYS = [
   [/\bgh\W+auth\W+token\b/i, "the owner's token stays with gh"],
   [
@@ -179,6 +187,7 @@ export function remoteRefusal(
     }
   }
   if (!read || unreadable || canWrite(read)) {
+    if (VERDICT_MARKER.test(command)) return markerRefusal();
     const found = deniedText(command) ?? mergeRefusal(command, read);
     if (found) return found;
   }
@@ -274,11 +283,12 @@ function sanctioned(read, project) {
 
 function parsedRefusal(read, repo) {
   let moved = false;
+  const writes = read.writes.length > 0 || read.unsure.length > 0;
   for (const command of read.commands) {
     const fed = ghArgs(command);
     const found =
       command.name === "gh"
-        ? ghRefusal(command, repo)
+        ? ghRefusal(command, repo, writes)
         : fed
           ? fedRefusal(command.name, fed)
           : command.name === "git push"
@@ -351,7 +361,7 @@ function ghWrites(args) {
   return !isRead(group, sub);
 }
 
-function ghRefusal({ args }, repo) {
+function ghRefusal({ args, dir }, repo, writes) {
   const { group, sub, rest } = subcommand(args);
   if (!group) return null;
   if (group.dynamic) {
@@ -367,7 +377,7 @@ function ghRefusal({ args }, repo) {
       return `\`gh ${option}\` points a gh call that writes at ${named ?? "another repository"}: the team writes to ${repo ?? "this checkout's repository"} only.`;
     }
   }
-  if (group.text === "api") return apiRefusal(rest, repo);
+  if (group.text === "api") return apiRefusal(rest, repo, { dir, writes });
   const what = `gh ${group.text}${/^[a-z][\w-]*$/.test(sub?.text ?? "") ? ` ${sub.text}` : ""}`;
   return `\`${what}\` isn't a command the team runs. gh pr and gh issue go through GraphQL, which cloud sessions can't reach, and writes are limited to the REST calls in the sprint skill: \`gh api repos/<owner>/<repo>/pulls\` to open a PR, \`…/issues/<n>/comments\` and \`…/issues/<n>/labels\` to comment and label.`;
 }
@@ -404,7 +414,11 @@ function apiCall(args) {
   return { endpoint, verb, fields, input, host, write };
 }
 
-function apiRefusal(args, repo) {
+/**
+ * @param dir the directory the call runs in, which a body file's path is relative to.
+ * @param writes whether the line also writes files, which a body file could be.
+ */
+function apiRefusal(args, repo, { dir, writes }) {
   const { endpoint, verb, fields, input, host, write } = apiCall(args);
   // A read may name its endpoint with variables: a GET can't write.
   if (!write) return null;
@@ -420,6 +434,9 @@ function apiRefusal(args, repo) {
     return `\`gh api\` writes go to this repository only, as \`repos/${repo ?? "<owner>/<repo>"}/…\` (no {owner}/{repo} placeholders, which don't resolve in the cloud): ${endpoint.text} isn't one.`;
   }
   const rest = path.slice(prefix.length);
+  if (/^(issues|pulls)\/comments\//i.test(rest)) {
+    return `\`gh api --method ${verb} ${path}\` would change or remove a comment, and the reviewers' verdicts are comments: the team never edits or deletes one. Post a new comment instead.`;
+  }
   const allowed = WRITES.find((rule) => rule.path.test(rest));
   if (!allowed?.methods.includes(verb)) {
     return `\`gh api --method ${verb} ${path}\` isn't a write the team makes. Allowed, under repos/${repo}/: POST pulls (open a PR), PATCH pulls/<n> (title and body), POST issues/<n>/comments, POST issues/<n>/labels.`;
@@ -438,8 +455,49 @@ function apiRefusal(args, repo) {
     if (allowed.what === "add a label" && /owner-approved/i.test(value)) {
       return "The owner-approved label is the owner's alone.";
     }
+    if (allowed.what === "comment on a PR") {
+      const found = bodyRefusal(field, value, { dir, writes });
+      if (found) return found;
+    }
   }
   return null;
+}
+
+// A comment's body is read for the verdict marker, from the file when -F names one (gh reads
+// `@path` from a file and `@-` from standard input). Anything the guard can't read is refused,
+// since it could carry the marker.
+function bodyRefusal(field, value, { dir, writes }) {
+  if (field.dynamic) {
+    return "A comment body built at run time can't be checked: write it to a file in its own step, then pass it with `-F body=@<file>`.";
+  }
+  const fromFile =
+    (field.flag === "-F" || field.flag === "--field") && value.startsWith("@");
+  if (!fromFile) return null;
+  const name = value.slice(1);
+  if (name === "-") {
+    return "A comment body read from standard input (`-F body=@-`) can't be checked: write it to a file in its own step, then pass it with `-F body=@<file>`.";
+  }
+  if (writes) {
+    return "This line writes files and posts a comment from a file, so the guard can't read the body it would post: write the file in its own step, then post it.";
+  }
+  const file = resolve(dir ?? ".", name);
+  const size = statSync(file, { throwIfNoEntry: false });
+  // A missing file fails in gh itself, with nothing posted.
+  if (!size) return null;
+  if (!size.isFile() || size.size > BODY_BYTES) {
+    return `${name} isn't a file the guard can read for a comment body: pass a plain text file under 1 MB.`;
+  }
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return `${name} couldn't be read, so this comment can't be checked.`;
+  }
+  return VERDICT_MARKER.test(text) ? markerRefusal(name) : null;
+}
+
+function markerRefusal(file) {
+  return `${file ? `${file} carries` : "This command could write to GitHub, and it carries"} the \`theseus-verdict\` marker of a reviewer's verdict, which only the verdict hook posts, from the reviewer's own report. Give a verdict as the first line of a review report instead, and leave the marker out of anything the team posts.`;
 }
 
 // --method=PUT and -XPUT carry their value; -X PUT carries it in the next word.
