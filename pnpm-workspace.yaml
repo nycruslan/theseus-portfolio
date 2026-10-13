@@ -2,3 +2,6 @@ allowBuilds:
   agent-browser: false
   sharp: false
   unrs-resolver: false
+# Refuse versions published less than a day ago. Setting it explicitly also makes resolution fail,
+# rather than fall back to an older version, when nothing is old enough (minimumReleaseAgeStrict).
+minimumReleaseAge: 1440
