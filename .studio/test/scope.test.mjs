@@ -153,10 +153,13 @@ test("refuses added lines that skip, focus or retry checks", () => {
     "test.skip();",
     '  test.fixme("later", async () => {});',
     'test.only("this one", async () => {});',
+    'test.describe.only("these", () => {});',
+    'test.describe.skip("these", () => {});',
     'test.describe.configure({ mode: "serial", retries: 2 });',
     "test.fail();",
-    "export const retries = 3;",
-    "const grepInvert = /axe/;",
+    "  retries: 3,",
+    "  testIgnore: /.*/,",
+    "  grepInvert: /axe/,",
   ]) {
     const notes = scopeNotes([
       changed("e2e/smoke.spec.ts", { additions: 1, patch: patch(`+${line}`) }),
@@ -168,6 +171,35 @@ test("refuses added lines that skip, focus or retry checks", () => {
       line,
     );
   }
+});
+
+test("reads calls, not words: a skip-link selector, a serial suite or a comment about retries is fine", () => {
+  const files = [
+    changed("e2e/a11y.spec.ts", {
+      status: "added",
+      additions: 4,
+      patch: patch(
+        "+test('a skip link leads to main', async ({ page }) => {",
+        "+  await page.keyboard.press('Tab');",
+        "+  await expect(page.locator('.skip-link')).toBeFocused();",
+        "+});",
+      ),
+    }),
+    changed("e2e/order.spec.ts", {
+      status: "added",
+      additions: 1,
+      patch: patch("+test.describe.configure({ mode: 'serial' });"),
+    }),
+    changed("e2e/note.spec.ts", {
+      status: "added",
+      additions: 2,
+      patch: patch(
+        "+// Runs once, with no retries, so a flake shows.",
+        "+ * test.skip() would hide it; don't.",
+      ),
+    }),
+  ];
+  assert.deepEqual(scopeNotes(files), []);
 });
 
 test("holds a check whose diff GitHub didn't show", () => {

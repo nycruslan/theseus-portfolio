@@ -40,9 +40,16 @@ const E2E = /^e2e\//iu;
 // The names test runners pick up (Playwright's default testMatch, node --test's *.test.mjs): a test
 // renamed out of this pattern stops running wherever it sits.
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/iu;
-// Added lines that skip, focus, expect to fail or retry tests, or tell Playwright to ignore some.
-const WEAKENS =
-  /\.(skip|fixme|only|fail)\b|\b(testIgnore|grepInvert|retries)\b|\bdescribe\.configure\b/u;
+// Added lines that skip, focus, expect to fail or retry tests, or tell Playwright to ignore some:
+// the calls and config keys themselves, so a `.skip-link` selector or a comment about retries
+// doesn't count.
+const WEAKENS = [
+  /\b(test|it|describe)(\.\w+)*\.(skip|fixme|fail)\s*\(/u,
+  /\.only\s*\(/u,
+  /\bdescribe\.configure\s*\([^)]*\bretries\b/u,
+  /\b(testIgnore|grepInvert|retries)\s*:/u,
+];
+const COMMENT = /^\s*(\/\/|\/\*|\*)/u;
 // Removed lines that can't weaken a check: blank lines, comments, and a skip or fixme taken away.
 const HARMLESS_REMOVAL = /^\s*(\/\/.*)?$|\.(skip|fixme)\b/u;
 // GitHub lists at most this many files for a PR, so a list this long may hide one.
@@ -129,8 +136,13 @@ function weakening({
     (line) => line.startsWith("-") && !HARMLESS_REMOVAL.test(line.slice(1)),
   ).length;
   const switchedOff = lines
-    .filter((line) => line.startsWith("+") && WEAKENS.test(line.slice(1)))
-    .map((line) => line.slice(1).trim());
+    .filter((line) => line.startsWith("+"))
+    .map((line) => line.slice(1))
+    .filter(
+      (line) =>
+        !COMMENT.test(line) && WEAKENS.some((pattern) => pattern.test(line)),
+    )
+    .map((line) => line.trim());
   const notes = [];
   if (removed) {
     notes.push(
@@ -198,7 +210,10 @@ export function checkScope({ repo, number, base, head, cwd }) {
 }
 
 // Run by the scope workflow, with the pull_request_target event GitHub saved for the job.
-if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
   const pr = event.pull_request;
   const { notes } = checkScope({
