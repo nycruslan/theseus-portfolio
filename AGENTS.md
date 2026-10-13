@@ -16,7 +16,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Comments explain *why*, not *what*.
 - Prove it works:
   - `pnpm verify` passes. It runs lint, typecheck, knip and build, in that order.
-  - `pnpm test:e2e` passes.
+  - `pnpm test:e2e` passes. It builds the site and serves it on port 3300, and a port in use fails
+    the run, so when other agents may be testing too, pick your own free port:
+    `PLAYWRIGHT_PORT=3317 pnpm test:e2e`.
   - The change behaves as intended in a real browser. Use the next-dev-loop skill, and run
     agent-browser with `--session <name>` so agents don't share one.
 - Never weaken or delete a test to get green. Report the failure instead.
