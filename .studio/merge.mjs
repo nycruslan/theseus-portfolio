@@ -3,23 +3,35 @@
 // alone (see github.mjs): the cloud's proxy refuses GraphQL, and with it `gh pr merge` and
 // auto-merge. It:
 // 1. runs the gate's roll call (gate.mjs) and stops at once on anything CI can't fix;
-// 2. waits for CI on the head, polling its check runs and statuses every 15 s for up to 9 minutes,
-//    and says what it's waiting for;
+// 2. waits for CI on the head, polling its check runs and statuses every 15 s, and says what it's
+//    waiting for. CI is done when every check that reported passed and every required one (the
+//    base branch's, plus `check` and `scope`) reported; a check that never ran hasn't passed;
 // 3. runs the roll call again on fresh data, posts any verdict carried over notes-only commits,
 //    and squash-merges with `sha` set to the head it checked, so a push in between makes GitHub
 //    refuse the merge rather than take unreviewed code;
 // 4. puts the roll call on air as StudioGateChecked, merged or not.
 // It fails closed: anything missing, red or unreadable is a NO-GO, with the reason, and exit 1.
 // The guard (guard.mjs) refuses every other way to merge. Run it with the Bash tool's timeout at
-// 10 minutes (600000 ms).
+// 10 minutes (600000 ms): the whole run is budgeted to 8 minutes, with each gh call capped at 15 s,
+// so it reports before the Bash tool would kill it.
 
 import { setTimeout as sleep } from "node:timers/promises";
-import { ciItems, nogo, prState, reviewItems } from "./gate.mjs";
-import { api, repoOf, toplevel } from "./github.mjs";
+import {
+  ciItems,
+  nogo,
+  prState,
+  requiredChecks,
+  reviewItems,
+} from "./gate.mjs";
+import { api, configure, repoOf, toplevel } from "./github.mjs";
 import { broadcast } from "./post.mjs";
 
+const STARTED = Date.now();
 const POLL_MS = Number(process.env.THESEUS_MERGE_POLL_MS || 15_000);
-const WAIT_MS = Number(process.env.THESEUS_MERGE_WAIT_MS || 540_000);
+// The whole run, from start to the last poll: what's left of the Bash tool's 10 minutes covers the
+// final roll call and the merge.
+const BUDGET_MS = Number(process.env.THESEUS_MERGE_WAIT_MS || 480_000);
+configure({ timeout: 15_000 });
 // Print the wait at least this often, even when nothing changed.
 const HEARTBEAT_MS = 60_000;
 
@@ -55,22 +67,22 @@ finish(result);
 async function merge() {
   let pr = api(`repos/${repo}/pulls/${number}`, { cwd });
   const head = pr.head.sha;
+  const required = requiredChecks({ repo, base: pr.base.ref, cwd });
   const review = reviewItems({ pr, repo, cwd });
   const early = [...prState(pr), ...review].filter(isNogo);
   if (early.length) {
     return {
       pr: number,
       head,
-      items: [...early, ...ciItems({ repo, head, cwd })],
+      items: [...early, ...ciItems({ repo, head, required, cwd })],
     };
   }
 
-  const started = Date.now();
   let said = "";
   let lastSaid = 0;
-  let ci = ciItems({ repo, head, cwd });
-  while (!settled(ci, pr) && Date.now() - started < WAIT_MS) {
-    const line = waiting(ci, pr, started);
+  let ci = ciItems({ repo, head, required, cwd });
+  while (!settled(ci, pr) && Date.now() + POLL_MS < STARTED + BUDGET_MS) {
+    const line = waiting(ci, pr);
     if (line !== said || Date.now() - lastSaid >= HEARTBEAT_MS) {
       console.log(line);
       said = line;
@@ -82,9 +94,9 @@ async function merge() {
       const note = `The branch moved from ${head.slice(0, 7)} to ${pr.head.sha.slice(0, 7)} while CI ran: get the new head reviewed, then run this again.`;
       return { pr: number, head, items: [nogo("GitHub", "check", note)] };
     }
-    ci = ciItems({ repo, head, cwd });
+    ci = ciItems({ repo, head, required, cwd });
   }
-  const minutes = Math.round(WAIT_MS / 60_000);
+  const minutes = Math.round(BUDGET_MS / 60_000);
   ci = ci.map((item) =>
     item.state === "pending"
       ? nogo(
@@ -129,14 +141,15 @@ async function merge() {
   }
 }
 
-// CI is done when something reported and nothing still runs, or as soon as anything failed.
+// CI is done when every required check reported and nothing still runs, or as soon as anything
+// failed.
 // GitHub works out whether the PR merges cleanly in the background; null means not yet.
 function settled(ci, pr) {
   if (ci.some(isNogo)) return true;
   return ci.every((item) => item.state === "go") && pr.mergeable !== null;
 }
 
-function waiting(ci, pr, started) {
+function waiting(ci, pr) {
   const open = ci
     .filter((item) => item.state === "pending")
     .map((item) => item.who);
@@ -144,7 +157,7 @@ function waiting(ci, pr, started) {
   const what = open.length
     ? `${open.join(", ")} still running; ${done} of ${ci.length} done`
     : "GitHub is still working out whether it merges cleanly";
-  return `Waiting for CI on PR #${number} at ${pr.head.sha.slice(0, 7)}: ${what} (${clock(Date.now() - started)} of ${clock(WAIT_MS)}).`;
+  return `Waiting for CI on PR #${number} at ${pr.head.sha.slice(0, 7)}: ${what} (${clock(Date.now() - STARTED)} of ${clock(BUDGET_MS)}).`;
 }
 
 function finish({ pr, head, items, merged, url }) {

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { covers } from "../gate.mjs";
 import { repoFromRemote } from "../github.mjs";
 import {
   ghLog,
@@ -35,6 +36,17 @@ const URL = `https://github.com/${REPO}/pull/12`;
 const GREEN = { name: "check", status: "completed", conclusion: "success" };
 const RUNNING = { name: "check", status: "in_progress", conclusion: null };
 const RED = { name: "check", status: "completed", conclusion: "failure" };
+const SCOPE = { name: "scope", status: "completed", conclusion: "success" };
+// The base branch's rules as GitHub's REST API lists them: the protect-main ruleset requires `check`.
+const RULES = [
+  { type: "pull_request", parameters: { required_approving_review_count: 0 } },
+  {
+    type: "required_status_checks",
+    parameters: {
+      required_status_checks: [{ context: "check", integration_id: 15368 }],
+    },
+  },
+];
 const verdict = (who, state = "success", description = undefined) => ({
   context: `theseus/${who}`,
   state,
@@ -60,7 +72,9 @@ function github({
   head = reviewed,
   commits = [head],
   files = [changed("lib/data.ts")],
-  checks = [GREEN],
+  checks = [GREEN, SCOPE],
+  rules = RULES,
+  workflowRuns = [],
   statuses = { [head]: [LENS] },
   labels = [],
   events = [],
@@ -90,6 +104,8 @@ function github({
     [`${R}/pulls/12/commits`]: commits.map((sha) => ({ sha })),
     [`${R}/issues/12/events`]: events,
     [`${R}/commits/*/check-runs`]: { check_runs: checks },
+    [`${R}/rules/branches/main`]: rules,
+    [`${R}/actions/runs`]: { workflow_runs: workflowRuns },
     [`PUT ${R}/pulls/12/merge`]: merge,
     [`POST ${R}/statuses/*`]: { state: "success" },
     ...extra,
@@ -264,7 +280,7 @@ test("a ship on older code doesn't cover a code change, from any directory of th
 });
 
 test("stops at once on red CI, without waiting", () => {
-  const { code, stderr, calls } = merge(github({ checks: [RED] }));
+  const { code, stderr, calls } = merge(github({ checks: [RED, SCOPE] }));
   assert.equal(code, 1);
   assert.match(stderr, /check failed \(failure\): fix it on the branch/);
   assert.equal(
@@ -278,8 +294,8 @@ test("waits for CI, says so, then merges", () => {
   table[`${R}/commits/*/check-runs`] = {
     $seq: [
       { check_runs: [] },
-      { check_runs: [RUNNING] },
-      { check_runs: [GREEN] },
+      { check_runs: [RUNNING, SCOPE] },
+      { check_runs: [GREEN, SCOPE] },
     ],
   };
   const { code, stdout, stderr, merged } = merge(table, {
@@ -288,7 +304,7 @@ test("waits for CI, says so, then merges", () => {
   assert.equal(code, 0, stderr);
   assert.match(
     stdout,
-    /Waiting for CI on PR #12 at [0-9a-f]{7}: CI still running; 0 of 1 done/,
+    /Waiting for CI on PR #12 at [0-9a-f]{7}: check, scope still running; 0 of 2 done/,
   );
   assert.match(
     stdout,
@@ -298,7 +314,7 @@ test("waits for CI, says so, then merges", () => {
 });
 
 test("gives up when CI doesn't finish in time", () => {
-  const { code, stderr, merged } = merge(github({ checks: [RUNNING] }));
+  const { code, stderr, merged } = merge(github({ checks: [RUNNING, SCOPE] }));
   assert.equal(code, 1);
   assert.match(
     stderr,
@@ -307,10 +323,93 @@ test("gives up when CI doesn't finish in time", () => {
   assert.deepEqual(merged, []);
 });
 
+test("a check that never reported hasn't passed: only Vercel reported, check and scope didn't", () => {
+  const vercel = {
+    context: "Vercel",
+    state: "success",
+    description: "Deployed",
+  };
+  const { code, stderr, merged } = merge(
+    github({ checks: [], statuses: { [reviewed]: [LENS, vercel] } }),
+  );
+  assert.equal(code, 1);
+  assert.match(stderr, /check hasn't reported on this commit yet/);
+  assert.match(stderr, /scope hasn't reported on this commit yet/);
+  assert.deepEqual(merged, []);
+});
+
+test("waits for every check the base branch's ruleset requires", () => {
+  const rules = [
+    ...RULES,
+    {
+      type: "required_status_checks",
+      parameters: { required_status_checks: [{ context: "lighthouse" }] },
+    },
+  ];
+  const { code, stderr, merged } = merge(github({ rules }));
+  assert.equal(code, 1);
+  assert.match(stderr, /lighthouse hasn't reported on this commit yet/);
+  assert.deepEqual(merged, []);
+});
+
+test("fails closed when it can't read the base branch's required checks", () => {
+  const rules = {
+    $error: 403,
+    message: "Resource not accessible by integration",
+  };
+  const { code, stderr, merged } = merge(github({ rules }));
+  assert.equal(code, 1);
+  assert.match(stderr, /couldn't check PR #12 \(Resource not accessible/);
+  assert.deepEqual(merged, []);
+});
+
+test("a cancelled run waits for its queued replacement, and says so when there's none", () => {
+  const cancelled = {
+    name: "scope",
+    status: "completed",
+    conclusion: "cancelled",
+  };
+  const table = github({ workflowRuns: [{ name: "scope", status: "queued" }] });
+  table[`${R}/commits/*/check-runs`] = {
+    $seq: [{ check_runs: [GREEN, cancelled] }, { check_runs: [GREEN, SCOPE] }],
+  };
+  const requeued = merge(table, { env: { THESEUS_MERGE_WAIT_MS: "30000" } });
+  assert.equal(requeued.code, 0, requeued.stderr);
+  assert.match(
+    requeued.stdout,
+    /Waiting for CI on PR #12 at [0-9a-f]{7}: scope still running/,
+  );
+  const { code, stderr } = merge(github({ checks: [GREEN, cancelled] }));
+  assert.equal(code, 1);
+  assert.match(
+    stderr,
+    /scope was cancelled, and no newer run is queued: re-run it .*then run this again/,
+  );
+});
+
+test("keeps the whole run inside its budget, counted from the start", () => {
+  const started = Date.now();
+  const { code, stdout } = merge(github({ checks: [RUNNING, SCOPE] }), {
+    env: { THESEUS_MERGE_POLL_MS: "5000", THESEUS_MERGE_WAIT_MS: "2000" },
+  });
+  assert.equal(code, 1);
+  // No poll may start that would end past the budget, so it never sleeps its 5 s.
+  assert.ok(Date.now() - started < 4500, `${Date.now() - started} ms`);
+  assert.doesNotMatch(stdout, /Waiting for CI/);
+});
+
+test("covers() compares from the top of the checkout, whatever the directory", () => {
+  const sub = join(repo, ".studio/sprint/1");
+  assert.equal(covers(reviewed, notesOnly, sub), true);
+  assert.equal(covers(reviewed, codeChange, sub), false);
+  assert.equal(covers(reviewed, codeChange, join(repo, "app")), false);
+  assert.equal(covers("0".repeat(40), codeChange, repo), null);
+});
+
 test("refuses when the branch moves while CI runs", () => {
   const table = github();
   table[`${R}/commits/*/check-runs`] = {
-    $seq: [{ check_runs: [RUNNING] }, { check_runs: [GREEN] }],
+    $seq: [{ check_runs: [RUNNING, SCOPE] }, { check_runs: [GREEN, SCOPE] }],
   };
   const pr = table[`${R}/pulls/12`];
   table[`${R}/pulls/12`] = { $seq: [pr, { ...pr, head: { sha: codeChange } }] };
@@ -332,7 +431,9 @@ test("refuses owner paths, scripts and weakened tests without waiting for CI", (
     changed(".studio/gate.mjs"),
     changed("e2e/smoke.spec.ts", { status: "removed", deletions: 30 }),
   ];
-  const { code, stderr, calls } = merge(github({ files, checks: [RUNNING] }));
+  const { code, stderr, calls } = merge(
+    github({ files, checks: [RUNNING, SCOPE] }),
+  );
   assert.equal(code, 1);
   assert.match(stderr, /content\/profile\.ts is the owner's/);
   assert.match(stderr, /\.studio\/gate\.mjs is the owner's/);
@@ -497,6 +598,7 @@ test("puts the roll call on air, merged or not", async () => {
       merged.gate.items.map(({ who, kind, state }) => [who, kind, state]),
       [
         ["check", "check", "go"],
+        ["scope", "check", "go"],
         ["Lens", "verdict", "go"],
       ],
     );
@@ -507,6 +609,7 @@ test("puts the roll call on air, merged or not", async () => {
         ["owner", "decision", "nogo"],
         ["Lens", "verdict", "nogo"],
         ["check", "check", "go"],
+        ["scope", "check", "go"],
       ],
     );
   } finally {

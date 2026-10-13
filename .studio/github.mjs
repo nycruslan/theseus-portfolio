@@ -8,7 +8,14 @@
 
 import { execFileSync } from "node:child_process";
 
-const TIMEOUT_MS = 30_000;
+// How long one gh call may take. Each script sets its own, inside its hook's or the Bash tool's
+// time limit (see configure).
+let timeoutMs = 30_000;
+
+/** Sets how long each gh call may take, in milliseconds. */
+export function configure({ timeout }) {
+  if (timeout) timeoutMs = timeout;
+}
 
 /** owner/repo from a remote URL: https, ssh, scp-like (git@host:o/r) or the cloud's git proxy. */
 export function repoFromRemote(url) {
@@ -67,7 +74,7 @@ function gh(args, cwd) {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-      timeout: TIMEOUT_MS,
+      timeout: timeoutMs,
       maxBuffer: 64 * 1024 * 1024,
     });
   } catch (error) {

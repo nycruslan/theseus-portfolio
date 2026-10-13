@@ -2,7 +2,8 @@
 // merge.mjs runs it before and after waiting for CI; nothing else merges (see guard.mjs). A PR
 // may merge only when:
 // - GitHub can merge it: open, not a draft, no conflicts;
-// - CI passed on the PR head;
+// - CI passed on the PR head: every check that reported passed, and every check the base branch
+//   requires, plus CI's `check` and `scope`, reported;
 // - the PR stays on the team's side: no owner paths, scripts or weakened tests (scope.mjs);
 // - nothing waits for the owner: the PR never carried needs-owner;
 // - the reviewers it needs said ship about the code being merged: Lens always, Probe when the e2e
@@ -12,8 +13,9 @@
 //   to the head only when every commit since touched notes alone.
 // It never says go from local state: a ledger in tmpdir can be written by anyone on the machine.
 // Layered defence, not a security boundary: the team acts as the owner's GitHub identity, so it
-// could post these statuses itself. What makes CI and scope binding is branch protection that
-// requires those checks from GitHub Actions; the theseus/* statuses rely on the hooks.
+// could post these statuses itself. A check is binding once the base branch's ruleset requires it
+// from GitHub Actions (today `check`; `scope` once the owner adds it); the theseus/* statuses rely
+// on the hooks.
 
 import { spawnSync } from "node:child_process";
 import { list } from "./github.mjs";
@@ -73,11 +75,34 @@ export function prState(pr) {
   return [];
 }
 
+// Checks this repository's own workflows report, required whatever the rules say: CI's job and
+// the scope check.
+const OWN_CHECKS = ["check", "scope"];
+
+/**
+ * The checks the base branch requires (its rulesets' required status checks), plus this
+ * repository's own. A failure to read them throws: the gate fails closed.
+ */
+export function requiredChecks({ repo, base, cwd }) {
+  const rules = list(
+    `repos/${repo}/rules/branches/${encodeURIComponent(base)}`,
+    {
+      cwd,
+    },
+  );
+  const named = rules
+    .filter(({ type }) => type === "required_status_checks")
+    .flatMap(({ parameters }) => parameters?.required_status_checks ?? [])
+    .map(({ context }) => context);
+  return [...new Set([...OWN_CHECKS, ...named])];
+}
+
 /**
  * CI on the head: every check run and commit status except the reviewers' verdicts. Pending while
- * anything runs or nothing has reported yet.
+ * anything runs, and while a required check hasn't reported at all: a check that never ran hasn't
+ * passed. A cancelled run is pending while a newer run is queued, and a NO-GO otherwise.
  */
-export function ciItems({ repo, head, cwd }) {
+export function ciItems({ repo, head, required = [], cwd }) {
   const runs = list(`repos/${repo}/commits/${head}/check-runs?per_page=100`, {
     key: "check_runs",
     cwd,
@@ -86,18 +111,32 @@ export function ciItems({ repo, head, cwd }) {
     key: "statuses",
     cwd,
   }).filter(({ context }) => !isVerdict(context));
+  const requeued =
+    runs.some(({ conclusion }) => conclusion === "cancelled") &&
+    list(`repos/${repo}/actions/runs?head_sha=${head}&per_page=100`, {
+      key: "workflow_runs",
+      cwd,
+    }).some(({ status }) => RUNNING.has(status));
   const items = [
-    ...runs.map(({ name, status, conclusion }) =>
-      RUNNING.has(status)
-        ? pending(name, `${name} is still running.`)
-        : PASSED.has(conclusion)
-          ? go(name, "check")
+    ...runs.map(({ name, status, conclusion }) => {
+      if (RUNNING.has(status))
+        return pending(name, `${name} is still running.`);
+      if (PASSED.has(conclusion)) return go(name, "check");
+      if (conclusion === "cancelled") {
+        return requeued
+          ? pending(name, `${name} was cancelled, and a newer run is queued.`)
           : nogo(
               name,
               "check",
-              `${name} failed (${conclusion}): fix it on the branch.`,
-            ),
-    ),
+              `${name} was cancelled, and no newer run is queued: re-run it (push to re-run CI, or edit the PR's body to re-run scope), then run this again.`,
+            );
+      }
+      return nogo(
+        name,
+        "check",
+        `${name} failed (${conclusion}): fix it on the branch.`,
+      );
+    }),
     ...statuses.map(({ context, state }) =>
       state === "pending"
         ? pending(context, `${context} is still running.`)
@@ -110,8 +149,15 @@ export function ciItems({ repo, head, cwd }) {
             ),
     ),
   ];
-  return items.length
-    ? items
+  const reported = new Set(items.map(({ who }) => who));
+  const missing = required
+    .filter((name) => !reported.has(name))
+    .map((name) =>
+      pending(name, `${name} hasn't reported on this commit yet.`),
+    );
+  const all = [...items, ...missing];
+  return all.length
+    ? all
     : [pending("CI", "CI hasn't reported on this commit yet.")];
 }
 
@@ -219,12 +265,12 @@ function verdict(role, history, cwd) {
   }
   const score = scoreIn(status);
   if (latest === head) return { ...go(who, "verdict"), score };
-  const since = changedSince(latest.sha, head.sha, cwd);
-  if (since !== "notes") {
+  const covered = covers(latest.sha, head.sha, cwd);
+  if (covered !== true) {
     return nogo(
       who,
       "verdict",
-      since === "product"
+      covered === false
         ? `${who} said ship on ${short}, and the product changed since: ask a fresh ${role} to review the head.`
         : `${who} said ship on ${short}, and git can't compare it with the head here: fetch the branch and run again.`,
     );
@@ -238,13 +284,17 @@ function verdict(role, history, cwd) {
   return { ...go(who, "verdict"), score, carried };
 }
 
-/** What changed from `from` to `head`, judged by git in the checkout: notes, product, or unknown. */
-function changedSince(from, head, cwd) {
+/**
+ * Whether a review of `from` still covers `head`: true when every commit since touched notes alone,
+ * false when the product changed, null when git can't compare them here. The pathspecs are
+ * anchored at the top, so the answer is the same from any directory of the checkout.
+ */
+export function covers(from, head, cwd) {
   const diff = spawnSync("git", ["diff", "--quiet", from, head, ...PRODUCT], {
     cwd,
     stdio: "ignore",
   });
-  return { 0: "notes", 1: "product" }[diff.status] ?? "unknown";
+  return { 0: true, 1: false }[diff.status] ?? null;
 }
 
 function isVerdict(context) {
