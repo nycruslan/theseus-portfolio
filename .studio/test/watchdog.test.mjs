@@ -66,10 +66,15 @@ const stop = (extra = {}) => ({
   ...extra,
 });
 
-/** One session: the watchdog's runs share its tmpdir, where the verdict ledger can be seeded. */
+/**
+ * One session: the watchdog's runs share its tmpdir, where the verdict ledger can be seeded. Seeded
+ * verdicts come after a builder started, unless they carry their own time.
+ */
 function session(verdicts = [], env = {}) {
   const tmp = tempDir();
-  const lines = verdicts.map((entry) => `${JSON.stringify(entry)}\n`);
+  const lines = verdicts.map(
+    (entry) => `${JSON.stringify({ at: Date.now() + 60_000, ...entry })}\n`,
+  );
   writeFileSync(join(tmp, "theseus-verdicts-abc123.jsonl"), lines.join(""));
   const run = (payload) => {
     const result = runHook("watchdog.mjs", payload, {
@@ -147,9 +152,9 @@ test("W1 never holds a session waiting on background work or a wake-up", () => {
 
 test("W1 lets a sprint end once it shipped or wrote itself up", () => {
   for (const closing of [
-    used("Bash", { command: "gh pr merge 14 --squash --auto" }),
-    used("Bash", { command: "gh pr ready 14" }),
-    used("mcp__github__merge_pull_request", {
+    used("Bash", { command: "node .studio/merge.mjs 14" }),
+    used("Bash", { command: "node ../../.studio/merge.mjs 14" }),
+    used("mcp__claude_ai_GitHub__merge_pull_request", {
       owner: "o",
       repo: "r",
       pullNumber: 14,
@@ -168,9 +173,27 @@ test("W1 lets a sprint end once it shipped or wrote itself up", () => {
     const { answer } = all(...SPRINT_01, closing, stop());
     assert.equal(answer, null, JSON.stringify(closing.tool_input));
   }
+  // Only running the merge counts, not a command that mentions it.
   const { all } = session();
-  const undo = used("Bash", { command: "gh pr merge 14 --disable-auto" });
-  assert.equal(all(...SPRINT_01, undo, stop()).answer.decision, "block");
+  const mention = used("Bash", {
+    command:
+      'echo "next: node .studio/merge.mjs 14" >> .studio/sprint/1/notes.md',
+  });
+  assert.equal(all(...SPRINT_01, mention, stop()).answer.decision, "block");
+});
+
+test("W1 counts only the lead's own tasks, not those a subagent creates", () => {
+  const { all } = session();
+  const theirs = (event) => ({ ...event, agent_id: "a4d2c8f1e0b3a297" });
+  const { answer } = all(
+    created("1", "[lead] Run sprint 3"),
+    agent("engineer", "forge"),
+    theirs(created("7", "Forge: wire the hero")),
+    theirs(created("8", "Forge: check the focus ring")),
+    completed("1"),
+    stop(),
+  );
+  assert.equal(answer, null);
 });
 
 test("W1 counts completed and deleted tasks as closed", () => {
@@ -220,7 +243,7 @@ const verdict = (head, verdict, agentId = `lens-${head}`) => ({
   head: `${head}000000000000000000000000000000000000`.slice(0, 40),
 });
 
-test("W2 allows two fix rounds", () => {
+test("W2 allows two fix rounds: three builder dispatches in all", () => {
   const { all } = session([
     verdict("aaaaaaa", "changes"),
     verdict("bbbbbbb", "blocked"),
@@ -229,11 +252,27 @@ test("W2 allows two fix rounds", () => {
   assert.equal(answer, null);
 });
 
-test("W2 refuses a third fix round, by spawn or by message", () => {
+test("W2 counts neither missing verdicts nor reviews from before the build", () => {
+  // Sprint M: Probe writes the contract and Iris gives direction before Forge starts. Lens then asks
+  // for changes twice: both fix rounds go through.
+  const before = { at: 1 };
+  const verdicts = [
+    { ...verdict("base000", "none"), role: "qa-engineer", ...before },
+    { ...verdict("base000", "changes"), role: "design-director", ...before },
+    verdict("head111", "none"),
+    verdict("head111", "changes"),
+    verdict("head222", "changes"),
+  ];
+  const { all, run } = session(verdicts);
+  assert.equal(all(agent("engineer", "forge"), send("forge")).answer, null);
+  assert.equal(run(send("forge")).answer, null);
+});
+
+test("W2 refuses the fourth builder dispatch, by spawn or by message", () => {
   const rounds = [
     verdict("aaaaaaa", "changes"),
     verdict("bbbbbbb", "changes"),
-    verdict("ccccccc", "none"),
+    verdict("ccccccc", "blocked"),
   ];
   const { run } = session(rounds);
   for (const payload of [

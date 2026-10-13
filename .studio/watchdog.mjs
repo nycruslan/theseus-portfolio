@@ -2,12 +2,15 @@
 // .claude/settings.json). It keeps a per-session ledger in tmpdir, beside the verdicts, and puts
 // every fire on air as StudioWatchdog.
 // - W1, stalled stop (Stop): a sprint session that is about to end with tasks still open, nothing
-//   merged or marked ready, and no STATE.md entry is held once with guidance; a second stall in
-//   the session gets the escalation. It never holds a session that is waiting on background work
-//   or a scheduled wake-up, or one Claude Code is already continuing (stop_hook_active).
-// - W2, fix-round cap (PreToolUse on Agent and SendMessage): once two fix rounds are used and
-//   review still says no, it refuses to send the work back to a builder. A round is one reviewed
-//   commit with a verdict other than ship, from the verdict ledger.
+//   merged, and no STATE.md entry is held once with guidance; a second stall in the session gets
+//   the escalation. It never holds a session that is waiting on background work or a scheduled
+//   wake-up, or one Claude Code is already continuing (stop_hook_active). Only the lead's own
+//   tasks count: those a subagent creates (TaskCreated with agent_id) aren't the lead's to close.
+// - W2, fix-round cap (PreToolUse on Agent and SendMessage): two fix rounds at most, so a PR gets
+//   three builder dispatches and the fourth is refused while review still says no. A round is one
+//   reviewed commit with an explicit `changes` or `blocked` verdict given after the first builder
+//   started, from the verdict ledger: Probe writing the contract or Iris giving direction before
+//   the build doesn't use one up.
 // The other events only feed the ledger. It fails open: a rule it can't evaluate doesn't fire.
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
@@ -28,7 +31,9 @@ const TEAM = new Set([
 ]);
 const BUILDERS = new Set(["engineer", "creative-engineer"]);
 const FIX_ROUNDS = 2;
-const SHIPPED = /\bgh\s+pr\s+(merge|ready)\b(?![^;&|\n]*--(undo|disable-auto))/;
+// merge.mjs exits non-zero unless it merged, and a failed command reaches PostToolUseFailure
+// instead, so a PostToolUse for it means the PR merged.
+const SHIPPED = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
 const STATE = /(^|\/)\.studio\/STATE\.md$/;
 const SHOWN = 3;
 
@@ -47,8 +52,10 @@ function watch(event) {
       if (BUILDERS.has(event.agent_type)) note({ builder: event.agent_id });
       return;
     case "TaskCreated":
+      if (event.agent_id) return;
       return note({ task: String(event.task_id), subject: event.task_subject });
     case "TaskCompleted":
+      if (event.agent_id) return;
       return note({ taskDone: String(event.task_id) });
     case "PostToolUse":
       return recordTool(event.tool_name, input, event.cwd);
@@ -62,7 +69,7 @@ function watch(event) {
 function recordTool(tool, input, cwd) {
   if (tool === "TaskUpdate" && input.status === "deleted") {
     note({ taskDone: String(input.taskId ?? input.task_id) });
-  } else if (tool === "mcp__github__merge_pull_request") {
+  } else if (tool.startsWith("mcp__") && /merge/i.test(tool)) {
     note({ shipped: true });
   } else if (tool === "Bash") {
     const command = String(input.command ?? "");
@@ -146,12 +153,19 @@ function plain(id) {
     .replace(/^agent-/, "");
 }
 
-// Each reviewed commit with a verdict other than ship. A verdict with no recorded commit is its own
-// round.
+// Each reviewed commit with an explicit changes or blocked verdict, given after the first builder
+// started. A verdict with no recorded commit is its own round.
 function nonShipRounds() {
+  const started = readWatch()
+    .filter((entry) => entry.builder || BUILDERS.has(entry.team))
+    .map((entry) => entry.at);
+  if (!started.length) return [];
+  const since = Math.min(...started);
   const open = new Set();
   for (const entry of readLedger(hook.session_id)) {
-    if (!("verdict" in entry) || entry.verdict === "ship") continue;
+    if (!["changes", "blocked"].includes(entry.verdict) || entry.at < since) {
+      continue;
+    }
     open.add(entry.head?.slice(0, 7) ?? `a review by ${entry.agentId}`);
   }
   return [...open];
