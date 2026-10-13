@@ -5,22 +5,19 @@
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
   },
   "permissions": {
-    "allow": [
-      "Bash(gh pr create *)",
-      "Bash(gh pr view *)",
-      "Bash(gh pr checks *)",
-      "Bash(gh pr review *)",
-      "Bash(gh pr comment *)",
-      "Bash(gh pr edit *)",
-      "Bash(gh pr ready *)",
-      "Bash(gh pr merge *)",
-      "Workflow"
-    ],
+    "allow": ["Bash(gh api *)", "Bash(node .studio/merge.mjs *)", "Workflow"],
     "deny": [
-      "Bash(gh api *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh alias *)",
+      "Bash(gh auth *)",
+      "Bash(gh config *)",
       "Bash(*owner-approved*)",
       "Bash(pkill *)",
       "Bash(killall *)",
+      "mcp__github",
+      "Edit(~/.claude/**)",
+      "Edit(~/.config/gh/**)",
+      "Edit(~/.gitconfig)",
       "Agent(model:*fable*)"
     ]
   },
@@ -89,26 +86,13 @@
         ]
       },
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(gh pr merge *)",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
-            "timeout": 60,
-            "onFailure": "block"
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__github__merge_pull_request",
+        "matcher": "mcp__.*",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/gate.mjs", "merge"],
-            "timeout": 60,
+            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
+            "timeout": 10,
             "onFailure": "block"
           }
         ]
@@ -149,7 +133,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|TaskUpdate|mcp__github__merge_pull_request",
+        "matcher": "^(Bash|Write|Edit|TaskUpdate|mcp__.*)$",
         "hooks": [
           {
             "type": "command",

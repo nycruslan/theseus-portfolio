@@ -72,24 +72,41 @@ test("keeps the broadcast as it was", () => {
   });
 });
 
-test("the guard covers file tools, failing closed, and Bash", () => {
-  const files = one("PreToolUse", "guard.mjs", "Edit|Write|NotebookEdit");
-  assert.equal(files.onFailure, "block");
-  const shell = one("PreToolUse", "guard.mjs", "Bash");
-  assert.equal(shell.async, undefined);
+test("the guard covers file tools and every MCP tool, failing closed, and Bash", () => {
+  for (const matcher of ["Edit|Write|NotebookEdit", "mcp__.*", "Bash"]) {
+    const guard = one("PreToolUse", "guard.mjs", matcher);
+    assert.equal(guard.onFailure, "block", matcher);
+    assert.equal(guard.async, undefined, matcher);
+    // A Bash hook with `if` runs only for commands Claude Code reads as matching: every spelling
+    // must reach the guard.
+    assert.equal(guard.if, undefined, matcher);
+  }
+  // Claude Code reads a matcher with other characters than letters, digits and | as a regular
+  // expression, so this one reaches every server's tools, connectors and plugins included.
+  const mcp = new RegExp(one("PreToolUse", "guard.mjs", "mcp__.*").matcher);
+  for (const tool of [
+    "mcp__github__merge_pull_request",
+    "mcp__claude_ai_GitHub__push_files",
+    "mcp__plugin_tools_github__create_or_update_file",
+  ]) {
+    assert.match(tool, mcp);
+  }
+  assert.doesNotMatch("Bash", mcp);
 });
 
-test("the gate holds every merge path", () => {
-  const bash = one("PreToolUse", "gate.mjs", "Bash");
-  assert.equal(bash.if, "Bash(gh pr merge *)");
-  assert.deepEqual(bash.args.slice(1), ["merge"]);
-  assert.equal(bash.onFailure, "block");
-  const connector = one(
-    "PreToolUse",
-    "gate.mjs",
-    "mcp__github__merge_pull_request",
+test("merging goes through merge.mjs alone: no hook gates another way", () => {
+  for (const event of Object.keys(settings.hooks)) {
+    assert.ok(
+      handlers(event).every(({ script }) => script !== "gate.mjs"),
+      event,
+    );
+  }
+  assert.ok(
+    settings.permissions.allow.includes("Bash(node .studio/merge.mjs *)"),
   );
-  assert.equal(connector.onFailure, "block");
+  assert.ok(
+    settings.permissions.allow.every((rule) => !rule.startsWith("Bash(gh pr")),
+  );
 });
 
 test("reviewers' verdicts are recorded and posted, with time for GitHub", () => {
@@ -124,10 +141,7 @@ test("the watchdog sees what its rules need, and decides in sync", () => {
     ["TaskCreated"],
     ["TaskCompleted"],
     ["SubagentStart", "engineer|creative-engineer"],
-    [
-      "PostToolUse",
-      "Bash|Write|Edit|TaskUpdate|mcp__github__merge_pull_request",
-    ],
+    ["PostToolUse", "^(Bash|Write|Edit|TaskUpdate|mcp__.*)$"],
   ]) {
     assert.equal(one(event, "watchdog.mjs", matcher).async, true, event);
   }
@@ -135,12 +149,22 @@ test("the watchdog sees what its rules need, and decides in sync", () => {
 
 test("denies what agents must not do, whatever the mode", () => {
   for (const rule of [
-    "Bash(gh api *)",
+    "Bash(gh pr merge *)",
+    "Bash(gh alias *)",
+    "Bash(gh auth *)",
+    "Bash(gh config *)",
     "Bash(*owner-approved*)",
     "Bash(pkill *)",
     "Bash(killall *)",
+    "mcp__github",
+    "Edit(~/.claude/**)",
+    "Edit(~/.config/gh/**)",
+    "Edit(~/.gitconfig)",
     "Agent(model:*fable*)",
   ]) {
     assert.ok(settings.permissions.deny.includes(rule), rule);
   }
+  // REST through gh api is how the team works with GitHub; the guard decides which calls write.
+  assert.ok(!settings.permissions.deny.includes("Bash(gh api *)"));
+  assert.ok(settings.permissions.allow.includes("Bash(gh api *)"));
 });
