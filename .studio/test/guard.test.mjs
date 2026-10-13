@@ -123,7 +123,9 @@ test("keeps writes outside the project to the temp directories, and never the le
 });
 
 test("lets the main session keep this project's memory and plans, and nothing else", () => {
-  const home = tempDir();
+  // Outside every temp directory (on Linux tempDir() is under /tmp, which the guard allows), and
+  // never created: the guard only decides.
+  const home = join(homedir(), `.theseus-guard-test-${process.pid}`);
   const env = { CLAUDE_CONFIG_DIR: home };
   // Claude Code names the project's folder after its path: /repo becomes -repo.
   for (const path of [
