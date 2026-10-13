@@ -122,6 +122,25 @@ test("keeps writes outside the project to the temp directories, and never the le
   assert.match(stderr, /written by the hooks alone/);
 });
 
+test("lets Claude Code keep its own memory and plans, but not its settings", () => {
+  const home = tempDir();
+  const env = { CLAUDE_CONFIG_DIR: home };
+  for (const path of [
+    join(home, "projects/-Users-me-portfolio/memory/MEMORY.md"),
+    join(home, "plans/next-sprint.md"),
+  ]) {
+    assert.equal(guard(path, undefined, env).code, 0, path);
+  }
+  for (const path of [
+    join(home, "settings.json"),
+    join(home, "agents/engineer.md"),
+    join(home, "projects/-Users-me-portfolio/settings.json"),
+    join(home, "projects/memory"),
+  ]) {
+    assert.equal(guard(path, undefined, env).code, 2, path);
+  }
+});
+
 test("follows links to the file a write would really reach", () => {
   const root = tempDir();
   const sprint = join(root, ".studio/sprint/1");

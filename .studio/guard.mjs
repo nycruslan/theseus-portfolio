@@ -28,7 +28,7 @@ import {
   realpathSync,
   statSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import {
   basename,
   dirname,
@@ -47,6 +47,20 @@ const WRITERS = new Set(["engineer", "creative-engineer"]);
 const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//iu;
 const E2E = /^e2e(\/|$)/iu;
 const DRAFTS = /^content\/drafts\//iu;
+// Claude Code's own notes outside the project: each project's auto-memory and the saved plans. They
+// configure nothing, and the owner's sessions in this repo write them too.
+const CLAUDE_HOME = (() => {
+  const dir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
+  try {
+    return realpathSync.native(dir);
+  } catch {
+    return dir;
+  }
+})();
+const CLAUDE_NOTES = new RegExp(
+  `^${CLAUDE_HOME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(projects/[^/]+/memory|plans)/[^/]`,
+);
+
 // The hooks' own records in tmpdir: verdicts for the watchdog, rounds for its fix-round cap.
 const LEDGER = /^theseus-(verdicts|watchdog)-/;
 // Outside the project, what a target built at run time must not be able to reach.
@@ -289,6 +303,7 @@ function outsideRefusal(path) {
     .filter(Boolean);
   const inside = (dir) => path === dir || path.startsWith(`${dir}/`);
   if (path.startsWith("/dev/")) return null;
+  if (CLAUDE_NOTES.test(path)) return null;
   if (temps.some(inside)) {
     return LEDGER.test(basename(path))
       ? `${basename(path)} is written by the hooks alone.`

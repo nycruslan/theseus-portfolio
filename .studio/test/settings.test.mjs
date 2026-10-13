@@ -157,13 +157,19 @@ test("denies what agents must not do, whatever the mode", () => {
     "Bash(pkill *)",
     "Bash(killall *)",
     "mcp__github",
-    "Edit(~/.claude/**)",
+    "Edit(~/.claude.json)",
+    "Edit(~/.claude/settings*.json)",
+    "Edit(~/.claude/agents/**)",
+    "Edit(~/.claude/skills/**)",
+    "Edit(~/.claude/hooks/**)",
     "Edit(~/.config/gh/**)",
     "Edit(~/.gitconfig)",
     "Agent(model:*fable*)",
   ]) {
     assert.ok(settings.permissions.deny.includes(rule), rule);
   }
+  // Claude Code's own auto-memory and plans stay writable, for the owner's sessions too.
+  assert.ok(!settings.permissions.deny.includes("Edit(~/.claude/**)"));
   // REST through gh api is how the team works with GitHub; the guard decides which calls write.
   assert.ok(!settings.permissions.deny.includes("Bash(gh api *)"));
   assert.ok(settings.permissions.allow.includes("Bash(gh api *)"));
