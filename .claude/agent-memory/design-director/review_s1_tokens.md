@@ -17,3 +17,16 @@ sprints when layout is out of scope? Originality is stuck near 6 until item 3.
 
 **How to apply:** on re-review, check the h3 wrap at 390 and the summary leading. Re-score from a
 fresh build. Record the owner's answers here.
+
+Review 2 at 9461555: changes 6.8/10 again (DQ 7, Orig 6, Craft 7, Func 8), still better than prod.
+- Finding 2 (summary leading) was fixed cleanly.
+- Finding 1 (`text-balance`) got rid of the widows, but the break moved in front of the " · ", so
+  the dot starts line 2 and reads like a bullet. That's my miss: when I ask for balance on a
+  "Title · Company" line, also ask for a nbsp before the separator.
+- I'd missed some placeholder stand-ins in review 1: "What you built, owned and improved." renders
+  twice, and the LinkedIn and Theseus hrefs are stand-ins too. Check for all rendered seed text,
+  not only "Company name".
+- Owner questions are still open: the placeholder gate, the 7.0 bar for scoped sprints, and
+  decision 5 (statuses can't post).
+- Tooling: in a worktree, import from `@playwright/test` (plain `playwright` isn't hoisted), and
+  launch with executablePath /opt/pw-browsers/chromium-1194/chrome-linux/chrome.
