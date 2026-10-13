@@ -1,1 +1,2 @@
+- [Sprint 1 tokens decision](project_sprint1_tokens_decision.md) — light-only, dark block removed, dark mode next; placeholder gate is a known pre-existing failure
 - [Seed dark block in globals.css](project_scoping_seed_dark_block.md) — a token contract must decide the fate of the existing prefers-color-scheme block
