@@ -5,7 +5,12 @@
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
   },
   "permissions": {
-    "allow": ["Bash(gh api *)", "Bash(node .studio/merge.mjs *)", "Workflow"],
+    "allow": [
+      "Bash(gh api *)",
+      "Bash(node .studio/merge.mjs *)",
+      "Bash(node .studio/next-sprint.mjs)",
+      "Workflow"
+    ],
     "deny": [
       "Bash(gh pr merge *)",
       "Bash(gh alias *)",

@@ -109,6 +109,13 @@ test("merging goes through merge.mjs alone: no hook gates another way", () => {
   );
 });
 
+test("the sprint pre-flight runs without a prompt, as unattended routines need", () => {
+  assert.ok(
+    settings.permissions.allow.includes("Bash(node .studio/next-sprint.mjs)"),
+  );
+  assert.ok(existsSync(join(STUDIO, "next-sprint.mjs")));
+});
+
 test("reviewers' verdicts are recorded and posted, with time for GitHub", () => {
   for (const event of ["SubagentStart", "SubagentStop"]) {
     const verdict = one(

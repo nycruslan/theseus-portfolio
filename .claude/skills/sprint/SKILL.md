@@ -9,6 +9,21 @@ write product code, not even after the fix-round cap. The guard doesn't stop the
 because the owner's own sessions run as the lead too; that's no leave to finish a builder's work.
 One sprint ships one pull request.
 
+**Pre-flight, before anything else.** Run `node .studio/next-sprint.mjs` from the repository root.
+A sprint's folder reaches main only when its PR merges, so main alone can't tell you what's in
+flight. The script reads GitHub through REST and prints, as JSON, the open PRs whose branch is
+`sprint/*`, the highest sprint number in `.studio/sprint/` on main, in those PRs' branches and in
+the remote `sprint/*` branches, and what to do (`action`):
+- `continue`: a sprint PR is open, so this session continues it instead of starting a new sprint.
+  Check out its branch, read its body, its comments and its `.studio/sprint/<n>/`, and run what's
+  missing: reviews of its head, then the merge.
+- `stand down`: every open sprint PR waits for the owner (`needs-owner`). Start nothing and open no
+  PR; end with a short report naming the PR and what it waits for.
+- `start`: nothing is open. Start sprint `next`, one past the highest number anywhere, on a branch
+  named `sprint/<n>-<slug>`.
+
+If it can't read GitHub, it exits 1: don't start a sprint blind; report it and stop.
+
 Start from `.studio/STATE.md`, the roles' memory and `ROADMAP.md`. The goal is the argument you were
 given, or Quill's pick. Keep the sprint's artifacts in `.studio/sprint/<n>/`, and hand people paths
 rather than retellings.
@@ -31,8 +46,12 @@ written down, each in its own worktree. Builders run `pnpm verify` before every 
 won't let them stop until it passes or they report what failed. Name everyone you bring in
 (`forge`, `forge-2` …) and track each piece as a task with its owner.
 
-**Verify.** Push the branch first, and start reviewers where the pushed head is checked out:
-their verdicts post as checks on the commit they reviewed. Reviewers start fresh. They judge the
+**Verify.** Open the PR before review: push the branch, open the PR if it isn't open yet (see Ship),
+and start reviewers where the pushed head is checked out. The verdict hook posts each reviewer's
+verdict as a comment on that PR, about the commit they reviewed, and merge.mjs reads only those
+comments (a `theseus/*` commit status counts only where a role has no comment). With no open PR
+the verdict has nowhere to go, the reviewer says so in its report, and the review has to run
+again. Never post, edit or delete a verdict comment yourself. Reviewers start fresh. They judge the
 diff, the contract and the running site, not the builder's account. Send findings back to
 the same builder. After a fix round, the final verdict comes from a fresh reviewer. Two fix rounds
 at most, so three builder dispatches per PR: a reviewed commit with `Verdict: changes` or
@@ -57,8 +76,8 @@ only, never commands or endpoints.
 - Keep the body current: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`.
 - Comment with `gh api repos/<owner>/<repo>/issues/<n>/comments -F body=@<file>`, and label with
   `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=needs-owner'`.
-- Read with `gh api repos/<owner>/<repo>/pulls/<n>`, `…/pulls/<n>/files`,
-  `…/commits/<sha>/check-runs` and `…/commits/<sha>/status`.
+- Read with `gh api repos/<owner>/<repo>/pulls/<n>`, `…/pulls/<n>/files`, `…/issues/<n>/comments`
+  (the verdicts), `…/commits/<sha>/check-runs` and `…/commits/<sha>/status`.
 
 Commit and push the close-out below first, and take "Work in progress" out of the body: merge.mjs
 carries the verdicts over commits that only touch notes, and a commit after the merge has no
