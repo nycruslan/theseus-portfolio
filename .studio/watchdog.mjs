@@ -7,10 +7,13 @@
 //   wake-up, or one Claude Code is already continuing (stop_hook_active). Only the lead's own
 //   tasks count: those a subagent creates (TaskCreated with agent_id) aren't the lead's to close.
 // - W2, fix-round cap (PreToolUse on Agent and SendMessage): two fix rounds at most, so a PR gets
-//   three builder dispatches and the fourth is refused while review still says no. A round is one
-//   reviewed commit with an explicit `changes` or `blocked` verdict given after the first builder
-//   started, from the verdict ledger: Probe writing the contract or Iris giving direction before
-//   the build doesn't use one up.
+//   three builder dispatches, and a fourth is refused after three review rounds that said no. A
+//   round is the reviews between one builder dispatch and the next: however many commits they
+//   looked at (a notes commit pushed between two reviews included), it counts once if any of them
+//   gave an explicit `changes` or `blocked`. Reviews before the first dispatch (Probe writing the
+//   contract, Iris giving direction) and reports without a verdict don't count. A later
+//   `Verdict: ship` from Lens on the latest reviewed commit lifts the refusal, so the lead can
+//   still send a builder to, say, resolve a merge conflict.
 // The other events only feed the ledger. It fails open: a rule it can't evaluate doesn't fire.
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
@@ -81,7 +84,7 @@ function recordTool(tool, input, cwd) {
   }
 }
 
-// W2. Two fix rounds at most: the third non-ship round means cut scope or stop.
+// W2. Two fix rounds at most: the third round that says no means cut scope or stop.
 function capFixRounds(tool, input) {
   const builder =
     tool === "Agent"
@@ -92,11 +95,17 @@ function capFixRounds(tool, input) {
     if (builder && input.name) note({ builder: input.name });
   }
   if (!builder) return;
-  const rounds = nonShipRounds();
-  if (rounds.length <= FIX_ROUNDS) return;
+  const verdicts = readLedger(hook.session_id).filter((entry) =>
+    ["ship", "changes", "blocked"].includes(entry.verdict),
+  );
+  const rounds = roundsWithoutShip(verdicts);
+  if (rounds.length <= FIX_ROUNDS || lensShipsNow(verdicts)) {
+    note({ dispatch: true });
+    return;
+  }
   const fire = fires("W2") + 1;
   const reason = [
-    `Watchdog: two fix rounds are used and review still says no (${rounds.length} reviewed commits without a ship: ${rounds.join(", ")}).`,
+    `Watchdog: two fix rounds are used and review still says no (${rounds.length} review rounds without a ship, on ${rounds.join("; ")}).`,
     "Cut scope, or stop and write it up: what shipped, what didn't and why, in the PR and .studio/STATE.md.",
     fire > 1
       ? `Refused ${fire} times now: don't send the work back to a builder again.`
@@ -111,6 +120,43 @@ function capFixRounds(tool, input) {
         permissionDecisionReason: reason,
       },
     }),
+  );
+}
+
+// The review rounds that said no: between each builder dispatch and the next (the last one
+// running to now), the commits that got `changes` or `blocked`. A verdict with no recorded commit
+// names its reviewer instead.
+function roundsWithoutShip(verdicts) {
+  const dispatches = readWatch()
+    .filter((entry) => entry.dispatch)
+    .map((entry) => entry.at)
+    .sort((a, b) => a - b);
+  return dispatches.flatMap((from, i) => {
+    const to = dispatches[i + 1] ?? Number.POSITIVE_INFINITY;
+    const said = verdicts.filter(
+      (entry) => entry.verdict !== "ship" && entry.at >= from && entry.at < to,
+    );
+    const heads = new Set(
+      said.map(
+        (entry) => entry.head?.slice(0, 7) ?? `a review by ${entry.agentId}`,
+      ),
+    );
+    return heads.size ? [[...heads].join(", ")] : [];
+  });
+}
+
+// Lens said ship on the latest reviewed commit, after the last review that said no.
+function lensShipsNow(verdicts) {
+  const latest = verdicts.at(-1);
+  const lastNo = verdicts.findLast((entry) => entry.verdict !== "ship");
+  const ship = verdicts.findLast(
+    (entry) => entry.role === "code-reviewer" && entry.verdict === "ship",
+  );
+  return Boolean(
+    ship &&
+      latest &&
+      ship.head === latest.head &&
+      (!lastNo || ship.at > lastNo.at),
   );
 }
 
@@ -151,24 +197,6 @@ function plain(id) {
     .trim()
     .toLowerCase()
     .replace(/^agent-/, "");
-}
-
-// Each reviewed commit with an explicit changes or blocked verdict, given after the first builder
-// started. A verdict with no recorded commit is its own round.
-function nonShipRounds() {
-  const started = readWatch()
-    .filter((entry) => entry.builder || BUILDERS.has(entry.team))
-    .map((entry) => entry.at);
-  if (!started.length) return [];
-  const since = Math.min(...started);
-  const open = new Set();
-  for (const entry of readLedger(hook.session_id)) {
-    if (!["changes", "blocked"].includes(entry.verdict) || entry.at < since) {
-      continue;
-    }
-    open.add(entry.head?.slice(0, 7) ?? `a review by ${entry.agentId}`);
-  }
-  return [...open];
 }
 
 function openTasks(entries) {

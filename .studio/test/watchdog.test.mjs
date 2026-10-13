@@ -242,39 +242,58 @@ const verdict = (head, verdict, agentId = `lens-${head}`) => ({
   verdict,
   head: `${head}000000000000000000000000000000000000`.slice(0, 40),
 });
+const DISPATCH = "dispatch";
+
+/**
+ * A sprint so far, in order: each step is a builder dispatch (DISPATCH) or a verdict, a second
+ * apart. Forge is the builder the lead dispatched.
+ */
+function sprint(steps, env = {}) {
+  const tmp = tempDir();
+  const watch = [{ builder: "forge", at: 0 }];
+  const verdicts = [];
+  steps.forEach((step, i) => {
+    const at = 1000 * (i + 1);
+    if (step === DISPATCH) watch.push({ dispatch: true, at });
+    else verdicts.push({ ...step, at });
+  });
+  const jsonl = (entries) =>
+    entries.map((e) => `${JSON.stringify(e)}\n`).join("");
+  writeFileSync(join(tmp, "theseus-watchdog-abc123.jsonl"), jsonl(watch));
+  writeFileSync(join(tmp, "theseus-verdicts-abc123.jsonl"), jsonl(verdicts));
+  const run = (payload) => {
+    const result = runHook("watchdog.mjs", payload, {
+      env: { TMPDIR: tmp, ...env },
+    });
+    return { ...result, answer: answer(result) };
+  };
+  return {
+    run,
+    decision: (payload) =>
+      run(payload).answer?.hookSpecificOutput?.permissionDecision ?? "allow",
+  };
+}
+const THREE_ROUNDS = [
+  DISPATCH,
+  verdict("aaaaaaa", "changes"),
+  DISPATCH,
+  verdict("bbbbbbb", "changes"),
+  DISPATCH,
+  verdict("ccccccc", "blocked"),
+];
 
 test("W2 allows two fix rounds: three builder dispatches in all", () => {
-  const { all } = session([
+  const { decision } = sprint([
+    DISPATCH,
     verdict("aaaaaaa", "changes"),
+    DISPATCH,
     verdict("bbbbbbb", "blocked"),
   ]);
-  const { answer } = all(agent("engineer", "forge"), send("forge"));
-  assert.equal(answer, null);
-});
-
-test("W2 counts neither missing verdicts nor reviews from before the build", () => {
-  // Sprint M: Probe writes the contract and Iris gives direction before Forge starts. Lens then asks
-  // for changes twice: both fix rounds go through.
-  const before = { at: 1 };
-  const verdicts = [
-    { ...verdict("base000", "none"), role: "qa-engineer", ...before },
-    { ...verdict("base000", "changes"), role: "design-director", ...before },
-    verdict("head111", "none"),
-    verdict("head111", "changes"),
-    verdict("head222", "changes"),
-  ];
-  const { all, run } = session(verdicts);
-  assert.equal(all(agent("engineer", "forge"), send("forge")).answer, null);
-  assert.equal(run(send("forge")).answer, null);
+  assert.equal(decision(send("forge")), "allow");
 });
 
 test("W2 refuses the fourth builder dispatch, by spawn or by message", () => {
-  const rounds = [
-    verdict("aaaaaaa", "changes"),
-    verdict("bbbbbbb", "changes"),
-    verdict("ccccccc", "blocked"),
-  ];
-  const { run } = session(rounds);
+  const { run } = sprint(THREE_ROUNDS);
   for (const payload of [
     started("engineer", "agent-a4d2c8f1e0b3a297"),
     agent("engineer", "forge"),
@@ -293,16 +312,64 @@ test("W2 refuses the fourth builder dispatch, by spawn or by message", () => {
     assert.equal(decision.hookEventName, "PreToolUse");
     assert.match(
       decision.permissionDecisionReason,
-      /^Watchdog: two fix rounds are used and review still says no \(3 reviewed commits without a ship: aaaaaaa, bbbbbbb, ccccccc\)\. Cut scope, or stop and write it up/,
+      /^Watchdog: two fix rounds are used and review still says no \(3 review rounds without a ship, on aaaaaaa; bbbbbbb; ccccccc\)\. Cut scope, or stop and write it up/,
     );
   }
 });
 
+test("W2 counts neither missing verdicts nor reviews from before the build", () => {
+  // Sprint M: Probe writes the contract and Iris gives direction before Forge starts. Lens then asks
+  // for changes twice: both fix rounds go through.
+  const { decision } = sprint([
+    { ...verdict("base000", "none"), role: "qa-engineer" },
+    { ...verdict("base000", "changes"), role: "design-director" },
+    DISPATCH,
+    verdict("head111", "none"),
+    verdict("head111", "changes"),
+    DISPATCH,
+    verdict("head222", "changes"),
+  ]);
+  assert.equal(decision(send("forge")), "allow");
+});
+
+test("W2 ignores a report without a verdict, even on a commit nobody else reviewed", () => {
+  const { decision } = sprint([
+    DISPATCH,
+    verdict("aaaaaaa", "changes"),
+    DISPATCH,
+    verdict("bbbbbbb", "changes"),
+    DISPATCH,
+    { ...verdict("ccccccc", "none"), role: "qa-engineer" },
+  ]);
+  assert.equal(decision(send("forge")), "allow");
+});
+
+test("W2 counts a round once, however many commits it reviewed", () => {
+  // Lens reviews the head, the lead pushes a notes commit, Iris reviews that: one round, not two.
+  const { decision } = sprint([
+    DISPATCH,
+    verdict("aaaaaaa", "changes"),
+    { ...verdict("a1a1a1a", "changes", "iris"), role: "design-director" },
+    DISPATCH,
+    verdict("bbbbbbb", "changes"),
+  ]);
+  assert.equal(decision(send("forge")), "allow");
+});
+
+test("W2 lifts the refusal once Lens ships the latest commit", () => {
+  const { decision } = sprint([...THREE_ROUNDS, verdict("ddddddd", "ship")]);
+  // Say, to resolve a merge conflict after the lead cut scope.
+  assert.equal(decision(agent("engineer", "forge-2")), "allow");
+  const stillNo = sprint([
+    ...THREE_ROUNDS,
+    verdict("ddddddd", "ship"),
+    { ...verdict("ddddddd", "changes"), role: "qa-engineer" },
+  ]);
+  assert.equal(stillNo.decision(agent("engineer", "forge-2")), "deny");
+});
+
 test("W2 still lets the lead brief reviewers and message anyone else", () => {
-  const rounds = ["aaaaaaa", "bbbbbbb", "ccccccc"].map((h) =>
-    verdict(h, "changes"),
-  );
-  const { run } = session(rounds);
+  const { run } = sprint(THREE_ROUNDS);
   for (const payload of [
     agent("code-reviewer", "lens-4"),
     agent("qa-engineer"),
@@ -314,26 +381,24 @@ test("W2 still lets the lead brief reviewers and message anyone else", () => {
   }
 });
 
-test("W2 counts one round per reviewed commit, and ships don't count", () => {
-  const verdicts = [
+test("W2 counts reviewers of one round together, and ships don't count", () => {
+  const { decision } = sprint([
+    DISPATCH,
     verdict("aaaaaaa", "changes", "lens-perf"),
     verdict("aaaaaaa", "changes", "lens-security"),
     { ...verdict("aaaaaaa", "blocked"), role: "qa-engineer" },
+    DISPATCH,
     verdict("bbbbbbb", "changes"),
-    verdict("ccccccc", "ship"),
-    verdict("ddddddd", "ship"),
-  ];
-  const { run } = session(verdicts);
-  assert.equal(run(agent("engineer", "forge")).answer, null);
+    DISPATCH,
+    { ...verdict("ccccccc", "ship"), role: "qa-engineer" },
+  ]);
+  assert.equal(decision(agent("engineer", "forge")), "allow");
 });
 
 test("W2 escalates a repeat refusal and puts it on air", async () => {
   const studio = await ingest();
   try {
-    const rounds = ["aaaaaaa", "bbbbbbb", "ccccccc"].map((h) =>
-      verdict(h, "changes"),
-    );
-    const { run } = session(rounds, { STUDIO_INGEST_URL: studio.url });
+    const { run } = sprint(THREE_ROUNDS, { STUDIO_INGEST_URL: studio.url });
     run(agent("engineer", "forge"));
     const { answer } = run(send("forge"));
     assert.match(
