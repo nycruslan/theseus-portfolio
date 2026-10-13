@@ -12,10 +12,28 @@ taste and originality, not only working code.
 
 **Weighted score** = (2 × design quality + 2 × originality + craft + functionality) / 6
 
+## Hard gates (pass or fail, before any score)
+
+Any one failing is `Verdict: changes`, whatever the score.
+- No placeholder renders: no `TODO(owner)` text, and none of the seed's stand-ins ("Company name").
+- axe finds no serious or critical issues.
+- impeccable's detector reports nothing at error level.
+- Reduced motion: nothing moves that isn't essential, and nothing is lost.
+- It reflows at 320 px wide with no horizontal scrolling.
+- Phone budget: the largest content paints within 2.5 s on a mid phone, and nothing shifts after
+  load.
+
+## First verdict: compared with production
+
+Before scoring, look at production and the change side by side at the same viewports (390, 1024
+and 1440 px). Say whether it's **better**, **the same** or **worse**. Worse fails, whatever the
+score.
+
 ## Pass bar
 
 - Every criterion scores at least **6**, and the weighted score is at least **7**.
-- It's **better than production**, or at least not worse, when compared side by side at the same viewports.
+- Iris's scores count once they match the owner's scored examples in `design/calibration/`
+  within one point. Until then her verdict is advisory, and large visual work goes to the owner.
 
 ## Fails on sight ("AI slop")
 

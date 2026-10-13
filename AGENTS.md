@@ -14,6 +14,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Server Components by default. Add `"use client"` only where interactivity requires it.
 - Small, focused components with named exports (route files keep the default export Next.js requires).
 - Comments explain *why*, not *what*.
-- Prove it works: `pnpm lint` and `pnpm build` pass, and the change behaves as intended in a real
-  browser (the next-dev-loop skill; run agent-browser with `--session <name>` so agents don't share one).
+- Prove it works:
+  - `pnpm verify` passes. It runs lint, typecheck, knip and build, in that order.
+  - `pnpm test:e2e` passes.
+  - The change behaves as intended in a real browser. Use the next-dev-loop skill, and run
+    agent-browser with `--session <name>` so agents don't share one.
+- Never weaken or delete a test to get green. Report the failure instead.
 - When something breaks, find the root cause before changing code.
