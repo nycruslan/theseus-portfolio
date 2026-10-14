@@ -26,6 +26,22 @@ to the Studio.
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
 
+## How far the guardrails reach
+
+The team acts as the owner's GitHub identity, so the hooks are layered defence against shortcuts,
+not a security boundary. A check is binding only once the base branch's ruleset requires it from
+GitHub Actions: today that's `check`, and `scope` becomes binding when the owner adds it to the
+`protect-main` ruleset. The verdicts rely on the hooks: the guard refuses the commands it can read
+that carry a verdict marker toward GitHub (in the line however it's quoted, in a script the line
+runs, or in a comment's body file, which must be a literal path that exists), and any that edit or
+delete a comment.
+
+Known limits: checking out an older commit swaps in its older harness, the hooks' records in the
+temp directory can be deleted, and a program that writes files itself (`git apply`, a formatter, a
+script it runs) or text encoded past the rules (a marker built at run time, say) isn't seen. This
+lives here rather than in `CLAUDE.md`, which every agent loads, so the agents aren't handed a list
+of ways around the hooks.
+
 ## Local development
 
 ```bash

@@ -18,8 +18,4 @@ sprint folder and hand over its path.
 
 You don't edit product files. Keep good sources and gotchas in your memory.
 
-Your memory directory is set when you start, from the session's checkout. If you work in a worktree
-of your own (under `.claude/worktrees/`), that directory is in the main checkout, and Claude Code
-blocks writes there: write your memory to `.claude/agent-memory/researcher/` inside your worktree
-instead, commit just those files, and name the commit in your report so Atlas brings it to the
-sprint branch.
+Your memory is `.claude/agent-memory/researcher/`; in a worktree of your own, see CLAUDE.md.
