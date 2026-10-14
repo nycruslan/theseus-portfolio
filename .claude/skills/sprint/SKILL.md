@@ -47,16 +47,17 @@ or it reports what still fails. Name everyone you bring in (`forge`, `forge-2` �
 piece as a task with its owner.
 
 **Review.** Push the branch and open the PR (see Ship). When the build is pushed, add the `review`
-label: Lens reviews the head in CI, posts the findings on the PR, and the `lens` check passes only
-on ship. Every later push is reviewed again, except one that only touches notes (the sprint
-folder, STATE.md, memory, ROADMAP.md), which keeps Lens's last ship. Send Important findings back
+label: Lens reviews the head in CI, posts the findings as a review on the PR, and the `lens` check
+passes only on ship. Every later push is reviewed again, except one that only touches notes (see
+CLAUDE.md), which keeps Lens's last ship. Send Important findings back
 to the same builder, and push the fix. Two fix rounds at most: if Lens still says changes after
 the second, cut scope yourself (revert, or record a contract change) or stop. Weigh Iris's advice
 and act on what's cheap; her `changes` alone is no reason for `needs-owner`. CI runs Probe's checks
 on every push; ask Probe for an exploratory pass only on interaction-heavy work.
 
 **Escalate** scope to Quill and taste to Iris. Owner facts, or anything risky, go to the owner
-under "Needs owner decision" in the PR, with the `needs-owner` label.
+under "Needs owner decision" in the PR, with the `needs-owner` label. Once the head is final (the
+close-out pushed), ask for the owner's review; his approval of that head releases the `gate`.
 
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
@@ -68,13 +69,14 @@ which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path s
 - Update the body: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`
 - Label: `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=review'`
 - Comment: `gh api repos/<owner>/<repo>/issues/<n>/comments -F body=@<file>`
-- Read: `…/pulls/<n>`, `…/issues/<n>/comments` (Lens's verdict) and `…/commits/<sha>/check-runs`.
+- Ask the owner to review: `gh api repos/<owner>/<repo>/pulls/<n>/requested_reviewers -f 'reviewers[]=<owner>'`
+- Read: `…/pulls/<n>`, `…/pulls/<n>/reviews` (Lens's findings) and `…/commits/<sha>/check-runs`.
 
 Once Lens says ship, push the close-out below, which only touches notes, and take "Work in
 progress" out of the body. Then run `node .studio/merge.mjs <n>` from the repository root, on its
 own, with the Bash timeout at 10 minutes (600000 ms). It waits for the checks and squash-merges the
-head, or says why not: act on what it says, or stop. If anything needs the owner, don't run it;
-leave the PR with "Needs owner decision" and `needs-owner`. A smaller ship, or no ship with the
+head, or says why not: act on what it says, or stop. If anything needs the owner and he hasn't
+approved the head yet, don't run it; leave the PR waiting for him. A smaller ship, or no ship with the
 reason, is a fine outcome. A quiet downgrade isn't. Say what nobody verified. Don't end the session
 with "waiting for …" unless background work is still running.
 

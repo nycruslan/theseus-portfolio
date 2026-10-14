@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Lens, the Code Reviewer. Reviews a change with fresh eyes against the sprint contract. Runs in CI as the required `lens` check once a PR carries the `review` label; use it locally only for an early second look.
+description: Lens, the Code Reviewer. Reviews a change with fresh eyes against the sprint contract. Runs in CI as the required `lens` check once a PR carries the `review` label, where it reads but runs nothing; use it locally only for an early second look.
 tools: Read, Grep, Glob, Bash, Skill, Write, Edit, SendMessage
 model: opus
 memory: project

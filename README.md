@@ -28,21 +28,61 @@ streams live to the Studio.
 
 ## What binds and what guides
 
-**Binding (GitHub).** The `protect-main` ruleset has no bypass, and requires a pull request plus
-three checks from GitHub Actions:
-- `check`: lint, typecheck, knip, build, harness tests and the end-to-end suite;
-- `gate`: run from `main` on `pull_request_target`, so a PR can't change it. It fails a PR that
-  touches the owner's files or `package.json`'s scripts, weakens a test, or ever carried
-  `needs-owner`, unless the owner added `owner-approved`;
-- `lens`: Claude Code reviews the PR in CI as Lens and fails the check unless the verdict is ship.
-  A session can't forge a check run, and a PR that edits the workflow is stopped by `gate`.
+**Binding (GitHub),** once the owner's setup below is done. The team works as its own GitHub
+account, with write access and no admin rights, so it can't change the rules or approve as the
+owner. The `protect-main` ruleset has no bypass and requires:
+- a pull request, and the owner's review wherever `.github/CODEOWNERS` names him;
+- `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
+- `gate` (the team's checks app): it holds a PR that touches an owner path, changes
+  `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner approves
+  its current head;
+- `lens` (the checks app): Claude Code reviews the PR as Lens and the check passes only on ship. A
+  push that only touches the team's notes keeps the last ship.
 
-**Guidance (the hooks).** The team acts as the owner's GitHub identity, so GitHub can't tell who
-added `owner-approved`: that one rule rests on the team keeping it. The hooks keep the team in its
-lane without being a boundary: a file-edit guard (owner paths, `e2e/` for Probe, each role's own
-memory), deny rules for the obvious (`pkill`, `gh pr merge`, force pushes, the `owner-approved`
-label), the builders' `pnpm verify` on stop, and a watchdog for a stalled lead. A shell command can
-get past all of them; it can't get past GitHub.
+Only the checks app can post `gate` and `lens`, and its key lives in a `checks` environment that
+serves `main` alone, where both workflows run on `pull_request_target`. Lens reads the PR's code in
+a subdirectory and never runs it.
+
+**Guidance (the hooks).** They keep the team in its lane without being a boundary: a file-edit
+guard (owner paths, `e2e/` for Probe, each role's own memory), deny rules for the obvious (`pkill`,
+`gh pr merge`, force pushes, the repository's admin endpoints), the builders' `pnpm verify` on
+stop, and a watchdog for a stalled lead. A shell command can get past all of them. On the owner's
+own machine, the team runs with the owner's GitHub login, so there only the ruleset binds.
+
+**Until the setup is done,** only `check` is required, and cloud sessions act as the owner.
+
+## Setup (the owner, once, in this order)
+
+1. **The team's account.** Create a GitHub account for the team, invite it to this repository with
+   the **Write** role, and accept the invite. As that account, create a classic personal access
+   token with only the `public_repo` scope (fine-grained tokens can't reach a repository where the
+   account is only a collaborator). Without the `workflow` scope it can't push workflow files.
+2. **Cloud sessions as the team.** Locally, add the token to gh (`gh auth login --with-token`), run
+   `/web-setup` in Claude Code so cloud sessions use it, then `gh auth switch` back to yourself.
+   In a cloud session, `gh api user --jq .login` should print the team's account. Setting
+   `GH_TOKEN` on the cloud environment instead isn't enough: git pushes and the proxy's
+   `proxy-injected` path would still carry your own login.
+3. **The checks app.** Create a GitHub App on your account (Settings → Developer settings), with
+   its webhook off and these repository permissions: Checks read and write, Pull requests read
+   and write, Contents read, Issues read. Install it on this repository only. Note its App ID and
+   Client ID, and generate a private key.
+4. **The `checks` environment.** In this repository: Settings → Environments → New environment
+   `checks`, with deployment branches limited to `main`. Add the variable `CHECKS_APP_CLIENT_ID`
+   and the secrets `CHECKS_APP_PRIVATE_KEY` and `CLAUDE_CODE_OAUTH_TOKEN`, then delete the
+   repository-level `CLAUDE_CODE_OAUTH_TOKEN` secret.
+5. **Merge the PR that adds this.** The ruleset still requires only `check`, and this PR's `gate`
+   and `lens` don't run until their workflows are on `main`.
+6. **Let the app report once.** Open or update any PR into `main`: `gate` posts its first check
+   run, which the ruleset needs before it can name the app as a source.
+7. **The ruleset.** Edit `protect-main`. Under required status checks, keep `check` (GitHub
+   Actions) and add `gate` and `lens` with the checks app as their source. Under "Require a pull
+   request before merging", keep 0 approvals and tick "Require review from Code Owners" and
+   "Dismiss stale pull request approvals when new commits are pushed". Keep the bypass list
+   empty.
+8. **Check code-owner review.** GitHub doesn't document how code-owner review behaves with 0
+   approvals. A PR that touches only `app/` should merge without your review, and one that touches
+   `.claude/` should wait for it. If every PR waits, untick "Require review from Code Owners":
+   `gate` still holds owner paths until you approve.
 
 ## Local development
 

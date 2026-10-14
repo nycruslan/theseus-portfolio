@@ -35,21 +35,22 @@ verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) m
 
 ## Merge policy
 
-GitHub decides what merges. The `protect-main` ruleset requires a pull request and three checks,
-all run by GitHub Actions:
+GitHub decides what merges. The `protect-main` ruleset has no bypass. It requires a pull request,
+the owner's review wherever `.github/CODEOWNERS` names him, and three checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
-- `gate` (`gate.yml`, run from `main`): the PR touches no owner path, leaves `package.json`'s
-  scripts alone, weakens no test and never carried `needs-owner`, unless the owner added
-  `owner-approved`;
-- `lens` (`lens.yml`): Lens reviews the PR in CI and the check passes only on `ship`. It runs
-  when the PR carries the `review` label, and again on each push.
+- `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
+  touches an owner path, changes `package.json`'s scripts, weakens a test or ever carried
+  `needs-owner`, until the owner approves its current head;
+- `lens` (`lens.yml`, posted by the checks app): Lens reviews the PR in CI, and the check passes
+  only on ship. It runs when the PR carries the `review` label, on a new base and on each push. A
+  push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md, memory,
+  ROADMAP.md) keeps Lens's last ship.
 
-Atlas merges with `node .studio/merge.mjs <number>`, which waits for the checks and squash-merges
-the head GitHub approved. Iris's verdict is advice until she's calibrated (`design/rubric.md`). If
-anything needs the owner, leave the PR open with a "Needs owner decision" section and the
-`needs-owner` label. The team acts as the owner's GitHub identity, so keep these rules even where
-GitHub can't tell: never push to `main`, add `owner-approved`, remove `needs-owner`, or post as
-Lens.
+The team works as its own GitHub account, with write access and no admin rights. Atlas merges with
+`node .studio/merge.mjs <number>`, which waits for the checks and asks GitHub to squash-merge the
+head. Iris's verdict is advice until she's calibrated (`design/rubric.md`). If anything needs the
+owner, leave the PR open with a "Needs owner decision" section and the `needs-owner` label, and ask
+for his review once the head is final: a later push needs a new approval. Never push to `main`.
 
 ## The owner's
 
@@ -67,4 +68,5 @@ The team's own setup is the owner's too:
   `renovate.json` and `playwright.config.*`, and the `scripts` in `package.json`. Dependencies
   are the team's.
 
-Propose changes to them in the PR's retro instead. The `gate` check fails a PR that edits them.
+`.github/CODEOWNERS` is the list the checks read. Propose changes to these in the PR's retro
+instead: a PR that edits them waits for the owner.
