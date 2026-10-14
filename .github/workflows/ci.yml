@@ -18,7 +18,7 @@ jobs:
       # Installs pnpm (version from packageManager) and Node, then runs a frozen install.
       - uses: pnpm/setup@v3
         with:
-          runtime: node@22
+          runtime: node@24
           cache: true
           require-lockfile: true
       # Next.js reuses its build cache between runs: faster builds, and no "No build cache found".

@@ -44,6 +44,6 @@ pnpm test:harness   # the team's hooks
 the internet only through the proxy named in `HTTPS_PROXY`, and Node's built-in `fetch`, which the
 hooks use to post the live broadcast to the Studio, ignores that variable unless this one is set.
 Without it the broadcast silently stops in the cloud. On a laptop with no proxy variables it changes
-nothing. It needs Node 22.21 or 24 and later; older versions ignore it.
+nothing. The project runs on Node 24 (`.node-version`, `engines`), which honours it.
 
 Built with Next.js 16, React 19, Tailwind CSS 4 and Claude Code.
