@@ -43,14 +43,16 @@ the owner's review wherever `.github/CODEOWNERS` names him, and three checks:
   `needs-owner`, until the owner approves its current head;
 - `lens` (`lens.yml`, posted by the checks app): Lens reviews the PR in CI, and the check passes
   only on ship. It runs when the PR carries the `review` label, on a new base and on each push. A
-  push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md, memory,
-  ROADMAP.md) keeps Lens's last ship.
+  push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md,
+  ROADMAP.md) keeps Lens's last ship; memory loads into prompts, so it's reviewed.
 
-The team works as its own GitHub account, with write access and no admin rights. Atlas merges with
-`node .studio/merge.mjs <number>`, which waits for the checks and asks GitHub to squash-merge the
-head. Iris's verdict is advice until she's calibrated (`design/rubric.md`). If anything needs the
-owner, leave the PR open with a "Needs owner decision" section and the `needs-owner` label, and ask
-for his review once the head is final: a later push needs a new approval. Never push to `main`.
+The team works as its own GitHub account (`THESEUS_BOT`), with write access and no admin rights.
+Reach GitHub only as that account: never use the proxy's `proxy-injected` placeholder, and never
+set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
+checks and asks GitHub to squash-merge the head. Iris's verdict is advice until she's calibrated
+(`design/rubric.md`). If anything needs the owner, leave the PR open with a "Needs owner decision"
+section and the `needs-owner` label, and ask for his review once the head is final: a later push
+needs a new approval. Never push to `main`.
 
 ## The owner's
 

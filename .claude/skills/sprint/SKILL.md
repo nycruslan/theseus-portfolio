@@ -18,7 +18,8 @@ and what to do (`action`):
   short report naming the PR and what it waits for.
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`.
 
-If it exits 1, don't start a sprint blind: report it and stop.
+It first checks that GitHub calls act as the team's own account (`THESEUS_BOT`). If it exits 1,
+for that or because it can't read GitHub, don't start a sprint: report it and stop.
 
 Start from `.studio/STATE.md`, the roles' memory and `ROADMAP.md`. The goal is the argument you were
 given, or the roadmap's top item. Keep the sprint's artifacts in `.studio/sprint/<n>/`, and hand
