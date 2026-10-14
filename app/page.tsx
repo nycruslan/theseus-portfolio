@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { Section } from "@/components/section";
 import { profile } from "@/content/profile";
+import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
+
+// This page's own address, for search engines and link previews (see app/layout.tsx).
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: { ...openGraph, url: "/" },
+};
 
 // Who this page is about, for search engines: the owner's facts from content/profile.ts as they
 // appear on the page, and nothing more.

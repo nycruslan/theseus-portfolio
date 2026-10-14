@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { profile } from "@/content/profile";
+import { openGraph, title } from "@/lib/metadata";
 import { DARK, LIGHT, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -12,23 +13,15 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const title = `${profile.name} — ${profile.headline}`;
-
-// The social image comes from app/opengraph-image.tsx and the icon from app/icon.svg; Next adds
-// their tags itself.
+// Every route gets these. The social image comes from app/opengraph-image.tsx and the icon from
+// app/icon.svg; Next adds their tags itself. A canonical URL and og:url belong to one page each, so
+// they're set by the page (app/page.tsx), never here: here they would make every route, a 404
+// included, claim to be the home page.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title,
   description: profile.bio,
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "profile",
-    url: "/",
-    title,
-    description: profile.bio,
-    siteName: profile.name,
-    locale: "en_US",
-  },
+  openGraph,
   twitter: { card: "summary_large_image", title, description: profile.bio },
 };
 

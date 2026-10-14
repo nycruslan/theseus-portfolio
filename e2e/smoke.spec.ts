@@ -69,3 +69,14 @@ test("search engines and link previews find what they need", async ({
   expect(await (await request.get("/robots.txt")).text()).toMatch(/Sitemap:/);
   expect((await request.get("/sitemap.xml")).ok()).toBe(true);
 });
+
+test("a missing page doesn't claim to be the home page", async ({
+  request,
+}) => {
+  const response = await request.get("/no-such-page");
+  expect(response.status()).toBe(404);
+  const html = await response.text();
+  // Only the home page names itself canonical, or as og:url.
+  expect(html).not.toMatch(/<link[^>]*rel="canonical"/);
+  expect(html).not.toMatch(/<meta[^>]*property="og:url"/);
+});
