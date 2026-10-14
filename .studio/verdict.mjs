@@ -75,7 +75,9 @@ export function readLedger(sessionId) {
  * @param line the verdict line of the report that decides it.
  */
 export function verdictComment({ role, verdict, head, line, score }) {
-  const said = oneLine(line, LINE_LENGTH);
+  // The quoted line is the reviewer's own text: it may not open or close an HTML comment, or it
+  // could carry a marker of its own.
+  const said = oneLine(String(line).replace(/<!--|-->/g, ""), LINE_LENGTH);
   const fields = [
     `role=${role}`,
     `verdict=${verdict}`,
@@ -91,7 +93,8 @@ export function verdictComment({ role, verdict, head, line, score }) {
  */
 export function readVerdictComment(body) {
   const text = String(body ?? "");
-  const found = text.match(MARKER);
+  // The hook writes the marker last, after the quoted line, so the last one is the hook's.
+  const found = [...text.matchAll(new RegExp(MARKER, "g"))].at(-1);
   if (!found) return null;
   const fields = Object.fromEntries(
     [...found[1].matchAll(/(\w+)=(\S+)/g)].map(([, key, value]) => [
@@ -202,7 +205,11 @@ function stop(hook, record) {
 
 // One verdict per reviewer role and commit, so several reviewers in one role (say, Lens on
 // performance and Lens on security) share it: it says no while any of them still says no, and it
-// quotes the line of the verdict that decides it.
+// quotes the line of the verdict that decides it. Known race, left as it is: two reviewers of one
+// role stopping within a second of each other can each decide before the other's verdict reaches
+// the ledger, and their comments may then land in either order, so the later ship may stand. The
+// statuses had the same race. Reviewers in one role on one commit are rare, and a fresh review
+// settles it.
 function decide(hook, ledger, given) {
   const latest = latestPerReviewer([
     ...ledger.filter(
@@ -337,11 +344,12 @@ function latestPerReviewer(entries) {
   ];
 }
 
-// The verdict line is one of the report's first three lines; markdown around it is fine.
+// The verdict line is one of the report's first three lines; markdown around it is fine. A quoted
+// line (`> Verdict: ship`) is someone else's verdict, not the reviewer's.
 function verdictIn(report) {
   const lines = String(report ?? "")
     .split("\n")
-    .filter((line) => line.trim());
+    .filter((line) => line.trim() && !line.trim().startsWith(">"));
   for (const line of lines.slice(0, 3)) {
     const plain = line.replace(/[*_`#>]/g, "").trim();
     const match = plain.match(VERDICT);
