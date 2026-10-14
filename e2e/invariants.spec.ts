@@ -1,13 +1,22 @@
 import AxeBuilder from "@axe-core/playwright";
-import { type Browser, expect, type Page, test } from "@playwright/test";
+import {
+  type APIRequestContext,
+  type Browser,
+  expect,
+  type Page,
+  test,
+} from "@playwright/test";
+import { DARK, LIGHT } from "../lib/site";
 import {
   COLOR_TOKENS,
   composite,
   contrast,
+  hexToRgb,
   horizontalOverflow,
   type Rgb,
   resolveColors,
   resolvedBackground,
+  resolveSteps,
   rootTokens,
   SCHEMES,
   STEP_TOKENS,
@@ -18,7 +27,9 @@ import {
 // follows the system's light or dark preference without JavaScript, and stays readable and
 // accessible in both. Sprint contracts land here as lasting properties once they merge, never as
 // one sprint's exact values, so a later sprint can retune the palette or add a token without
-// deleting checks. Sprint 1 (tokens) and sprint 2 (dark mode) are folded in.
+// deleting checks. Sprint 1 (tokens) and sprint 2 (dark mode) are folded in. The one place exact
+// colors appear is the check that lib/site.ts, which feeds the meta tags, the social card and the
+// icons, still agrees with the CSS tokens: a consistency check, so a new palette changes both.
 
 type Scheme = (typeof SCHEMES)[number];
 type ColorToken = (typeof COLOR_TOKENS)[number];
@@ -55,6 +66,11 @@ for (const scheme of SCHEMES) {
 
     test("the browser's address bar takes the page's background", ({ page }) =>
       themeColorIsBackground(page));
+
+    test("the colors outside CSS (lib/site.ts and the icon) match the tokens", ({
+      page,
+      request,
+    }) => paletteMatchesTokens(page, request, scheme));
   });
 }
 
@@ -78,6 +94,26 @@ test("light and dark differ, and the page tells the browser it supports both", a
       .soft(seen.dark?.[token], `${token}, dark vs light`)
       .not.toBe(seen.light?.[token]);
   }
+});
+
+test("the type scale is fluid: no step shrinks from 320 to 1440 px, and the largest grows", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.setViewportSize({ width: 320, height: 900 });
+  const narrow = await resolveSteps(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const wide = await resolveSteps(page);
+  for (const token of STEP_TOKENS) {
+    expect
+      .soft(wide[token] ?? 0, `${token} at 1440 vs 320 px`)
+      .toBeGreaterThanOrEqual(narrow[token] ?? Number.POSITIVE_INFINITY);
+  }
+  const largest = (sizes: Record<string, number>) =>
+    Math.max(...Object.values(sizes));
+  expect(largest(wide), "the largest step at 1440 vs 320 px").toBeGreaterThan(
+    largest(narrow),
+  );
 });
 
 test.describe("on a 320 px wide phone", () => {
@@ -208,4 +244,26 @@ async function themeColorIsBackground(page: Page) {
     return value;
   });
   expect(themeColor).toBe(await resolvedBackground(page));
+}
+
+async function paletteMatchesTokens(
+  page: Page,
+  request: APIRequestContext,
+  scheme: Scheme,
+) {
+  const palette = scheme === "light" ? LIGHT : DARK;
+  await page.goto("/");
+  const colors = await resolveColors(page);
+  for (const [role, hex] of Object.entries(palette)) {
+    expect
+      .soft(
+        colors[`--${role}`]?.computed,
+        `--${role} vs lib/site.ts (${scheme})`,
+      )
+      .toBe(hexToRgb(hex));
+  }
+  const icon = (await (await request.get("/icon.svg")).text()).toLowerCase();
+  for (const hex of [palette.background, palette.accent]) {
+    expect.soft(icon, `icon.svg uses ${hex} (${scheme})`).toContain(hex);
+  }
 }

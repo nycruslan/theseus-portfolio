@@ -66,6 +66,9 @@ test("search engines and link previews find what they need", async ({
   const image = await request.get(new URL(head.ogImage).pathname);
   expect(image.headers()["content-type"]).toBe("image/png");
   expect((await request.get(head.icon)).ok()).toBe(true);
+  // Clients that ignore the icon link still ask for /favicon.ico.
+  const favicon = await request.get("/favicon.ico");
+  expect(favicon.headers()["content-type"]).toMatch(/^image\//);
   expect(await (await request.get("/robots.txt")).text()).toMatch(/Sitemap:/);
   expect((await request.get("/sitemap.xml")).ok()).toBe(true);
 });

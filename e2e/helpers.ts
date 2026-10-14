@@ -122,6 +122,28 @@ export async function textStyles(page: Page) {
   );
 }
 
+/** Each type step in px, as it resolves at the current viewport. */
+export async function resolveSteps(page: Page) {
+  return page.evaluate((names) => {
+    const probe = document.createElement("div");
+    document.body.append(probe);
+    const sizes = Object.fromEntries(
+      names.map((name) => {
+        probe.style.fontSize = `var(${name})`;
+        return [name, Number.parseFloat(getComputedStyle(probe).fontSize)];
+      }),
+    );
+    probe.remove();
+    return sizes;
+  }, STEP_TOKENS);
+}
+
+/** A #rrggbb color as the browser computes it: rgb(r, g, b). */
+export function hexToRgb(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
 /** How far the page is wider than the viewport, once web fonts (which change widths) have loaded. */
 export async function horizontalOverflow(page: Page) {
   return page.evaluate(async () => {
