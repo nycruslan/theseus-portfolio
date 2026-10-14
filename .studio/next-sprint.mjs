@@ -4,14 +4,16 @@
 // 2026-10-13 showed why: a sprint's folder only reaches main when its PR merges, so a run that
 // looked at main alone started sprint 1 again while sprint 1's PR was open.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
-//   whether it waits for the owner (the needs-owner label).
-// - highest: the highest sprint number in the folders under .studio/sprint/ on main, in the open
-//   sprint PRs' branches, and in the remote sprint branches. next is one past the highest of them.
+//   whether it waits for the owner: it carries needs-owner now or ever did, as the gate holds it.
+// - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
+//   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
+//   sprint/<n>-…). next is one past the highest of them.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
 //   every open one does, or start the next sprint, with its branch name.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
+import { carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
@@ -35,13 +37,15 @@ function preflight(repo) {
   const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
     .filter(({ head }) => SPRINT_BRANCH.test(head?.ref ?? ""))
     .sort((a, b) => a.number - b.number)
-    .map(({ number, title, head, labels = [], html_url: url }) => ({
-      number,
-      title,
-      branch: head.ref,
-      head: head.sha,
-      needsOwner: labels.some(({ name }) => name === "needs-owner"),
-      url,
+    .map((pr) => ({
+      number: pr.number,
+      title: pr.title,
+      branch: pr.head.ref,
+      head: pr.head.sha,
+      // As the gate holds it: a PR that ever carried needs-owner is the owner's to merge, even
+      // after the label comes off.
+      needsOwner: carriedNeedsOwner({ pr, repo }),
+      url: pr.html_url,
     }));
   const highest = {
     main: highestOf(sprintFolders(repo, base)),

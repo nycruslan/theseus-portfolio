@@ -20,13 +20,23 @@ function github({
   pulls = [],
   folders = [folder("1")],
   branches = [{ name: "main" }],
+  events = {},
 } = {}) {
-  return {
+  // The fake gh takes the first route that matches, so each PR's own events come before the rest.
+  const table = Object.fromEntries(
+    Object.entries(events).map(([number, list]) => [
+      `${R}/issues/${number}/events`,
+      list,
+    ]),
+  );
+  Object.assign(table, {
     [R]: { default_branch: "main" },
     [`${R}/pulls`]: pulls,
     [`${R}/contents/.studio/sprint`]: folders,
     [`${R}/branches`]: branches,
-  };
+    [`${R}/issues/*/events`]: [],
+  });
+  return table;
 }
 
 function preflight(table, env = {}) {
@@ -133,4 +143,34 @@ test("fails closed when GitHub can't be read", () => {
   assert.equal(code, 1);
   assert.equal(state, null);
   assert.match(stderr, /Don't start a sprint blind/);
+});
+
+test("a PR that once carried needs-owner still waits for the owner, as the gate holds it", () => {
+  // The owner took the label off; the gate still refuses to merge it, so no run may continue it.
+  const { state } = preflight(
+    github({
+      pulls: [pr(9, "sprint/1-design-tokens")],
+      events: {
+        9: [
+          { event: "labeled", label: { name: "needs-owner" } },
+          { event: "unlabeled", label: { name: "needs-owner" } },
+        ],
+      },
+    }),
+  );
+  assert.equal(state.open[0].needsOwner, true);
+  assert.equal(state.action.do, "stand down");
+  assert.equal(state.action.pr, 9);
+});
+
+test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {
+  const table = github();
+  table[`${R}/contents/.studio/sprint`] = {
+    $error: 502,
+    message: "Bad Gateway",
+  };
+  const { code, stderr, state } = preflight(table);
+  assert.equal(code, 1);
+  assert.equal(state, null);
+  assert.match(stderr, /Bad Gateway.*Don't start a sprint blind/);
 });

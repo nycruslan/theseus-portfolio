@@ -12,13 +12,15 @@ One sprint ships one pull request.
 **Pre-flight, before anything else.** Run `node .studio/next-sprint.mjs` from the repository root.
 A sprint's folder reaches main only when its PR merges, so main alone can't tell you what's in
 flight. The script reads GitHub through REST and prints, as JSON, the open PRs whose branch is
-`sprint/*`, the highest sprint number in `.studio/sprint/` on main, in those PRs' branches and in
-the remote `sprint/*` branches, and what to do (`action`):
-- `continue`: a sprint PR is open, so this session continues it instead of starting a new sprint.
+`sprint/*`, the highest sprint number among the folders in `.studio/sprint/` on main and the names
+of those PRs' branches and of the remote `sprint/*` branches, and what to do (`action`):
+- `continue`: a sprint PR is open and doesn't wait for the owner, so this session continues it
+  instead of starting a new sprint.
   Check out its branch, read its body, its comments and its `.studio/sprint/<n>/`, and run what's
   missing: reviews of its head, then the merge.
-- `stand down`: every open sprint PR waits for the owner (`needs-owner`). Start nothing and open no
-  PR; end with a short report naming the PR and what it waits for.
+- `stand down`: every open sprint PR waits for the owner: it carries `needs-owner` or once did,
+  which merge.mjs holds the same way. Start nothing and open no PR; end with a short report naming
+  the PR and what it waits for.
 - `start`: nothing is open. Start sprint `next`, one past the highest number anywhere, on a branch
   named `sprint/<n>-<slug>`.
 

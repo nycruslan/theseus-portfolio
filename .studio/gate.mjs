@@ -180,16 +180,7 @@ export function reviewItems({ pr, repo, cwd }) {
 // Every gh call runs as the owner, so removing the label can't be told apart from the owner's own
 // decision. Once a PR has carried needs-owner, only the owner merges it.
 function ownerHold({ pr, repo, cwd }) {
-  const events = list(`repos/${repo}/issues/${pr.number}/events?per_page=100`, {
-    cwd,
-  });
-  const held = [
-    ...pr.labels.map(({ name }) => name),
-    ...events
-      .filter(({ event }) => event === "labeled")
-      .map(({ label }) => label?.name),
-  ];
-  return held.includes("needs-owner")
+  return carriedNeedsOwner({ pr, repo, cwd })
     ? [
         nogo(
           "owner",
@@ -198,6 +189,22 @@ function ownerHold({ pr, repo, cwd }) {
         ),
       ]
     : [];
+}
+
+/**
+ * Whether the PR carries needs-owner now or ever did (its labeled events), as the gate holds it.
+ * The sprint pre-flight asks the same, so it never sends a run to a PR the gate won't merge.
+ */
+export function carriedNeedsOwner({ pr, repo, cwd }) {
+  const events = list(`repos/${repo}/issues/${pr.number}/events?per_page=100`, {
+    cwd,
+  });
+  return [
+    ...(pr.labels ?? []).map(({ name }) => name),
+    ...events
+      .filter(({ event }) => event === "labeled")
+      .map(({ label }) => label?.name),
+  ].includes("needs-owner");
 }
 
 // The reviewers' verdicts on each of the PR's commits, oldest first, the head last: from the
