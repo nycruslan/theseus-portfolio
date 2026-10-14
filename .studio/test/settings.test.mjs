@@ -75,6 +75,8 @@ test("denies the obvious, whatever the mode", () => {
     "Bash(gh pr merge *)",
     "Bash(gh auth *)",
     "Bash(*proxy-injected*)",
+    "Bash(*GH_TOKEN=*)",
+    "Bash(*unset GH_TOKEN*)",
     "Bash(gh api *rulesets*)",
     "Bash(gh api *actions/secrets*)",
     "Bash(pkill *)",

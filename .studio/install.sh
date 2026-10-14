@@ -15,6 +15,17 @@
 [ "$CLAUDE_CODE_REMOTE" = "true" ] || exit 0
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 
+# The team works on GitHub as its own account: its cloud environment sets GH_TOKEN to that
+# account's token. Without it, gh goes through the proxy's `proxy-injected` placeholder and acts
+# as the owner. This hook's output reaches the session, so say so where the agent will read it;
+# the sprint pre-flight then refuses to start.
+case "${GH_TOKEN:-}" in
+"" | proxy-injected)
+  echo "STOP: GH_TOKEN isn't the team's token in this cloud environment, so GitHub calls would act as the owner. Don't run a sprint; tell the owner the environment needs the team's GH_TOKEN." |
+    tee /dev/stderr
+  ;;
+esac
+
 # Overridable for the harness tests only.
 IMAGE="${THESEUS_BROWSERS_IMAGE:-/opt/pw-browsers}"
 SHIM="${THESEUS_BROWSERS_SHIM:-$HOME/.cache/theseus-browsers}"

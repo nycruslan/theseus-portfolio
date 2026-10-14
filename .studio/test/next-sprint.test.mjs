@@ -46,6 +46,7 @@ function github({
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
     [`${R}/pulls/*/reviews`]: [],
+    user: { login: "theseus-team" },
   });
   return table;
 }
@@ -54,7 +55,12 @@ function preflight(table, env = {}) {
   const log = ghLog();
   const result = runHook("next-sprint.mjs", "", {
     cwd: repo,
-    env: { GH_ROUTES: routes(table), GH_LOG: log.file, ...env },
+    env: {
+      GH_ROUTES: routes(table),
+      GH_LOG: log.file,
+      THESEUS_BOT: "theseus-team",
+      ...env,
+    },
   });
   return {
     ...result,
@@ -179,6 +185,20 @@ test("treats a missing sprint folder on main as no sprints yet", () => {
   assert.equal(code, 0);
   assert.equal(state.highest.main, 0);
   assert.equal(state.next, 1);
+});
+
+test("stops unless GitHub calls act as the team's own account", () => {
+  const owner = github();
+  owner.user = { login: "nycruslan" };
+  for (const [table, env] of [
+    [owner, {}],
+    [github(), { THESEUS_BOT: "" }],
+  ]) {
+    const { code, stderr, state } = preflight(table, env);
+    assert.equal(code, 1);
+    assert.equal(state, null);
+    assert.match(stderr, /not the team's account/);
+  }
 });
 
 test("fails closed when GitHub can't be read", () => {

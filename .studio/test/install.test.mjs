@@ -74,7 +74,7 @@ exit 0
   };
 }
 
-function install({ remote = true, images, fail } = {}) {
+function install({ remote = true, images, fail, token = "ghp_team" } = {}) {
   const project = tempDir();
   const shim = join(tempDir(), "shim");
   const envFile = join(project, "env.sh");
@@ -89,6 +89,7 @@ function install({ remote = true, images, fail } = {}) {
       THESEUS_BROWSERS_IMAGE: images ?? join(tempDir(), "none"),
       THESEUS_BROWSERS_SHIM: shim,
       ...(remote && { CLAUDE_CODE_REMOTE: "true" }),
+      ...(token && { GH_TOKEN: token }),
     },
   });
   // What a later command in the session sees.
@@ -104,6 +105,7 @@ function install({ remote = true, images, fail } = {}) {
     : [];
   return {
     code: result.status,
+    stdout: result.stdout,
     stderr: result.stderr,
     calls: fake.calls(),
     shim,
@@ -169,4 +171,13 @@ test("does nothing outside the cloud", () => {
   const { code, calls } = install({ remote: false, images: image() });
   assert.equal(code, 0);
   assert.deepEqual(calls, []);
+});
+
+test("says STOP where the session reads it when GH_TOKEN isn't the team's", () => {
+  for (const token of ["", "proxy-injected"]) {
+    const { code, stdout } = install({ token });
+    assert.equal(code, 0);
+    assert.match(stdout, /^STOP: GH_TOKEN isn't the team's token/m, token);
+  }
+  assert.doesNotMatch(install().stdout, /STOP/);
 });

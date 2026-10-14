@@ -7,7 +7,7 @@ import { ingest, runHook, tempDir } from "./kit.mjs";
 const ROOT = tempDir();
 
 // A PreToolUse payload for Write, shaped like https://code.claude.com/docs/en/hooks#pretooluse-input.
-function write(path, agent) {
+function write(path, agent, content = "x") {
   return {
     session_id: "abc123",
     cwd: ROOT,
@@ -15,7 +15,7 @@ function write(path, agent) {
     tool_name: "Write",
     tool_input: {
       file_path: path.startsWith("/") ? path : join(ROOT, path),
-      content: "x",
+      content,
     },
     ...(agent && { agent_id: "a1b2c3", agent_type: agent }),
   };
@@ -95,6 +95,32 @@ test("follows a symlink to the file it would really write", () => {
 
 test("leaves writes outside the project to Claude Code's own permissions", () => {
   assert.equal(guard(join(tempDir(), "scratch.md"), "code-reviewer").code, 0);
+});
+
+test("refuses text that would reach GitHub as someone other than the team", () => {
+  for (const text of [
+    "GH_TOKEN=proxy-injected gh api user",
+    "export GITHUB_TOKEN=abc",
+    "unset GH_TOKEN; gh api user",
+    "env -u GH_TOKEN gh api user",
+  ]) {
+    const payload = write(join(tempDir(), "x.sh"), "engineer", text);
+    const { code, stderr } = runHook("guard.mjs", payload, {
+      env: { CLAUDE_PROJECT_DIR: ROOT },
+    });
+    assert.equal(code, 2, text);
+    assert.match(stderr, /team's account/);
+  }
+  assert.equal(
+    runHook(
+      "guard.mjs",
+      write("app/x.ts", "engineer", "const token = process.env.API_KEY;"),
+      {
+        env: { CLAUDE_PROJECT_DIR: ROOT },
+      },
+    ).code,
+    0,
+  );
 });
 
 test("fails closed on a payload it can't read", () => {

@@ -13,6 +13,9 @@
 //   every open one does, or start the next sprint, with its branch name.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
+// First it checks who GitHub thinks is calling. The team works as its own account, named in
+// THESEUS_BOT; a session that reaches GitHub as anyone else (the owner, through the cloud proxy)
+// must not run a sprint, so it stops there.
 
 import { approvedByOwner, carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
@@ -24,6 +27,14 @@ configure({ timeout: 20_000 });
 
 let repo;
 try {
+  const bot = process.env.THESEUS_BOT;
+  const login = api("user").login;
+  if (!bot || login.toLowerCase() !== bot.toLowerCase()) {
+    console.error(
+      `GitHub calls here act as ${login}, not the team's account (THESEUS_BOT=${bot ?? "unset"}). Don't start a sprint: report that the environment needs the team's GH_TOKEN and THESEUS_BOT, and stop.`,
+    );
+    process.exit(1);
+  }
   repo = repoOf(toplevel(process.cwd()));
   if (!repo) throw new Error("this checkout has no GitHub origin remote");
   console.log(JSON.stringify(preflight(repo), null, 2));
