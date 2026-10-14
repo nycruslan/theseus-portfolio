@@ -28,5 +28,4 @@ Review 2 at 9461555: changes 6.8/10 again (DQ 7, Orig 6, Craft 7, Func 8), still
   not only "Company name".
 - Owner questions are still open: the placeholder gate, the 7.0 bar for scoped sprints, and
   decision 5 (statuses can't post).
-- Tooling: in a worktree, import from `@playwright/test` (plain `playwright` isn't hoisted), and
-  launch with executablePath /opt/pw-browsers/chromium-1194/chrome-linux/chrome.
+- Tooling: in a worktree, import from `@playwright/test` (plain `playwright` isn't hoisted).

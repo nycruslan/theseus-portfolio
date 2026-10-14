@@ -2,4 +2,4 @@
 - e2e greps scan comments too: no utility class names (tokens C3), no hex/rgb/oklch outside the token blocks (dark-mode C6), no storage/theme-attribute words or a `dark:` prefix in app/ (dark-mode C5). Write comments in plain words.
 - Proving "light unchanged": `git archive origin/main | tar -x` into the scratchpad, `cp -a node_modules` in, build and `next start` on its own port, then canvas-diff full-page screenshots against the branch build; sprint 2 got 0 differing pixels.
 - `node_modules/.bin/next start` run in the background leaves a `next-server` child after `kill $!`; find it by start time with `ps -eo pid,ppid,lstart,cmd` and kill that pid too (never by name or port).
-- Playwright shim, sandbox facts and guard limits: see .claude/agent-memory/qa-engineer/MEMORY.md.
+- Guard limits: see .claude/agent-memory/qa-engineer/MEMORY.md.
