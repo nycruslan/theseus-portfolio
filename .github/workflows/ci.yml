@@ -12,6 +12,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
+      - run: git config --global init.defaultBranch main
       - uses: actions/checkout@v7
       # Installs pnpm (version from packageManager) and Node, then runs a frozen install.
       - uses: pnpm/setup@v3
@@ -19,6 +21,13 @@ jobs:
           runtime: node@22
           cache: true
           require-lockfile: true
+      # Next.js reuses its build cache between runs: faster builds, and no "No build cache found".
+      - uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.css', '**/*.mjs') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
       # The gate builders run before they finish: lint (biome ci) -> typecheck -> knip -> build,
       # stopping at the first failure. Biome annotates the diff when it runs in Actions.
       - run: pnpm verify

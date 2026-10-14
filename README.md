@@ -38,4 +38,12 @@ pnpm test:e2e       # Playwright + axe against a production build on port 3300
 pnpm test:harness   # the team's hooks
 ```
 
+### Why `NODE_USE_ENV_PROXY` is set
+
+`.claude/settings.json` sets `NODE_USE_ENV_PROXY=1` for every hook and command. Cloud sessions reach
+the internet only through the proxy named in `HTTPS_PROXY`, and Node's built-in `fetch`, which the
+hooks use to post the live broadcast to the Studio, ignores that variable unless this one is set.
+Without it the broadcast silently stops in the cloud. On a laptop with no proxy variables it changes
+nothing. It needs Node 22.21 or 24 and later; older versions ignore it.
+
 Built with Next.js 16, React 19, Tailwind CSS 4 and Claude Code.

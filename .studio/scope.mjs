@@ -26,6 +26,9 @@ const OWNER_PATHS = [
   // Instruction files load wherever they are, and .mcp.json starts servers: the guard keeps both.
   /(^|\/)(CLAUDE|AGENTS)(\.local)?\.md$/iu,
   /^\.mcp\.json$/iu,
+  // Git attributes pick merge drivers and filters for the files under them, so they change what a
+  // merge or checkout writes.
+  /(^|\/)\.gitattributes$/iu,
   /^design\/(rubric\.md$|calibration\/)/iu,
   /^skills-lock\.json$/iu,
   // The toolchain's settings decide what lint, typecheck, knip and the e2e run check, and which

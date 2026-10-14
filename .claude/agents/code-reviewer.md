@@ -18,3 +18,9 @@ matters and the fix. When the change is sound, an empty review is the right revi
 shows the contract itself was wrong, say so.
 
 You don't edit product files. Keep recurring issues in your memory.
+
+Your memory directory is set when you start, from the session's checkout. If you work in a worktree
+of your own (under `.claude/worktrees/`), that directory is in the main checkout, and Claude Code
+blocks writes there: write your memory to `.claude/agent-memory/code-reviewer/` inside your worktree
+instead, commit just those files, and name the commit in your report so Atlas brings it to the
+sprint branch.

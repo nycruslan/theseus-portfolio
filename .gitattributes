@@ -1,0 +1,6 @@
+# Roles append to their memory from separate worktrees, and Atlas cherry-picks those commits onto
+# the sprint branch. Two reviews in one role (a fix round's fresh Lens) both add lines at the end of
+# the same MEMORY.md, which a normal merge stops on as a conflict the lead isn't allowed to resolve.
+# The union driver keeps both sides' lines instead; a corrected line may then appear twice, which
+# the role tidies next time it writes.
+.claude/agent-memory/**/*.md merge=union

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { readdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import { connect } from "node:net";
 import { join } from "node:path";
 import { after, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { gitRepo, ingest, runHook, tempDir } from "./kit.mjs";
+import { gitRepo, ingest, runHook, STUDIO, tempDir } from "./kit.mjs";
 
 const studio = await ingest();
 after(() => studio.close());
@@ -423,4 +425,47 @@ test("masks secrets, stamps time and repository, and leaves no temp files", asyn
   assert.ok(body.at >= before && body.at <= Date.now());
   assert.equal(body.repo, "theseus-portfolio");
   assert.deepEqual(readdirSync(tmp), []);
+});
+
+// Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY is set, and cloud sessions reach the
+// internet only through their proxy, so settings.json sets it for every hook. Older Node versions
+// don't know it, and the test is skipped there.
+test("reaches the Studio through the environment's proxy with settings.json's NODE_USE_ENV_PROXY", {
+  skip:
+    !process.allowedNodeEnvironmentFlags.has("--use-env-proxy") &&
+    "this Node has no environment proxy support",
+}, async () => {
+  const settings = JSON.parse(
+    readFileSync(join(STUDIO, "..", ".claude", "settings.json"), "utf8"),
+  );
+  // A stand-in proxy that tunnels every CONNECT, as Node's proxy client sends even for http, to
+  // the stand-in Studio, and notes where each was headed.
+  const tunnelled = [];
+  const proxy = createServer();
+  proxy.on("connect", (request, client, head) => {
+    tunnelled.push(request.url);
+    const { port } = new URL(studio.url);
+    const upstream = connect(Number(port), "127.0.0.1", () => {
+      client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+      upstream.write(head);
+      upstream.pipe(client);
+      client.pipe(upstream);
+    });
+    upstream.on("error", () => client.destroy());
+  });
+  await new Promise((done) => proxy.listen(0, "127.0.0.1", done));
+  let posts;
+  try {
+    ({ posts } = await emit([{ hook_event_name: "Stop" }], {
+      env: {
+        STUDIO_INGEST_URL: "http://studio.invalid/api/ingest",
+        HTTP_PROXY: `http://127.0.0.1:${proxy.address().port}`,
+        NODE_USE_ENV_PROXY: settings.env.NODE_USE_ENV_PROXY,
+      },
+    }));
+  } finally {
+    proxy.close();
+  }
+  assert.deepEqual(tunnelled, ["studio.invalid:80"]);
+  assert.equal(posts[0].hook_event_name, "Stop");
 });

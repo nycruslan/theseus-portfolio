@@ -34,6 +34,8 @@ test("knows the owner's paths", () => {
     "AGENTS.md",
     "app/CLAUDE.md",
     ".mcp.json",
+    ".gitattributes",
+    "app/.gitattributes",
     "design/rubric.md",
     "design/calibration/home-7.png",
     "skills-lock.json",

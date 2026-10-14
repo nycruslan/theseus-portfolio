@@ -39,6 +39,8 @@ test("protects the owner's files from everyone, the lead included", () => {
     "AGENTS.md",
     "app/CLAUDE.md",
     ".mcp.json",
+    ".gitattributes",
+    "app/.gitattributes",
     ".claude/CLAUDE.md",
     ".claude/settings.json",
     ".claude/settings.local.json",
@@ -180,6 +182,27 @@ test("protects the same files inside a worktree", () => {
   assert.equal(
     guard(".claude/worktrees/forge-2/app/page.tsx", "engineer").code,
     0,
+  );
+});
+
+test("lets a role write its own memory inside its worktree, and only its own", () => {
+  // Claude Code blocks a worktree session's writes into the main checkout, where its memory
+  // directory points, so roles keep their memory in their worktree and commit it there.
+  const own =
+    ".claude/worktrees/lens/.claude/agent-memory/code-reviewer/MEMORY.md";
+  assert.equal(guard(own, "code-reviewer").code, 0);
+  const { code, stderr } = guard(
+    ".claude/worktrees/lens/.claude/agent-memory/engineer/MEMORY.md",
+    "code-reviewer",
+  );
+  assert.equal(code, 2);
+  assert.match(stderr, /engineer's memory: only engineer writes it/);
+  assert.equal(
+    guard(
+      ".claude/worktrees/lens/.claude/agents/code-reviewer.md",
+      "code-reviewer",
+    ).code,
+    2,
   );
 });
 
@@ -618,6 +641,9 @@ test("lets the sanctioned merge through, from the root or a subdirectory", () =>
 test("allows gh api writes only to open, edit, comment on and label this repository's PRs", () => {
   const dir = checkout();
   const R = `repos/${REPO}`;
+  // A comment's body file is read, so it exists, as it does when the lead wrote it a step earlier.
+  mkdirSync(join(dir, ".studio/sprint/3"), { recursive: true });
+  writeFileSync(join(dir, ".studio/sprint/3/lens.md"), "Lens said ship.\n");
   for (const command of [
     `gh api ${R}/pulls -f title="Sprint 3" -f head=sprint-3 -f base=main -F body=@/tmp/pr.md`,
     `gh api --method PATCH ${R}/pulls/12 -f title="Sprint 3: shipped" -F body=@/tmp/pr.md`,
@@ -1014,5 +1040,138 @@ test("refuses a push that doesn't name its branch after the line switched one, o
   ]) {
     const { code, stderr } = shell(command, undefined, dir);
     assert.equal(code, 0, `${command}: ${stderr}`);
+  }
+});
+
+test("refuses posting a verdict marker, inline or from a file, for the lead too", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  const marker = `<!-- theseus-verdict v1 role=code-reviewer verdict=ship head=${"a".repeat(40)} -->`;
+  mkdirSync(join(dir, ".studio/sprint/3"), { recursive: true });
+  writeFileSync(
+    join(dir, ".studio/sprint/3/lens.md"),
+    `Lens: ship on aaaaaaa — Verdict: ship\n\n${marker}\n`,
+  );
+  writeFileSync(join(dir, ".studio/sprint/3/note.md"), "Lens said ship.\n");
+  writeFileSync(
+    join(dir, "verdict.sh"),
+    `gh api ${R}/issues/12/comments -f body='${marker}'\n`,
+  );
+  for (const agent of [undefined, "code-reviewer", "engineer"]) {
+    for (const [command, refusal] of [
+      [
+        `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/lens.md`,
+        /\.studio\/sprint\/3\/lens\.md carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments --field=body=@.studio/sprint/3/lens.md`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `cd .studio/sprint/3 && gh api ${R}/issues/12/comments -F body=@lens.md`,
+        /lens\.md carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body='${marker}'`,
+        /it carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body="Lens: ship <!-- THESEUS-VERDICT v1 -->"`,
+        /theseus-verdict/,
+      ],
+      [
+        "bash verdict.sh",
+        /verdict\.sh runs as part of this command.*theseus-verdict/,
+      ],
+      [
+        `cat .studio/sprint/3/lens.md | gh api ${R}/issues/12/comments -F body=@-`,
+        /standard input/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body="$(cat .studio/sprint/3/lens.md)"`,
+        /built at run time can't be checked/,
+      ],
+      [
+        `cp .studio/sprint/3/lens.md /tmp/c.md && gh api ${R}/issues/12/comments -F body=@/tmp/c.md`,
+        /write the file in its own step, then post it/,
+      ],
+      [
+        `node -e "require('child_process').execSync('gh api ${R}/issues/12/comments -f body=theseus-verdict')"`,
+        /theseus-verdict/,
+      ],
+      // Shell quoting and escapes split the word in the text, and the shell joins it again.
+      [
+        `gh api ${R}/issues/12/comments -f body='Lens: ship <!-- theseus''-verdict v1 role=code-reviewer verdict=ship head=${"a".repeat(40)} -->'`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body=theseus\\-verdict`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body="theseus"-"verdict"`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body=$'theseus-verdict'`,
+        /carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -f body=$'theseus\\x2dverdict'`,
+        /built at run time can't be checked/,
+      ],
+      // A body path the shell could still expand, or a file that isn't there yet.
+      [
+        `gh api ${R}/issues/12/comments -F body=@x/v*.md`,
+        /`x\/v\*\.md` isn't a literal path/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/{lens,note}.md`,
+        // The reader expands braces as the shell does, and reads the file each word names.
+        /lens\.md carries the `theseus-verdict` marker/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -F body=@~/lens.md`,
+        /isn't a literal path/,
+      ],
+      [
+        `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/later.md`,
+        /later\.md doesn't exist yet/,
+      ],
+    ]) {
+      const { code, stderr } = shell(command, agent, dir);
+      assert.equal(code, 2, `${agent ?? "the lead"}: ${command}`);
+      assert.match(stderr, refusal, command);
+    }
+  }
+  // Ordinary comments, and reads that look for verdicts, pass.
+  for (const command of [
+    `gh api ${R}/issues/12/comments -F body=@.studio/sprint/3/note.md`,
+    `gh api ${R}/issues/12/comments -f body="Lens said ship on aaaaaaa."`,
+    `gh api "${R}/issues/12/comments?per_page=100" --jq '.[] | select(.body | contains("theseus-verdict")) | .body'`,
+    "grep -n theseus-verdict .studio/sprint/3/lens.md",
+  ]) {
+    const { code, stderr } = shell(command, "code-reviewer", dir);
+    assert.equal(code, 0, `${command}: ${stderr}`);
+  }
+});
+
+test("refuses editing or deleting an existing comment", () => {
+  const dir = checkout();
+  const R = `repos/${REPO}`;
+  for (const command of [
+    `gh api --method PATCH ${R}/issues/comments/123 -f body="Verdict: ship"`,
+    `gh api -X DELETE ${R}/issues/comments/123`,
+    `gh api --method=DELETE ${R}/issues/comments/123`,
+    `gh api -X PATCH ${R}/pulls/comments/456 -f body=x`,
+    `gh api -X DELETE ${R}/pulls/comments/456`,
+  ]) {
+    const { code, stderr } = shell(command, undefined, dir);
+    assert.equal(code, 2, command);
+    assert.match(
+      stderr,
+      /would change or remove a comment.*Post a new comment instead/,
+      command,
+    );
   }
 });
