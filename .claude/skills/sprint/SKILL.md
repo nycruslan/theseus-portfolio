@@ -28,7 +28,8 @@ If it can't read GitHub, it exits 1: don't start a sprint blind; report it and s
 
 Start from `.studio/STATE.md`, the roles' memory and `ROADMAP.md`. The goal is the argument you were
 given, or Quill's pick. Keep the sprint's artifacts in `.studio/sprint/<n>/`, and hand people paths
-rather than retellings.
+rather than retellings. Screenshots never go in git: save them in your scratchpad (or
+`.studio/screenshots/`, which git ignores), and say in the report or the PR what each one shows.
 
 **Size it first**, and run only the lane it needs. Each role appears when it does real work. When
 you're unsure, take the smaller lane and let review push back.
