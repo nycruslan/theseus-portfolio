@@ -1,2 +1,1 @@
-- C3's grep in e2e/tokens.spec.ts scans CSS comments too, so a comment in app/globals.css that names a retired utility (like the 4xl size class) fails it; see .studio/sprint/1/probe-checks.md.
 - Tailwind v4 auto-detection scans .studio and .claude and ships their class names; `@import "tailwindcss" source(none);` plus `@source "../app"; @source "../components";` cut CSS from 19946 to 10298 bytes, see .studio/sprint/1/review-lens.md finding 1.

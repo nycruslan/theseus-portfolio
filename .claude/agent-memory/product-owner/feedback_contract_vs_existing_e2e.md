@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Sprint 1's `e2e/tokens.spec.ts` C5 greps that `globals.css` has exactly one dark block that sets only the 5 color tokens. A natural sprint 2 move (putting `color-scheme: dark` inside that block) would break it.
+In sprint 2, a check from sprint 1's spec (since folded into `e2e/invariants.spec.ts`) would have broken on a natural move, putting `color-scheme: dark` inside the dark block.
 
 **Why:** Probe can't weaken a test and builders can't edit `e2e/`, so a contract that collides with a live guard stalls the sprint. Conversely a guard that already matches the sprint's intent (here: no toggle, no flash) is free proof.
 
