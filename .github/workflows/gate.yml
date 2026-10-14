@@ -1,42 +1,54 @@
 name: gate
 
-# Fails a PR the owner has to decide (owner paths, package.json scripts, weakened tests, or a
-# needs-owner label now or ever), unless the owner added owner-approved: see .studio/gate.mjs.
+# The required `gate` check: it holds a PR the owner has to decide (owner paths from CODEOWNERS,
+# package.json scripts, weakened tests, or needs-owner now or ever) until the owner approves its
+# head (.studio/gate.mjs). The result is a check run from the team's checks app, the only source
+# the ruleset accepts for `gate`.
 #
-# pull_request_target runs this file, and the checker, as they are on the default branch, so a PR
-# can't edit away the rule that judges it. Never check out, install or run the PR's code here: this
-# event runs with the base repository's token and secrets. The PR is read through the REST API.
+# pull_request_target runs this file and the checker from the default branch, so a PR can't edit
+# the rule that judges it, and the `checks` environment, which holds the app key, only serves the
+# default branch. Never check out, install or run the PR's code here. A review doesn't trigger
+# pull_request_target, so review-relay.yml passes it on through workflow_run, which also runs from
+# the default branch.
 on:
   pull_request_target:
     branches: [main]
-    # `edited` covers a PR retargeted to another base; the label events cover owner-approved and
-    # needs-owner.
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  workflow_run:
+    workflows: [review-relay]
+    types: [completed]
 
 permissions:
   contents: read
-  pull-requests: read
-  issues: read
 
-# One run per PR at a time, and never cancel one in progress: a newer event waits, replacing any
-# run still pending. The newest run always finishes, and it reads the labels live, so the latest
-# `gate` result on a head is always the current answer; an older cancelled run can't strand it.
+# One run per PR at a time, never cancelled in progress: a newer event waits, replacing any run
+# still pending, and each run reads the PR live, so the newest result is always current.
 concurrency:
-  group: gate-${{ github.event.pull_request.number }}
+  group: gate-${{ github.event.pull_request.number || github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:
-  gate:
+  gate-runner:
     runs-on: ubuntu-latest
+    environment: checks
     timeout-minutes: 5
     steps:
-      # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
       - run: git config --global init.defaultBranch main
-      # No ref: on pull_request_target that is the default branch, never the PR's code.
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          sparse-checkout: .studio
+          sparse-checkout: |
+            .studio
+            .github
+      - id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
+          permission-checks: write
+          permission-contents: read
+          permission-issues: read
+          permission-pull-requests: read
       - run: node .studio/gate.mjs
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}

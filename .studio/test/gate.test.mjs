@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { decide } from "../gate.mjs";
+import { decide, ownerApproved } from "../gate.mjs";
 import { ghLog, REPO, routes, runHook, tempDir } from "./kit.mjs";
 
 const R = `repos/${REPO}`;
+const HEAD = "4ead4ead";
 const changed = (filename, extra = {}) => ({
   filename,
   status: "modified",
-  additions: 0,
-  deletions: 0,
   patch: "",
   ...extra,
 });
@@ -19,33 +18,47 @@ const encode = (scripts) => ({
   encoding: "base64",
 });
 const labelled = (name) => ({ event: "labeled", label: { name } });
+const review = (login, state, commit_id = HEAD) => ({
+  user: { login },
+  state,
+  commit_id,
+});
+const pr = (extra = {}) => ({
+  number: 12,
+  state: "open",
+  base: { ref: "main", sha: "ba5e" },
+  head: { sha: HEAD },
+  labels: [],
+  ...extra,
+});
 
-/** Runs the gate as the workflow does, on a pull_request_target event for PR #12. */
-function gate(files, { labels = [], events = [], table = {}, env = {} } = {}) {
-  const dir = tempDir();
-  const event = join(dir, "event.json");
-  const summary = join(dir, "summary.md");
+/** Runs the gate as the workflow does, and returns the check run it posted. */
+function gate(
+  files,
+  { pull = pr(), events = [], reviews = [], table = {}, event, env = {} } = {},
+) {
+  const path = join(tempDir(), "event.json");
   writeFileSync(
-    event,
+    path,
     JSON.stringify({
-      pull_request: {
-        number: 12,
-        base: { sha: "ba5e" },
-        head: { sha: "4ead" },
+      ...(event ?? { pull_request: { number: 12 } }),
+      repository: {
+        full_name: REPO,
+        default_branch: "main",
+        owner: { login: "nycruslan" },
       },
-      repository: { full_name: REPO },
     }),
   );
-  writeFileSync(summary, "");
   const gh = ghLog();
   const result = runHook("gate.mjs", "", {
     env: {
-      GITHUB_EVENT_PATH: event,
-      GITHUB_STEP_SUMMARY: summary,
+      GITHUB_EVENT_PATH: path,
       GH_ROUTES: routes({
+        [`${R}/pulls/12`]: pull,
         [`${R}/pulls/12/files`]: files,
-        [`${R}/issues/12/labels`]: labels.map((name) => ({ name })),
+        [`${R}/pulls/12/reviews`]: reviews,
         [`${R}/issues/12/events`]: events,
+        [`POST ${R}/check-runs`]: { id: 1 },
         ...table,
       }),
       GH_LOG: gh.file,
@@ -53,71 +66,89 @@ function gate(files, { labels = [], events = [], table = {}, env = {} } = {}) {
       ...env,
     },
   });
-  return { ...result, gh: gh.calls(), summary: readFileSync(summary, "utf8") };
+  const posted = gh.calls().find((call) => call.includes(`${R}/check-runs`));
+  return { ...result, check: posted && JSON.parse(posted.at(-1)) };
 }
 
-test("decide: the owner's label releases every hold, and nothing else does", () => {
-  assert.equal(decide({ notes: [], labels: [], everHeld: false }).pass, true);
+test("decide: only the owner's approval of the head releases a hold", () => {
+  assert.equal(
+    decide({ notes: [], everHeld: false, approved: false }).pass,
+    true,
+  );
   const held = decide({
     notes: ["x is the owner's"],
-    labels: [],
     everHeld: true,
+    approved: false,
   });
-  assert.equal(held.pass, false);
-  assert.equal(held.notes.length, 2);
-  assert.match(held.summary, /needs the owner/);
-  const approved = decide({
-    notes: [],
-    labels: ["owner-approved"],
-    everHeld: true,
-  });
-  assert.equal(approved.pass, true);
-  assert.match(approved.summary, /owner approved/);
-});
-
-test("passes a PR that stays on the team's side, reading it through the API alone", () => {
-  const { code, stdout, gh } = gate([changed("app/page.tsx")]);
-  assert.equal(code, 0);
-  assert.match(stdout, /stays on the team's side/);
-  // Only GET calls, and none that fetch the PR's code to run it.
-  for (const call of gh)
-    assert.ok(!call.includes("--method") || call.includes("GET"));
-});
-
-test("fails on owner paths unless the owner approved", () => {
-  const files = [changed(".github/workflows/lens.yml")];
-  const refused = gate(files);
-  assert.equal(refused.code, 1);
-  assert.match(
-    refused.stdout,
-    /::error::\.github\/workflows\/lens\.yml is the owner's/,
+  assert.deepEqual([held.pass, held.notes.length], [false, 2]);
+  assert.equal(
+    decide({ notes: ["x"], everHeld: true, approved: true }).pass,
+    true,
   );
-  assert.match(refused.summary, /needs the owner/);
-  const approved = gate(files, { labels: ["review", "owner-approved"] });
-  assert.equal(approved.code, 0);
-  assert.match(approved.stdout, /::notice::/);
 });
 
-test("holds a PR that ever carried needs-owner, even after the label came off", () => {
-  const files = [changed("app/page.tsx")];
-  const now = gate(files, { labels: ["needs-owner"] });
-  assert.equal(now.code, 1);
-  const before = gate(files, {
+test("the owner's latest deciding review must approve this exact head", () => {
+  const approve = review("nycruslan", "APPROVED");
+  assert.ok(ownerApproved([approve], "nycruslan", HEAD));
+  assert.ok(
+    ownerApproved(
+      [approve, review("nycruslan", "COMMENTED", "old")],
+      "nycruslan",
+      HEAD,
+    ),
+  );
+  assert.ok(
+    !ownerApproved([review("nycruslan", "APPROVED", "old")], "nycruslan", HEAD),
+  );
+  assert.ok(
+    !ownerApproved(
+      [approve, review("nycruslan", "DISMISSED")],
+      "nycruslan",
+      HEAD,
+    ),
+  );
+  assert.ok(
+    !ownerApproved(
+      [approve, review("nycruslan", "CHANGES_REQUESTED")],
+      "nycruslan",
+      HEAD,
+    ),
+  );
+  assert.ok(
+    !ownerApproved([review("theseus-bot", "APPROVED")], "nycruslan", HEAD),
+  );
+});
+
+test("passes a PR that stays on the team's side, with a check run on its live head", () => {
+  const { code, check } = gate([changed("app/page.tsx")]);
+  assert.equal(code, 0);
+  assert.equal(check.name, "gate");
+  assert.equal(check.head_sha, HEAD);
+  assert.equal(check.conclusion, "success");
+});
+
+test("holds owner paths, scripts and needs-owner until the owner approves the head", () => {
+  const owner = [changed(".github/workflows/lens.yml")];
+  assert.equal(gate(owner).check.conclusion, "failure");
+  assert.match(gate(owner).check.output.summary, /lens\.yml is the owner's/);
+  const stale = gate(owner, {
+    reviews: [review("nycruslan", "APPROVED", "older")],
+  });
+  assert.equal(stale.check.conclusion, "failure");
+  const approved = gate(owner, { reviews: [review("nycruslan", "APPROVED")] });
+  assert.equal(approved.check.conclusion, "success");
+  assert.match(approved.check.output.title, /owner approved this head/);
+  const held = gate([changed("app/page.tsx")], {
     events: [labelled("review"), labelled("needs-owner")],
   });
-  assert.equal(before.code, 1);
-  assert.match(before.stdout, /has carried needs-owner/);
-  const released = gate(files, {
-    labels: ["owner-approved"],
-    events: [labelled("needs-owner")],
-  });
-  assert.equal(released.code, 0);
+  assert.equal(held.check.conclusion, "failure");
+  assert.match(held.check.output.summary, /has carried needs-owner/);
 });
 
 test("compares package.json's scripts where the PR branched and at its head", () => {
-  const files = [changed("package.json", { additions: 1, deletions: 1 })];
+  const files = [changed("package.json")];
   const table = {
-    [`${R}/compare/ba5e...4ead`]: { merge_base_commit: { sha: "f0e1" } },
+    [`${R}/compare/ba5e...${HEAD}`]: { merge_base_commit: { sha: "f0e1" } },
     [`${R}/contents/package.json`]: {
       $seq: [
         encode({ verify: "pnpm lint && pnpm build" }),
@@ -125,19 +156,36 @@ test("compares package.json's scripts where the PR branched and at its head", ()
       ],
     },
   };
-  const refused = gate(files, { table });
-  assert.equal(refused.code, 1);
-  assert.match(refused.stdout, /package\.json changes its scripts \(verify\)/);
-  const bump = gate(files, {
-    table: {
-      ...table,
-      [`${R}/contents/package.json`]: encode({ verify: "x" }),
-    },
-  });
-  assert.equal(bump.code, 0);
+  assert.match(
+    gate(files, { table }).check.output.summary,
+    /changes its scripts \(verify\)/,
+  );
+  const bump = {
+    ...table,
+    [`${R}/contents/package.json`]: encode({ verify: "x" }),
+  };
+  assert.equal(gate(files, { table: bump }).check.conclusion, "success");
 });
 
-test("fails closed when GitHub can't be read", () => {
-  const { code } = gate([], { env: { GH_FAIL: "HTTP 502" } });
+test("after the review relay, judges the open PR at the run's head", () => {
+  const relay = { workflow_run: { head_sha: HEAD, pull_requests: [] } };
+  const table = {
+    [`${R}/commits/${HEAD}/pulls`]: [{ number: 12, state: "open" }],
+  };
+  const { check } = gate([changed("app/page.tsx")], { event: relay, table });
+  assert.equal(check.conclusion, "success");
+});
+
+test("leaves a PR into another branch, or a closed one, alone", () => {
+  assert.equal(
+    gate([], { pull: pr({ base: { ref: "sprint/3", sha: "x" } }) }).check,
+    undefined,
+  );
+  assert.equal(gate([], { pull: pr({ state: "closed" }) }).check, undefined);
+});
+
+test("fails without a verdict when GitHub can't be read", () => {
+  const { code, check } = gate([], { env: { GH_FAIL: "HTTP 502" } });
   assert.notEqual(code, 0);
+  assert.equal(check, undefined);
 });

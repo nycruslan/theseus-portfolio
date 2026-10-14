@@ -5,7 +5,7 @@
 // looked at main alone started sprint 1 again while sprint 1's PR was open.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
 //   whether it waits for the owner: as the gate holds it, it carries needs-owner now or ever did,
-//   and the owner hasn't released it with owner-approved.
+//   and the owner hasn't approved its head.
 // - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
 //   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
 //   sprint/<n>-…). next is one past the highest of them.
@@ -14,9 +14,8 @@
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
-import { carriedNeedsOwner } from "./gate.mjs";
+import { approvedByOwner, carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
-import { APPROVAL_LABEL } from "./scope.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
@@ -36,7 +35,7 @@ try {
 }
 
 function preflight(repo) {
-  const base = api(`repos/${repo}`).default_branch ?? "main";
+  const { default_branch: base = "main", owner } = api(`repos/${repo}`);
   // The repository is public, so anyone can open a PR from a fork with a branch named sprint/<n>.
   // Only the team's own PRs count: a branch in this repository, opened by the owner, a member or a
   // collaborator. GitHub treats repository names as case-insensitive, so they're compared that way.
@@ -57,8 +56,13 @@ function preflight(repo) {
         branch: pr.head.ref,
         head: pr.head.sha,
         needsOwner:
-          !labels.includes(APPROVAL_LABEL) &&
-          carriedNeedsOwner({ repo, number: pr.number, labels }),
+          carriedNeedsOwner({ repo, number: pr.number, labels }) &&
+          !approvedByOwner({
+            repo,
+            number: pr.number,
+            owner: owner.login,
+            head: pr.head.sha,
+          }),
         url: pr.html_url,
       };
     });

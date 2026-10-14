@@ -26,20 +26,26 @@ function github({
   folders = [folder("1")],
   branches = [{ name: "main" }],
   events = {},
+  reviews = {},
 } = {}) {
   // The fake gh takes the first route that matches, so each PR's own events come before the rest.
-  const table = Object.fromEntries(
-    Object.entries(events).map(([number, list]) => [
-      `${R}/issues/${number}/events`,
+  const table = Object.fromEntries([
+    ...Object.entries(events).map(([n, list]) => [
+      `${R}/issues/${n}/events`,
       list,
     ]),
-  );
+    ...Object.entries(reviews).map(([n, list]) => [
+      `${R}/pulls/${n}/reviews`,
+      list,
+    ]),
+  ]);
   Object.assign(table, {
-    [R]: { default_branch: "main" },
+    [R]: { default_branch: "main", owner: { login: "nycruslan" } },
     [`${R}/pulls`]: pulls,
     [`${R}/contents/.studio/sprint`]: folders,
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
+    [`${R}/pulls/*/reviews`]: [],
   });
   return table;
 }
@@ -200,11 +206,17 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
   assert.equal(state.action.pr, 9);
 });
 
-test("a PR the owner released with owner-approved is continued", () => {
+test("a PR whose head the owner approved is continued", () => {
+  const approval = {
+    user: { login: "nycruslan" },
+    state: "APPROVED",
+    commit_id: "9".padStart(40, "0"),
+  };
   const { state } = preflight(
     github({
-      pulls: [pr(9, "sprint/1-design-tokens", ["owner-approved"])],
+      pulls: [pr(9, "sprint/1-design-tokens")],
       events: { 9: [{ event: "labeled", label: { name: "needs-owner" } }] },
+      reviews: { 9: [approval] },
     }),
   );
   assert.equal(state.open[0].needsOwner, false);

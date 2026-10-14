@@ -1,6 +1,7 @@
 // PreToolUse guard for the file tools: Edit, Write and NotebookEdit (see .claude/settings.json). It
 // keeps each role to its own files:
-// - owner paths (scope.mjs's isOwnerPath) are no agent's to write, the lead's included;
+// - owner paths (those .github/CODEOWNERS gives an owner) are no agent's to write, the lead's
+//   included;
 // - e2e/ is Probe's (qa-engineer), so builders can't rewrite the checks their work is judged by;
 // - a memory folder under .claude/agent-memory/ belongs to its role alone;
 // - the rest of the project is for the lead (the main session) and the builders. Every role writes
@@ -18,8 +19,9 @@ import {
   relative,
   resolve,
 } from "node:path";
+import { fileURLToPath } from "node:url";
 import { broadcast } from "./post.mjs";
-import { isOwnerPath } from "./scope.mjs";
+import { ownersIn } from "./scope.mjs";
 
 const BUILDERS = new Set(["engineer", "creative-engineer"]);
 const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//iu;
@@ -28,7 +30,9 @@ const QUILL = /^(ROADMAP\.md$|content\/drafts\/)/iu;
 
 let hook;
 let path;
+let isOwnerPath;
 try {
+  isOwnerPath = ownersIn(join(dirname(fileURLToPath(import.meta.url)), ".."));
   hook = JSON.parse(readFileSync(0, "utf8"));
   const project = real(process.env.CLAUDE_PROJECT_DIR ?? hook.cwd);
   const input = hook.tool_input;
