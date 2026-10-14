@@ -1,6 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { profile } from "../content/profile";
+
+// axe, contrast and overflow live in invariants.spec.ts, once per scheme.
 
 test("the home page renders the owner's name as its heading", async ({
   page,
@@ -9,41 +10,6 @@ test("the home page renders the owner's name as its heading", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     profile.name,
   );
-});
-
-for (const colorScheme of ["light", "dark"] as const) {
-  test.describe(`in the ${colorScheme} color scheme`, () => {
-    test.use({ colorScheme });
-
-    test("axe finds no serious or critical violations", async ({ page }) => {
-      await page.goto("/");
-      const { violations } = await new AxeBuilder({ page }).analyze();
-      const blocking = violations
-        .filter((v) => v.impact === "serious" || v.impact === "critical")
-        .map((v) => ({
-          rule: v.id,
-          impact: v.impact,
-          help: v.help,
-          targets: v.nodes.map((node) => node.target.join(" ")),
-        }));
-      expect(blocking).toEqual([]);
-    });
-  });
-}
-
-test.describe("on a 390 px wide phone", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
-
-  test("nothing overflows horizontally", async ({ page }) => {
-    await page.goto("/");
-    const { scrollWidth, clientWidth } = await page.evaluate(async () => {
-      // Web fonts change text widths, so measure after they load.
-      await document.fonts.ready;
-      const root = document.documentElement;
-      return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth };
-    });
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
-  });
 });
 
 test.describe("with reduced motion", () => {
