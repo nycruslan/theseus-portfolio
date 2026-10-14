@@ -183,6 +183,27 @@ test("protects the same files inside a worktree", () => {
   );
 });
 
+test("lets a role write its own memory inside its worktree, and only its own", () => {
+  // Claude Code blocks a worktree session's writes into the main checkout, where its memory
+  // directory points, so roles keep their memory in their worktree and commit it there.
+  const own =
+    ".claude/worktrees/lens/.claude/agent-memory/code-reviewer/MEMORY.md";
+  assert.equal(guard(own, "code-reviewer").code, 0);
+  const { code, stderr } = guard(
+    ".claude/worktrees/lens/.claude/agent-memory/engineer/MEMORY.md",
+    "code-reviewer",
+  );
+  assert.equal(code, 2);
+  assert.match(stderr, /engineer's memory: only engineer writes it/);
+  assert.equal(
+    guard(
+      ".claude/worktrees/lens/.claude/agents/code-reviewer.md",
+      "code-reviewer",
+    ).code,
+    2,
+  );
+});
+
 test("lets the lead and the builders change the product", () => {
   for (const agent of [undefined, "engineer", "creative-engineer"]) {
     assert.equal(guard("app/page.tsx", agent).code, 0);

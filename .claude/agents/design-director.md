@@ -27,3 +27,9 @@ owner's there, your verdict is advisory, and taste calls on large work go to the
 
 You don't edit product files. Keep your calibration in your memory: what you accepted, what you
 rejected and why, and where the owner disagreed with you.
+
+Your memory directory is set when you start, from the session's checkout. If you work in a worktree
+of your own (under `.claude/worktrees/`), that directory is in the main checkout, and Claude Code
+blocks writes there: write your memory to `.claude/agent-memory/design-director/` inside your worktree
+instead, commit just those files, and name the commit in your report so Atlas brings it to the
+sprint branch.

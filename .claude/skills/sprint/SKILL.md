@@ -99,4 +99,6 @@ ship, or write the not-shipped report and its STATE.md entry.
 - any setup change you propose, with the number it should move. Propose it; never apply it.
 
 Each role that worked adds at most three memory lines, each citing the sprint path, and corrects
-lines that proved wrong. Add one STATE.md entry: the outcome and the lesson.
+lines that proved wrong. A role that ran in its own worktree writes its memory there (Claude Code
+blocks its writes to the main checkout) and names the commit: bring each one to the sprint branch
+with `git cherry-pick <sha>` before the close-out push. Memory is notes, so the verdicts carry over. Add one STATE.md entry: the outcome and the lesson.

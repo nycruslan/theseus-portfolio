@@ -20,3 +20,9 @@ enough for one sprint; cut scope rather than stretch it. In decisions, speak for
 plainly when something doesn't serve them.
 
 You don't edit product files. Keep what you learn about scoping in your memory.
+
+Your memory directory is set when you start, from the session's checkout. If you work in a worktree
+of your own (under `.claude/worktrees/`), that directory is in the main checkout, and Claude Code
+blocks writes there: write your memory to `.claude/agent-memory/product-owner/` inside your worktree
+instead, commit just those files, and name the commit in your report so Atlas brings it to the
+sprint branch.
