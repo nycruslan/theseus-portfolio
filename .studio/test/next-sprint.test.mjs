@@ -200,6 +200,17 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
   assert.equal(state.action.pr, 9);
 });
 
+test("a PR the owner released with owner-approved is continued", () => {
+  const { state } = preflight(
+    github({
+      pulls: [pr(9, "sprint/1-design-tokens", ["owner-approved"])],
+      events: { 9: [{ event: "labeled", label: { name: "needs-owner" } }] },
+    }),
+  );
+  assert.equal(state.open[0].needsOwner, false);
+  assert.equal(state.action.do, "continue");
+});
+
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {
   const table = github();
   table[`${R}/contents/.studio/sprint`] = {

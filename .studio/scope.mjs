@@ -1,5 +1,5 @@
-// What a sprint PR may not change without the owner, shared by the merge gate (gate.mjs), the guard
-// (guard.mjs, through isOwnerPath) and the CI scope check (.github/workflows/scope.yml):
+// What a sprint PR may not change without the owner. The `gate` check (gate.mjs) applies it in CI,
+// and the guard (guard.mjs) uses isOwnerPath for file edits:
 // - owner paths: the owner's facts and the files that steer or score the team, the toolchain's
 //   settings included;
 // - package.json's scripts: they decide what `pnpm verify`, CI and the e2e run actually check.
@@ -7,12 +7,8 @@
 // - weakened tests: deleting a test file, moving one out of the suite, removing lines from the
 //   end-to-end checks, or adding lines that skip, focus or retry them. Adding tests is always
 //   fine, and so is turning a skipped or fixme test back on.
-// The team can't edit its own scorer this way. In CI this file runs from the base branch on
-// pull_request_target, so a PR can't change the rule that judges it. It reads the PR through
-// GitHub's REST API and never checks out or runs the PR's code.
+// It reads the PR through GitHub's REST API and never checks out or runs the PR's code.
 
-import { appendFileSync, readFileSync, realpathSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { api, list } from "./github.mjs";
 
 // Paths match without regard to case, as the macOS file system does: `.Claude/settings.json` from a
@@ -161,7 +157,7 @@ function weakening({
 }
 
 /** The PR's changed files from GitHub's REST API, every page, with their patches. */
-export function changedFiles({ number, repo, cwd }) {
+function changedFiles({ number, repo, cwd }) {
   return list(`repos/${repo}/pulls/${number}/files?per_page=100`, { cwd }).map(
     ({ filename, status, additions, deletions, previous_filename, patch }) => ({
       filename,
@@ -178,7 +174,7 @@ export function changedFiles({ number, repo, cwd }) {
  * The package.json scripts a PR adds, removes or changes, compared at the point it branched from
  * and at its head, through the contents API. Empty when package.json didn't change.
  */
-export function changedScripts({ repo, base, head, files, cwd }) {
+function changedScripts({ repo, base, head, files, cwd }) {
   if (!files.some(({ filename }) => filename === "package.json")) return [];
   const { merge_base_commit: fork } = api(
     `repos/${repo}/compare/${base}...${head}`,
@@ -210,33 +206,4 @@ export function checkScope({ repo, number, base, head, cwd }) {
   const files = changedFiles({ number, repo, cwd });
   const scripts = changedScripts({ repo, base, head, files, cwd });
   return { files, notes: scopeNotes(files, scripts) };
-}
-
-// Run by the scope workflow, with the pull_request_target event GitHub saved for the job.
-if (
-  process.argv[1] &&
-  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
-  const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
-  const pr = event.pull_request;
-  const { notes } = checkScope({
-    repo: event.repository.full_name,
-    number: pr.number,
-    base: pr.base.sha,
-    head: pr.head.sha,
-  });
-  const approved = pr.labels.some(({ name }) => name === APPROVAL_LABEL);
-  const verdict = !notes.length
-    ? "Scope: the PR stays on the team's side."
-    : approved
-      ? `Scope: the owner approved these changes with the ${APPROVAL_LABEL} label.`
-      : `Scope: this PR needs the owner. Only the owner adds the ${APPROVAL_LABEL} label.`;
-  const level = notes.length && !approved ? "error" : "notice";
-  for (const note of notes) console.log(`::${level}::${note}`);
-  console.log(verdict);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    const summary = [verdict, ...notes.map((note) => `- ${note}`)].join("\n");
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
-  }
-  process.exit(level === "error" ? 1 : 0);
 }

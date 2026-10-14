@@ -1,0 +1,42 @@
+name: gate
+
+# Fails a PR the owner has to decide (owner paths, package.json scripts, weakened tests, or a
+# needs-owner label now or ever), unless the owner added owner-approved: see .studio/gate.mjs.
+#
+# pull_request_target runs this file, and the checker, as they are on the default branch, so a PR
+# can't edit away the rule that judges it. Never check out, install or run the PR's code here: this
+# event runs with the base repository's token and secrets. The PR is read through the REST API.
+on:
+  pull_request_target:
+    branches: [main]
+    # `edited` covers a PR retargeted to another base; the label events cover owner-approved and
+    # needs-owner.
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+# One run per PR at a time, and never cancel one in progress: a newer event waits, replacing any
+# run still pending. The newest run always finishes, and it reads the labels live, so the latest
+# `gate` result on a head is always the current answer; an older cancelled run can't strand it.
+concurrency:
+  group: gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
+      - run: git config --global init.defaultBranch main
+      # No ref: on pull_request_target that is the default branch, never the PR's code.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .studio
+      - run: node .studio/gate.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

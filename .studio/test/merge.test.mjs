@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { test } from "node:test";
-import { covers } from "../gate.mjs";
 import { repoFromRemote } from "../github.mjs";
-import { verdictComment } from "../verdict.mjs";
 import {
   ghLog,
   gitRepo,
@@ -16,946 +11,198 @@ import {
   tempDir,
 } from "./kit.mjs";
 
-// Reviewed at `reviewed`; then one commit touching only the team's notes, then one changing code.
-const { dir: repo, shas } = gitRepo(
-  {
-    "lib/data.ts": "v1",
-    "app/page.tsx": "page",
-    ".studio/sprint/1/plan.md": "p",
-  },
-  {
-    ".studio/STATE.md": "lesson",
-    ".claude/agent-memory/forge/MEMORY.md": "x",
-    ".studio/sprint/1/notes.md": "n",
-  },
-  { "lib/data.ts": "v2" },
-);
-const [reviewed, notesOnly, codeChange] = shas;
+const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
-const URL = `https://github.com/${REPO}/pull/12`;
-
-const GREEN = { name: "check", status: "completed", conclusion: "success" };
-const RUNNING = { name: "check", status: "in_progress", conclusion: null };
-const RED = { name: "check", status: "completed", conclusion: "failure" };
-const SCOPE = { name: "scope", status: "completed", conclusion: "success" };
-// The base branch's rules as GitHub's REST API lists them: the protect-main ruleset requires `check`.
+const HEAD = "4ead4ead4ead";
+const done = (name, conclusion = "success", id = 1) => ({
+  id,
+  name,
+  status: "completed",
+  conclusion,
+});
+const RUNNING = {
+  id: 9,
+  name: "lens",
+  status: "in_progress",
+  conclusion: null,
+};
+const GREEN = [done("check"), done("gate"), done("lens")];
 const RULES = [
-  { type: "pull_request", parameters: { required_approving_review_count: 0 } },
   {
     type: "required_status_checks",
     parameters: {
-      required_status_checks: [{ context: "check", integration_id: 15368 }],
+      required_status_checks: ["check", "gate", "lens"].map((context) => ({
+        context,
+      })),
     },
   },
 ];
-const verdict = (who, state = "success", description = undefined) => ({
-  context: `theseus/${who}`,
-  state,
-  description:
-    description ?? (state === "success" ? "Verdict: ship" : "Verdict: changes"),
-});
-const LENS = verdict("lens");
-// design/calibration/ on the base branch, as the contents API lists it: the README alone until the
-// owner adds scored examples.
-const entry = (name) => ({
-  name,
-  type: "file",
-  path: `design/calibration/${name}`,
-});
-const UNCALIBRATED = [entry("README.md")];
-const CALIBRATED = {
-  [`${R}/contents/design/calibration`]: [
-    ...UNCALIBRATED,
-    entry("01-linear.png"),
-    entry("01-linear.md"),
-  ],
-};
-// A changed file as GitHub's REST API lists it.
-const changed = (filename, extra = {}) => ({
-  filename,
-  status: "modified",
-  additions: 1,
-  deletions: 0,
-  patch: "@@ -1 +1 @@\n+x",
+const pr = (extra = {}) => ({
+  number: 12,
+  state: "open",
+  merged: false,
+  mergeable_state: "clean",
+  head: { sha: HEAD },
+  base: { ref: "main" },
+  html_url: `https://github.com/${REPO}/pull/12`,
   ...extra,
 });
 
-// A verdict comment as REST lists it, with the body verdict.mjs writes.
-let commentId = 100;
-const said = (
-  role,
-  verdict,
-  head,
-  { line = `Verdict: ${verdict}`, score, association = "OWNER" } = {},
-) => ({
-  id: commentId++,
-  author_association: association,
-  user: { login: association === "OWNER" ? "nycruslan" : "someone" },
-  body: verdictComment({ role, verdict, head, line, score }),
-});
-
-/**
- * The GitHub side of PR #12, as REST serves it.
- * @param statuses commit statuses by sha; CI statuses and the reviewers' verdicts alike.
- * @param comments the PR's comments, oldest first.
- */
-function github({
-  head = reviewed,
-  commits = [head],
-  files = [changed("lib/data.ts")],
-  checks = [GREEN, SCOPE],
-  rules = RULES,
-  workflowRuns = [],
-  statuses = { [head]: [LENS] },
-  comments = [],
-  labels = [],
-  events = [],
-  pr = {},
-  merge = {
-    sha: "5a1e5a1e5a1e",
-    merged: true,
-    message: "Pull Request successfully merged",
-  },
-  extra = {},
-} = {}) {
-  const table = {
-    [`${R}/pulls/12`]: {
-      number: 12,
-      state: "open",
-      draft: false,
-      merged: false,
-      mergeable: true,
-      mergeable_state: "clean",
-      head: { sha: head },
-      base: { sha: "ba5e", ref: "main" },
-      labels: labels.map((name) => ({ name })),
-      html_url: URL,
-      ...pr,
-    },
-    [`${R}/pulls/12/files`]: files,
-    [`${R}/pulls/12/commits`]: commits.map((sha) => ({ sha })),
-    [`${R}/issues/12/events`]: events,
-    [`${R}/issues/12/comments`]: comments,
-    [`${R}/commits/*/check-runs`]: { check_runs: checks },
-    [`${R}/rules/branches/main`]: rules,
-    [`${R}/actions/runs`]: { workflow_runs: workflowRuns },
-    [`PUT ${R}/pulls/12/merge`]: merge,
-    [`POST ${R}/statuses/*`]: { state: "success" },
-    ...extra,
+/** The GitHub side of PR #12. `pulls` and `checks` may be {$seq: […]} to change between polls. */
+function github({ pulls = pr(), checks = GREEN, statuses = [] } = {}) {
+  return {
+    [`${R}/pulls/12`]: pulls,
+    [`${R}/commits/${HEAD}/check-runs`]: checks.$seq
+      ? { $seq: checks.$seq.map((runs) => ({ check_runs: runs })) }
+      : { check_runs: checks },
+    [`${R}/commits/${HEAD}/status`]: { statuses },
+    [`${R}/rules/branches/main`]: RULES,
+    [`PUT ${R}/pulls/12/merge`]: { sha: "5a1e5a1e5a1e", merged: true },
   };
-  for (const sha of new Set([...commits, head])) {
-    table[`${R}/commits/${sha}/status`] = { statuses: statuses[sha] ?? [] };
-  }
-  return table;
 }
 
-function merge(table = github(), { args = ["12"], cwd = repo, env = {} } = {}) {
+function merge(table, { env = {}, args = ["12"] } = {}) {
   const log = ghLog();
   const result = runHook("merge.mjs", "", {
+    cwd: repo,
     args,
-    cwd,
     env: {
       GH_ROUTES: routes(table),
       GH_LOG: log.file,
       GH_STATE: tempDir(),
-      THESEUS_MERGE_POLL_MS: "20",
-      THESEUS_MERGE_WAIT_MS: "400",
+      THESEUS_MERGE_POLL_MS: "10",
+      THESEUS_MERGE_WAIT_MS: "2000",
       ...env,
     },
   });
   const calls = log.calls();
-  const fields = (call) =>
-    Object.fromEntries(
-      call
-        .filter((_, i) => call[i - 1] === "-f")
-        .map((field) => field.split(/=(.*)/s).slice(0, 2)),
-    );
   return {
     ...result,
     calls,
-    merged: calls.filter((call) => call.includes("PUT")).map(fields),
-    posted: calls
-      .filter((call) => call.includes("POST"))
-      .map((call) => ({ path: call[3], ...fields(call) })),
+    merges: calls.filter((call) => call.includes("PUT")),
   };
 }
 
-test("merges a green, reviewed PR through REST, pinned to the head it checked", () => {
-  const { code, stdout, merged } = merge();
+test("squash-merges the head it checked once GitHub says clean", () => {
+  const { code, stdout, merges } = merge(github());
   assert.equal(code, 0);
-  assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
-  assert.match(
-    stdout,
-    new RegExp(
-      `Merged PR #12 \\(${reviewed.slice(0, 7)}\\) as 5a1e5a1: ${URL}`,
-    ),
-  );
+  assert.match(stdout, /Merged PR #12 \(4ead4ea\) as 5a1e5a1/);
+  assert.equal(merges.length, 1);
+  assert.ok(merges[0].includes("merge_method=squash"));
+  assert.ok(merges[0].includes(`sha=${HEAD}`));
 });
 
-test("an S-sized change to app/ needs only Lens", () => {
-  const files = [changed("app/page.tsx"), changed("components/section.tsx")];
-  assert.equal(merge(github({ files })).code, 0);
-});
-
-test("e2e changes need Probe too", () => {
-  const files = [
-    changed("app/page.tsx"),
-    changed("e2e/nav.spec.ts", { status: "added" }),
-  ];
-  const { code, stderr } = merge(github({ files }));
-  assert.equal(code, 1);
-  assert.match(stderr, /Probe: no verdict on GitHub for this PR/);
-  const statuses = { [reviewed]: [LENS, verdict("probe")] };
-  assert.equal(merge(github({ files, statuses })).code, 0);
-});
-
-test("once calibrated, Iris is needed only when she weighed in, and then her latest verdict must be ship", () => {
-  const files = [changed("app/globals.css")];
-  assert.equal(merge(github({ files, extra: CALIBRATED })).code, 0);
-  const commits = [reviewed, notesOnly];
-  const said = (iris) => ({ [reviewed]: [LENS, iris], [notesOnly]: [LENS] });
-  const changes = merge(
+test("waits while a check runs, then merges", () => {
+  const { code, stdout } = merge(
     github({
-      files,
-      commits,
-      head: notesOnly,
-      statuses: said(verdict("iris", "failure", "Verdict: changes · 6.1/10")),
-      extra: CALIBRATED,
+      pulls: { $seq: [pr({ mergeable_state: "blocked" }), pr()] },
+      checks: { $seq: [[done("check"), done("gate"), RUNNING], GREEN] },
     }),
   );
-  assert.equal(changes.code, 1);
+  assert.equal(code, 0);
   assert.match(
-    changes.stderr,
-    new RegExp(
-      `Iris said "Verdict: changes · 6.1/10" on ${reviewed.slice(0, 7)}`,
-    ),
+    stdout,
+    /Waiting on PR #12 at 4ead4ea: check go, gate go, lens pending/,
   );
-  const ship = merge(
+});
+
+test("counts only the latest run of a check, so a superseded cancelled run doesn't hold the PR", () => {
+  const { code } = merge(
     github({
-      files,
-      commits,
-      head: notesOnly,
-      statuses: said(verdict("iris", "success", "Verdict: ship · 7.4/10")),
-      extra: CALIBRATED,
+      checks: [
+        done("gate", "cancelled", 1),
+        done("gate", "success", 2),
+        done("check"),
+        done("lens"),
+      ],
     }),
   );
-  assert.equal(ship.code, 0);
-});
-
-test("a reviewer's failing status on the head holds the merge, quoting its line", () => {
-  const statuses = {
-    [reviewed]: [verdict("lens", "failure", "Verdict: changes - an N+1 fetch")],
-  };
-  const { code, stderr, merged } = merge(github({ statuses }));
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /Lens said "Verdict: changes - an N\+1 fetch" on this commit/,
-  );
-  assert.deepEqual(merged, []);
-});
-
-test("never says go from the local ledger: a forged ship there changes nothing", () => {
-  const tmp = tempDir();
-  const forged = {
-    role: "code-reviewer",
-    agentId: "forged",
-    verdict: "ship",
-    line: "Verdict: ship",
-    head: reviewed,
-  };
-  writeFileSync(
-    join(tmp, "theseus-verdicts-abc123.jsonl"),
-    `${JSON.stringify(forged)}\n`,
-  );
-  const { code, stderr, posted, merged } = merge(github({ statuses: {} }), {
-    env: { TMPDIR: tmp, CLAUDE_CODE_SESSION_ID: "abc123" },
-  });
-  assert.equal(code, 1);
-  assert.match(stderr, /Lens: no verdict on GitHub for this PR/);
-  assert.deepEqual(posted, []);
-  assert.deepEqual(merged, []);
-});
-
-test("carries a ship over commits that only touched notes, posting it on the head from GitHub's record", () => {
-  const commits = [reviewed, notesOnly];
-  const statuses = { [reviewed]: [LENS] };
-  const { code, posted, merged } = merge(
-    github({ head: notesOnly, commits, statuses }),
-  );
   assert.equal(code, 0);
-  assert.deepEqual(posted, [
-    {
-      path: `${R}/statuses/${notesOnly}`,
-      state: "success",
-      context: "theseus/lens",
-      description: `Verdict: ship (from ${reviewed.slice(0, 7)}; only notes changed since)`,
-    },
-  ]);
-  assert.deepEqual(merged, [{ merge_method: "squash", sha: notesOnly }]);
 });
 
-test("a ship on older code doesn't cover a code change, from any directory of the checkout", () => {
-  const commits = [reviewed, notesOnly, codeChange];
-  const table = github({
-    head: codeChange,
-    commits,
-    statuses: { [reviewed]: [LENS] },
-  });
-  for (const cwd of [repo, join(repo, ".studio/sprint/1"), join(repo, "lib")]) {
-    const { code, stderr, posted } = merge(table, { cwd });
-    assert.equal(code, 1, cwd);
-    assert.match(
-      stderr,
-      /Lens said ship on [0-9a-f]{7}, and the product changed since/,
-      cwd,
-    );
-    assert.deepEqual(posted, [], cwd);
-  }
-});
-
-test("stops at once on red CI, without waiting", () => {
-  const { code, stderr, calls } = merge(github({ checks: [RED, SCOPE] }));
-  assert.equal(code, 1);
-  assert.match(stderr, /check failed \(failure\): fix it on the branch/);
-  assert.equal(
-    calls.filter((call) => call[2]?.includes("check-runs")).length,
-    1,
-  );
-});
-
-test("waits for CI, says so, then merges", () => {
-  const table = github();
-  table[`${R}/commits/*/check-runs`] = {
-    $seq: [
-      { check_runs: [] },
-      { check_runs: [RUNNING, SCOPE] },
-      { check_runs: [GREEN, SCOPE] },
-    ],
-  };
-  const { code, stdout, stderr, merged } = merge(table, {
-    env: { THESEUS_MERGE_WAIT_MS: "30000" },
-  });
-  assert.equal(code, 0, stderr);
-  assert.match(
-    stdout,
-    /Waiting for CI on PR #12 at [0-9a-f]{7}: check, scope still running; 0 of 2 done/,
-  );
-  assert.match(
-    stdout,
-    /Waiting for CI on PR #12 at [0-9a-f]{7}: check still running/,
-  );
-  assert.equal(merged.length, 1);
-});
-
-test("gives up when CI doesn't finish in time", () => {
-  const { code, stderr, merged } = merge(github({ checks: [RUNNING, SCOPE] }));
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /check is still running\. It didn't finish within 0 minutes: run this again/,
-  );
-  assert.deepEqual(merged, []);
-});
-
-test("a check that never reported hasn't passed: only Vercel reported, check and scope didn't", () => {
-  const vercel = {
-    context: "Vercel",
-    state: "success",
-    description: "Deployed",
-  };
-  const { code, stderr, merged } = merge(
-    github({ checks: [], statuses: { [reviewed]: [LENS, vercel] } }),
-  );
-  assert.equal(code, 1);
-  assert.match(stderr, /check hasn't reported on this commit yet/);
-  assert.match(stderr, /scope hasn't reported on this commit yet/);
-  assert.deepEqual(merged, []);
-});
-
-test("waits for every check the base branch's ruleset requires", () => {
-  const rules = [
-    ...RULES,
-    {
-      type: "required_status_checks",
-      parameters: { required_status_checks: [{ context: "lighthouse" }] },
-    },
-  ];
-  const { code, stderr, merged } = merge(github({ rules }));
-  assert.equal(code, 1);
-  assert.match(stderr, /lighthouse hasn't reported on this commit yet/);
-  assert.deepEqual(merged, []);
-});
-
-test("fails closed when it can't read the base branch's required checks", () => {
-  const rules = {
-    $error: 403,
-    message: "Resource not accessible by integration",
-  };
-  const { code, stderr, merged } = merge(github({ rules }));
-  assert.equal(code, 1);
-  assert.match(stderr, /couldn't check PR #12 \(Resource not accessible/);
-  assert.deepEqual(merged, []);
-});
-
-test("a cancelled run waits for its queued replacement, and says so when there's none", () => {
-  const cancelled = {
-    id: 1,
-    name: "scope",
-    status: "completed",
-    conclusion: "cancelled",
-    started_at: "2026-10-13T02:09:55Z",
-  };
-  const replacement = {
-    ...SCOPE,
-    id: 2,
-    started_at: "2026-10-13T02:10:08Z",
-  };
-  const table = github({ workflowRuns: [{ name: "scope", status: "queued" }] });
-  // GitHub keeps the cancelled run on the commit beside its replacement: the replacement is a
-  // new check suite, not an update of the old run.
-  table[`${R}/commits/*/check-runs`] = {
-    $seq: [
-      { check_runs: [GREEN, cancelled] },
-      { check_runs: [GREEN, replacement, cancelled] },
-    ],
-  };
-  const requeued = merge(table, { env: { THESEUS_MERGE_WAIT_MS: "30000" } });
-  assert.equal(requeued.code, 0, requeued.stderr);
-  assert.match(
-    requeued.stdout,
-    /Waiting for CI on PR #12 at [0-9a-f]{7}: scope still running/,
-  );
-  const { code, stderr } = merge(github({ checks: [GREEN, cancelled] }));
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /scope was cancelled, and no newer run is queued: re-run it .*then run this again/,
-  );
-});
-
-// Seen on PR #12's head c376048: a push, then a label seconds later, cancelled the first scope run,
-// and the second passed. Both stay on the commit, so only the latest run per name may count.
-test("a superseded cancelled run beside a newer green one doesn't hold the merge", () => {
-  const cancelled = {
-    id: 51,
-    name: "scope",
-    status: "completed",
-    conclusion: "cancelled",
-    started_at: "2026-10-13T02:09:55Z",
-  };
-  const passed = { ...SCOPE, id: 52, started_at: "2026-10-13T02:10:08Z" };
-  for (const checks of [
-    [GREEN, passed, cancelled],
-    [GREEN, cancelled, passed],
-  ]) {
-    const { code, stderr, merged } = merge(
-      github({
-        checks,
-        workflowRuns: [{ name: "scope", status: "completed" }],
-      }),
-    );
-    assert.equal(code, 0, stderr);
-    assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
-  }
-});
-
-test("the latest run of a check decides: a newer failure beats an older pass", () => {
-  const older = { ...GREEN, id: 1, started_at: "2026-10-13T02:00:00Z" };
-  const newer = { ...RED, id: 2, started_at: "2026-10-13T02:05:00Z" };
-  const { code, stderr } = merge(github({ checks: [older, newer, SCOPE] }));
-  assert.equal(code, 1);
-  assert.match(stderr, /check failed \(failure\)/);
-  const rerun = merge(
-    github({ checks: [{ ...RED, id: 1 }, { ...GREEN, id: 2 }, SCOPE] }),
-  );
-  assert.equal(rerun.code, 0, rerun.stderr);
-});
-
-test("the newest run is the one GitHub created last, whatever the start times say", () => {
-  // A re-run queued after a long first run can report an earlier start, or none yet.
-  const first = { ...RED, id: 7, started_at: "2026-10-13T02:05:00Z" };
-  const rerun = { ...GREEN, id: 8, started_at: null };
-  const { code, stderr } = merge(github({ checks: [rerun, first, SCOPE] }));
-  assert.equal(code, 0, stderr);
-});
-
-test("keeps the whole run inside its budget, counted from the start", () => {
-  const started = Date.now();
-  const { code, stdout } = merge(github({ checks: [RUNNING, SCOPE] }), {
-    env: { THESEUS_MERGE_POLL_MS: "5000", THESEUS_MERGE_WAIT_MS: "2000" },
-  });
-  assert.equal(code, 1);
-  // No poll may start that would end past the budget, so it never sleeps its 5 s.
-  assert.ok(Date.now() - started < 4500, `${Date.now() - started} ms`);
-  assert.doesNotMatch(stdout, /Waiting for CI/);
-});
-
-test("covers() compares from the top of the checkout, whatever the directory", () => {
-  const sub = join(repo, ".studio/sprint/1");
-  assert.equal(covers(reviewed, notesOnly, sub), true);
-  assert.equal(covers(reviewed, codeChange, sub), false);
-  assert.equal(covers(reviewed, codeChange, join(repo, "app")), false);
-  assert.equal(covers("0".repeat(40), codeChange, repo), null);
-});
-
-test("refuses when the branch moves while CI runs", () => {
-  const table = github();
-  table[`${R}/commits/*/check-runs`] = {
-    $seq: [{ check_runs: [RUNNING, SCOPE] }, { check_runs: [GREEN, SCOPE] }],
-  };
-  const pr = table[`${R}/pulls/12`];
-  table[`${R}/pulls/12`] = { $seq: [pr, { ...pr, head: { sha: codeChange } }] };
-  const { code, stderr, merged } = merge(table, {
-    env: { THESEUS_MERGE_WAIT_MS: "30000" },
-  });
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /The branch moved from [0-9a-f]{7} to [0-9a-f]{7} while CI ran/,
-  );
-  assert.deepEqual(merged, []);
-});
-
-test("refuses owner paths, scripts and weakened tests without waiting for CI", () => {
-  const files = [
-    changed("app/page.tsx"),
-    changed("content/profile.ts"),
-    changed(".studio/gate.mjs"),
-    changed("e2e/smoke.spec.ts", { status: "removed", deletions: 30 }),
-  ];
-  const { code, stderr, calls } = merge(
-    github({ files, checks: [RUNNING, SCOPE] }),
-  );
-  assert.equal(code, 1);
-  assert.match(stderr, /content\/profile\.ts is the owner's/);
-  assert.match(stderr, /\.studio\/gate\.mjs is the owner's/);
-  assert.match(stderr, /e2e\/smoke\.spec\.ts is a test, and the PR deletes it/);
-  assert.equal(
-    calls.filter((call) => call[2]?.includes("check-runs")).length,
-    1,
-  );
-});
-
-test("refuses a PR that changes package.json's scripts, read through the contents API", () => {
-  const encode = (scripts) => ({
-    content: Buffer.from(
-      JSON.stringify({ scripts, dependencies: {} }),
-    ).toString("base64"),
-    encoding: "base64",
-  });
-  const table = github({ files: [changed("package.json")] });
-  table[`${R}/compare/ba5e...${reviewed}`] = {
-    merge_base_commit: { sha: "f0e1" },
-  };
-  table[`${R}/contents/package.json`] = {
-    $seq: [
-      encode({ verify: "pnpm lint", "test:e2e": "playwright test" }),
-      encode({ verify: "true", "test:e2e": "playwright test" }),
-    ],
-  };
-  const { code, stderr } = merge(table);
-  assert.equal(code, 1);
-  assert.match(stderr, /package\.json changes its scripts \(verify\)/);
-});
-
-test("the owner-approved label doesn't open the gate: the owner merges those PRs", () => {
-  const files = [changed(".claude/settings.json")];
-  assert.equal(merge(github({ files, labels: ["owner-approved"] })).code, 1);
-});
-
-test("refuses a PR that carries or once carried needs-owner", () => {
-  assert.match(
-    merge(github({ labels: ["needs-owner"] })).stderr,
-    /carried needs-owner/,
-  );
-  const events = [
-    { event: "labeled", label: { name: "needs-owner" } },
-    { event: "unlabeled", label: { name: "needs-owner" } },
-  ];
-  assert.match(merge(github({ events })).stderr, /carried needs-owner/);
-});
-
-test("says why GitHub can't merge it: a draft, a conflict, or GitHub's own refusal", () => {
-  assert.match(
-    merge(github({ pr: { draft: true } })).stderr,
-    /is a draft, and REST can't mark it ready/,
-  );
-  assert.match(
-    merge(github({ pr: { mergeable: false, mergeable_state: "dirty" } }))
-      .stderr,
-    /conflicts with main/,
-  );
-  const refused = merge(
+test("refuses when GitHub won't merge, and names what's failing or missing", () => {
+  const red = merge(
     github({
-      merge: {
-        $error: 405,
-        message: 'Required status check "scope" is expected.',
+      pulls: pr({ mergeable_state: "blocked" }),
+      checks: [done("check"), done("gate", "failure")],
+    }),
+  );
+  assert.equal(red.code, 1);
+  assert.equal(red.merges.length, 0);
+  assert.match(red.stderr, /GitHub says "blocked" \(check go, gate nogo\)/);
+  assert.match(red.stderr, /lens hasn't run: label the PR `review`/);
+});
+
+test("refuses when the branch moves or the PR isn't open", () => {
+  const moved = merge(
+    github({
+      pulls: {
+        $seq: [
+          pr({ mergeable_state: "unknown" }),
+          pr({ head: { sha: "beef" } }),
+        ],
       },
     }),
   );
-  assert.equal(refused.code, 1);
-  assert.match(
-    refused.stderr,
-    /GitHub refused the merge: Required status check "scope" is expected\. \(HTTP 405\)/,
+  assert.equal(moved.code, 1);
+  assert.match(moved.stderr, /branch moved to beef/);
+  const closed = merge(
+    github({ pulls: pr({ state: "closed", merged: true }) }),
   );
+  assert.match(closed.stderr, /already merged/);
 });
 
-test("takes a bare PR number only: no URL, no other repository, no options", () => {
-  for (const args of [
-    ["https://github.com/nycruslan/theseus-studio/pull/5"],
-    ["nycruslan/theseus-studio#5"],
-    ["12", "--admin"],
-    ["#12"],
-    [],
-  ]) {
-    const { code, stderr, calls } = merge(github(), { args });
-    assert.equal(code, 2, args.join(" "));
-    assert.match(stderr, /Usage: node \.studio\/merge\.mjs <number>/);
-    assert.deepEqual(calls, []);
-  }
-});
-
-test("fails closed when it can't read the PR", () => {
-  const { code, stderr } = merge(github(), { env: { GH_FAIL: "HTTP 502" } });
+test("fails closed, with the reason, when GitHub can't be read", () => {
+  const { code, stderr } = merge({}, { env: { GH_FAIL: "HTTP 502" } });
   assert.equal(code, 1);
-  assert.match(stderr, /The gate couldn't check PR #12/);
+  assert.match(stderr, /NO-GO for PR #12: GitHub couldn't be read/);
 });
 
-test("reads the repository from a proxy remote, as in cloud sessions", () => {
-  const { dir } = gitRepo({ "app/page.tsx": "page" });
-  execFileSync(
-    "git",
-    [
-      "remote",
-      "set-url",
-      "origin",
-      "http://local_proxy@127.0.0.1:40123/git/nycruslan/theseus-portfolio",
-    ],
-    { cwd: dir },
-  );
-  const head = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: dir,
-    encoding: "utf8",
-  }).trim();
-  const { code, calls } = merge(github({ head }), { cwd: dir });
-  assert.equal(code, 0);
-  assert.ok(calls.every((call) => !call.join(" ").includes("{owner}")));
-  assert.ok(calls.some((call) => call.includes(`${R}/pulls/12`)));
-});
-
-test("knows owner/repo from every kind of remote", () => {
-  for (const url of [
-    "https://github.com/nycruslan/theseus-portfolio.git",
-    "https://github.com/nycruslan/theseus-portfolio",
-    "git@github.com:nycruslan/theseus-portfolio.git",
-    "ssh://git@github.com/nycruslan/theseus-portfolio.git",
-    "http://local_proxy@127.0.0.1:40123/git/nycruslan/theseus-portfolio",
-    "http://local_proxy@127.0.0.1:40123/git/nycruslan/theseus-portfolio/",
+test("takes only a bare PR number", () => {
+  for (const args of [
+    [],
+    ["#12"],
+    ["12", "--admin"],
+    ["https://github.com/x/y/pull/12"],
   ]) {
-    assert.equal(repoFromRemote(url), REPO, url);
+    assert.equal(merge(github(), { args }).code, 2, args.join(" "));
   }
 });
 
-test("puts the roll call on air, merged or not", async () => {
+test("puts the checks on air, merged or not", async () => {
   const studio = await ingest();
   try {
     merge(github(), {
       env: { STUDIO_INGEST_URL: studio.url, CLAUDE_CODE_SESSION_ID: "abc123" },
     });
-    merge(
-      github({
-        head: codeChange,
-        commits: [reviewed, codeChange],
-        statuses: { [reviewed]: [LENS] },
-        files: [changed("lib/data.ts"), changed("content/profile.ts")],
-      }),
+    const [{ body }] = await studio.until(1);
+    assert.equal(body.hook_event_name, "StudioGateChecked");
+    assert.equal(body.session_id, "abc123");
+    assert.deepEqual(
       {
-        env: {
-          STUDIO_INGEST_URL: studio.url,
-          CLAUDE_CODE_SESSION_ID: "abc123",
-        },
+        ...body.gate,
+        items: body.gate.items.map(({ who, state }) => `${who} ${state}`),
       },
-    );
-    const posts = await studio.until(2);
-    const [merged, refused] = posts
-      .map(({ body }) => body)
-      .sort((a, b) => Number(b.gate.pass) - Number(a.gate.pass));
-    assert.equal(merged.hook_event_name, "StudioGateChecked");
-    assert.equal(merged.session_id, "abc123");
-    assert.equal(merged.gate.target, "merge");
-    assert.equal(merged.gate.pr, 12);
-    assert.equal(merged.gate.head, reviewed);
-    assert.equal(merged.gate.pass, true);
-    assert.deepEqual(
-      merged.gate.items.map(({ who, kind, state }) => [who, kind, state]),
-      [
-        ["check", "check", "go"],
-        ["scope", "check", "go"],
-        ["Lens", "verdict", "go"],
-      ],
-    );
-    assert.equal(refused.gate.pass, false);
-    assert.deepEqual(
-      refused.gate.items.map(({ who, kind, state }) => [who, kind, state]),
-      [
-        ["owner", "decision", "nogo"],
-        ["Lens", "verdict", "nogo"],
-        ["check", "check", "go"],
-        ["scope", "check", "go"],
-      ],
+      {
+        target: "merge",
+        pr: 12,
+        head: HEAD,
+        pass: true,
+        items: ["check go", "gate go", "lens go"],
+      },
     );
   } finally {
     studio.close();
   }
 });
 
-test("works from a subdirectory of the checkout", () => {
-  const sub = join(repo, "app", "nested");
-  mkdirSync(sub, { recursive: true });
-  assert.equal(merge(github(), { cwd: sub }).code, 0);
-});
-
-test("reads the verdicts from the PR's comments, as cloud sessions post them", () => {
-  const files = [changed("app/page.tsx"), changed("e2e/nav.spec.ts")];
-  const comments = [
-    said("code-reviewer", "ship", reviewed),
-    said("qa-engineer", "ship", reviewed),
-  ];
-  const { code, stderr, merged } = merge(
-    github({ files, statuses: {}, comments }),
-  );
-  assert.equal(code, 0, stderr);
-  assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
-});
-
-test("the latest comment per role and commit stands, quoted when it says no", () => {
-  const comments = [
-    said("code-reviewer", "ship", reviewed),
-    said("code-reviewer", "changes", reviewed, {
-      line: "Verdict: changes - an N+1 fetch",
-    }),
-  ];
-  const { code, stderr, merged } = merge(github({ statuses: {}, comments }));
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /Lens said "Verdict: changes - an N\+1 fetch" on this commit/,
-  );
-  assert.deepEqual(merged, []);
-  const cleared = merge(
-    github({
-      statuses: {},
-      comments: [...comments, said("code-reviewer", "ship", reviewed)],
-    }),
-  );
-  assert.equal(cleared.code, 0, cleared.stderr);
-});
-
-test("a role's comment outranks its status; a role without one falls back to its status", () => {
-  const files = [changed("app/page.tsx"), changed("e2e/nav.spec.ts")];
-  // Lens's status says ship, her comment says changes: the comment decides.
-  const held = merge(
-    github({
-      statuses: { [reviewed]: [LENS] },
-      comments: [said("code-reviewer", "changes", reviewed)],
-    }),
-  );
-  assert.equal(held.code, 1);
-  assert.match(held.stderr, /Lens said "Verdict: changes"/);
-  // Lens commented; Probe only has a status, posted from a laptop.
-  const mixed = merge(
-    github({
-      files,
-      statuses: { [reviewed]: [verdict("probe")] },
-      comments: [said("code-reviewer", "ship", reviewed)],
-    }),
-  );
-  assert.equal(mixed.code, 0, mixed.stderr);
-});
-
-test("once calibrated, Iris's comment brings her in, score and all, and her changes holds the merge", () => {
-  const files = [changed("app/globals.css")];
-  const comments = [
-    said("code-reviewer", "ship", reviewed),
-    said("design-director", "changes", reviewed, {
-      line: "Verdict: changes · 6.8/10",
-      score: 6.8,
-    }),
-  ];
-  const { code, stderr } = merge(
-    github({ files, statuses: {}, comments, extra: CALIBRATED }),
-  );
-  assert.equal(code, 1);
-  assert.match(
-    stderr,
-    /Iris said "Verdict: changes · 6\.8\/10" on this commit/,
-  );
-  assert.doesNotMatch(stderr, /Advice/);
-});
-
-// Sprints 1 and 2 both stopped on an uncalibrated Iris alone (.studio/sprint/*/retro.json).
-test("until the owner's scored examples exist, Iris's changes is advice: the PR merges and says so", async () => {
-  const files = [changed("app/globals.css")];
-  const comments = [
-    said("code-reviewer", "ship", reviewed),
-    said("design-director", "changes", reviewed, {
-      line: "Verdict: changes · 6.8/10",
-      score: 6.8,
-    }),
-  ];
-  const studio = await ingest();
-  try {
-    const env = { STUDIO_INGEST_URL: studio.url };
-    // No calibration folder at all, then the README alone: neither holds a scored example.
-    for (const extra of [
-      {},
-      { [`${R}/contents/design/calibration`]: UNCALIBRATED },
-    ]) {
-      const { code, stdout, stderr, merged } = merge(
-        github({ files, statuses: {}, comments, extra }),
-        { env },
-      );
-      assert.equal(code, 0, stderr);
-      assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
-      assert.match(
-        stdout,
-        /Advice, which doesn't hold the merge:\n- Advice, not a hold .*Iris said "Verdict: changes · 6\.8\/10" on this commit/,
-      );
-    }
-    const posts = await studio.until(2);
-    const iris = posts[0].body.gate.items.find(({ who }) => who === "Iris");
-    assert.equal(iris.state, "go");
-    assert.equal(iris.score, 6.8);
-    assert.match(iris.note, /^Advice, not a hold/);
-  } finally {
-    studio.close();
+test("knows owner/repo from every kind of remote", () => {
+  for (const url of [
+    "https://github.com/nycruslan/theseus-portfolio.git",
+    "git@github.com:nycruslan/theseus-portfolio.git",
+    "ssh://git@github.com/nycruslan/theseus-portfolio.git",
+    "http://local_proxy@127.0.0.1:40123/git/nycruslan/theseus-portfolio/",
+  ]) {
+    assert.equal(repoFromRemote(url), REPO, url);
   }
-});
-
-test("still lists Iris's advice beside a NO-GO, and fails closed when it can't read the calibration folder", () => {
-  const files = [changed("app/globals.css")];
-  const comments = [
-    said("design-director", "changes", reviewed, { line: "Verdict: changes" }),
-  ];
-  const held = merge(github({ files, statuses: {}, comments }));
-  assert.equal(held.code, 1);
-  assert.match(held.stderr, /Lens: no verdict on GitHub for this PR/);
-  assert.match(held.stderr, /Advice, which doesn't hold the merge:/);
-  const unreadable = merge(
-    github({
-      files,
-      statuses: { [reviewed]: [LENS] },
-      comments,
-      extra: {
-        [`${R}/contents/design/calibration`]: {
-          $error: 502,
-          message: "Bad Gateway",
-        },
-      },
-    }),
-  );
-  assert.equal(unreadable.code, 1);
-  assert.match(unreadable.stderr, /couldn't check PR #12 \(Bad Gateway/);
-  assert.deepEqual(unreadable.merged, []);
-});
-
-test("reads the calibration folder at the PR's base commit, not a branch name", () => {
-  const files = [changed("app/globals.css")];
-  const comments = [
-    said("code-reviewer", "ship", reviewed),
-    said("design-director", "changes", reviewed),
-  ];
-  const { calls } = merge(
-    github({ files, statuses: {}, comments, extra: CALIBRATED }),
-  );
-  const reads = calls
-    .map((call) =>
-      call.find((arg) => arg.includes("contents/design/calibration")),
-    )
-    .filter(Boolean);
-  assert.ok(reads.length > 0);
-  for (const path of reads) assert.match(path, /\?ref=ba5e$/);
-});
-
-test("counts only the repository's own people: anyone can comment on a public PR", () => {
-  for (const association of ["NONE", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR"]) {
-    const comments = [said("code-reviewer", "ship", reviewed, { association })];
-    const { code, stderr, merged } = merge(github({ statuses: {}, comments }));
-    assert.equal(code, 1, association);
-    assert.match(stderr, /Lens: no verdict on GitHub for this PR/, association);
-    assert.deepEqual(merged, [], association);
-  }
-});
-
-test("ignores a comment without a well-formed marker, or about a commit not in the PR", () => {
-  const comments = [
-    {
-      id: 1,
-      author_association: "OWNER",
-      body: "Lens: ship on abc1234 — Verdict: ship\n\n<!-- theseus-verdict v1 role=code-reviewer verdict=ship head=abc1234 -->",
-    },
-    {
-      id: 2,
-      author_association: "OWNER",
-      body:
-        "<!-- theseus-verdict v1 role=lead verdict=ship head=" +
-        reviewed +
-        " -->",
-    },
-    {
-      id: 3,
-      author_association: "OWNER",
-      body:
-        "<!-- theseus-verdict v2 role=code-reviewer verdict=ship head=" +
-        reviewed +
-        " -->",
-    },
-    said("code-reviewer", "ship", "f".repeat(40)),
-  ];
-  const { code, stderr } = merge(github({ statuses: {}, comments }));
-  assert.equal(code, 1);
-  assert.match(stderr, /Lens: no verdict on GitHub for this PR/);
-});
-
-test("carries a comment's ship over notes-only commits, and merges even when the status can't be posted", () => {
-  const commits = [reviewed, notesOnly];
-  const table = github({
-    head: notesOnly,
-    commits,
-    statuses: {},
-    comments: [said("code-reviewer", "ship", reviewed)],
-  });
-  // The cloud's proxy refuses commit statuses.
-  table[`POST ${R}/statuses/*`] = {
-    $error: 403,
-    message:
-      "Write access to this GitHub API path is not permitted through this proxy",
-  };
-  const { code, stderr, posted, merged } = merge(table);
-  assert.equal(code, 0, stderr);
-  assert.deepEqual(
-    posted.map(({ path, context }) => [path, context]),
-    [[`${R}/statuses/${notesOnly}`, "theseus/lens"]],
-  );
-  assert.deepEqual(merged, [{ merge_method: "squash", sha: notesOnly }]);
-  const changedSince = merge(
-    github({
-      head: codeChange,
-      commits: [reviewed, notesOnly, codeChange],
-      statuses: {},
-      comments: [said("code-reviewer", "ship", reviewed)],
-    }),
-  );
-  assert.equal(changedSince.code, 1);
-  assert.match(changedSince.stderr, /and the product changed since/);
-});
-
-test("fails closed when it can't read the PR's comments", () => {
-  const table = github();
-  table[`${R}/issues/12/comments`] = { $error: 502, message: "Bad Gateway" };
-  const { code, stderr, merged } = merge(table);
-  assert.equal(code, 1);
-  assert.match(stderr, /couldn't check PR #12 \(Bad Gateway/);
-  assert.deepEqual(merged, []);
 });

@@ -4,7 +4,8 @@
 // 2026-10-13 showed why: a sprint's folder only reaches main when its PR merges, so a run that
 // looked at main alone started sprint 1 again while sprint 1's PR was open.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
-//   whether it waits for the owner: it carries needs-owner now or ever did, as the gate holds it.
+//   whether it waits for the owner: as the gate holds it, it carries needs-owner now or ever did,
+//   and the owner hasn't released it with owner-approved.
 // - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
 //   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
 //   sprint/<n>-…). next is one past the highest of them.
@@ -15,6 +16,7 @@
 
 import { carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
+import { APPROVAL_LABEL } from "./scope.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
@@ -48,15 +50,18 @@ function preflight(repo) {
         SPRINT_BRANCH.test(head?.ref ?? ""),
     )
     .sort((a, b) => a.number - b.number)
-    .map((pr) => ({
-      number: pr.number,
-      branch: pr.head.ref,
-      head: pr.head.sha,
-      // As the gate holds it: a PR that ever carried needs-owner is the owner's to merge, even
-      // after the label comes off.
-      needsOwner: carriedNeedsOwner({ pr, repo }),
-      url: pr.html_url,
-    }));
+    .map((pr) => {
+      const labels = pr.labels.map(({ name }) => name);
+      return {
+        number: pr.number,
+        branch: pr.head.ref,
+        head: pr.head.sha,
+        needsOwner:
+          !labels.includes(APPROVAL_LABEL) &&
+          carriedNeedsOwner({ repo, number: pr.number, labels }),
+        url: pr.html_url,
+      };
+    });
   const highest = {
     main: highestOf(sprintFolders(repo, base)),
     prs: highestOf(open.map(({ branch }) => sprintOf(branch))),
@@ -109,7 +114,7 @@ function action(open, next) {
   return {
     do: "continue",
     pr: current.number,
-    say: `PR #${current.number} (${current.branch}) is open${others(current)}. Continue it rather than starting a new sprint: run what's missing (reviews of its head, then node .studio/merge.mjs ${current.number}).`,
+    say: `PR #${current.number} (${current.branch}) is open${others(current)}. Continue it rather than starting a new sprint: run what's missing, then node .studio/merge.mjs ${current.number}.`,
   };
 }
 
