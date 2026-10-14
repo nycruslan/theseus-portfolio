@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { profile } from "@/content/profile";
 import "./globals.css";
@@ -19,6 +19,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: `${profile.name} — ${profile.headline}`,
   description: profile.bio,
+};
+
+// Meta tags can't read CSS variables, so the two address-bar colors repeat each scheme's
+// --background from app/globals.css; change them together.
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e6f3f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#091413" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

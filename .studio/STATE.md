@@ -33,3 +33,15 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 - **Lesson:** before starting a sprint, list open PRs (`gh api repos/<owner>/<repo>/pulls`) and
   read any `needs-owner` one. This run nearly re-ran sprint 1 because `.studio/sprint/` is absent
   on `main` until a sprint merges.
+
+## Sprint 2: dark mode (PR #12, left open for the owner)
+
+- **Outcome:** built and verified, but not merged. The theme switches in CSS only:
+  - `color-scheme: light dark` and a theme-color per scheme.
+  - The dark accent is copper `#eb8a64` (7.45:1), and the dark rule is verdigris `#2d4543`.
+  - Light is pixel-identical to main.
+
+  Lens and Probe said ship on `2a33b48`, with no fix rounds, and CI is green. Iris's verdict is changes, 6.8/10, only on the placeholder gate and the 7.0 bar, so the PR waits with `needs-owner`. Verdict comments now reach GitHub from the cloud (the sprint 1 blocker is gone).
+- **Lesson:**
+  - Writing the checks first caught a contract bullet that couldn't pass before anyone built anything. Next's flight scripts carry `prefers-color-scheme` (`probe-checks.md`).
+  - Until the owner settles the rubric's placeholder gate, every visual sprint will stop at `needs-owner`. Pick non-visual items, or settle the rubric first.

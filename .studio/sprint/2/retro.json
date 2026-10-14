@@ -1,0 +1,44 @@
+{
+  "sprint": 2,
+  "goal": "Roadmap item 2: dark mode that follows the system preference, with accessible contrast in both themes",
+  "outcome": "not merged: PR #12 is left open with needs-owner. Lens ship and Probe ship on 2a33b48, CI check and scope green on 2a33b48; Iris's verdict is changes 6.8/10, only on owner items (the placeholder hard gate on content/profile.ts and the 7.0 bar for a scoped sprint), so merge.mjs would refuse",
+  "size": "M",
+  "fix_rounds": 0,
+  "builder_dispatches": 1,
+  "pr": 12,
+  "head_reviewed": "2a33b4889b9639ca98e6553bc5c171ddad4dae01",
+  "lens_important_findings": 0,
+  "lens_important_acted_on": 0,
+  "lens_minor_findings": 2,
+  "lens_minor_acted_on": 0,
+  "went_wrong": [
+    {
+      "what": "The second visual sprint in a row is held only by the rubric's placeholder gate on owner content that was already on main, and by the absolute 7.0 bar. Iris rated it better than production with light pixel-identical, and every other gate passed",
+      "evidence": ".studio/sprint/2/review-iris.md; .studio/sprint/1/retro.json proposed_setup_changes[2]"
+    },
+    {
+      "what": "Contract C5's served-HTML bullet could not pass as written, because Next's own flight-data scripts carry prefers-color-scheme. Probe found it while writing the checks, and the lead restated it",
+      "evidence": ".studio/sprint/2/probe-checks.md defect 1; decisions.md item 2"
+    },
+    {
+      "what": "Every agent still hand-builds a PLAYWRIGHT_BROWSERS_PATH shim (Chromium 1194 vs Playwright 1.64's 1248), and agent-browser isn't installed. One shim attempt left a stray symlink in /opt/pw-browsers that the guard wouldn't let Probe remove",
+      "evidence": "Probe's contract report; build-pixel.md; the symlink at /opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/chrome-headless-shell"
+    }
+  ],
+  "proposed_setup_changes": [
+    {
+      "change": "In design/rubric.md, either exempt owner-pending content already on main from the placeholder gate, or have the owner replace the stand-ins in content/profile.ts. Also state whether 'better than production, all other gates pass' passes a sprint scoped away from layout",
+      "moves": "visual sprints held by owner-only rubric items: 2 of 2"
+    },
+    {
+      "change": "Have install.sh or playwright.config.ts use the image's Chromium (executablePath /opt/pw-browsers/chromium-1194 or a pinned @playwright/test matching it)",
+      "moves": "agents that hand-built a browser shim: 5 of 5 this sprint"
+    }
+  ],
+  "follow_ups": [
+    "Probe: ban prefers-color-scheme in app/ and components/ outside app/globals.css, which closes the Tailwind arbitrary-variant hole in dark-mode C5 grep (review-lens.md Minor 1); rename tokens.spec.ts 'parity-only' describe (Nit)",
+    "Item 3 or 6: a token-styled app/not-found.tsx; the built-in 404 ignores the theme (review-lens.md Minor 2)",
+    "Item 3: project titles in foreground with a copper underline; no-break space before ' · ' in role titles (review-iris.md findings 1 and 3)",
+    "Item 6: scrollbar-color from the tokens (review-iris.md finding 2)"
+  ]
+}

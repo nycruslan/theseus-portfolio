@@ -1,5 +1,6 @@
 /* Scan only the code that holds class names. Automatic detection also reads the team's notes and
-   skills (.studio, .claude), which shipped utilities no component uses. */
+   skills (.studio, .claude), which shipped utilities no component uses. A new folder that holds class
+   names needs its own @source line here, or its utilities are silently missing from the build. */
 @import "tailwindcss" source(none);
 @source "../app";
 @source "../components";
@@ -15,6 +16,10 @@
   --muted: #455e5a; /* oklch(46% 0.03 185) secondary text */
   --accent: #944126; /* oklch(48% 0.12 38) copper, links only */
   --rule: #c5d5d2; /* oklch(86% 0.018 185) decorative, never text */
+
+  /* Both schemes are supported, so native scrollbars and form controls follow the system. It sits
+     here, not in the dark block, so that block stays the five color tokens. */
+  color-scheme: light dark;
 
   /* Fluid type: a modular scale of 1.2 at 320px opening to 1.333 at 1440px, base 16px to 18px.
      Each clamp() is linear between those two widths. 2xl is an off-scale display step. */
@@ -48,14 +53,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Parity with the old dark mode only; the real dark theme is roadmap item 2. */
+/* The hull at night: the same verdigris ground, with the copper pulled toward hue 42 so it reads as
+   metal, not apricot, and a deeper verdigris rule so selection shows. The address-bar colors in
+   app/layout.tsx repeat both backgrounds. Direction: .studio/sprint/2/direction.md. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #091413; /* oklch(18% 0.016 190) */
-    --foreground: #e1eae9; /* oklch(93% 0.01 185) */
-    --muted: #96a9a6; /* oklch(72% 0.022 185) */
-    --accent: #e79d73; /* oklch(76% 0.105 50) */
-    --rule: #283635; /* oklch(32% 0.018 190) */
+    --background: #091413; /* oklch(18% 0.016 190) green-black hull */
+    --foreground: #e1eae9; /* oklch(93% 0.01 185) tinted, not white */
+    --muted: #96a9a6; /* oklch(72% 0.022 185) secondary text */
+    --accent: #eb8a64; /* oklch(73% 0.13 42) copper, links only */
+    --rule: #2d4543; /* oklch(37% 0.03 189) deep verdigris, never text */
   }
 }
 
