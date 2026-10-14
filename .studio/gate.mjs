@@ -7,8 +7,9 @@
 // - the PR stays on the team's side: no owner paths, scripts or weakened tests (scope.mjs);
 // - nothing waits for the owner: the PR never carried needs-owner;
 // - the reviewers it needs said ship about the code being merged: Lens always, Probe when the e2e
-//   checks changed, and Iris or Probe whenever they weighed in on the PR (Iris is advisory until
-//   calibrated, so she isn't required otherwise). A verdict counts as the verdict comment
+//   checks changed, Probe whenever she weighed in on the PR, and Iris whenever she weighed in once
+//   she is calibrated (see irisCalibrated). Until then Iris's verdict is advice: the roll call
+//   shows it and it never holds the merge. A verdict counts as the verdict comment
 //   verdict.mjs posts on the PR, from the repository's own people; the latest one per role and
 //   commit stands. A role with no such comment on the PR falls back to its theseus/<role> commit
 //   status, which local sessions can still post and the cloud's proxy refuses. One given on an
@@ -263,8 +264,50 @@ function verdicts({ pr, repo, files, cwd }) {
     const weighedIn = said.some(({ verdict: one }) => one);
     const needed =
       role === "code-reviewer" || weighedIn || (role === "qa-engineer" && e2e);
-    return needed ? [verdict(role, said, cwd)] : [];
+    if (!needed) return [];
+    const item = verdict(role, said, cwd);
+    const advisory =
+      role === "design-director" &&
+      !irisCalibrated({ repo, base: pr.base.ref, cwd });
+    return [advisory ? asAdvice(item) : item];
   });
+}
+
+/**
+ * Whether the owner has calibrated Iris, so her verdict holds the merge: the base branch's
+ * `design/calibration/` holds at least one scored example, which is any `.md` file there besides
+ * the README. It reads the base branch on GitHub rather than the checkout, so the branch under
+ * review can't change the answer; no folder at all (404) means no examples. Any other failure
+ * throws, and the gate fails closed.
+ */
+export function irisCalibrated({ repo, base, cwd }) {
+  let entries;
+  try {
+    entries = list(
+      `repos/${repo}/contents/design/calibration?ref=${encodeURIComponent(base)}`,
+      { cwd },
+    );
+  } catch (error) {
+    if (error.status === 404) return false;
+    throw error;
+  }
+  return entries.some(
+    ({ type, name }) =>
+      type === "file" && /\.md$/iu.test(name) && !/^readme\.md$/iu.test(name),
+  );
+}
+
+// An uncalibrated Iris is reported, never obeyed: her item goes, and what she said rides along as
+// advice for the lead and the owner.
+function asAdvice(item) {
+  if (item.state === "go") return { ...item, advisory: true };
+  const { carried: _carried, ...rest } = item;
+  return {
+    ...rest,
+    state: "go",
+    advisory: true,
+    note: `Advice, not a hold (Iris counts once design/calibration/ has the owner's scored examples): ${item.note}`,
+  };
 }
 
 // The latest verdict comment per commit and role, from the repository's own people. Comments come
@@ -330,14 +373,17 @@ function verdict(role, said, cwd) {
       "verdict",
     );
   }
-  if (given.state !== "success") {
-    return nogo(
-      who,
-      "verdict",
-      `${who} said "${given.description}" on ${latest === head ? "this commit" : short}: resolve it and send it back for review.`,
-    );
-  }
   const { score } = given;
+  if (given.state !== "success") {
+    return {
+      ...nogo(
+        who,
+        "verdict",
+        `${who} said "${given.description}" on ${latest === head ? "this commit" : short}: resolve it and send it back for review.`,
+      ),
+      score,
+    };
+  }
   if (latest === head) return { ...go(who, "verdict"), score };
   const covered = covers(latest.sha, head.sha, cwd);
   if (covered !== true) {

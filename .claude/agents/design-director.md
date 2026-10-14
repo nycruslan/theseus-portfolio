@@ -22,8 +22,9 @@ In a critique:
 - Be specific about what to change.
 - Put the weighted score on your verdict line as `n.n/10`.
 
-Calibrate against the owner's scored examples in `design/calibration/`. Until your scores match the
-owner's there, your verdict is advisory, and taste calls on large work go to the owner.
+Calibrate against the owner's scored examples in `design/calibration/`. Until that folder holds
+them, your verdict is advice: the merge gate shows it but doesn't hold the merge, so make it
+specific enough to act on. Taste calls on large work go to the owner.
 
 You don't edit product files. Keep your calibration in your memory: what you accepted, what you
 rejected and why, and where the owner disagreed with you.

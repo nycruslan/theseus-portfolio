@@ -55,6 +55,21 @@ const verdict = (who, state = "success", description = undefined) => ({
     description ?? (state === "success" ? "Verdict: ship" : "Verdict: changes"),
 });
 const LENS = verdict("lens");
+// design/calibration/ on the base branch, as the contents API lists it: the README alone until the
+// owner adds scored examples.
+const entry = (name) => ({
+  name,
+  type: "file",
+  path: `design/calibration/${name}`,
+});
+const UNCALIBRATED = [entry("README.md")];
+const CALIBRATED = {
+  [`${R}/contents/design/calibration`]: [
+    ...UNCALIBRATED,
+    entry("01-linear.png"),
+    entry("01-linear.md"),
+  ],
+};
 // A changed file as GitHub's REST API lists it.
 const changed = (filename, extra = {}) => ({
   filename,
@@ -194,9 +209,9 @@ test("e2e changes need Probe too", () => {
   assert.equal(merge(github({ files, statuses })).code, 0);
 });
 
-test("Iris is needed only once she weighed in, and then her latest verdict must be ship", () => {
+test("once calibrated, Iris is needed only when she weighed in, and then her latest verdict must be ship", () => {
   const files = [changed("app/globals.css")];
-  assert.equal(merge(github({ files })).code, 0);
+  assert.equal(merge(github({ files, extra: CALIBRATED })).code, 0);
   const commits = [reviewed, notesOnly];
   const said = (iris) => ({ [reviewed]: [LENS, iris], [notesOnly]: [LENS] });
   const changes = merge(
@@ -205,6 +220,7 @@ test("Iris is needed only once she weighed in, and then her latest verdict must 
       commits,
       head: notesOnly,
       statuses: said(verdict("iris", "failure", "Verdict: changes · 6.1/10")),
+      extra: CALIBRATED,
     }),
   );
   assert.equal(changes.code, 1);
@@ -220,6 +236,7 @@ test("Iris is needed only once she weighed in, and then her latest verdict must 
       commits,
       head: notesOnly,
       statuses: said(verdict("iris", "success", "Verdict: ship · 7.4/10")),
+      extra: CALIBRATED,
     }),
   );
   assert.equal(ship.code, 0);
@@ -749,7 +766,7 @@ test("a role's comment outranks its status; a role without one falls back to its
   assert.equal(mixed.code, 0, mixed.stderr);
 });
 
-test("Iris's comment brings her in, score and all, and her changes holds the merge", () => {
+test("once calibrated, Iris's comment brings her in, score and all, and her changes holds the merge", () => {
   const files = [changed("app/globals.css")];
   const comments = [
     said("code-reviewer", "ship", reviewed),
@@ -758,12 +775,81 @@ test("Iris's comment brings her in, score and all, and her changes holds the mer
       score: 6.8,
     }),
   ];
-  const { code, stderr } = merge(github({ files, statuses: {}, comments }));
+  const { code, stderr } = merge(
+    github({ files, statuses: {}, comments, extra: CALIBRATED }),
+  );
   assert.equal(code, 1);
   assert.match(
     stderr,
     /Iris said "Verdict: changes · 6\.8\/10" on this commit/,
   );
+  assert.doesNotMatch(stderr, /Advice/);
+});
+
+// Sprints 1 and 2 both stopped on an uncalibrated Iris alone (.studio/sprint/*/retro.json).
+test("until the owner's scored examples exist, Iris's changes is advice: the PR merges and says so", async () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("design-director", "changes", reviewed, {
+      line: "Verdict: changes · 6.8/10",
+      score: 6.8,
+    }),
+  ];
+  const studio = await ingest();
+  try {
+    const env = { STUDIO_INGEST_URL: studio.url };
+    // No calibration folder at all, then the README alone: neither holds a scored example.
+    for (const extra of [
+      {},
+      { [`${R}/contents/design/calibration`]: UNCALIBRATED },
+    ]) {
+      const { code, stdout, stderr, merged } = merge(
+        github({ files, statuses: {}, comments, extra }),
+        { env },
+      );
+      assert.equal(code, 0, stderr);
+      assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
+      assert.match(
+        stdout,
+        /Advice, which doesn't hold the merge:\n- Advice, not a hold .*Iris said "Verdict: changes · 6\.8\/10" on this commit/,
+      );
+    }
+    const posts = await studio.until(2);
+    const iris = posts[0].body.gate.items.find(({ who }) => who === "Iris");
+    assert.equal(iris.state, "go");
+    assert.equal(iris.score, 6.8);
+    assert.match(iris.note, /^Advice, not a hold/);
+  } finally {
+    studio.close();
+  }
+});
+
+test("still lists Iris's advice beside a NO-GO, and fails closed when it can't read the calibration folder", () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("design-director", "changes", reviewed, { line: "Verdict: changes" }),
+  ];
+  const held = merge(github({ files, statuses: {}, comments }));
+  assert.equal(held.code, 1);
+  assert.match(held.stderr, /Lens: no verdict on GitHub for this PR/);
+  assert.match(held.stderr, /Advice, which doesn't hold the merge:/);
+  const unreadable = merge(
+    github({
+      files,
+      statuses: { [reviewed]: [LENS] },
+      comments,
+      extra: {
+        [`${R}/contents/design/calibration`]: {
+          $error: 502,
+          message: "Bad Gateway",
+        },
+      },
+    }),
+  );
+  assert.equal(unreadable.code, 1);
+  assert.match(unreadable.stderr, /couldn't check PR #12 \(Bad Gateway/);
+  assert.deepEqual(unreadable.merged, []);
 });
 
 test("counts only the repository's own people: anyone can comment on a public PR", () => {

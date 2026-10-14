@@ -35,6 +35,7 @@ const BUDGET_MS = Number(process.env.THESEUS_MERGE_WAIT_MS || 480_000);
 configure({ timeout: 15_000 });
 // Print the wait at least this often, even when nothing changed.
 const HEARTBEAT_MS = 60_000;
+const ADVICE = "Advice, which doesn't hold the merge:";
 
 const [selector, ...extra] = process.argv.slice(2);
 if (!/^[1-9]\d*$/.test(selector ?? "") || extra.length) {
@@ -75,7 +76,11 @@ async function merge() {
     return {
       pr: number,
       head,
-      items: [...early, ...ciItems({ repo, head, required, cwd })],
+      items: [
+        ...early,
+        ...review.filter((item) => item.advisory),
+        ...ciItems({ repo, head, required, cwd }),
+      ],
     };
   }
 
@@ -177,17 +182,26 @@ function finish({ pr, head, items, merged, url }) {
     hook_event_name: "StudioGateChecked",
     gate: { target: "merge", pr, head, items, pass },
   });
+  // An uncalibrated reviewer's objection goes, but it's still worth reading (see gate.mjs).
+  const advice = items
+    .filter((item) => item.advisory && item.note)
+    .map((item) => `- ${item.note}`);
   if (pass) {
     console.log(
-      `Merged PR #${pr} (${head.slice(0, 7)}) as ${merged.slice(0, 7)}: ${url}`,
+      [
+        `Merged PR #${pr} (${head.slice(0, 7)}) as ${merged.slice(0, 7)}: ${url}`,
+        ...(advice.length ? [ADVICE, ...advice] : []),
+      ].join("\n"),
     );
     return;
   }
   const notes = items.filter((item) => item.state !== "go");
   console.error(
-    [`NO-GO for PR #${pr}:`, ...notes.map((item) => `- ${item.note}`)].join(
-      "\n",
-    ),
+    [
+      `NO-GO for PR #${pr}:`,
+      ...notes.map((item) => `- ${item.note}`),
+      ...(advice.length ? [ADVICE, ...advice] : []),
+    ].join("\n"),
   );
   process.exitCode = 1;
 }

@@ -58,8 +58,11 @@ diff, the contract and the running site, not the builder's account. Send finding
 the same builder. After a fix round, the final verdict comes from a fresh reviewer. Two fix rounds
 at most, so three builder dispatches per PR: a reviewed commit with `Verdict: changes` or
 `Verdict: blocked` uses a round, and after two of them a hook refuses the fourth dispatch. Then cut
-scope yourself (revert or record a contract change) or stop. Iris's verdict holds the merge only
-once she gives one on the PR. Keep to one pull request per session.
+scope yourself (revert or record a contract change) or stop. Iris is advisory until
+`design/calibration/` holds the owner's scored examples: merge.mjs reports her verdict without
+holding the merge, so weigh her `changes` and act on what's cheap, but don't add `needs-owner` for
+it alone. Once calibrated, her verdict holds the merge whenever she gives one on the PR. Keep to one
+pull request per session.
 
 **Escalate** to whoever owns the question: scope to Quill, taste to Iris. Owner facts, or anything
 risky, go to the owner under "Needs owner decision" in the PR, with the `needs-owner` label.

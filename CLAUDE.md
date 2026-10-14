@@ -38,8 +38,10 @@ squash-merges that exact commit once:
 - CI is green: every check that reported passed, and every check the base branch's ruleset
   requires, plus CI's `check` and `scope`, reported (one that never ran hasn't passed);
 - the reviewers' verdicts say ship about the code being merged: Lens always, Probe when `e2e/`
-  changed, and Iris or Probe whenever they gave a verdict on the PR. Iris is advisory until
-  calibrated, so she isn't required otherwise. The verdict hook posts each one as a comment on the
+  changed or whenever she gave a verdict on the PR, and Iris whenever she gave one, but only once
+  she's calibrated. Until `design/calibration/` holds the owner's scored examples, Iris's verdict
+  is advice: merge.mjs reports it and merges anyway, and her `changes` alone is no reason for
+  `needs-owner`. The verdict hook posts each one as a comment on the
   PR with a `theseus-verdict` marker, and as a `theseus/*` commit status where GitHub takes it (the
   cloud's proxy doesn't), which counts only for a role with no comment;
 - the PR touches no owner path, leaves `package.json`'s scripts alone and weakens no test;
