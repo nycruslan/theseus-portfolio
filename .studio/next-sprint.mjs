@@ -36,13 +36,14 @@ try {
 function preflight(repo) {
   const base = api(`repos/${repo}`).default_branch ?? "main";
   // The repository is public, so anyone can open a PR from a fork with a branch named sprint/<n>.
-  // Only the team's own PRs count: a branch in this repository, opened by the owner or a member.
+  // Only the team's own PRs count: a branch in this repository, opened by the owner, a member or a
+  // collaborator. GitHub treats repository names as case-insensitive, so they're compared that way.
   // Otherwise a stranger's PR could have Atlas check out its code, stand down, or skip numbers.
   // The title is free text a visitor can write, so it stays out of what Atlas is told.
   const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
     .filter(
       ({ head, author_association: association }) =>
-        head?.repo?.full_name === repo &&
+        head?.repo?.full_name?.toLowerCase() === repo.toLowerCase() &&
         TRUSTED.has(association) &&
         SPRINT_BRANCH.test(head?.ref ?? ""),
     )

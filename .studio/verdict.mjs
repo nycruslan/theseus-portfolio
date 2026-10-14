@@ -76,8 +76,9 @@ export function readLedger(sessionId) {
  */
 export function verdictComment({ role, verdict, head, line, score }) {
   // The quoted line is the reviewer's own text: it may not open or close an HTML comment, or it
-  // could carry a marker of its own.
-  const said = oneLine(String(line).replace(/<!--|-->/g, ""), LINE_LENGTH);
+  // could carry a marker of its own. Angle brackets go entirely, since stripping `<!--` once
+  // leaves `<!-<!---` as a fresh one.
+  const said = oneLine(String(line).replace(/[<>]/g, ""), LINE_LENGTH);
   const fields = [
     `role=${role}`,
     `verdict=${verdict}`,

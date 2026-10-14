@@ -124,6 +124,19 @@ test("ignores sprint-named PRs from forks and strangers, and never repeats a PR'
   assert.doesNotMatch(JSON.stringify(state), /PR 2[0-2]/);
 });
 
+test("counts the team's own PR whatever the case of the repository's name", () => {
+  const { state } = preflight(
+    github({
+      pulls: [pr(9, "sprint/1-tokens", [], { repo: REPO.toUpperCase() })],
+    }),
+  );
+  assert.deepEqual(
+    state.open.map(({ number }) => number),
+    [9],
+  );
+  assert.equal(state.action.do, "continue");
+});
+
 test("stands down when every open sprint PR waits for the owner, and otherwise continues one that doesn't", () => {
   const waiting = pr(12, "sprint/2-dark-mode", ["needs-owner"]);
   const held = preflight(github({ pulls: [waiting] })).state;
