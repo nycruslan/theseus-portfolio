@@ -27,16 +27,6 @@ const RUNNING = {
   conclusion: null,
 };
 const GREEN = [done("check"), done("gate"), done("lens")];
-const RULES = [
-  {
-    type: "required_status_checks",
-    parameters: {
-      required_status_checks: ["check", "gate", "lens"].map((context) => ({
-        context,
-      })),
-    },
-  },
-];
 const pr = (extra = {}) => ({
   number: 12,
   state: "open",
@@ -49,15 +39,19 @@ const pr = (extra = {}) => ({
 });
 
 /** The GitHub side of PR #12. `pulls` and `checks` may be {$seq: […]} to change between polls. */
-function github({ pulls = pr(), checks = GREEN, statuses = [] } = {}) {
+function github({
+  pulls = pr(),
+  checks = GREEN,
+  statuses = [],
+  merge = { sha: "5a1e5a1e5a1e", merged: true },
+} = {}) {
   return {
     [`${R}/pulls/12`]: pulls,
     [`${R}/commits/${HEAD}/check-runs`]: checks.$seq
       ? { $seq: checks.$seq.map((runs) => ({ check_runs: runs })) }
       : { check_runs: checks },
     [`${R}/commits/${HEAD}/status`]: { statuses },
-    [`${R}/rules/branches/main`]: RULES,
-    [`PUT ${R}/pulls/12/merge`]: { sha: "5a1e5a1e5a1e", merged: true },
+    [`PUT ${R}/pulls/12/merge`]: merge,
   };
 }
 
@@ -88,8 +82,10 @@ test("squash-merges the head it checked once GitHub says clean", () => {
   assert.equal(code, 0);
   assert.match(stdout, /Merged PR #12 \(4ead4ea\) as 5a1e5a1/);
   assert.equal(merges.length, 1);
-  assert.ok(merges[0].includes("merge_method=squash"));
-  assert.ok(merges[0].includes(`sha=${HEAD}`));
+  assert.deepEqual(JSON.parse(merges[0].at(-1)), {
+    merge_method: "squash",
+    sha: HEAD,
+  });
 });
 
 test("waits while a check runs, then merges", () => {
@@ -120,17 +116,41 @@ test("counts only the latest run of a check, so a superseded cancelled run doesn
   assert.equal(code, 0);
 });
 
-test("refuses when GitHub won't merge, and names what's failing or missing", () => {
-  const red = merge(
+test("asks GitHub whatever a check it doesn't require says, and reports GitHub's answer", () => {
+  const unstable = merge(
+    github({
+      pulls: pr({ mergeable_state: "unstable" }),
+      statuses: [{ context: "Vercel", state: "failure" }],
+    }),
+  );
+  assert.equal(unstable.code, 0);
+  const refused = merge(
     github({
       pulls: pr({ mergeable_state: "blocked" }),
       checks: [done("check"), done("gate", "failure")],
+      merge: {
+        $error: 405,
+        message: 'Required status check "lens" is expected.',
+      },
     }),
   );
-  assert.equal(red.code, 1);
-  assert.equal(red.merges.length, 0);
-  assert.match(red.stderr, /GitHub says "blocked" \(check go, gate nogo\)/);
-  assert.match(red.stderr, /lens hasn't run: label the PR `review`/);
+  assert.equal(refused.code, 1);
+  assert.match(
+    refused.stderr,
+    /refused the merge: Required status check "lens" is expected\./,
+  );
+  assert.match(refused.stderr, /lens hasn't run: label the PR `review`/);
+});
+
+test("doesn't ask when GitHub already says no: a conflict, a draft or a branch behind", () => {
+  for (const state of ["dirty", "draft", "behind"]) {
+    const { code, merges, stderr } = merge(
+      github({ pulls: pr({ mergeable_state: state }) }),
+    );
+    assert.equal(code, 1, state);
+    assert.equal(merges.length, 0, state);
+    assert.match(stderr, new RegExp(`GitHub says "${state}"`));
+  }
 });
 
 test("refuses when the branch moves or the PR isn't open", () => {

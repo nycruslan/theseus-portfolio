@@ -5,7 +5,7 @@
 // {"$error": 405, "message": "..."} fails as gh does, with the body on stdout and
 // "gh: message (HTTP 405)" on stderr. It applies the two --jq forms the harness uses,
 // `.[] | @json` and `.key[] | @json`. An unknown route is a 404. GH_FAIL fails every call, and
-// GH_LOG gets each call's arguments.
+// GH_LOG gets each call's arguments, followed by the request body for `--input -`.
 
 const {
   appendFileSync,
@@ -18,7 +18,11 @@ const { join } = require("node:path");
 
 const args = process.argv.slice(2);
 const env = process.env;
-if (env.GH_LOG) appendFileSync(env.GH_LOG, `${JSON.stringify(args)}\n`);
+const input = args.includes("--input") ? readFileSync(0, "utf8") : undefined;
+if (env.GH_LOG) {
+  const logged = input === undefined ? args : [...args, input];
+  appendFileSync(env.GH_LOG, `${JSON.stringify(logged)}\n`);
+}
 
 function fail(status, message) {
   process.stdout.write(JSON.stringify({ message, status: String(status) }));

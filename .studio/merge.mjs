@@ -3,9 +3,11 @@
 // `check`, `gate` and `lens`), so this only waits and asks. It exists because the cloud's proxy
 // refuses GraphQL, and with it `gh pr merge` and auto-merge, so it's REST only (github.mjs).
 // It polls every 15 s, for up to 8 minutes, until every check on the head has finished and GitHub
-// knows the PR's mergeable_state. It merges only when that is "clean", with `sha` set so a push in
-// between makes GitHub refuse; otherwise it says why, with exit 1. Either way the checks go on air
-// as StudioGateChecked. Run it with the Bash tool's timeout at 10 minutes (600000 ms).
+// knows the PR's mergeable_state. Then it asks GitHub to squash-merge, with `sha` set so a push in
+// between makes GitHub refuse, unless the state already rules a merge out (a conflict, a draft, a
+// branch behind its base). "unstable" or "blocked" may come from a check the ruleset doesn't
+// require, so GitHub's answer decides those, and its message is the reason given. Either way the
+// checks go on air as StudioGateChecked. Run it with the Bash tool's timeout at 10 minutes.
 
 import { setTimeout as sleep } from "node:timers/promises";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
@@ -43,15 +45,18 @@ try {
   }
   why = refusal();
   if (!why) {
-    const fields = { merge_method: "squash", sha: head };
+    const body = { merge_method: "squash", sha: head };
     merged = api(`repos/${repo}/pulls/${number}/merge`, {
       method: "PUT",
-      fields,
+      body,
       cwd,
     }).sha;
   }
 } catch (error) {
-  why = `GitHub couldn't be read or refused the merge (${String(error.message).trim()})`;
+  const lens = checks.some(({ who }) => who === "lens")
+    ? ""
+    : "; lens hasn't run: label the PR `review`";
+  why = `GitHub couldn't be read or refused the merge: ${String(error.message).trim()}${lens}`;
 }
 
 const session = process.env.CLAUDE_CODE_SESSION_ID;
@@ -85,17 +90,16 @@ function settled() {
   );
 }
 
-// Why GitHub won't take the merge, or null when it will.
+// Why asking GitHub to merge is pointless now, or null to ask.
 function refusal() {
   if (pr.head.sha !== head)
     return `the branch moved to ${pr.head.sha.slice(0, 7)} while it waited`;
   if (pr.state !== "open")
     return `the PR is ${pr.merged ? "already merged" : pr.state}`;
-  if (pr.mergeable_state === "clean") return null;
-  const lens = checks.some(({ who }) => who === "lens")
-    ? ""
-    : "; lens hasn't run: label the PR `review`";
-  return `GitHub says "${pr.mergeable_state}" (${line()})${lens}`;
+  if (["dirty", "draft", "behind", "unknown"].includes(pr.mergeable_state)) {
+    return `GitHub says "${pr.mergeable_state}" (${line()})`;
+  }
+  return null;
 }
 
 // The latest run of each check on the commit (an older one may be a superseded, cancelled run),
