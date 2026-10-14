@@ -187,7 +187,7 @@ export function remoteRefusal(
     }
   }
   if (!read || unreadable || canWrite(read)) {
-    if (VERDICT_MARKER.test(command)) return markerRefusal();
+    if (markerIn(command, read)) return markerRefusal();
     const found = deniedText(command) ?? mergeRefusal(command, read);
     if (found) return found;
   }
@@ -472,7 +472,7 @@ function bodyRefusal(field, value, { dir, writes }) {
   }
   const fromFile =
     (field.flag === "-F" || field.flag === "--field") && value.startsWith("@");
-  if (!fromFile) return null;
+  if (!fromFile) return VERDICT_MARKER.test(value) ? markerRefusal() : null;
   const name = value.slice(1);
   if (name === "-") {
     return "A comment body read from standard input (`-F body=@-`) can't be checked: write it to a file in its own step, then pass it with `-F body=@<file>`.";
@@ -480,10 +480,18 @@ function bodyRefusal(field, value, { dir, writes }) {
   if (writes) {
     return "This line writes files and posts a comment from a file, so the guard can't read the body it would post: write the file in its own step, then post it.";
   }
+  // The shell may still glob or expand the word the guard reads (`body=@x/v*.md` can match a file
+  // named after it), so the path must be the literal file gh opens.
+  if (/[*?[\]{}~$]/.test(name)) {
+    return `\`${name}\` isn't a literal path, so the guard can't tell which file gh would post: name the body file exactly.`;
+  }
   const file = resolve(dir ?? ".", name);
   const size = statSync(file, { throwIfNoEntry: false });
-  // A missing file fails in gh itself, with nothing posted.
-  if (!size) return null;
+  // An honest post names a file it wrote in an earlier step. One that doesn't exist yet could be
+  // written between this check and gh's read, by a job an earlier command left running.
+  if (!size) {
+    return `${name} doesn't exist yet, so the guard can't read the comment it would post: write the file first, in its own step.`;
+  }
   if (!size.isFile() || size.size > BODY_BYTES) {
     return `${name} isn't a file the guard can read for a comment body: pass a plain text file under 1 MB.`;
   }
@@ -494,6 +502,18 @@ function bodyRefusal(field, value, { dir, writes }) {
     return `${name} couldn't be read, so this comment can't be checked.`;
   }
   return VERDICT_MARKER.test(text) ? markerRefusal(name) : null;
+}
+
+// The raw text catches what lexing drops; the lexed words catch what quoting and escapes split
+// (theseus''-verdict, theseus\-verdict, $'theseus-verdict'), as mergeRefusal reads merge words.
+function markerIn(command, read) {
+  const words = read
+    ? read.commands.flatMap(({ words: all }) => all.map(({ text }) => text))
+    : [];
+  return (
+    VERDICT_MARKER.test(command) ||
+    words.some((word) => VERDICT_MARKER.test(word))
+  );
 }
 
 function markerRefusal(file) {
