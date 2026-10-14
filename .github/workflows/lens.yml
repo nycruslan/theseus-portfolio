@@ -1,0 +1,82 @@
+name: lens
+
+# Lens, the code reviewer, as a required check: Claude Code reviews the PR with the instructions in
+# .claude/agents/code-reviewer.md, posts its findings on the PR, and the job fails unless the
+# verdict is ship (.studio/lens.mjs).
+#
+# Cost: it reviews when Atlas adds the `review` label and again on each later push. A push that
+# only changes notes, or another label, reuses the last ship instead (see lens.mjs). It runs Opus 5.5,
+# as Lens does locally, capped at 40 turns and 30 minutes, on the owner's subscription
+# (CLAUDE_CODE_OAUTH_TOKEN).
+#
+# Why pull_request and not pull_request_target: the review has to read the PR's code, and
+# pull_request_target would hand a fork's code the repository's secrets. On pull_request a fork's PR
+# gets no secrets and a read-only token, and `lens.mjs plan` fails it before anything runs, so it
+# fails closed rather than passing. A same-repository PR could edit this file or lens.mjs to pass,
+# but both are owner paths: the `gate` check, which runs from main, fails any PR that touches them
+# without the owner's approval. claude-code-action also restores .claude/ and CLAUDE.md from the
+# base branch before Claude starts, so the reviewer's instructions are main's.
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write # the review's inline comments and its summary comment
+  checks: read # earlier `lens` verdicts, to reuse a ship
+
+# A push supersedes the review of the old head, so it cancels it. A label event never cancels a
+# review in progress: it waits, and then reuses that review's ship.
+concurrency:
+  group: lens-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event.action == 'synchronize' }}
+
+jobs:
+  lens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - run: git config --global init.defaultBranch main
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Fails a fork's PR or an unlabelled one, passes on a reusable ship, or asks for a review.
+      - id: plan
+        run: node .studio/lens.mjs plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - id: review
+        if: steps.plan.outputs.review == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The workflow's own token: comments come from github-actions[bot], no app install needed.
+          github_token: ${{ github.token }}
+          prompt: |
+            You are Lens, the code reviewer. Read .claude/agents/code-reviewer.md first and follow
+            it; CLAUDE.md applies too.
+
+            Review pull request #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+            Its code is checked out here. Read the diff with `gh pr diff ${{ github.event.pull_request.number }}`
+            and the description with `gh pr view ${{ github.event.pull_request.number }}`. Judge it
+            against the sprint contract the description names (.studio/sprint/<n>/contract.md), if any.
+
+            Post each Important finding as an inline comment on its line with
+            mcp__github_inline_comment__create_inline_comment (confirmed: true). Post nothing else:
+            your result becomes the summary comment. Don't edit files.
+
+            Return the verdict (ship only when nothing Important is left; blocked when the PR can't
+            be judged), a summary of two or three sentences, and every finding with its severity
+            (important, nit or pre-existing), file, line, title and detail.
+          claude_args: |
+            --model claude-opus-5-5
+            --max-turns 40
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),mcp__github_inline_comment__create_inline_comment"
+            --json-schema '${{ steps.plan.outputs.schema }}'
+      # Posts the verdict on the PR and fails the job unless it is ship.
+      - if: steps.plan.outputs.review == 'true' && !cancelled()
+        run: node .studio/lens.mjs verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STRUCTURED_OUTPUT: ${{ steps.review.outputs.structured_output }}
+          EXECUTION_FILE: ${{ steps.review.outputs.execution_file }}
