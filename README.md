@@ -2,14 +2,13 @@
 
 A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
-Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead. The
-team agrees what *done* means before anyone builds, meets only when a decision is genuinely open,
-builds with one writer per area, and has every change reviewed and tested in a real browser by
-someone who didn't build it, and design-critiqued when it changes how the site looks. Atlas merges
-only through one script, which waits for CI and merges only when CI is green and the reviews
-approve that exact code; if something needs the owner, the PR waits. It all runs through GitHub's
-REST API, so the team works the same on a laptop and as a cloud routine. Every step streams live
-to the Studio.
+Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead. It
+sizes the next roadmap item, briefs one builder (with tests written first for anything bigger than a
+one-line change), and opens a pull request. GitHub then decides: CI must pass, a gate run from
+`main` must agree the PR stays out of the owner's files, and Lens, the code reviewer, must say ship
+from a fresh review in GitHub Actions. If something needs the owner, the PR waits. It all runs
+through GitHub's REST API, so the team works the same on a laptop and as a cloud routine. Every step
+streams live to the Studio.
 
 ## How it works
 
@@ -20,27 +19,30 @@ to the Studio.
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
-| The one way a sprint PR merges | [`.studio/merge.mjs`](.studio/merge.mjs) |
+| What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
+| How Atlas merges (waits, then squash-merges) | [`.studio/merge.mjs`](.studio/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
 | What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
 
-## How far the guardrails reach
+## What binds and what guides
 
-The team acts as the owner's GitHub identity, so the hooks are layered defence against shortcuts,
-not a security boundary. A check is binding only once the base branch's ruleset requires it from
-GitHub Actions: today that's `check`, and `scope` becomes binding when the owner adds it to the
-`protect-main` ruleset. The verdicts rely on the hooks: the guard refuses the commands it can read
-that carry a verdict marker toward GitHub (in the line however it's quoted, in a script the line
-runs, or in a comment's body file, which must be a literal path that exists), and any that edit or
-delete a comment.
+**Binding (GitHub).** The `protect-main` ruleset has no bypass, and requires a pull request plus
+three checks from GitHub Actions:
+- `check`: lint, typecheck, knip, build, harness tests and the end-to-end suite;
+- `gate`: run from `main` on `pull_request_target`, so a PR can't change it. It fails a PR that
+  touches the owner's files or `package.json`'s scripts, weakens a test, or ever carried
+  `needs-owner`, unless the owner added `owner-approved`;
+- `lens`: Claude Code reviews the PR in CI as Lens and fails the check unless the verdict is ship.
+  A session can't forge a check run, and a PR that edits the workflow is stopped by `gate`.
 
-Known limits: checking out an older commit swaps in its older harness, the hooks' records in the
-temp directory can be deleted, and a program that writes files itself (`git apply`, a formatter, a
-script it runs) or text encoded past the rules (a marker built at run time, say) isn't seen. This
-lives here rather than in `CLAUDE.md`, which every agent loads, so the agents aren't handed a list
-of ways around the hooks.
+**Guidance (the hooks).** The team acts as the owner's GitHub identity, so GitHub can't tell who
+added `owner-approved`: that one rule rests on the team keeping it. The hooks keep the team in its
+lane without being a boundary: a file-edit guard (owner paths, `e2e/` for Probe, each role's own
+memory), deny rules for the obvious (`pkill`, `gh pr merge`, force pushes, the `owner-approved`
+label), the builders' `pnpm verify` on stop, and a watchdog for a stalled lead. A shell command can
+get past all of them; it can't get past GitHub.
 
 ## Local development
 
@@ -51,7 +53,7 @@ pnpm dev            # http://localhost:3000
 pnpm verify         # lint, typecheck, knip and build, failing fast
 pnpm test:e2e       # Playwright + axe against a production build on port 3300
                     # (PLAYWRIGHT_PORT for another port, PLAYWRIGHT_BASE_URL to test a deploy)
-pnpm test:harness   # the team's hooks
+pnpm test:harness   # the team's hooks, the gate, Lens's verdict and merge.mjs
 ```
 
 ### Why `NODE_USE_ENV_PROXY` is set
