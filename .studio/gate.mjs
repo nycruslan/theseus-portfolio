@@ -7,8 +7,9 @@
 // - the PR stays on the team's side: no owner paths, scripts or weakened tests (scope.mjs);
 // - nothing waits for the owner: the PR never carried needs-owner;
 // - the reviewers it needs said ship about the code being merged: Lens always, Probe when the e2e
-//   checks changed, and Iris or Probe whenever they weighed in on the PR (Iris is advisory until
-//   calibrated, so she isn't required otherwise). A verdict counts as the verdict comment
+//   checks changed, Probe whenever she weighed in on the PR, and Iris whenever she weighed in once
+//   she is calibrated (see irisCalibrated). Until then Iris's verdict is advice: the roll call
+//   shows it and it never holds the merge. A verdict counts as the verdict comment
 //   verdict.mjs posts on the PR, from the repository's own people; the latest one per role and
 //   commit stands. A role with no such comment on the PR falls back to its theseus/<role> commit
 //   status, which local sessions can still post and the cloud's proxy refuses. One given on an
@@ -100,13 +101,19 @@ export function requiredChecks({ repo, base, cwd }) {
 /**
  * CI on the head: every check run and commit status except the reviewers' verdicts. Pending while
  * anything runs, and while a required check hasn't reported at all: a check that never ran hasn't
- * passed. A cancelled run is pending while a newer run is queued, and a NO-GO otherwise.
+ * passed. Only the latest run of each check (the highest id) counts, as GitHub's merge rules count
+ * it: a re-run, or an event that superseded a run, leaves the older run on the commit (each
+ * workflow run is its own check suite), and a cancelled one there would otherwise hold the head
+ * forever. When the latest run is the cancelled one, it is pending while a newer run is queued, and
+ * a NO-GO otherwise.
  */
 export function ciItems({ repo, head, required = [], cwd }) {
-  const runs = list(`repos/${repo}/commits/${head}/check-runs?per_page=100`, {
-    key: "check_runs",
-    cwd,
-  });
+  const runs = latestPerName(
+    list(`repos/${repo}/commits/${head}/check-runs?per_page=100`, {
+      key: "check_runs",
+      cwd,
+    }),
+  );
   const statuses = list(`repos/${repo}/commits/${head}/status?per_page=100`, {
     key: "statuses",
     cwd,
@@ -159,6 +166,17 @@ export function ciItems({ repo, head, required = [], cwd }) {
   return all.length
     ? all
     : [pending("CI", "CI hasn't reported on this commit yet.")];
+}
+
+// One run per check name: the newest. GitHub gives check runs ids in the order it creates them,
+// so the highest id is the latest run, whatever its start time says (a queued run may have none).
+function latestPerName(runs) {
+  const latest = new Map();
+  for (const run of runs) {
+    const kept = latest.get(run.name);
+    if (!kept || (run.id ?? 0) > (kept.id ?? 0)) latest.set(run.name, run);
+  }
+  return [...latest.values()];
 }
 
 /** Everything but CI: scope, the owner's hold and the verdicts. */
@@ -239,8 +257,51 @@ function verdicts({ pr, repo, files, cwd }) {
     const weighedIn = said.some(({ verdict: one }) => one);
     const needed =
       role === "code-reviewer" || weighedIn || (role === "qa-engineer" && e2e);
-    return needed ? [verdict(role, said, cwd)] : [];
+    if (!needed) return [];
+    const item = verdict(role, said, cwd);
+    const advisory =
+      role === "design-director" &&
+      !irisCalibrated({ repo, base: pr.base.sha, cwd });
+    return [advisory ? asAdvice(item) : item];
   });
+}
+
+/**
+ * Whether the owner has calibrated Iris, so her verdict holds the merge: `design/calibration/` at
+ * the PR's base commit holds at least one scored example, which is any `.md` file there besides
+ * the README. It reads that commit on GitHub rather than the checkout, so the branch under review
+ * can't change the answer. A commit sha can't be missing the way a branch name can, so a 404 means
+ * only that the folder doesn't exist there: no examples. Any other failure throws, and the gate
+ * fails closed.
+ */
+export function irisCalibrated({ repo, base, cwd }) {
+  let entries;
+  try {
+    entries = list(
+      `repos/${repo}/contents/design/calibration?ref=${encodeURIComponent(base)}`,
+      { cwd },
+    );
+  } catch (error) {
+    if (error.status === 404) return false;
+    throw error;
+  }
+  return entries.some(
+    ({ type, name }) =>
+      type === "file" && /\.md$/iu.test(name) && !/^readme\.md$/iu.test(name),
+  );
+}
+
+// An uncalibrated Iris is reported, never obeyed: her item goes, and what she said rides along as
+// advice for the lead and the owner.
+function asAdvice(item) {
+  if (item.state === "go") return { ...item, advisory: true };
+  const { carried: _carried, ...rest } = item;
+  return {
+    ...rest,
+    state: "go",
+    advisory: true,
+    note: `Advice, not a hold (Iris counts once design/calibration/ has the owner's scored examples): ${item.note}`,
+  };
 }
 
 // The latest verdict comment per commit and role, from the repository's own people. Comments come
@@ -306,14 +367,17 @@ function verdict(role, said, cwd) {
       "verdict",
     );
   }
-  if (given.state !== "success") {
-    return nogo(
-      who,
-      "verdict",
-      `${who} said "${given.description}" on ${latest === head ? "this commit" : short}: resolve it and send it back for review.`,
-    );
-  }
   const { score } = given;
+  if (given.state !== "success") {
+    return {
+      ...nogo(
+        who,
+        "verdict",
+        `${who} said "${given.description}" on ${latest === head ? "this commit" : short}: resolve it and send it back for review.`,
+      ),
+      score,
+    };
+  }
   if (latest === head) return { ...go(who, "verdict"), score };
   const covered = covers(latest.sha, head.sha, cwd);
   if (covered !== true) {

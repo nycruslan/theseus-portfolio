@@ -11,5 +11,8 @@ verdicts count (see `../rubric.md`).
    originality, craft, functionality), the weighted score, and one or two sentences on why.
 3. Commit them in a PR. This folder is yours: the team can read it but not change it.
 
-When Iris's scores land within one point of yours on all of them, her verdict becomes binding.
-When you disagree with one of her verdicts later, add that case here too.
+Until then Iris's verdict is advice: the merge gate (`.studio/gate.mjs`) reports it and merges
+anyway. The gate treats her as calibrated, and her verdict as binding, as soon as main has one
+scored example here: any `.md` file besides this README. So add the examples when you're ready for
+her verdicts to hold merges, ideally once her scores land within one point of yours on them. When
+you disagree with one of her verdicts later, add that case here too.

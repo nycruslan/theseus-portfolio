@@ -20,6 +20,11 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   - `design/rubric.md`: the design bar, calibrated by the owner's examples in `design/calibration/`.
 
   Production is https://theseus-portfolio.vercel.app.
+- **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`. The directory is set when
+  the role starts, from the session's checkout, so a role working in a worktree of its own (under
+  `.claude/worktrees/`) is pointed at the main checkout, where Claude Code blocks its writes. It
+  writes to `.claude/agent-memory/<role>/` inside its worktree instead, commits just those files,
+  and names the commit in its report so Atlas brings it to the sprint branch.
 
 ## Reporting
 
@@ -38,8 +43,10 @@ squash-merges that exact commit once:
 - CI is green: every check that reported passed, and every check the base branch's ruleset
   requires, plus CI's `check` and `scope`, reported (one that never ran hasn't passed);
 - the reviewers' verdicts say ship about the code being merged: Lens always, Probe when `e2e/`
-  changed, and Iris or Probe whenever they gave a verdict on the PR. Iris is advisory until
-  calibrated, so she isn't required otherwise. The verdict hook posts each one as a comment on the
+  changed or whenever she gave a verdict on the PR, and Iris whenever she gave one, but only once
+  she's calibrated. Until `design/calibration/` holds the owner's scored examples, Iris's verdict
+  is advice: merge.mjs reports it and merges anyway, and her `changes` alone is no reason for
+  `needs-owner`. The verdict hook posts each one as a comment on the
   PR with a `theseus-verdict` marker, and as a `theseus/*` commit status where GitHub takes it (the
   cloud's proxy doesn't), which counts only for a role with no comment;
 - the PR touches no owner path, leaves `package.json`'s scripts alone and weakens no test;
@@ -49,16 +56,9 @@ Otherwise it says why not. PRs come from the owner's account, which can't approv
 reviews are posted as comments. If anything needs the owner, leave the PR open with a "Needs owner
 decision" section and the `needs-owner` label. Never push to `main`.
 
-The team acts as the owner's GitHub identity, so the hooks are layered defence against shortcuts,
-not a security boundary. A check is binding only once the base branch's ruleset requires it from
-GitHub Actions: today that's `check`, and `scope` becomes binding when the owner adds it to the
-`protect-main` ruleset. The verdicts rely on the hooks: the guard refuses the commands it can read
-that carry a verdict marker toward GitHub (in the line however it's quoted, in a script the line
-runs, or in a comment's body file, which must be a literal path that exists), and any that edit or
-delete a comment. Known limits: checking out an older commit swaps in its older harness, the
-hooks' records in the temp directory can be deleted, and a program that writes files itself
-(`git apply`, a formatter, a script it runs) or text encoded past the rules (a marker built at run
-time, say) isn't seen.
+The team acts as the owner's GitHub identity, so these rules hold because you keep them: never
+post, edit or delete a verdict comment, and never merge or reach `main` any other way. The hooks
+refuse the attempts they can see.
 
 ## The owner's
 

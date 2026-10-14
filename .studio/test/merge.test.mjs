@@ -55,6 +55,21 @@ const verdict = (who, state = "success", description = undefined) => ({
     description ?? (state === "success" ? "Verdict: ship" : "Verdict: changes"),
 });
 const LENS = verdict("lens");
+// design/calibration/ on the base branch, as the contents API lists it: the README alone until the
+// owner adds scored examples.
+const entry = (name) => ({
+  name,
+  type: "file",
+  path: `design/calibration/${name}`,
+});
+const UNCALIBRATED = [entry("README.md")];
+const CALIBRATED = {
+  [`${R}/contents/design/calibration`]: [
+    ...UNCALIBRATED,
+    entry("01-linear.png"),
+    entry("01-linear.md"),
+  ],
+};
 // A changed file as GitHub's REST API lists it.
 const changed = (filename, extra = {}) => ({
   filename,
@@ -194,9 +209,9 @@ test("e2e changes need Probe too", () => {
   assert.equal(merge(github({ files, statuses })).code, 0);
 });
 
-test("Iris is needed only once she weighed in, and then her latest verdict must be ship", () => {
+test("once calibrated, Iris is needed only when she weighed in, and then her latest verdict must be ship", () => {
   const files = [changed("app/globals.css")];
-  assert.equal(merge(github({ files })).code, 0);
+  assert.equal(merge(github({ files, extra: CALIBRATED })).code, 0);
   const commits = [reviewed, notesOnly];
   const said = (iris) => ({ [reviewed]: [LENS, iris], [notesOnly]: [LENS] });
   const changes = merge(
@@ -205,6 +220,7 @@ test("Iris is needed only once she weighed in, and then her latest verdict must 
       commits,
       head: notesOnly,
       statuses: said(verdict("iris", "failure", "Verdict: changes · 6.1/10")),
+      extra: CALIBRATED,
     }),
   );
   assert.equal(changes.code, 1);
@@ -220,6 +236,7 @@ test("Iris is needed only once she weighed in, and then her latest verdict must 
       commits,
       head: notesOnly,
       statuses: said(verdict("iris", "success", "Verdict: ship · 7.4/10")),
+      extra: CALIBRATED,
     }),
   );
   assert.equal(ship.code, 0);
@@ -383,13 +400,25 @@ test("fails closed when it can't read the base branch's required checks", () => 
 
 test("a cancelled run waits for its queued replacement, and says so when there's none", () => {
   const cancelled = {
+    id: 1,
     name: "scope",
     status: "completed",
     conclusion: "cancelled",
+    started_at: "2026-10-13T02:09:55Z",
+  };
+  const replacement = {
+    ...SCOPE,
+    id: 2,
+    started_at: "2026-10-13T02:10:08Z",
   };
   const table = github({ workflowRuns: [{ name: "scope", status: "queued" }] });
+  // GitHub keeps the cancelled run on the commit beside its replacement: the replacement is a
+  // new check suite, not an update of the old run.
   table[`${R}/commits/*/check-runs`] = {
-    $seq: [{ check_runs: [GREEN, cancelled] }, { check_runs: [GREEN, SCOPE] }],
+    $seq: [
+      { check_runs: [GREEN, cancelled] },
+      { check_runs: [GREEN, replacement, cancelled] },
+    ],
   };
   const requeued = merge(table, { env: { THESEUS_MERGE_WAIT_MS: "30000" } });
   assert.equal(requeued.code, 0, requeued.stderr);
@@ -403,6 +432,52 @@ test("a cancelled run waits for its queued replacement, and says so when there's
     stderr,
     /scope was cancelled, and no newer run is queued: re-run it .*then run this again/,
   );
+});
+
+// Seen on PR #12's head c376048: a push, then a label seconds later, cancelled the first scope run,
+// and the second passed. Both stay on the commit, so only the latest run per name may count.
+test("a superseded cancelled run beside a newer green one doesn't hold the merge", () => {
+  const cancelled = {
+    id: 51,
+    name: "scope",
+    status: "completed",
+    conclusion: "cancelled",
+    started_at: "2026-10-13T02:09:55Z",
+  };
+  const passed = { ...SCOPE, id: 52, started_at: "2026-10-13T02:10:08Z" };
+  for (const checks of [
+    [GREEN, passed, cancelled],
+    [GREEN, cancelled, passed],
+  ]) {
+    const { code, stderr, merged } = merge(
+      github({
+        checks,
+        workflowRuns: [{ name: "scope", status: "completed" }],
+      }),
+    );
+    assert.equal(code, 0, stderr);
+    assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
+  }
+});
+
+test("the latest run of a check decides: a newer failure beats an older pass", () => {
+  const older = { ...GREEN, id: 1, started_at: "2026-10-13T02:00:00Z" };
+  const newer = { ...RED, id: 2, started_at: "2026-10-13T02:05:00Z" };
+  const { code, stderr } = merge(github({ checks: [older, newer, SCOPE] }));
+  assert.equal(code, 1);
+  assert.match(stderr, /check failed \(failure\)/);
+  const rerun = merge(
+    github({ checks: [{ ...RED, id: 1 }, { ...GREEN, id: 2 }, SCOPE] }),
+  );
+  assert.equal(rerun.code, 0, rerun.stderr);
+});
+
+test("the newest run is the one GitHub created last, whatever the start times say", () => {
+  // A re-run queued after a long first run can report an earlier start, or none yet.
+  const first = { ...RED, id: 7, started_at: "2026-10-13T02:05:00Z" };
+  const rerun = { ...GREEN, id: 8, started_at: null };
+  const { code, stderr } = merge(github({ checks: [rerun, first, SCOPE] }));
+  assert.equal(code, 0, stderr);
 });
 
 test("keeps the whole run inside its budget, counted from the start", () => {
@@ -699,7 +774,7 @@ test("a role's comment outranks its status; a role without one falls back to its
   assert.equal(mixed.code, 0, mixed.stderr);
 });
 
-test("Iris's comment brings her in, score and all, and her changes holds the merge", () => {
+test("once calibrated, Iris's comment brings her in, score and all, and her changes holds the merge", () => {
   const files = [changed("app/globals.css")];
   const comments = [
     said("code-reviewer", "ship", reviewed),
@@ -708,12 +783,99 @@ test("Iris's comment brings her in, score and all, and her changes holds the mer
       score: 6.8,
     }),
   ];
-  const { code, stderr } = merge(github({ files, statuses: {}, comments }));
+  const { code, stderr } = merge(
+    github({ files, statuses: {}, comments, extra: CALIBRATED }),
+  );
   assert.equal(code, 1);
   assert.match(
     stderr,
     /Iris said "Verdict: changes · 6\.8\/10" on this commit/,
   );
+  assert.doesNotMatch(stderr, /Advice/);
+});
+
+// Sprints 1 and 2 both stopped on an uncalibrated Iris alone (.studio/sprint/*/retro.json).
+test("until the owner's scored examples exist, Iris's changes is advice: the PR merges and says so", async () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("design-director", "changes", reviewed, {
+      line: "Verdict: changes · 6.8/10",
+      score: 6.8,
+    }),
+  ];
+  const studio = await ingest();
+  try {
+    const env = { STUDIO_INGEST_URL: studio.url };
+    // No calibration folder at all, then the README alone: neither holds a scored example.
+    for (const extra of [
+      {},
+      { [`${R}/contents/design/calibration`]: UNCALIBRATED },
+    ]) {
+      const { code, stdout, stderr, merged } = merge(
+        github({ files, statuses: {}, comments, extra }),
+        { env },
+      );
+      assert.equal(code, 0, stderr);
+      assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
+      assert.match(
+        stdout,
+        /Advice, which doesn't hold the merge:\n- Advice, not a hold .*Iris said "Verdict: changes · 6\.8\/10" on this commit/,
+      );
+    }
+    const posts = await studio.until(2);
+    const iris = posts[0].body.gate.items.find(({ who }) => who === "Iris");
+    assert.equal(iris.state, "go");
+    assert.equal(iris.score, 6.8);
+    assert.match(iris.note, /^Advice, not a hold/);
+  } finally {
+    studio.close();
+  }
+});
+
+test("still lists Iris's advice beside a NO-GO, and fails closed when it can't read the calibration folder", () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("design-director", "changes", reviewed, { line: "Verdict: changes" }),
+  ];
+  const held = merge(github({ files, statuses: {}, comments }));
+  assert.equal(held.code, 1);
+  assert.match(held.stderr, /Lens: no verdict on GitHub for this PR/);
+  assert.match(held.stderr, /Advice, which doesn't hold the merge:/);
+  const unreadable = merge(
+    github({
+      files,
+      statuses: { [reviewed]: [LENS] },
+      comments,
+      extra: {
+        [`${R}/contents/design/calibration`]: {
+          $error: 502,
+          message: "Bad Gateway",
+        },
+      },
+    }),
+  );
+  assert.equal(unreadable.code, 1);
+  assert.match(unreadable.stderr, /couldn't check PR #12 \(Bad Gateway/);
+  assert.deepEqual(unreadable.merged, []);
+});
+
+test("reads the calibration folder at the PR's base commit, not a branch name", () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("design-director", "changes", reviewed),
+  ];
+  const { calls } = merge(
+    github({ files, statuses: {}, comments, extra: CALIBRATED }),
+  );
+  const reads = calls
+    .map((call) =>
+      call.find((arg) => arg.includes("contents/design/calibration")),
+    )
+    .filter(Boolean);
+  assert.ok(reads.length > 0);
+  for (const path of reads) assert.match(path, /\?ref=ba5e$/);
 });
 
 test("counts only the repository's own people: anyone can comment on a public PR", () => {

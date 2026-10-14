@@ -1,6 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { profile } from "../content/profile";
+
+// axe, contrast and overflow live in invariants.spec.ts, once per scheme.
 
 test("the home page renders the owner's name as its heading", async ({
   page,
@@ -9,41 +10,6 @@ test("the home page renders the owner's name as its heading", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     profile.name,
   );
-});
-
-for (const colorScheme of ["light", "dark"] as const) {
-  test.describe(`in the ${colorScheme} color scheme`, () => {
-    test.use({ colorScheme });
-
-    test("axe finds no serious or critical violations", async ({ page }) => {
-      await page.goto("/");
-      const { violations } = await new AxeBuilder({ page }).analyze();
-      const blocking = violations
-        .filter((v) => v.impact === "serious" || v.impact === "critical")
-        .map((v) => ({
-          rule: v.id,
-          impact: v.impact,
-          help: v.help,
-          targets: v.nodes.map((node) => node.target.join(" ")),
-        }));
-      expect(blocking).toEqual([]);
-    });
-  });
-}
-
-test.describe("on a 390 px wide phone", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
-
-  test("nothing overflows horizontally", async ({ page }) => {
-    await page.goto("/");
-    const { scrollWidth, clientWidth } = await page.evaluate(async () => {
-      // Web fonts change text widths, so measure after they load.
-      await document.fonts.ready;
-      const root = document.documentElement;
-      return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth };
-    });
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
-  });
 });
 
 test.describe("with reduced motion", () => {
@@ -67,4 +33,53 @@ test.describe("with reduced motion", () => {
     }
     expect(errors).toEqual([]);
   });
+});
+
+test("search engines and link previews find what they need", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  const head = await page.evaluate(() => {
+    const content = (selector: string) =>
+      document.querySelector(selector)?.getAttribute("content") ?? "";
+    const person = document.querySelector(
+      'script[type="application/ld+json"]',
+    )?.textContent;
+    return {
+      ogImage: content('meta[property="og:image"]'),
+      ogTitle: content('meta[property="og:title"]'),
+      canonical:
+        document.querySelector('link[rel="canonical"]')?.getAttribute("href") ??
+        "",
+      icon:
+        document.querySelector('link[rel="icon"]')?.getAttribute("href") ?? "",
+      person: person
+        ? (JSON.parse(person) as { "@type"?: string; name?: string })
+        : null,
+    };
+  });
+  expect(head.ogTitle).toContain(profile.name);
+  expect(head.canonical).toMatch(/^https:\/\//);
+  expect(head.person).toMatchObject({ "@type": "Person", name: profile.name });
+  // The tags name the production host; the same paths are served here.
+  const image = await request.get(new URL(head.ogImage).pathname);
+  expect(image.headers()["content-type"]).toBe("image/png");
+  expect((await request.get(head.icon)).ok()).toBe(true);
+  // Clients that ignore the icon link still ask for /favicon.ico.
+  const favicon = await request.get("/favicon.ico");
+  expect(favicon.headers()["content-type"]).toMatch(/^image\//);
+  expect(await (await request.get("/robots.txt")).text()).toMatch(/Sitemap:/);
+  expect((await request.get("/sitemap.xml")).ok()).toBe(true);
+});
+
+test("a missing page doesn't claim to be the home page", async ({
+  request,
+}) => {
+  const response = await request.get("/no-such-page");
+  expect(response.status()).toBe(404);
+  const html = await response.text();
+  // Only the home page names itself canonical, or as og:url.
+  expect(html).not.toMatch(/<link[^>]*rel="canonical"/);
+  expect(html).not.toMatch(/<meta[^>]*property="og:url"/);
 });

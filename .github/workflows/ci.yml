@@ -8,9 +8,20 @@ on:
 permissions:
   contents: read
 
+# On a PR, the group is the PR's ref: a newer push cancels the run on the older head, running or
+# waiting. That cancelled run sits on the old commit only, so it never blocks the new head. On a
+# push to main, the group is the commit itself, so no two pushes share a group and every push's
+# run finishes; a group shared across pushes would cancel a waiting run even without
+# cancel-in-progress.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    # A typical run takes under two minutes; a hung one shouldn't hold a runner for six hours.
+    timeout-minutes: 15
     steps:
       # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
       - run: git config --global init.defaultBranch main
@@ -18,18 +29,13 @@ jobs:
       # Installs pnpm (version from packageManager) and Node, then runs a frozen install.
       - uses: pnpm/setup@v3
         with:
-          runtime: node@22
+          runtime: node@24
           cache: true
           require-lockfile: true
-      # Next.js reuses its build cache between runs: faster builds, and no "No build cache found".
-      - uses: actions/cache@v6
-        with:
-          path: .next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.css', '**/*.mjs') }}
-          restore-keys: |
-            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
       # The gate builders run before they finish: lint (biome ci) -> typecheck -> knip -> build,
-      # stopping at the first failure. Biome annotates the diff when it runs in Actions.
+      # stopping at the first failure. Biome annotates the diff when it runs in Actions. No
+      # .next/cache is restored: a restored Turbopack cache once served a stale globals.css, so
+      # next.config.ts turns that cache off and each build starts clean, in seconds.
       - run: pnpm verify
       # The team's harness: hooks for the broadcast, the write guard, verdicts and the merge gate.
       - run: pnpm test:harness
@@ -45,8 +51,11 @@ jobs:
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
-      # Contract and smoke tests with axe, against a fresh `next build && next start`.
+      # The end-to-end checks with axe, served by `next start` from the build `pnpm verify` just
+      # made in this job, so the site is built once per run.
       - run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_PREBUILT: "1"
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

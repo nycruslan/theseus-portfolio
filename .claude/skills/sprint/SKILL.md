@@ -28,7 +28,8 @@ If it can't read GitHub, it exits 1: don't start a sprint blind; report it and s
 
 Start from `.studio/STATE.md`, the roles' memory and `ROADMAP.md`. The goal is the argument you were
 given, or Quill's pick. Keep the sprint's artifacts in `.studio/sprint/<n>/`, and hand people paths
-rather than retellings.
+rather than retellings. Screenshots never go in git: save them in your scratchpad (or
+`.studio/screenshots/`, which git ignores), and say in the report or the PR what each one shows.
 
 **Size it first**, and run only the lane it needs. Each role appears when it does real work. When
 you're unsure, take the smaller lane and let review push back.
@@ -58,8 +59,11 @@ diff, the contract and the running site, not the builder's account. Send finding
 the same builder. After a fix round, the final verdict comes from a fresh reviewer. Two fix rounds
 at most, so three builder dispatches per PR: a reviewed commit with `Verdict: changes` or
 `Verdict: blocked` uses a round, and after two of them a hook refuses the fourth dispatch. Then cut
-scope yourself (revert or record a contract change) or stop. Iris's verdict holds the merge only
-once she gives one on the PR. Keep to one pull request per session.
+scope yourself (revert or record a contract change) or stop. Iris is advisory until
+`design/calibration/` holds the owner's scored examples: merge.mjs reports her verdict without
+holding the merge, so weigh her `changes` and act on what's cheap, but don't add `needs-owner` for
+it alone. Once calibrated, her verdict holds the merge whenever she gives one on the PR. Keep to one
+pull request per session.
 
 **Escalate** to whoever owns the question: scope to Quill, taste to Iris. Owner facts, or anything
 risky, go to the owner under "Needs owner decision" in the PR, with the `needs-owner` label.
