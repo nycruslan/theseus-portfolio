@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
@@ -7,6 +7,7 @@ import {
   lastVerdict,
   notesOnly,
   plan,
+  reviewedAgainst,
   SCHEMA,
   usageOf,
   verdictOf,
@@ -14,96 +15,127 @@ import {
 import { ghLog, REPO, routes, runHook, tempDir } from "./kit.mjs";
 
 const R = `repos/${REPO}`;
-/** A pull_request event for PR #15, from this repository unless `fork` says otherwise. */
-function event({
-  action = "synchronize",
-  label,
-  labels = ["review"],
-  fork,
-} = {}) {
+const SLUG = "theseus-checks";
+const AGAINST = reviewedAgainst("main", "f0e1");
+
+/** A pull_request_target event for PR #15. */
+function event({ action = "synchronize", label, changes } = {}) {
   return {
     action,
     ...(label && { label: { name: label } }),
+    ...(changes && { changes }),
     pull_request: {
       number: 15,
-      labels: labels.map((name) => ({ name })),
-      head: { sha: "c0ffee", repo: { full_name: fork ?? REPO } },
+      title: "Sprint 3: hero",
+      body: "Contract: .studio/sprint/3/contract.md",
+      base: { ref: "main", sha: "ba5e" },
+      head: { sha: "c0ffee" },
     },
     repository: { full_name: REPO },
   };
 }
 const review = (verdict, findings = []) =>
   JSON.stringify({ verdict, summary: "Looks right.", findings });
-const run = (id, conclusion, status = "completed") => ({
+const run = (id, conclusion, extra = {}) => ({
   id,
-  status,
+  status: "completed",
   conclusion,
+  app: { slug: SLUG },
+  external_id: AGAINST,
+  ...extra,
+});
+const files = (...names) => ({
+  status: "ahead",
+  files: names.map((filename) => ({ filename })),
 });
 
-test("plan: a fork's PR and an unlabelled one fail before anything runs", () => {
+test("plan: a new review label or a new base always reviews; anything else may reuse a ship", () => {
+  assert.equal(plan(event({ action: "labeled", label: "review" })), "review");
   assert.equal(
-    plan(event({ fork: "stranger/theseus-portfolio" })).action,
-    "fail",
-  );
-  assert.equal(plan(event({ labels: ["needs-owner"] })).action, "fail");
-});
-
-test("plan: adding the review label reviews; a push or another label looks for a ship first", () => {
-  assert.equal(
-    plan(event({ action: "labeled", label: "review" })).action,
+    plan(
+      event({ action: "edited", changes: { base: { ref: { from: "x" } } } }),
+    ),
     "review",
   );
   assert.equal(
-    plan(event({ action: "labeled", label: "needs-owner" })).action,
+    plan(event({ action: "edited", changes: { body: { from: "x" } } })),
     "reuse?",
   );
-  assert.equal(plan(event()).action, "reuse?");
-});
-
-test("the newest finished run on a commit is its verdict; cancelled and running ones don't count", () => {
-  assert.equal(lastVerdict([]), null);
-  assert.equal(lastVerdict([run(1, "success"), run(2, "failure")]), "failure");
   assert.equal(
-    lastVerdict([run(3, "success"), run(4, "cancelled")]),
-    "success",
+    plan(event({ action: "labeled", label: "needs-owner" })),
+    "reuse?",
   );
-  assert.equal(
-    lastVerdict([run(5, "success"), run(6, null, "in_progress")]),
-    "success",
-  );
+  assert.equal(plan(event()), "reuse?");
 });
 
 test("only the team's notes leave a review standing", () => {
   assert.ok(
-    notesOnly([
-      { filename: ".studio/sprint/3/retro.json" },
-      { filename: "ROADMAP.md" },
-    ]),
+    notesOnly(
+      files(
+        ".studio/sprint/3/retro.json",
+        ".studio/sprint/3/pr.md",
+        "ROADMAP.md",
+      ),
+    ),
   );
   assert.ok(
-    !notesOnly([
-      { filename: ".studio/STATE.md" },
-      { filename: "app/page.tsx" },
-    ]),
+    notesOnly(
+      files(".studio/STATE.md", ".claude/agent-memory/engineer/MEMORY.md"),
+    ),
+  );
+  for (const code of [
+    "app/page.tsx",
+    ".studio/lens.mjs",
+    ".studio/sprint/3/hack.ts",
+    ".studio/sprint/3/x/y.md",
+  ]) {
+    assert.ok(!notesOnly(files(".studio/STATE.md", code)), code);
+  }
+  // Code renamed into the notes still changed the build.
+  const moved = {
+    status: "ahead",
+    files: [
+      { filename: ".studio/sprint/3/a.md", previous_filename: "app/a.tsx" },
+    ],
+  };
+  assert.ok(!notesOnly(moved));
+  assert.ok(!notesOnly({ status: "ahead", files: [] }));
+  assert.ok(!notesOnly({ ...files(".studio/STATE.md"), status: "diverged" }));
+  const many = Array.from(
+    { length: 300 },
+    (_, i) => `.studio/sprint/3/n${i}.md`,
+  );
+  assert.ok(!notesOnly(files(...many)));
+});
+
+test("a verdict counts only from the checks app, newest first; cancelled and running ones don't", () => {
+  assert.equal(lastVerdict([], SLUG), null);
+  assert.equal(
+    lastVerdict([run(1, "success"), run(2, "failure")], SLUG).conclusion,
+    "failure",
+  );
+  assert.equal(
+    lastVerdict([run(3, "success"), run(4, "cancelled")], SLUG).conclusion,
+    "success",
+  );
+  const forged = run(9, "success", { app: { slug: "github-actions" } });
+  assert.equal(
+    lastVerdict([run(5, "failure"), forged], SLUG).conclusion,
+    "failure",
   );
 });
 
-test("verdict: only a ship with no Important finding passes", () => {
+test("verdict: only a ship with no Important finding passes; anything unreadable fails", () => {
   assert.equal(
     verdictOf(review("ship", [{ severity: "nit", title: "t", detail: "d" }]))
       .pass,
     true,
   );
   assert.equal(verdictOf(review("changes")).pass, false);
-  assert.equal(verdictOf(review("blocked")).pass, false);
   const contradiction = verdictOf(
     review("ship", [{ severity: "important", title: "t", detail: "d" }]),
   );
-  assert.equal(contradiction.pass, false);
   assert.match(contradiction.reason, /counts as changes/);
-});
-
-test("verdict: no output, broken JSON or an unknown verdict fails closed", () => {
   for (const output of [
     "",
     "not json",
@@ -112,141 +144,203 @@ test("verdict: no output, broken JSON or an unknown verdict fails closed", () =>
   ]) {
     assert.equal(verdictOf(output).pass, false, output);
   }
-});
-
-test("the schema asks for exactly the verdicts the parser accepts", () => {
+  assert.match(verdictOf("", { maxedOut: true }).reason, /ran out of turns/);
   assert.deepEqual(SCHEMA.properties.verdict.enum, [
     "ship",
     "changes",
     "blocked",
   ]);
-  assert.deepEqual(SCHEMA.required, ["verdict", "summary", "findings"]);
-});
-
-/** Runs a lens.mjs step as the workflow does. */
-function step(name, payload, { table = {}, env = {} } = {}) {
-  const dir = tempDir();
-  const path = join(dir, "event.json");
-  const outputs = join(dir, "outputs");
-  writeFileSync(path, JSON.stringify(payload));
-  writeFileSync(outputs, "");
-  const gh = ghLog();
-  const result = runHook("lens.mjs", "", {
-    args: [name],
-    env: {
-      GITHUB_EVENT_PATH: path,
-      GITHUB_OUTPUT: outputs,
-      GH_ROUTES: routes(table),
-      GH_LOG: gh.file,
-      ...env,
-    },
-  });
-  return { ...result, outputs: readFileSync(outputs, "utf8"), gh: gh.calls() };
-}
-
-const history = (runsBySha, files = []) => ({
-  [`${R}/pulls/15/commits`]: Object.keys(runsBySha).map((sha) => ({ sha })),
-  ...Object.fromEntries(
-    Object.entries(runsBySha).map(([sha, runs]) => [
-      `${R}/commits/${sha}/check-runs`,
-      { check_runs: runs },
-    ]),
-  ),
-  [`${R}/compare/*`]: { files },
-});
-
-test("a notes-only push after a ship reuses it instead of reviewing again", () => {
-  const table = history({ abc123: [run(1, "success")], c0ffee: [] }, [
-    { filename: ".studio/sprint/3/retro.json" },
-  ]);
-  const reused = step("plan", event(), { table });
-  assert.equal(reused.code, 0);
-  assert.match(reused.outputs, /^review=false$/m);
-  assert.match(reused.stdout, /ship on abc123/);
-});
-
-test("a product change, an earlier changes verdict or an unreadable history asks for a review", () => {
-  const product = history({ abc123: [run(1, "success")], c0ffee: [] }, [
-    { filename: "app/page.tsx" },
-  ]);
-  assert.match(
-    step("plan", event(), { table: product }).outputs,
-    /^review=true$/m,
-  );
-  const changes = history({ abc123: [run(1, "failure")], c0ffee: [] });
-  assert.match(
-    step("plan", event(), { table: changes }).outputs,
-    /^review=true$/m,
-  );
-  const broken = step("plan", event(), { env: { GH_FAIL: "HTTP 502" } });
-  assert.equal(broken.code, 0);
-  assert.match(broken.outputs, /^review=true$/m);
-});
-
-test("plan fails an unlabelled PR, and always hands the workflow the schema", () => {
-  const { code, outputs, stdout } = step("plan", event({ labels: [] }));
-  assert.equal(code, 1);
-  assert.match(stdout, /once the PR carries the `review` label/);
-  assert.deepEqual(JSON.parse(outputs.match(/^schema=(.*)$/m)[1]), SCHEMA);
-});
-
-test("the verdict step posts the review on the PR and fails unless it ships", () => {
-  const table = { [`POST ${R}/issues/15/comments`]: { id: 1 } };
-  const ship = step("verdict", event(), {
-    table,
-    env: { STRUCTURED_OUTPUT: review("ship") },
-  });
-  assert.equal(ship.code, 0);
-  const posted = ship.gh.find((call) =>
-    call.includes(`${R}/issues/15/comments`),
-  );
-  assert.ok(
-    posted.some((arg) => arg.startsWith("body=**Lens: ship** on c0ffee")),
-  );
-  const changes = step("verdict", event(), {
-    table,
-    env: {
-      STRUCTURED_OUTPUT: review("changes", [
-        {
-          severity: "important",
-          file: "app/x.ts",
-          line: 3,
-          title: "Bug",
-          detail: "Fix.",
-        },
-      ]),
-    },
-  });
-  assert.equal(changes.code, 1);
-  assert.match(changes.stdout, /\*\*important\*\* `app\/x\.ts:3`: Bug\. Fix\./);
-  const missing = step("verdict", event(), { table });
-  assert.equal(missing.code, 1);
-  assert.match(missing.stdout, /no verdict/);
 });
 
 test("the comment carries what the review cost, read from the action's execution file", () => {
   const file = join(tempDir(), "execution.json");
+  const result = {
+    type: "result",
+    subtype: "success",
+    num_turns: 18,
+    duration_ms: 252_000,
+  };
+  const usage = {
+    input_tokens: 10,
+    cache_read_input_tokens: 900,
+    output_tokens: 90,
+  };
   writeFileSync(
     file,
-    JSON.stringify([
-      { type: "system" },
-      {
-        type: "result",
-        num_turns: 18,
-        duration_ms: 252_000,
-        usage: {
-          input_tokens: 10,
-          cache_read_input_tokens: 900,
-          output_tokens: 90,
-        },
-      },
-    ]),
+    JSON.stringify([{ type: "system" }, { ...result, usage }]),
   );
-  const usage = usageOf(file);
-  assert.deepEqual(usage, { turns: 18, tokens: 1000, minutes: 4.2 });
+  const read = usageOf(file);
+  assert.deepEqual(read, {
+    turns: 18,
+    tokens: 1000,
+    minutes: 4.2,
+    maxedOut: false,
+  });
   assert.match(
-    commentFor(verdictOf(review("ship")), { head: "c0ffee", usage }),
-    /18 turns, 1000 tokens, 4\.2 min/,
+    commentFor(verdictOf(review("ship")), { head: "c0ffee", usage: read }),
+    /18 turns, 1000 tokens/,
   );
   assert.equal(usageOf(join(tempDir(), "missing.json")), undefined);
+});
+
+/** Runs a lens.mjs step as the workflow does, in its own workspace. */
+function step(name, payload, { table = {}, env = {} } = {}) {
+  const dir = tempDir();
+  writeFileSync(join(dir, "event.json"), JSON.stringify(payload));
+  writeFileSync(join(dir, "outputs"), "");
+  const gh = ghLog();
+  const result = runHook("lens.mjs", "", {
+    cwd: dir,
+    args: [name],
+    env: {
+      GITHUB_EVENT_PATH: join(dir, "event.json"),
+      GITHUB_OUTPUT: join(dir, "outputs"),
+      APP_SLUG: SLUG,
+      AGAINST,
+      GH_ROUTES: routes({
+        [`${R}/compare/ba5e...c0ffee`]: { merge_base_commit: { sha: "f0e1" } },
+        [`POST ${R}/check-runs`]: { id: 1 },
+        [`${R}/pulls/15/files`]: [
+          { filename: "app/page.tsx", status: "modified", patch: "+x" },
+        ],
+        ...table,
+      }),
+      GH_LOG: gh.file,
+      ...env,
+    },
+  });
+  const calls = gh.calls();
+  const posted = (path) =>
+    calls
+      .filter((call) => call.includes(path))
+      .map((call) => JSON.parse(call.at(-1)));
+  return {
+    ...result,
+    outputs: readFileSync(join(dir, "outputs"), "utf8"),
+    checks: posted(`${R}/check-runs`),
+    reviews: posted(`${R}/pulls/15/reviews`),
+    context:
+      existsSync(join(dir, "lens-context.md")) &&
+      readFileSync(join(dir, "lens-context.md"), "utf8"),
+  };
+}
+
+const history = (runs, compare) => ({
+  [`${R}/pulls/15/commits`]: [{ sha: "abc123" }, { sha: "c0ffee" }],
+  [`${R}/commits/abc123/check-runs`]: { check_runs: runs },
+  [`${R}/commits/c0ffee/check-runs`]: { check_runs: [] },
+  [`${R}/compare/abc123...c0ffee`]: compare,
+});
+
+test("a notes-only push after a ship against the same base and merge-base reuses it", () => {
+  const table = history(
+    [run(1, "success")],
+    files(".studio/sprint/3/retro.json"),
+  );
+  const reused = step("plan", event(), { table });
+  assert.match(reused.outputs, /^review=false$/m);
+  assert.deepEqual(
+    [
+      reused.checks[0].name,
+      reused.checks[0].conclusion,
+      reused.checks[0].external_id,
+    ],
+    ["lens", "success", AGAINST],
+  );
+});
+
+test("a code change, another base or merge-base, a forged ship or a fresh label means a review", () => {
+  const cases = [
+    history([run(1, "success")], files("app/page.tsx")),
+    history(
+      [run(1, "success", { external_id: reviewedAgainst("main", "0ld") })],
+      files("ROADMAP.md"),
+    ),
+    history(
+      [run(1, "success", { app: { slug: "github-actions" } })],
+      files("ROADMAP.md"),
+    ),
+  ];
+  for (const table of cases) {
+    const { outputs, checks, context } = step("plan", event(), { table });
+    assert.match(outputs, /^review=true$/m);
+    assert.equal(checks.length, 0);
+    assert.match(
+      context,
+      /# PR #15: Sprint 3: hero[\s\S]*### app\/page\.tsx \(modified\)[\s\S]*\+x/,
+    );
+  }
+  const labelled = step("plan", event({ action: "labeled", label: "review" }));
+  assert.match(labelled.outputs, /^review=true$/m);
+  assert.deepEqual(
+    JSON.parse(labelled.outputs.match(/^schema=(.*)$/m)[1]),
+    SCHEMA,
+  );
+  assert.match(labelled.outputs, /^against=main@f0e1$/m);
+});
+
+test("the verdict step posts one review with the findings inline, then the lens check", () => {
+  const findings = [
+    {
+      severity: "important",
+      file: "app/x.ts",
+      line: 3,
+      title: "Bug",
+      detail: "Fix.",
+    },
+  ];
+  const table = { [`POST ${R}/pulls/15/reviews`]: { id: 2 } };
+  const changes = step("verdict", event(), {
+    table,
+    env: { STRUCTURED_OUTPUT: review("changes", findings) },
+  });
+  assert.equal(changes.reviews[0].event, "COMMENT");
+  assert.deepEqual(changes.reviews[0].comments, [
+    {
+      path: "app/x.ts",
+      line: 3,
+      side: "RIGHT",
+      body: "**important**: Bug. Fix.",
+    },
+  ]);
+  assert.deepEqual(
+    [changes.checks[0].conclusion, changes.checks[0].external_id],
+    ["failure", AGAINST],
+  );
+  const ship = step("verdict", event(), {
+    table,
+    env: { STRUCTURED_OUTPUT: review("ship") },
+  });
+  assert.equal(ship.checks[0].conclusion, "success");
+  const missing = step("verdict", event(), { table });
+  assert.equal(missing.checks[0].conclusion, "failure");
+  assert.match(missing.checks[0].output.summary, /no verdict/);
+});
+
+test("when GitHub refuses an inline comment, the findings stay in the review's body", () => {
+  const findings = [
+    {
+      severity: "nit",
+      file: "app/x.ts",
+      line: 999,
+      title: "Name",
+      detail: "Rename.",
+    },
+  ];
+  const table = {
+    [`POST ${R}/pulls/15/reviews`]: {
+      $seq: [{ $error: 422, message: "line not in diff" }, { id: 3 }],
+    },
+  };
+  const { reviews, checks } = step("verdict", event(), {
+    table,
+    env: { STRUCTURED_OUTPUT: review("ship", findings), GH_STATE: tempDir() },
+  });
+  assert.equal(reviews.length, 2);
+  assert.equal(reviews[1].comments, undefined);
+  assert.match(
+    reviews[1].body,
+    /\*\*nit\*\* `app\/x\.ts:999`: Name\. Rename\./,
+  );
+  assert.equal(checks[0].conclusion, "success");
 });
