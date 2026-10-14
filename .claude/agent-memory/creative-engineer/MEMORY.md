@@ -1,4 +1,3 @@
 - Theme tokens live in `app/globals.css` (base `:root` plus one `prefers-color-scheme: dark` `:root` block). Colors CSS can't reach (address-bar colors, social card, icons) come from `lib/site.ts`; `e2e/invariants.spec.ts` checks both agree and that all page text uses the tokens. See .studio/sprint/2/build-pixel.md.
 - Proving "light unchanged": `git archive origin/main | tar -x` into the scratchpad, `cp -a node_modules` in, build and `next start` on its own port, then canvas-diff full-page screenshots against the branch build; sprint 2 got 0 differing pixels.
 - `node_modules/.bin/next start` run in the background leaves a `next-server` child after `kill $!`; find it by start time with `ps -eo pid,ppid,lstart,cmd` and kill that pid too (never by name or port).
-- Guard limits: see .claude/agent-memory/qa-engineer/MEMORY.md.
