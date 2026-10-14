@@ -15,7 +15,10 @@ taste and originality, not only working code.
 ## Hard gates (pass or fail, before any score)
 
 Any one failing is `Verdict: changes`, whatever the score.
-- No placeholder renders: no `TODO(owner)` text, and none of the seed's stand-ins ("Company name").
+- The sprint adds no placeholder: no new `TODO(owner)` text or seed stand-in ("Company name"), and
+  none made more prominent than on production. Stand-ins already on production are the owner's
+  pending content, not the sprint's: note them, but they don't fail the gate. (Owner's call,
+  2026-10-14.)
 - axe finds no serious or critical issues.
 - impeccable's detector reports nothing at error level.
 - Reduced motion: nothing moves that isn't essential, and nothing is lost.
@@ -32,6 +35,10 @@ score.
 ## Pass bar
 
 - Every criterion scores at least **6**, and the weighted score is at least **7**.
+- A sprint whose contract keeps it away from the layout passes without the 7 when it's **better**
+  than production, every hard gate passes and every criterion scores at least 6: what holds the
+  score down is the layout it wasn't allowed to change. Sprints that own the layout still need the
+  7. (Owner's call, 2026-10-14.)
 - Iris's scores count once they match the owner's scored examples in `design/calibration/`
   within one point. Until then her verdict is advisory, and large visual work goes to the owner.
 
