@@ -1,0 +1,5 @@
+- Chromium shim and sandbox facts: see .claude/agent-memory/qa-engineer/MEMORY.md (scratchpad `pw/chromium_headless_shell-1248/chrome-headless-shell-linux64` with per-file symlinks to /opt's 1194; never write into /opt). Ports: probe with `curl --noproxy '*' localhost:<p>` first; other agents hold ports. Stop your own `next start` by PID (the guard refuses pkill).
+- The worktree guard refuses commands that pass `$VAR` paths to node or mix `cd` with loops; write absolute paths literally.
+- Grep-based "no X" e2e checks: look for the escape hatch. In sprint 2, Tailwind's arbitrary variant `[@media(prefers-color-scheme:dark)]:` compiled to a second dark rule that the `dark:` regex missed. Test a candidate by compiling it with `import { compile } from "tailwindcss"` plus `c.build([cls])`.
+- The app has no `app/not-found.tsx`, so Next's fallback inlines `body{#000/#fff}` and ignores the tokens. Check `/nope` whenever theming or metadata changes.
+- Declaring `color-scheme` makes Lightning CSS add `--lightningcss-light/dark` to the compiled `:root` and dark block. That's harmless, and source-level checks don't see it.
