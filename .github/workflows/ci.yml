@@ -2,6 +2,9 @@ name: CI
 
 on:
   pull_request:
+    # `edited` covers a PR retargeted to another base: `check` must pass against the base it merges
+    # into. A body edit re-runs it too, which costs minutes, not correctness.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 

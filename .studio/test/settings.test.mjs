@@ -74,7 +74,9 @@ test("denies the obvious, whatever the mode", () => {
   for (const rule of [
     "Bash(gh pr merge *)",
     "Bash(gh auth *)",
-    "Bash(*owner-approved*)",
+    "Bash(*proxy-injected*)",
+    "Bash(gh api *rulesets*)",
+    "Bash(gh api *actions/secrets*)",
     "Bash(pkill *)",
     "Bash(killall *)",
     "Bash(git push --force*)",
