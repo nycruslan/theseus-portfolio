@@ -5,8 +5,9 @@
 // new one. The result goes on the head as a check run from the team's checks app, the source the
 // ruleset requires, so no other workflow or account can stand in for it.
 // The workflow runs this from the default branch (pull_request_target, and workflow_run after the
-// review relay), never the PR's code. It reads the PR live rather than from the event, so whatever
-// triggered it, the newest run judges the newest state.
+// review relay), never the PR's code. It reads the PR live rather than from the event, and posts
+// nothing if the head moved while it judged, so whatever triggered it, a result is about the head
+// it names.
 
 import { appendFileSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -17,16 +18,23 @@ import { checkScope, ownersIn } from "./scope.mjs";
 export const HOLD_LABEL = "needs-owner";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Whether the PR passes, with a one-line summary and the holds behind it. */
-export function decide({ notes, everHeld, approved }) {
+/**
+ * Whether the PR passes, with a one-line summary and the holds behind it. A PR the owner opened
+ * himself holds like any other: GitHub doesn't let an author approve his own PR, so he merges it
+ * with the ruleset's pull-request bypass instead. Passing it on authorship would trust exactly
+ * what a session could fake by reaching GitHub as the owner, and the bypass doesn't need gate.
+ */
+export function decide({ notes, everHeld, approved, byOwner = false }) {
   const holds = everHeld
     ? [...notes, `The PR has carried ${HOLD_LABEL}, so the owner decides it.`]
     : notes;
   let summary = "The PR stays on the team's side.";
-  if (holds.length) {
-    summary = approved
-      ? "The owner approved this head."
-      : "This PR needs the owner's approving review of its head.";
+  if (holds.length && approved) summary = "The owner approved this head.";
+  else if (holds.length && byOwner) {
+    summary =
+      "The owner opened this PR, so he merges it himself with the ruleset's bypass.";
+  } else if (holds.length) {
+    summary = "This PR needs the owner's approving review of its head.";
   }
   return { pass: !holds.length || approved, summary, notes: holds };
 }
@@ -59,13 +67,17 @@ export function carriedNeedsOwner({ repo, number, labels, cwd }) {
   );
 }
 
-// The PR a run is about: the event's own, or, after the review relay, the open one at its head.
+// The PR a run is about: the event's own, or, after the review relay, the open one into the
+// default branch at the run's head.
 function prNumber(event, repo) {
   if (event.pull_request) return event.pull_request.number;
+  const base = event.repository.default_branch;
   const run = event.workflow_run;
-  if (run?.pull_requests?.length) return run.pull_requests[0].number;
+  const listed = run?.pull_requests?.find((pr) => pr.base?.ref === base);
+  if (listed) return listed.number;
   const pulls = api(`repos/${repo}/commits/${run?.head_sha}/pulls`);
-  return pulls.find(({ state }) => state === "open")?.number;
+  return pulls.find((pr) => pr.state === "open" && pr.base?.ref === base)
+    ?.number;
 }
 
 function main() {
@@ -90,7 +102,15 @@ function main() {
     }),
     everHeld: carriedNeedsOwner({ repo, number, labels }),
     approved: approvedByOwner({ repo, number, owner, head }),
+    byOwner: pr.user?.login?.toLowerCase() === owner.toLowerCase(),
   });
+  // A push while this ran has its own run, which judges the new head.
+  if (api(`repos/${repo}/pulls/${number}`).head.sha !== head) {
+    console.log(
+      `${head.slice(0, 7)} is no longer the PR's head: its own run judges the new one.`,
+    );
+    return;
+  }
   const summary = [
     result.summary,
     ...result.notes.map((note) => `- ${note}`),

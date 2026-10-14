@@ -142,8 +142,8 @@ test("asks GitHub whatever a check it doesn't require says, and reports GitHub's
   assert.match(refused.stderr, /lens hasn't run: label the PR `review`/);
 });
 
-test("doesn't ask when GitHub already says no: a conflict, a draft or a branch behind", () => {
-  for (const state of ["dirty", "draft", "behind"]) {
+test("doesn't ask when GitHub says no or can't yet tell: a conflict, a draft, a branch behind, unknown", () => {
+  for (const state of ["dirty", "draft", "behind", "unknown"]) {
     const { code, merges, stderr } = merge(
       github({ pulls: pr({ mergeable_state: state }) }),
     );

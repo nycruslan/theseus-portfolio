@@ -130,6 +130,9 @@ function fileNotes(file, isOwned) {
 
 // Read from the patch: fewer assertions than before, or added lines that switch checks off.
 // Without a patch (GitHub leaves it out of very large diffs) any change could do either.
+// Counting `expect(` calls is a trade-off: it lets the team rewrite a check freely, but a weaker
+// assertion swapped in for a stronger one keeps the count. Lens reviews every e2e change for that,
+// and the owner sees it in the PR; a stricter rule would send every test edit to the owner.
 function weakening({
   filename: path,
   status,

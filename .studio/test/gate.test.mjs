@@ -167,13 +167,35 @@ test("compares package.json's scripts where the PR branched and at its head", ()
   assert.equal(gate(files, { table: bump }).check.conclusion, "success");
 });
 
-test("after the review relay, judges the open PR at the run's head", () => {
+test("after the review relay, judges the open PR into the default branch at the run's head", () => {
   const relay = { workflow_run: { head_sha: HEAD, pull_requests: [] } };
   const table = {
-    [`${R}/commits/${HEAD}/pulls`]: [{ number: 12, state: "open" }],
+    [`${R}/commits/${HEAD}/pulls`]: [
+      { number: 9, state: "open", base: { ref: "sprint/3" } },
+      { number: 12, state: "open", base: { ref: "main" } },
+    ],
   };
   const { check } = gate([changed("app/page.tsx")], { event: relay, table });
   assert.equal(check.conclusion, "success");
+});
+
+test("an owner's own PR holds, and says he merges it with the bypass", () => {
+  const { check } = gate([changed(".claude/settings.json")], {
+    pull: pr({ user: { login: "NYCRuslan" } }),
+  });
+  assert.equal(check.conclusion, "failure");
+  assert.match(
+    check.output.title,
+    /merges it himself with the ruleset's bypass/,
+  );
+});
+
+test("posts nothing when the head moved while it judged", () => {
+  const pull = { $seq: [pr(), pr({ head: { sha: "newer" } })] };
+  const { code, check, stdout } = gate([changed("app/page.tsx")], { pull });
+  assert.equal(code, 0);
+  assert.equal(check, undefined);
+  assert.match(stdout, /no longer the PR's head/);
 });
 
 test("leaves a PR into another branch, or a closed one, alone", () => {

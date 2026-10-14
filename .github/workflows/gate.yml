@@ -21,10 +21,11 @@ on:
 permissions:
   contents: read
 
-# One run per PR at a time, never cancelled in progress: a newer event waits, replacing any run
-# still pending, and each run reads the PR live, so the newest result is always current.
+# One run per head at a time, the same key for both events, never cancelled in progress: a newer
+# event for that head waits, replacing any run still pending. Each run reads the PR live and posts
+# nothing if the head moved, so the newest result on a head is always current.
 concurrency:
-  group: gate-${{ github.event.pull_request.number || github.event.workflow_run.head_sha }}
+  group: gate-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:
