@@ -4,7 +4,8 @@
 //   base always does. A push reuses Lens's last ship instead when it was given against the same
 //   base and merge-base and only notes changed since, so a close-out commit doesn't pay for a
 //   second review; reusing posts the `lens` check itself. To review, it writes the PR's
-//   description and diff to lens-context.md for the model, which reads but never writes.
+//   description and diff to lens-context.md for the model, which reads but never writes. A run
+//   whose head is no longer the PR's posts nothing: the newer head has its own run.
 // - `node .studio/lens.mjs verdict` reads the review's structured output (claude-code-action's
 //   `--json-schema`), posts it on the PR as one review with the findings inline, and posts the
 //   `lens` check run: success only on ship with no Important finding.
@@ -18,9 +19,10 @@ import {
 import { fileURLToPath } from "node:url";
 import { api, list, postCheck } from "./github.mjs";
 
-// The team's notes, which no build reads: changing them doesn't make a review stale.
+// The team's notes, which no build reads and no prompt loads: changing them doesn't make a review
+// stale. Agent memory isn't one: it loads into the agents' prompts, so it gets reviewed.
 const NOTES =
-  /^(\.studio\/sprint\/[^/]+\/([^/]+\.md|retro\.json)|\.studio\/STATE\.md|\.claude\/agent-memory\/[^/]+\/[^/]+\.md|ROADMAP\.md)$/u;
+  /^(\.studio\/sprint\/[^/]+\/([^/]+\.md|retro\.json)|\.studio\/STATE\.md|ROADMAP\.md)$/u;
 // GitHub's compare lists at most 300 files, so a list that long may hide code.
 const COMPARE_LIMIT = 300;
 const VERDICTS = ["ship", "changes", "blocked"];
@@ -113,13 +115,20 @@ function reusableShip({ repo, number, head, against, slug }) {
   return null;
 }
 
-// The model's whole view of the PR besides the checkout: its description and its diff.
-function writeContext({ repo, pr }) {
-  const files = list(`repos/${repo}/pulls/${pr.number}/files?per_page=100`);
+// The model's whole view of the PR besides the checkout: its description and the diff of exactly
+// the head it reviews, from the merge-base (the PR's file list follows the live head instead).
+function writeContext({ pr, compare }) {
+  const { files = [] } = compare;
   const lines = [
     `# PR #${pr.number}: ${pr.title}`,
     "",
-    `Base ${pr.base.ref}, head ${pr.head.sha}. The PR's files are checked out in pr/.`,
+    `Base ${pr.base.ref}, head ${pr.head.sha}.`,
+    ...(files.length >= COMPARE_LIMIT
+      ? [
+          "",
+          `GitHub lists only the first ${files.length} files: read the checkout for the rest.`,
+        ]
+      : []),
     "",
     pr.body ?? "",
     "",
@@ -130,7 +139,7 @@ function writeContext({ repo, pr }) {
     lines.push(
       patch
         ? `\`\`\`diff\n${patch}\n\`\`\``
-        : `No diff shown: read pr/${filename}.`,
+        : `No diff shown: read ${filename} in the checkout.`,
     );
   }
   writeFileSync(CONTEXT, `${lines.join("\n")}\n`);
@@ -238,55 +247,74 @@ function summary(text) {
   }
 }
 
+// Whether the PR's head is still the one this run was started for. A newer push has its own run,
+// so a run for an older head posts nothing.
+function stillHead({ repo, pr }) {
+  return api(`repos/${repo}/pulls/${pr.number}`).head.sha === pr.head.sha;
+}
+
 function runPlan(event, env) {
   const repo = event.repository.full_name;
   const pr = event.pull_request;
-  const compare = api(`repos/${repo}/compare/${pr.base.sha}...${pr.head.sha}`);
-  const against = reviewedAgainst(pr.base.ref, compare.merge_base_commit.sha);
   const output = (name, value) =>
     appendFileSync(env.GITHUB_OUTPUT, `${name}=${value}\n`);
+  const { merge_base_commit: fork } = api(
+    `repos/${repo}/compare/${pr.base.sha}...${pr.head.sha}`,
+  );
+  const compare = api(`repos/${repo}/compare/${fork.sha}...${pr.head.sha}`);
+  const against = reviewedAgainst(pr.base.ref, fork.sha);
   output("schema", JSON.stringify(SCHEMA));
   output("against", against);
-  if (plan(event) === "reuse?") {
-    const slug = env.APP_SLUG;
-    const from = reusableShip({
+  const from =
+    plan(event) === "reuse?" &&
+    reusableShip({
       repo,
       number: pr.number,
       head: pr.head.sha,
       against,
-      slug,
+      slug: env.APP_SLUG,
     });
-    if (from) {
-      const title = `Lens's ship on ${from.slice(0, 7)} stands: only notes changed since.`;
-      postCheck({
-        repo,
-        name: "lens",
-        head: pr.head.sha,
-        pass: true,
-        title,
-        summary: title,
-        externalId: against,
-      });
-      output("review", "false");
-      summary(title);
-      return;
-    }
+  if (!stillHead({ repo, pr })) {
+    output("review", "false");
+    summary(
+      `${pr.head.sha.slice(0, 7)} is no longer the PR's head: its own run judges the new one.`,
+    );
+    return;
   }
-  writeContext({ repo, pr });
+  if (from) {
+    const title = `Lens's ship on ${from.slice(0, 7)} stands: only notes changed since.`;
+    postCheck({
+      repo,
+      name: "lens",
+      head: pr.head.sha,
+      pass: true,
+      title,
+      summary: title,
+      externalId: against,
+    });
+    output("review", "false");
+    summary(title);
+    return;
+  }
+  writeContext({ pr, compare });
   output("review", "true");
 }
 
 function runVerdict(event, env) {
   const repo = event.repository.full_name;
-  const { number, head } = event.pull_request;
+  const pr = event.pull_request;
   const usage = usageOf(env.EXECUTION_FILE);
   const result = verdictOf(env.STRUCTURED_OUTPUT ?? "", usage);
-  const body = commentFor(result, { head: head.sha, usage });
+  const body = commentFor(result, { head: pr.head.sha, usage });
   summary(body);
+  if (!stillHead({ repo, pr })) {
+    summary("The PR moved on while Lens reviewed: this verdict isn't posted.");
+    return;
+  }
   postReview({
     repo,
-    number,
-    head: head.sha,
+    number: pr.number,
+    head: pr.head.sha,
     body,
     findings: result.review?.findings ?? [],
   });
@@ -296,7 +324,7 @@ function runVerdict(event, env) {
   postCheck({
     repo,
     name: "lens",
-    head: head.sha,
+    head: pr.head.sha,
     pass: result.pass,
     title,
     summary: body,

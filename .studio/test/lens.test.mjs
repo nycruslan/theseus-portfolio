@@ -78,12 +78,10 @@ test("only the team's notes leave a review standing", () => {
       ),
     ),
   );
-  assert.ok(
-    notesOnly(
-      files(".studio/STATE.md", ".claude/agent-memory/engineer/MEMORY.md"),
-    ),
-  );
+  assert.ok(notesOnly(files(".studio/STATE.md")));
   for (const code of [
+    // Memory loads into the agents' prompts, so it's reviewed like code.
+    ".claude/agent-memory/engineer/MEMORY.md",
     "app/page.tsx",
     ".studio/lens.mjs",
     ".studio/sprint/3/hack.ts",
@@ -199,10 +197,14 @@ function step(name, payload, { table = {}, env = {} } = {}) {
       AGAINST,
       GH_ROUTES: routes({
         [`${R}/compare/ba5e...c0ffee`]: { merge_base_commit: { sha: "f0e1" } },
+        [`${R}/compare/f0e1...c0ffee`]: {
+          status: "ahead",
+          files: [
+            { filename: "app/page.tsx", status: "modified", patch: "+x" },
+          ],
+        },
+        [`${R}/pulls/15`]: { head: { sha: "c0ffee" } },
         [`POST ${R}/check-runs`]: { id: 1 },
-        [`${R}/pulls/15/files`]: [
-          { filename: "app/page.tsx", status: "modified", patch: "+x" },
-        ],
         ...table,
       }),
       GH_LOG: gh.file,
@@ -343,4 +345,19 @@ test("when GitHub refuses an inline comment, the findings stay in the review's b
     /\*\*nit\*\* `app\/x\.ts:999`: Name\. Rename\./,
   );
   assert.equal(checks[0].conclusion, "success");
+});
+
+test("a run whose head is no longer the PR's posts nothing", () => {
+  const moved = { [`${R}/pulls/15`]: { head: { sha: "newer" } } };
+  const planned = step("plan", event({ action: "labeled", label: "review" }), {
+    table: moved,
+  });
+  assert.match(planned.outputs, /^review=false$/m);
+  assert.equal(planned.context, false);
+  const reviewed = step("verdict", event(), {
+    table: moved,
+    env: { STRUCTURED_OUTPUT: review("ship") },
+  });
+  assert.deepEqual([reviewed.checks.length, reviewed.reviews.length], [0, 0]);
+  assert.match(reviewed.stdout, /moved on while Lens reviewed/);
 });
