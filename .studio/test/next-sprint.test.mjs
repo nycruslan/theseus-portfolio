@@ -6,10 +6,15 @@ const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
 
 // An open PR as REST lists it.
-const pr = (number, branch, labels = []) => ({
+const pr = (number, branch, labels = [], from = {}) => ({
   number,
   title: `PR ${number}`,
-  head: { ref: branch, sha: `${number}`.padStart(40, "0") },
+  author_association: from.association ?? "OWNER",
+  head: {
+    ref: branch,
+    sha: `${number}`.padStart(40, "0"),
+    repo: { full_name: from.repo ?? REPO },
+  },
   labels: labels.map((name) => ({ name })),
   html_url: `https://github.com/${REPO}/pull/${number}`,
 });
@@ -98,6 +103,25 @@ test("an open sprint PR is continued, not started again", () => {
   assert.equal(state.action.do, "continue");
   assert.equal(state.action.pr, 9);
   assert.match(state.action.say, /node \.studio\/merge\.mjs 9/);
+});
+
+test("ignores sprint-named PRs from forks and strangers, and never repeats a PR's title", () => {
+  // The repository is public: anyone can open a PR whose branch is called sprint/<n>.
+  const { state } = preflight(
+    github({
+      folders: [folder("1")],
+      pulls: [
+        pr(20, "sprint/7-takeover", [], { repo: "stranger/theseus-portfolio" }),
+        pr(21, "sprint/8-takeover", [], { association: "NONE" }),
+        pr(22, "sprint/9-takeover", [], { association: "CONTRIBUTOR" }),
+      ],
+    }),
+  );
+  assert.deepEqual(state.open, []);
+  assert.equal(state.highest.prs, 0);
+  assert.equal(state.next, 2);
+  assert.equal(state.action.do, "start");
+  assert.doesNotMatch(JSON.stringify(state), /PR 2[0-2]/);
 });
 
 test("stands down when every open sprint PR waits for the owner, and otherwise continues one that doesn't", () => {

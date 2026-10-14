@@ -16,6 +16,7 @@
 import { carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 
+const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 configure({ timeout: 20_000 });
@@ -34,12 +35,20 @@ try {
 
 function preflight(repo) {
   const base = api(`repos/${repo}`).default_branch ?? "main";
+  // The repository is public, so anyone can open a PR from a fork with a branch named sprint/<n>.
+  // Only the team's own PRs count: a branch in this repository, opened by the owner or a member.
+  // Otherwise a stranger's PR could have Atlas check out its code, stand down, or skip numbers.
+  // The title is free text a visitor can write, so it stays out of what Atlas is told.
   const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
-    .filter(({ head }) => SPRINT_BRANCH.test(head?.ref ?? ""))
+    .filter(
+      ({ head, author_association: association }) =>
+        head?.repo?.full_name === repo &&
+        TRUSTED.has(association) &&
+        SPRINT_BRANCH.test(head?.ref ?? ""),
+    )
     .sort((a, b) => a.number - b.number)
     .map((pr) => ({
       number: pr.number,
-      title: pr.title,
       branch: pr.head.ref,
       head: pr.head.sha,
       // As the gate holds it: a PR that ever carried needs-owner is the owner's to merge, even
