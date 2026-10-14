@@ -472,6 +472,14 @@ test("the latest run of a check decides: a newer failure beats an older pass", (
   assert.equal(rerun.code, 0, rerun.stderr);
 });
 
+test("the newest run is the one GitHub created last, whatever the start times say", () => {
+  // A re-run queued after a long first run can report an earlier start, or none yet.
+  const first = { ...RED, id: 7, started_at: "2026-10-13T02:05:00Z" };
+  const rerun = { ...GREEN, id: 8, started_at: null };
+  const { code, stderr } = merge(github({ checks: [rerun, first, SCOPE] }));
+  assert.equal(code, 0, stderr);
+});
+
 test("keeps the whole run inside its budget, counted from the start", () => {
   const started = Date.now();
   const { code, stdout } = merge(github({ checks: [RUNNING, SCOPE] }), {
@@ -850,6 +858,24 @@ test("still lists Iris's advice beside a NO-GO, and fails closed when it can't r
   assert.equal(unreadable.code, 1);
   assert.match(unreadable.stderr, /couldn't check PR #12 \(Bad Gateway/);
   assert.deepEqual(unreadable.merged, []);
+});
+
+test("reads the calibration folder at the PR's base commit, not a branch name", () => {
+  const files = [changed("app/globals.css")];
+  const comments = [
+    said("code-reviewer", "ship", reviewed),
+    said("design-director", "changes", reviewed),
+  ];
+  const { calls } = merge(
+    github({ files, statuses: {}, comments, extra: CALIBRATED }),
+  );
+  const reads = calls
+    .map((call) =>
+      call.find((arg) => arg.includes("contents/design/calibration")),
+    )
+    .filter(Boolean);
+  assert.ok(reads.length > 0);
+  for (const path of reads) assert.match(path, /\?ref=ba5e$/);
 });
 
 test("counts only the repository's own people: anyone can comment on a public PR", () => {

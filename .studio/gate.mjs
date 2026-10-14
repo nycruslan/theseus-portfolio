@@ -101,10 +101,11 @@ export function requiredChecks({ repo, base, cwd }) {
 /**
  * CI on the head: every check run and commit status except the reviewers' verdicts. Pending while
  * anything runs, and while a required check hasn't reported at all: a check that never ran hasn't
- * passed. Only the latest run of each check counts, as GitHub's own merge rules count it: a re-run
- * or an event that superseded a run leaves the older run on the commit (each workflow run is its
- * own check suite), and a cancelled one there would otherwise hold the head forever. When the
- * latest run is the cancelled one, it is pending while a newer run is queued, and a NO-GO otherwise.
+ * passed. Only the latest run of each check (the highest id) counts, as GitHub's merge rules count
+ * it: a re-run, or an event that superseded a run, leaves the older run on the commit (each
+ * workflow run is its own check suite), and a cancelled one there would otherwise hold the head
+ * forever. When the latest run is the cancelled one, it is pending while a newer run is queued, and
+ * a NO-GO otherwise.
  */
 export function ciItems({ repo, head, required = [], cwd }) {
   const runs = latestPerName(
@@ -167,23 +168,15 @@ export function ciItems({ repo, head, required = [], cwd }) {
     : [pending("CI", "CI hasn't reported on this commit yet.")];
 }
 
-// One run per check name: the one that started last. GitHub gives each check run an increasing
-// id, which breaks a tie in start time (or stands in for one that's missing); on a full tie a run
-// that wasn't cancelled wins, since cancelling is what superseded runs end with.
+// One run per check name: the newest. GitHub gives check runs ids in the order it creates them,
+// so the highest id is the latest run, whatever its start time says (a queued run may have none).
 function latestPerName(runs) {
   const latest = new Map();
   for (const run of runs) {
     const kept = latest.get(run.name);
-    if (!kept || newer(run, kept)) latest.set(run.name, run);
+    if (!kept || (run.id ?? 0) > (kept.id ?? 0)) latest.set(run.name, run);
   }
   return [...latest.values()];
-}
-
-function newer(a, b) {
-  const started = (run) => Date.parse(run.started_at ?? "") || 0;
-  if (started(a) !== started(b)) return started(a) > started(b);
-  if ((a.id ?? 0) !== (b.id ?? 0)) return (a.id ?? 0) > (b.id ?? 0);
-  return b.conclusion === "cancelled" && a.conclusion !== "cancelled";
 }
 
 /** Everything but CI: scope, the owner's hold and the verdicts. */
@@ -268,17 +261,18 @@ function verdicts({ pr, repo, files, cwd }) {
     const item = verdict(role, said, cwd);
     const advisory =
       role === "design-director" &&
-      !irisCalibrated({ repo, base: pr.base.ref, cwd });
+      !irisCalibrated({ repo, base: pr.base.sha, cwd });
     return [advisory ? asAdvice(item) : item];
   });
 }
 
 /**
- * Whether the owner has calibrated Iris, so her verdict holds the merge: the base branch's
- * `design/calibration/` holds at least one scored example, which is any `.md` file there besides
- * the README. It reads the base branch on GitHub rather than the checkout, so the branch under
- * review can't change the answer; no folder at all (404) means no examples. Any other failure
- * throws, and the gate fails closed.
+ * Whether the owner has calibrated Iris, so her verdict holds the merge: `design/calibration/` at
+ * the PR's base commit holds at least one scored example, which is any `.md` file there besides
+ * the README. It reads that commit on GitHub rather than the checkout, so the branch under review
+ * can't change the answer. A commit sha can't be missing the way a branch name can, so a 404 means
+ * only that the folder doesn't exist there: no examples. Any other failure throws, and the gate
+ * fails closed.
  */
 export function irisCalibrated({ repo, base, cwd }) {
   let entries;

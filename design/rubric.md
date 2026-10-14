@@ -39,8 +39,10 @@ score.
   than production, every hard gate passes and every criterion scores at least 6: what holds the
   score down is the layout it wasn't allowed to change. Sprints that own the layout still need the
   7. (Owner's call, 2026-10-14.)
-- Iris's scores count once they match the owner's scored examples in `design/calibration/`
-  within one point. Until then her verdict is advisory, and large visual work goes to the owner.
+- Iris's verdict holds the merge once the owner's scored examples are on main in
+  `design/calibration/` (any `.md` there besides the README; see that README). Until then her
+  verdict is advice that the merge gate reports without holding the merge, and large visual work
+  goes to the owner.
 
 ## Fails on sight ("AI slop")
 
