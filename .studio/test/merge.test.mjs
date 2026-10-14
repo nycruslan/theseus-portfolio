@@ -383,13 +383,25 @@ test("fails closed when it can't read the base branch's required checks", () => 
 
 test("a cancelled run waits for its queued replacement, and says so when there's none", () => {
   const cancelled = {
+    id: 1,
     name: "scope",
     status: "completed",
     conclusion: "cancelled",
+    started_at: "2026-10-13T02:09:55Z",
+  };
+  const replacement = {
+    ...SCOPE,
+    id: 2,
+    started_at: "2026-10-13T02:10:08Z",
   };
   const table = github({ workflowRuns: [{ name: "scope", status: "queued" }] });
+  // GitHub keeps the cancelled run on the commit beside its replacement: the replacement is a
+  // new check suite, not an update of the old run.
   table[`${R}/commits/*/check-runs`] = {
-    $seq: [{ check_runs: [GREEN, cancelled] }, { check_runs: [GREEN, SCOPE] }],
+    $seq: [
+      { check_runs: [GREEN, cancelled] },
+      { check_runs: [GREEN, replacement, cancelled] },
+    ],
   };
   const requeued = merge(table, { env: { THESEUS_MERGE_WAIT_MS: "30000" } });
   assert.equal(requeued.code, 0, requeued.stderr);
@@ -403,6 +415,44 @@ test("a cancelled run waits for its queued replacement, and says so when there's
     stderr,
     /scope was cancelled, and no newer run is queued: re-run it .*then run this again/,
   );
+});
+
+// Seen on PR #12's head c376048: a push, then a label seconds later, cancelled the first scope run,
+// and the second passed. Both stay on the commit, so only the latest run per name may count.
+test("a superseded cancelled run beside a newer green one doesn't hold the merge", () => {
+  const cancelled = {
+    id: 51,
+    name: "scope",
+    status: "completed",
+    conclusion: "cancelled",
+    started_at: "2026-10-13T02:09:55Z",
+  };
+  const passed = { ...SCOPE, id: 52, started_at: "2026-10-13T02:10:08Z" };
+  for (const checks of [
+    [GREEN, passed, cancelled],
+    [GREEN, cancelled, passed],
+  ]) {
+    const { code, stderr, merged } = merge(
+      github({
+        checks,
+        workflowRuns: [{ name: "scope", status: "completed" }],
+      }),
+    );
+    assert.equal(code, 0, stderr);
+    assert.deepEqual(merged, [{ merge_method: "squash", sha: reviewed }]);
+  }
+});
+
+test("the latest run of a check decides: a newer failure beats an older pass", () => {
+  const older = { ...GREEN, id: 1, started_at: "2026-10-13T02:00:00Z" };
+  const newer = { ...RED, id: 2, started_at: "2026-10-13T02:05:00Z" };
+  const { code, stderr } = merge(github({ checks: [older, newer, SCOPE] }));
+  assert.equal(code, 1);
+  assert.match(stderr, /check failed \(failure\)/);
+  const rerun = merge(
+    github({ checks: [{ ...RED, id: 1 }, { ...GREEN, id: 2 }, SCOPE] }),
+  );
+  assert.equal(rerun.code, 0, rerun.stderr);
 });
 
 test("keeps the whole run inside its budget, counted from the start", () => {

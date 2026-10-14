@@ -100,13 +100,18 @@ export function requiredChecks({ repo, base, cwd }) {
 /**
  * CI on the head: every check run and commit status except the reviewers' verdicts. Pending while
  * anything runs, and while a required check hasn't reported at all: a check that never ran hasn't
- * passed. A cancelled run is pending while a newer run is queued, and a NO-GO otherwise.
+ * passed. Only the latest run of each check counts, as GitHub's own merge rules count it: a re-run
+ * or an event that superseded a run leaves the older run on the commit (each workflow run is its
+ * own check suite), and a cancelled one there would otherwise hold the head forever. When the
+ * latest run is the cancelled one, it is pending while a newer run is queued, and a NO-GO otherwise.
  */
 export function ciItems({ repo, head, required = [], cwd }) {
-  const runs = list(`repos/${repo}/commits/${head}/check-runs?per_page=100`, {
-    key: "check_runs",
-    cwd,
-  });
+  const runs = latestPerName(
+    list(`repos/${repo}/commits/${head}/check-runs?per_page=100`, {
+      key: "check_runs",
+      cwd,
+    }),
+  );
   const statuses = list(`repos/${repo}/commits/${head}/status?per_page=100`, {
     key: "statuses",
     cwd,
@@ -159,6 +164,25 @@ export function ciItems({ repo, head, required = [], cwd }) {
   return all.length
     ? all
     : [pending("CI", "CI hasn't reported on this commit yet.")];
+}
+
+// One run per check name: the one that started last. GitHub gives each check run an increasing
+// id, which breaks a tie in start time (or stands in for one that's missing); on a full tie a run
+// that wasn't cancelled wins, since cancelling is what superseded runs end with.
+function latestPerName(runs) {
+  const latest = new Map();
+  for (const run of runs) {
+    const kept = latest.get(run.name);
+    if (!kept || newer(run, kept)) latest.set(run.name, run);
+  }
+  return [...latest.values()];
+}
+
+function newer(a, b) {
+  const started = (run) => Date.parse(run.started_at ?? "") || 0;
+  if (started(a) !== started(b)) return started(a) > started(b);
+  if ((a.id ?? 0) !== (b.id ?? 0)) return (a.id ?? 0) > (b.id ?? 0);
+  return b.conclusion === "cancelled" && a.conclusion !== "cancelled";
 }
 
 /** Everything but CI: scope, the owner's hold and the verdicts. */

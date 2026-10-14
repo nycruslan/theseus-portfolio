@@ -13,9 +13,11 @@ permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  group: scope-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# No concurrency group, on purpose. A push followed seconds later by a label or a body edit runs
+# scope twice on the same commit; a group would cancel one of them (with cancel-in-progress, or by
+# replacing a pending run without it), and GitHub keeps that cancelled run on the commit beside the
+# newer one. A run takes seconds and only reads, so letting each one finish costs nothing, and each
+# judges the labels its own event carried. The merge gate counts only the latest run per check.
 
 jobs:
   scope:
