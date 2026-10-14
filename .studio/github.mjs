@@ -1,5 +1,5 @@
-// GitHub through REST alone, for the harness's own scripts: merge.mjs, gate.mjs, verdict.mjs and
-// scope.mjs. Cloud sessions reach GitHub through a proxy that refuses GraphQL whatever the
+// GitHub through REST alone, for the harness's own scripts (merge.mjs, next-sprint.mjs, and gate.mjs
+// and lens.mjs in CI). Cloud sessions reach GitHub through a proxy that refuses GraphQL whatever the
 // credentials, so `gh pr …`, `gh issue …` and auto-merge fail there, while
 // `gh api repos/<owner>/<repo>/…` works (https://code.claude.com/docs/en/cloud-environments#github-proxy).
 // The repository comes from the origin remote's last two path segments: in the cloud the remote

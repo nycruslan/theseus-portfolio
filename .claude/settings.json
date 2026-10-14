@@ -20,6 +20,10 @@
       "Bash(*owner-approved*)",
       "Bash(pkill *)",
       "Bash(killall *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
       "mcp__github",
       "Edit(~/.claude.json)",
       "Edit(~/.claude/settings*.json)",
@@ -88,30 +92,6 @@
         ]
       },
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
-            "timeout": 10,
-            "onFailure": "block"
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/guard.mjs"],
-            "timeout": 10,
-            "onFailure": "block"
-          }
-        ]
-      },
-      {
         "matcher": "Agent|Workflow",
         "hooks": [
           {
@@ -119,17 +99,6 @@
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
             "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Agent|SendMessage",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/watchdog.mjs"],
-            "timeout": 10
           }
         ]
       }
@@ -147,7 +116,7 @@
         ]
       },
       {
-        "matcher": "^(Bash|Write|Edit|TaskUpdate|mcp__.*)$",
+        "matcher": "^(Bash|Write|Edit|TaskUpdate)$",
         "hooks": [
           {
             "type": "command",
@@ -219,18 +188,7 @@
         ]
       },
       {
-        "matcher": "code-reviewer|qa-engineer|design-director",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 45
-          }
-        ]
-      },
-      {
-        "matcher": "engineer|creative-engineer",
+        "matcher": "product-owner|design-director|engineer|creative-engineer|code-reviewer|qa-engineer",
         "hooks": [
           {
             "type": "command",
@@ -249,17 +207,6 @@
             "command": "node",
             "args": ["${CLAUDE_PROJECT_DIR}/.studio/emit.mjs"],
             "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "code-reviewer|qa-engineer|design-director",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.studio/verdict.mjs"],
-            "timeout": 45
           }
         ]
       },

@@ -37,7 +37,7 @@ jobs:
       # .next/cache is restored: a restored Turbopack cache once served a stale globals.css, so
       # next.config.ts turns that cache off and each build starts clean, in seconds.
       - run: pnpm verify
-      # The team's harness: hooks for the broadcast, the write guard, verdicts and the merge gate.
+      # The team's harness: the gate and lens checks, merge.mjs, the hooks and the broadcast.
       - run: pnpm test:harness
       # Browsers are cached per Playwright version; their system libraries are installed each run.
       - id: playwright
