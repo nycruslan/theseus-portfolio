@@ -1,9 +1,29 @@
 import { Section } from "@/components/section";
 import { profile } from "@/content/profile";
+import { SITE_URL } from "@/lib/site";
+
+// Who this page is about, for search engines: the owner's facts from content/profile.ts as they
+// appear on the page, and nothing more.
+const person = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: profile.name,
+  jobTitle: profile.headline,
+  description: profile.bio,
+  url: SITE_URL,
+  sameAs: profile.links.map((link) => link.href),
+};
 
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(person).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="flex flex-col gap-4">
         <h1 className="text-step-2xl font-semibold tracking-tight">
           {profile.name}

@@ -34,3 +34,38 @@ test.describe("with reduced motion", () => {
     expect(errors).toEqual([]);
   });
 });
+
+test("search engines and link previews find what they need", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  const head = await page.evaluate(() => {
+    const content = (selector: string) =>
+      document.querySelector(selector)?.getAttribute("content") ?? "";
+    const person = document.querySelector(
+      'script[type="application/ld+json"]',
+    )?.textContent;
+    return {
+      ogImage: content('meta[property="og:image"]'),
+      ogTitle: content('meta[property="og:title"]'),
+      canonical:
+        document.querySelector('link[rel="canonical"]')?.getAttribute("href") ??
+        "",
+      icon:
+        document.querySelector('link[rel="icon"]')?.getAttribute("href") ?? "",
+      person: person
+        ? (JSON.parse(person) as { "@type"?: string; name?: string })
+        : null,
+    };
+  });
+  expect(head.ogTitle).toContain(profile.name);
+  expect(head.canonical).toMatch(/^https:\/\//);
+  expect(head.person).toMatchObject({ "@type": "Person", name: profile.name });
+  // The tags name the production host; the same paths are served here.
+  const image = await request.get(new URL(head.ogImage).pathname);
+  expect(image.headers()["content-type"]).toBe("image/png");
+  expect((await request.get(head.icon)).ok()).toBe(true);
+  expect(await (await request.get("/robots.txt")).text()).toMatch(/Sitemap:/);
+  expect((await request.get("/sitemap.xml")).ok()).toBe(true);
+});

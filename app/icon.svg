@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Ruslan</title>
+  <!-- The owner's initial (content/profile.ts) in copper on the sea-glass ground, following the system's scheme. The
+       colors repeat the tokens in app/globals.css (an SVG file can't read them); change them together. -->
+  <style>
+    .ground { fill: #e6f3f1; }
+    .mark { stroke: #944126; }
+    @media (prefers-color-scheme: dark) {
+      .ground { fill: #091413; }
+      .mark { stroke: #eb8a64; }
+    }
+  </style>
+  <rect class="ground" width="32" height="32" rx="7"/>
+  <path class="mark" d="M11 25V7h6.5a5.5 5.5 0 0 1 0 11H11m6 0 5.5 7" fill="none" stroke-width="3.5" stroke-linejoin="round"/>
+</svg>
