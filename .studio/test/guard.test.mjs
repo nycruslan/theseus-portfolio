@@ -39,6 +39,8 @@ test("protects the owner's files from everyone, the lead included", () => {
     "AGENTS.md",
     "app/CLAUDE.md",
     ".mcp.json",
+    ".gitattributes",
+    "app/.gitattributes",
     ".claude/CLAUDE.md",
     ".claude/settings.json",
     ".claude/settings.local.json",

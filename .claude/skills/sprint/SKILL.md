@@ -100,5 +100,9 @@ ship, or write the not-shipped report and its STATE.md entry.
 
 Each role that worked adds at most three memory lines, each citing the sprint path, and corrects
 lines that proved wrong. A role that ran in its own worktree writes its memory there (Claude Code
-blocks its writes to the main checkout) and names the commit: bring each one to the sprint branch
-with `git cherry-pick <sha>` before the close-out push. Memory is notes, so the verdicts carry over. Add one STATE.md entry: the outcome and the lesson.
+blocks its writes to the main checkout) and names the commit. Before the close-out push, bring
+those commits to the sprint branch oldest first: skip one that's already on it
+(`git merge-base --is-ancestor <sha> HEAD` succeeds), otherwise `git cherry-pick <sha>`, and if
+that stops because the change is already there, `git cherry-pick --skip`. `.gitattributes` merges
+memory files by union, so two reviews in one role don't conflict. Memory is notes, so the verdicts
+carry over. Add one STATE.md entry: the outcome and the lesson.
