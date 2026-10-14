@@ -8,10 +8,13 @@ on:
 permissions:
   contents: read
 
-# A newer push to a PR supersedes the run on its older head, so that run stops. Pushes to main
-# all finish. A cancelled run sits on the old commit only, so it never blocks the new head.
+# On a PR, the group is the PR's ref: a newer push cancels the run on the older head, running or
+# waiting. That cancelled run sits on the old commit only, so it never blocks the new head. On a
+# push to main, the group is the commit itself, so no two pushes share a group and every push's
+# run finishes; a group shared across pushes would cancel a waiting run even without
+# cancel-in-progress.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

@@ -5,8 +5,8 @@ const deployedURL = process.env.PLAYWRIGHT_BASE_URL;
 // A port no dev server uses; Playwright starts and stops this server itself. Agents running the
 // suite side by side each pick a free one with PLAYWRIGHT_PORT, since a port in use fails the run.
 const port = Number(process.env.PLAYWRIGHT_PORT || 3300);
-// CI sets it after `pnpm verify` has built the same checkout in the same job, so the build runs once.
-const build = process.env.PLAYWRIGHT_PREBUILT ? "" : "pnpm build && ";
+// CI sets PLAYWRIGHT_PREBUILT=1 after `pnpm verify` built this checkout in the same job, so it builds once.
+const build = process.env.PLAYWRIGHT_PREBUILT === "1" ? "" : "pnpm build && ";
 
 export default defineConfig({
   testDir: "e2e",
