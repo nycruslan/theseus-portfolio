@@ -1,3 +1,7 @@
 - [Seed dark block in globals.css](project_scoping_seed_dark_block.md) — a token contract must decide the fate of the existing prefers-color-scheme block
 - [Contract vs existing e2e](feedback_contract_vs_existing_e2e.md) — read earlier specs first; keep old guards green, list what they already cover
+- [Roadmap vs repo](project_roadmap_state_check.md) — tick shipped items by checking the code before choosing a goal
 - Name tokens in the contract (fixed custom-property names) so Probe's e2e checks are deterministic; dark-block default is "kept, parity only"
+- Sprint 4 (.studio/sprint/4/): adding visible text breaks project-cards C2 (exact text outside cards); say in the contract which single line Probe inserts, additions only (scope.mjs flags removed lines)
+- Sprint 4 (.studio/sprint/4/): unlayered CSS beats Tailwind utilities, so a global :focus-visible rule goes in `@layer base`; globals.css may declare no new custom property (project-cards C8 snapshot)
+- Sprint 4 (.studio/sprint/4/): axe was already clean per scheme, so an "axe pass" contract must target what axe can't see (keyboard order, skip link, forced colors) and add a stricter tag-set run

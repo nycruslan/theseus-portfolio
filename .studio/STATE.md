@@ -45,3 +45,30 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 - **Lesson:**
   - Writing the checks first caught a contract bullet that couldn't pass before anyone built anything. Next's flight scripts carry `prefers-color-scheme` (`probe-checks.md`).
   - Until the owner settles the rubric's placeholder gate, every visual sprint will stop at `needs-owner`. Pick non-visual items, or settle the rubric first.
+
+## Sprint 3: project cards (PR #16)
+
+- **Outcome:** each project is a "plank" in `components/project-card.tsx`: a `--rule` frame (full-bleed rules
+  on phones, a full frame from md), an ink title with a copper underline, a muted aria-hidden arrow, the whole
+  card is the link, and a 2 px copper focus ring. Lens, Probe and Iris (advisory, 7.3/10, the first sprint over
+  7.0) said ship on 57999ec with no fix rounds. Probe's C10 test added a `test.skip(`, which scope.mjs
+  rejects, so a spec-only fix (a10d633) went to a fresh Lens and a fresh Probe, and both said ship.
+- **Lesson:**
+  - A builder who measures in the browser catches what a direction misses (the 1 px border, the seam over
+    the focus ring).
+  - Run scope.mjs's weakening rules on a new spec before review. Any added `test.skip(`, even a
+    conditional one, needs the owner.
+
+## Sprint 4: accessibility pass (PR #17)
+
+- **Outcome:** a CSS-only "Skip to content" link (first Tab stop, `components/skip-link.tsx`), `main#main`
+  with `tabIndex={-1}`, one shared 2 px `--accent` `:focus-visible` ring in `@layer base`, the card arrow
+  turns copper on keyboard focus, the card link uses `outline-none` (Tailwind's `outline-hidden` paints a
+  second ring in forced colors), and Contact links are `inline-block` (24 px targets). Lens, Probe and Iris
+  (advisory, 7.5/10) said ship on 863efa2, no fix rounds; at rest the page is pixel-identical to main.
+- **Lesson:**
+  - Writing checks first caught a contract file-scope that made a check unbuildable (C8). Contracts
+    should name the outcome and let file lists be a guide, not a fence.
+  - The skip link skips nothing while `main` wraps the whole page: an a11y feature can pass every check
+    and still not serve its stated reason. Name the visitor's outcome as a check (Contact reachable in N Tabs).
+  - Production is unreachable from cloud sessions (proxy 403); C9-style comparisons use an origin/main build.

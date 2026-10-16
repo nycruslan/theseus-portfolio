@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { ProjectCard } from "@/components/project-card";
 import { Section } from "@/components/section";
+import { SkipLink } from "@/components/skip-link";
 import { profile } from "@/content/profile";
 import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
@@ -24,73 +26,69 @@ const person = {
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24">
-      <script
-        type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(person).replace(/</g, "\\u003c"),
-        }}
-      />
-      <header className="flex flex-col gap-4">
-        <h1 className="text-step-2xl font-semibold tracking-tight">
-          {profile.name}
-        </h1>
-        <p className="text-step-xl">{profile.headline}</p>
-        <p className="text-step-base text-muted">{profile.location}</p>
-        <p className="text-step-lg">{profile.bio}</p>
-      </header>
+    <>
+      <SkipLink />
+      {/* tabIndex -1: focusable by the skip link, never a Tab stop of its own. */}
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24"
+      >
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(person).replace(/</g, "\\u003c"),
+          }}
+        />
+        <header className="flex flex-col gap-4">
+          <h1 className="text-step-2xl font-semibold tracking-tight">
+            {profile.name}
+          </h1>
+          <p className="text-step-xl">{profile.headline}</p>
+          <p className="text-step-base text-muted">{profile.location}</p>
+          <p className="text-step-lg">{profile.bio}</p>
+        </header>
 
-      <Section id="experience" title="Experience">
-        <ol className="flex flex-col gap-8">
-          {profile.experience.map((role) => (
-            <li key={`${role.company}-${role.period}`}>
-              <h3 className="text-balance text-step-lg font-medium">
-                {role.title} · {role.company}
-              </h3>
-              <p className="text-step-sm text-muted">{role.period}</p>
-              <p className="mt-2 text-step-base">{role.summary}</p>
-            </li>
-          ))}
-        </ol>
-      </Section>
+        <Section id="experience" title="Experience">
+          <ol className="flex flex-col gap-8">
+            {profile.experience.map((role) => (
+              <li key={`${role.company}-${role.period}`}>
+                <h3 className="text-balance text-step-lg font-medium">
+                  {role.title} · {role.company}
+                </h3>
+                <p className="text-step-sm text-muted">{role.period}</p>
+                <p className="mt-2 text-step-base">{role.summary}</p>
+              </li>
+            ))}
+          </ol>
+        </Section>
 
-      <Section id="projects" title="Projects">
-        <ul className="flex flex-col gap-8">
-          {profile.projects.map((project) => (
-            <li key={project.name}>
-              <h3 className="text-balance text-step-lg font-medium">
-                {project.href ? (
-                  <a
-                    href={project.href}
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    {project.name}
-                  </a>
-                ) : (
-                  project.name
-                )}
-              </h3>
-              <p className="mt-2 text-step-base">{project.description}</p>
-            </li>
-          ))}
-        </ul>
-      </Section>
+        <Section id="projects" title="Projects">
+          <ul className="flex flex-col">
+            {profile.projects.map((project) => (
+              <ProjectCard key={project.name} project={project} />
+            ))}
+          </ul>
+        </Section>
 
-      <Section id="contact" title="Contact">
-        <ul className="flex flex-wrap gap-6">
-          {profile.links.map((link) => (
-            <li key={link.href}>
-              <a
-                href={link.href}
-                className="text-step-base text-accent underline underline-offset-4 hover:text-foreground"
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </Section>
-    </main>
+        <Section id="contact" title="Contact">
+          <ul className="flex flex-wrap gap-6">
+            {profile.links.map((link) => (
+              <li key={link.href}>
+                {/* inline-block so the target is the whole 1.6 line box (WCAG 2.2's 24 px
+                  minimum), not the shorter glyph box an inline link reports. */}
+                <a
+                  href={link.href}
+                  className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      </main>
+    </>
   );
 }
