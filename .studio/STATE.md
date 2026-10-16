@@ -45,3 +45,16 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 - **Lesson:**
   - Writing the checks first caught a contract bullet that couldn't pass before anyone built anything. Next's flight scripts carry `prefers-color-scheme` (`probe-checks.md`).
   - Until the owner settles the rubric's placeholder gate, every visual sprint will stop at `needs-owner`. Pick non-visual items, or settle the rubric first.
+
+## Sprint 3: project cards (PR #16)
+
+- **Outcome:** each project is a "plank" in `components/project-card.tsx`: a `--rule` frame (full-bleed rules
+  on phones, a full frame from md), an ink title with a copper underline, a muted aria-hidden arrow, the whole
+  card is the link, and a 2 px copper focus ring. Lens, Probe and Iris (advisory, 7.3/10, the first sprint over
+  7.0) said ship on 57999ec with no fix rounds. Probe's C10 test added a `test.skip(`, which scope.mjs
+  rejects, so a spec-only fix (a10d633) went to a fresh Lens and a fresh Probe, and both said ship.
+- **Lesson:**
+  - A builder who measures in the browser catches what a direction misses (the 1 px border, the seam over
+    the focus ring).
+  - Run scope.mjs's weakening rules on a new spec before review. Any added `test.skip(`, even a
+    conditional one, needs the owner.
