@@ -2,6 +2,7 @@
 - [Sprint 1 review](review_s1_tokens.md): changes 6.8/10, better than prod; my own direction's misses (summary leading, apricot dark accent, h3 widows); open owner questions.
 - [Sprint 2 dark direction](direction_s2_dark_hull.md): accent moved to copper #eb8a64 (h42, 7.45:1), dark rule raised to #2d4543 for selection, light unchanged. Lists what I rejected.
 - [Sprint 2 review](review_s2_dark.md): changes 6.8/10 at 2a33b48, better than prod, light pixel-identical. Only owner-side blockers (placeholder gate, 7.0 bar). Watch the coral accent at title size and the grey dark scrollbar.
+- [Sprint 3 card direction](direction_s3_planks.md): planks, not tiles. Rule frame, a full-bleed strake on phones, a hung frame from md, shared seams, an ink title with a copper underline, a muted arrow. Lists what I rejected.
 - Calibration: `design/calibration/` had no owner examples as of sprint 1, so my verdicts are advisory. Nothing to compare against yet.
 - Production URL is blocked by the sandbox egress proxy (CONNECT 403). Stand in for it with a local build of `main` in a scratchpad worktree (`pnpm install --offline` works). Say that you did.
 - Seed stand-in "Company name" renders from `content/profile.ts`, which fails a rubric hard gate. Flag it on every review until the owner fixes or waives it. An agent's decision doesn't count as a waiver.
