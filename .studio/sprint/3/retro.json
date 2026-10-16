@@ -1,0 +1,38 @@
+{
+  "sprint": 3,
+  "goal": "Roadmap item 3: project cards with name, description and link; the whole card is the target; title in ink with a copper underline",
+  "outcome": "shipped if merge.mjs merges PR #16 (see STATE.md). Lens, Probe and Iris (advisory, 7.3/10, first sprint over the 7.0 bar) all said ship on 57999ec",
+  "size": "M",
+  "fix_rounds": 0,
+  "builder_dispatches": 1,
+  "pr": 16,
+  "head_reviewed": "57999ecffa6325adc756675313f23eca16f6e170",
+  "lens_important_findings": 0,
+  "lens_important_acted_on": 0,
+  "went_wrong": [
+    {
+      "what": "Iris's direction missed two things: the 1 px side border from md (text 1 px off the column) and the focus ring painted over by the next card's seam. Pixel caught both, and Lens and Iris confirmed them",
+      "evidence": ".studio/sprint/3/review-lens.md; review-iris.md rulings 1 and 2"
+    },
+    {
+      "what": "Probe's C4 assumed every project has an href. Her review fixed the spec after the verdicts, which would have dropped the verdicts on a code commit, so the fix is held for a follow-up",
+      "evidence": "commit 3eb30b6 in Probe's worktree; .studio/sprint/3/review-probe.md"
+    },
+    {
+      "what": "C6 checks the computed ring width, not the painted ring, so removing the focus z-10 keeps every check green",
+      "evidence": ".studio/sprint/3/review-lens.md, retro notes"
+    }
+  ],
+  "proposed_setup_changes": [
+    {
+      "change": "Let a reviewer's own e2e fix land before the verdict: Probe fixes the spec in her worktree, Atlas brings it to the branch, and only then do the reviewers post verdicts on that head. Or let merge.mjs carry verdicts over e2e-only commits authored by qa-engineer",
+      "moves": "review-time spec fixes held out of the PR: 1 of 1 this sprint"
+    }
+  ],
+  "follow_ups": [
+    "Probe: land the C4 fix (an underline only for a project with an href) from 3eb30b6; add a two-card check that reads the focus ring's painted seam; fold C8's token snapshot into invariants.spec.ts",
+    "Item 6: the arrow turns copper on keyboard focus (group-has-[a:focus-visible]:text-accent); hide the link's inner forced-colors ring",
+    "Pixel: overflow-wrap:anywhere on card text if descriptions may hold long URLs (review-probe.md observation 1)",
+    "Owner: the Theseus href is TODO(owner); the card now makes it the largest target (review-iris.md)"
+  ]
+}

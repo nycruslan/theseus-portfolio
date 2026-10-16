@@ -45,3 +45,13 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 - **Lesson:**
   - Writing the checks first caught a contract bullet that couldn't pass before anyone built anything. Next's flight scripts carry `prefers-color-scheme` (`probe-checks.md`).
   - Until the owner settles the rubric's placeholder gate, every visual sprint will stop at `needs-owner`. Pick non-visual items, or settle the rubric first.
+
+## Sprint 3: project cards (PR #16)
+
+- **Outcome:** each project is a "plank" in `components/project-card.tsx`: a `--rule` frame (full-bleed rules
+  on phones, a full frame from md), an ink title with a copper underline, a muted aria-hidden arrow, the whole
+  card is the link, and a 2 px copper focus ring. Lens, Probe and Iris (advisory, 7.3/10, the first sprint over
+  7.0) said ship on 57999ec with no fix rounds. Merged by merge.mjs if CI is green; see the PR.
+- **Lesson:** a builder who measures in the browser catches what a direction misses (the 1 px border, the
+  seam over the focus ring). And a reviewer who fixes a spec while reviewing should do it before posting the
+  verdict, or the fix waits for the next PR.
