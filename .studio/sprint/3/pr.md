@@ -2,14 +2,15 @@
 
 - **Goal:** roadmap item 3. Each project becomes a card with its name, description and link. The whole card is the link target, and the title moves to the foreground colour with a copper underline.
 - **Size:** M. Quill wrote the contract, Iris the direction (`direction.md`, "planks, not tiles"), Probe the checks first (`e2e/project-cards.spec.ts`), Pixel built `components/project-card.tsx`, no fix rounds.
-- **Contract:** `.studio/sprint/3/contract.md`, C1–C10, all passing on 57999ec (`pnpm verify` clean; e2e 31 passed, 1 skipped, the owner's `fixme`). Decisions: `.studio/sprint/3/decisions.md`.
+- **Contract:** `.studio/sprint/3/contract.md`, C1–C9 are Playwright tests, all passing on a10d633 (`pnpm verify` clean; e2e 30 passed, 1 skipped, the owner's `fixme`). C10 is shown by CI and by scope.mjs's `content/` rule. Its test was dropped because its `test.skip(` tripped the scope check. Decisions: `.studio/sprint/3/decisions.md`.
 - Also ticks roadmap items 2 (dark mode, merged in #12) and 5 (Open Graph image, already on main).
 
-## Verdicts (on 57999ec)
+## Verdicts
 
-- **Lens:** ship, no Important findings. Both of Pixel's deviations from the direction (`has-[a:focus-visible]:z-10`, the 1 px md padding) are correct (`review-lens.md`).
-- **Probe:** ship, with every check passing in the browser (`review-probe.md`). Her C4 spec fix for a project without an `href` is held for a follow-up, so the verdicts stay on the reviewed code.
-- **Iris (advisory):** ship, 7.3/10, better than main (`review-iris.md`).
+- **Lens, on 57999ec:** ship, no Important findings. Both of Pixel's deviations from the direction (`has-[a:focus-visible]:z-10`, the 1 px md padding) are correct (`review-lens.md`).
+- **Probe, on 57999ec:** ship, with every check passing in the browser (`review-probe.md`).
+- **Fresh Lens and Probe, on a10d633:** ship (`review-lens-2.md`, `review-probe-2.md`). That commit only changes the spec: it drops C10's `test.skip` and fixes C4 for a project without an `href`. Probe's mutation tests show C1–C9 catch a bad card.
+- **Iris (advisory), on 57999ec:** ship, 7.3/10, better than main. The product code hasn't changed since (`review-iris.md`).
 
 ## Not verified
 
