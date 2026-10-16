@@ -35,8 +35,10 @@ verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) m
 
 ## Merge policy
 
-GitHub decides what merges. The `protect-main` ruleset has no bypass. It requires a pull request,
-the owner's review wherever `.github/CODEOWNERS` names him, and three checks:
+GitHub decides what merges, through the `protect-main` ruleset. Its one bypass is the owner's: the
+repository admin role, for pull requests only. The team's account isn't an admin. The ruleset
+requires a pull request, the owner's review wherever `.github/CODEOWNERS` names him, and three
+checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
 - `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
   touches an owner path, changes `package.json`'s scripts, weakens a test or ever carried
