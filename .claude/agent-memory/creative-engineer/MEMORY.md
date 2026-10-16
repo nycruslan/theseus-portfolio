@@ -2,3 +2,6 @@
 - Proving "light unchanged": `git archive origin/main | tar -x` into the scratchpad, `cp -a node_modules` in, build and `next start` on its own port, then canvas-diff full-page screenshots against the branch build; sprint 2 got 0 differing pixels.
 - `node_modules/.bin/next start` run in the background leaves a `next-server` child after `kill $!`; find it by start time with `ps -eo pid,ppid,lstart,cmd` and kill that pid too (never by name or port).
 - Guard limits: see .claude/agent-memory/qa-engineer/MEMORY.md.
+- Tailwind v4 here compiles `has-[a:focus-visible]:`, `-outline-offset-2`, `outline-hidden` (none + transparent 2px ring under forced-colors), `h-[1lh]`, `not-first:` and `--spacing(n)` inside arbitrary `calc()`. Verify any new variant by grepping the built CSS in `.next/static` (fixed-string grep, escaped class names).
+- A frame that hangs into the gutter by its padding drifts 1 px once it has side borders: give the border back in the inline padding (`md:px-[calc(--spacing(8)-1px)]`). Measure label/title/arrow x in the browser, not by eye.
+- The guard refuses one shell line that both writes and runs a script: Write the scratchpad script first, then run it with `node <abs path>`; import Playwright by absolute path (`node_modules/@playwright/test/index.mjs`). Element screenshots clip hanging frames: use `fullPage` + clip with `scrollY` added.

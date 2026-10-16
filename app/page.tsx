@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ProjectCard } from "@/components/project-card";
 import { Section } from "@/components/section";
 import { profile } from "@/content/profile";
 import { openGraph } from "@/lib/metadata";
@@ -56,23 +57,9 @@ export default function Home() {
       </Section>
 
       <Section id="projects" title="Projects">
-        <ul className="flex flex-col gap-8">
+        <ul className="flex flex-col">
           {profile.projects.map((project) => (
-            <li key={project.name}>
-              <h3 className="text-balance text-step-lg font-medium">
-                {project.href ? (
-                  <a
-                    href={project.href}
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    {project.name}
-                  </a>
-                ) : (
-                  project.name
-                )}
-              </h3>
-              <p className="mt-2 text-step-base">{project.description}</p>
-            </li>
+            <ProjectCard key={project.name} project={project} />
           ))}
         </ul>
       </Section>
