@@ -71,6 +71,22 @@ body {
   font-size: var(--step-base);
 }
 
+/* One focus ring for everything focusable: the cards' 2 px copper, set off the text. It sits in
+   @layer base on purpose: an unlayered rule outranks every Tailwind utility, so the card link's
+   own `focus-visible:outline-none` would lose and the card would draw two rings. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* main takes focus only as the skip link's landing spot; it is not a control, so no ring (Chrome
+     would otherwise draw its own once the skip link is used from the keyboard). */
+  [tabindex="-1"]:focus {
+    outline: none;
+  }
+}
+
 ::selection {
   background: var(--rule);
   color: var(--foreground);
