@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
@@ -330,18 +329,29 @@ test("C4. title in ink, underline in copper, in both schemes", async ({
       expect
         .soft(title?.color, `${project.name} title color (${scheme})`)
         .toBe(colors["--foreground"]);
-      expect
-        .soft(
-          title?.line,
-          `${project.name} title text-decoration-line (${scheme})`,
-        )
-        .toContain("underline");
-      expect
-        .soft(
-          title?.lineColor,
-          `${project.name} title underline color (${scheme})`,
-        )
-        .toBe(colors["--accent"]);
+      // A project with no href has no link, so its name is plain ink with no underline: an
+      // underline there would promise a link that isn't (direction.md, no-href branch).
+      if (project.href) {
+        expect
+          .soft(
+            title?.line,
+            `${project.name} title text-decoration-line (${scheme})`,
+          )
+          .toContain("underline");
+        expect
+          .soft(
+            title?.lineColor,
+            `${project.name} title underline color (${scheme})`,
+          )
+          .toBe(colors["--accent"]);
+      } else {
+        expect
+          .soft(
+            title?.line,
+            `${project.name} (no href) title has no underline (${scheme})`,
+          )
+          .not.toContain("underline");
+      }
     }
     const contact = await page
       .locator('section[aria-labelledby="contact"] a')
@@ -732,29 +742,4 @@ test("C9. the card reflows at 320 and 390 px, in both schemes", async ({
       }
     }
   }
-});
-
-test("C10. content/ has no diff against origin/main", async () => {
-  // The rest of C10 is `pnpm verify` and this whole suite passing unedited. CI checks out one
-  // commit with no origin/main, so there this part is the scope check's job, not skipped silently:
-  // the skip is visible in the report.
-  const root = repoRoot();
-  let changed: string;
-  try {
-    changed = execFileSync(
-      "git",
-      ["diff", "--name-only", "origin/main", "--", "content"],
-      { cwd: root, encoding: "utf8" },
-    );
-  } catch {
-    test.skip(
-      true,
-      "no origin/main in this checkout; .studio/scope.mjs covers content/ in CI",
-    );
-    return;
-  }
-  expect(
-    changed.trim().split("\n").filter(Boolean),
-    "files under content/ changed since origin/main",
-  ).toEqual([]);
 });

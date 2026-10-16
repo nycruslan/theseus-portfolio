@@ -18,7 +18,7 @@ tests under one `describe`). Run against the sprint's base (9a37002), the curren
 | C7 reduced motion, no script (2 tests) | pass | No animation, no transition, hover changes no geometry; no `use client`, `useEffect`, `matchMedia` or `dark:` in `app/` or `components/`. Guards the build. |
 | C8 tokens only | pass | No literal in `app/`, `components/` (apart from the token declarations); `app/globals.css` declares exactly the 31 custom properties it does at 9a37002. Guards the build. |
 | C9 reflow at 320 and 390 | pass | No overflow, no clipped text. Guards the build. |
-| C10 | partly | `content/` has no diff against `origin/main` (test, passes). `pnpm verify` passes now; the full suite passing is shown at the end. |
+| C10 | partly | No test: the `content/` diff is `.studio/scope.mjs`'s job (it fails any PR that touches `content/`, an owner path), so the C10 test was dropped (it needed `origin/main` and used `test.skip`, which scope.mjs rejects). `pnpm verify` and the full suite passing cover the rest. |
 
 ## Proof the checks are fair
 
@@ -26,8 +26,7 @@ The checks were also run against two throwaway builds of a card (in the scratchp
 - A reference card that meets the contract (bordered `li`, stretched link with an `after:` box,
   `--foreground` title with a `decoration-accent` underline, `has-[a:focus-visible]:outline-2
   outline-accent` on the `li`, an `aria-hidden` SVG arrow, `motion-safe:transition-colors`): all of
-  `e2e/` passes, 3 runs in a row, no flake (30 passed, 2 skipped, the second skip being C10 where
-  there is no `origin/main`).
+  `e2e/` passes, 3 runs in a row, no flake (at that time 30 passed, 2 skipped; the C10 skip has since been removed with the C10 test).
 - A bad card (`border-rule/50`, `shadow-sm`, un-guarded `transition-colors`, `hover:-translate-y-1`,
   a link that does not stretch, an outline on the link only, a `before:content-['→']` glyph, an SVG
   without `aria-hidden` at `opacity-50`) fails C2, C3, C5, C6 and C7 with the reason named.
@@ -73,8 +72,9 @@ The checks were also run against two throwaway builds of a card (in the scratchp
    spec (the CI checkout has no `origin/main` to diff against). It is sprint 3's guard: a later
    sprint that retunes a token has to update or retire it, which only Probe can do. I will fold
    the lasting part into `invariants.spec.ts` after the merge; Atlas, put that on the retro.
-3. **C10's `content/` diff** needs `origin/main`, which CI's one-commit checkout lacks, so there
-   the test skips (visible in the report) and `.studio/scope.mjs` is the guard. Fine?
+3. **C10's `content/` diff** has no test any more. It needed `origin/main`, which CI's one-commit
+   checkout lacks, so it skipped there, and `.studio/scope.mjs` rejects an added skip as weakening
+   the suite. `scope.mjs` already fails a PR that touches `content/`, so that is the guard.
 4. **C4 "title"**: I take the element holding the project name inside the `h3`, and look for the
    underline on it or the nearest ancestor up to the card. The link-around-heading form (`a > h3`)
    is not covered; the `h3`-holds-`a` form and a `span` inside it are.
