@@ -6,13 +6,12 @@ An AI agent team rebuilds this portfolio, sprint by sprint, while visitors watch
 with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships one pull
 request, sized S, M or L, and only the roles that lane needs take part (see the sprint skill).
 
-- **Roles** (`.claude/agents/`): Quill owns what's worth building and what "done" means, Scout what's
-  true today, Iris taste, Forge and Pixel the code, Lens code review, Probe whether it works.
+- **Roles** (`.claude/agents/`): Quill owns the roadmap and, on large work, what "done" means; Iris
+  taste; Forge the code, and Pixel 3D and motion; Lens code review; Probe whether it works.
 - **Who writes what:** Forge and Pixel change product code. Probe owns the end-to-end checks in
   `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder and their
-  own memory. `.studio/guard.mjs` holds to this for file edits, MCP tools and, as far as it can,
-  the shell. The lead doesn't write product code either, but that's the sprint skill's rule, not
-  the guard's: the guard lets the main session write, since the owner's own sessions run as it.
+  own memory. `.studio/guard.mjs` holds file edits to this. The lead doesn't write product code
+  either; that's the sprint skill's rule, since the owner's own sessions also run as the lead.
 - **Shared state:**
   - `.studio/STATE.md`: what the team learned.
   - `ROADMAP.md`: what's next, owned by Quill.
@@ -20,11 +19,11 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   - `design/rubric.md`: the design bar, calibrated by the owner's examples in `design/calibration/`.
 
   Production is https://theseus-portfolio.vercel.app.
-- **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`. The directory is set when
-  the role starts, from the session's checkout, so a role working in a worktree of its own (under
-  `.claude/worktrees/`) is pointed at the main checkout, where Claude Code blocks its writes. It
-  writes to `.claude/agent-memory/<role>/` inside its worktree instead, commits just those files,
-  and names the commit in its report so Atlas brings it to the sprint branch.
+- **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`: what it learned about
+  the product, the code and the design, never workarounds for the environment (report those in the
+  retro as setup bugs). A role working in a worktree of its own (under `.claude/worktrees/`) can't
+  write the main checkout's memory, so it writes `.claude/agent-memory/<role>/` inside its
+  worktree, commits just those files, and names the commit in its report for Atlas to bring over.
 
 ## Reporting
 
@@ -36,29 +35,24 @@ verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) m
 
 ## Merge policy
 
-Atlas merges the sprint PR with `node .studio/merge.mjs <number>`, the only way to merge. It talks to
-GitHub through REST, so it works the same on a laptop and in a cloud session, where GraphQL (and
-with it `gh pr`, `gh issue` and auto-merge) is blocked. It waits for CI on the PR's head and
-squash-merges that exact commit once:
-- CI is green: every check that reported passed, and every check the base branch's ruleset
-  requires, plus CI's `check` and `scope`, reported (one that never ran hasn't passed);
-- the reviewers' verdicts say ship about the code being merged: Lens always, Probe when `e2e/`
-  changed or whenever she gave a verdict on the PR, and Iris whenever she gave one, but only once
-  she's calibrated. Until `design/calibration/` holds the owner's scored examples, Iris's verdict
-  is advice: merge.mjs reports it and merges anyway, and her `changes` alone is no reason for
-  `needs-owner`. The verdict hook posts each one as a comment on the
-  PR with a `theseus-verdict` marker, and as a `theseus/*` commit status where GitHub takes it (the
-  cloud's proxy doesn't), which counts only for a role with no comment;
-- the PR touches no owner path, leaves `package.json`'s scripts alone and weakens no test;
-- the PR never carried the `needs-owner` label.
+GitHub decides what merges. The `protect-main` ruleset has no bypass. It requires a pull request,
+the owner's review wherever `.github/CODEOWNERS` names him, and three checks:
+- `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
+- `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
+  touches an owner path, changes `package.json`'s scripts, weakens a test or ever carried
+  `needs-owner`, until the owner approves its current head;
+- `lens` (`lens.yml`, posted by the checks app): Lens reviews the PR in CI, and the check passes
+  only on ship. It runs when the PR carries the `review` label, on a new base and on each push. A
+  push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md,
+  ROADMAP.md) keeps Lens's last ship; memory loads into prompts, so it's reviewed.
 
-Otherwise it says why not. PRs come from the owner's account, which can't approve its own PR, so
-reviews are posted as comments. If anything needs the owner, leave the PR open with a "Needs owner
-decision" section and the `needs-owner` label. Never push to `main`.
-
-The team acts as the owner's GitHub identity, so these rules hold because you keep them: never
-post, edit or delete a verdict comment, and never merge or reach `main` any other way. The hooks
-refuse the attempts they can see.
+The team works as its own GitHub account (`THESEUS_BOT`), with write access and no admin rights.
+Reach GitHub only as that account: never use the proxy's `proxy-injected` placeholder, and never
+set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
+checks and asks GitHub to squash-merge the head. Iris's verdict is advice until she's calibrated
+(`design/rubric.md`). If anything needs the owner, leave the PR open with a "Needs owner decision"
+section and the `needs-owner` label, and ask for his review once the head is final: a later push
+needs a new approval. Never push to `main`.
 
 ## The owner's
 
@@ -76,5 +70,5 @@ The team's own setup is the owner's too:
   `renovate.json` and `playwright.config.*`, and the `scripts` in `package.json`. Dependencies
   are the team's.
 
-Propose changes to them in the PR's retro instead. `merge.mjs` and a CI scope check stop a sprint PR
-that edits them.
+`.github/CODEOWNERS` is the list the checks read. Propose changes to these in the PR's retro
+instead: a PR that edits them waits for the owner.

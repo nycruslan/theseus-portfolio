@@ -1,6 +1,6 @@
-// GitHub through REST alone, for the harness's own scripts: merge.mjs, gate.mjs, verdict.mjs and
-// scope.mjs. Cloud sessions reach GitHub through a proxy that refuses GraphQL whatever the
-// credentials, so `gh pr …`, `gh issue …` and auto-merge fail there, while
+// GitHub through REST alone, for the harness's own scripts: merge.mjs and next-sprint.mjs in a
+// session, gate.mjs and lens.mjs in CI. Cloud sessions reach GitHub through a proxy that refuses
+// GraphQL whatever the credentials, so `gh pr …`, `gh issue …` and auto-merge fail there, while
 // `gh api repos/<owner>/<repo>/…` works (https://code.claude.com/docs/en/cloud-environments#github-proxy).
 // The repository comes from the origin remote's last two path segments: in the cloud the remote
 // is a proxy URL that gh can't map to github.com, so gh's {owner}/{repo} placeholders don't
@@ -51,14 +51,40 @@ export function toplevel(cwd) {
 /**
  * One REST call, parsed. A failure throws with GitHub's own message and the HTTP status, which
  * gh prints as the response body on stdout and as "gh: … (HTTP 405)" on stderr.
- * @param fields sent with -f, so every value goes as a string.
+ * @param body sent as the JSON request body, so nested objects and arrays keep their types.
  */
-export function api(path, { method = "GET", fields = {}, cwd } = {}) {
+export function api(path, { method = "GET", body, cwd } = {}) {
   const args = ["api", "--method", method, path];
-  for (const [key, value] of Object.entries(fields)) {
-    args.push("-f", `${key}=${value}`);
-  }
-  return parse(gh(args, cwd));
+  if (body) args.push("--input", "-");
+  return parse(gh(args, cwd, body && JSON.stringify(body)));
+}
+
+/**
+ * Posts a finished check run on a commit. Only a GitHub App can create one, and the ruleset names
+ * the app it accepts each required check from, so this runs with the team's checks app token.
+ */
+export function postCheck({
+  repo,
+  name,
+  head,
+  pass,
+  title,
+  summary,
+  externalId,
+  cwd,
+}) {
+  return api(`repos/${repo}/check-runs`, {
+    method: "POST",
+    cwd,
+    body: {
+      name,
+      head_sha: head,
+      status: "completed",
+      conclusion: pass ? "success" : "failure",
+      ...(externalId && { external_id: externalId }),
+      output: { title: title.slice(0, 250), summary: summary.slice(0, 60_000) },
+    },
+  });
 }
 
 /** Every item of a paginated list: the response itself, or its `key` array (check_runs…). */
@@ -68,12 +94,13 @@ export function list(path, { key, cwd } = {}) {
   return out.split("\n").filter(Boolean).map(JSON.parse);
 }
 
-function gh(args, cwd) {
+function gh(args, cwd, input) {
   try {
     return execFileSync("gh", args, {
       cwd,
+      input,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [input ? "pipe" : "ignore", "pipe", "pipe"],
       timeout: timeoutMs,
       maxBuffer: 64 * 1024 * 1024,
     });

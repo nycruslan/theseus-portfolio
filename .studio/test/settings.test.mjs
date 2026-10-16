@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { STUDIO } from "./kit.mjs";
 
-// The harness only works as wired in .claude/settings.json, so the wiring is checked too.
+// The hooks only work as wired in .claude/settings.json, so the wiring is checked too.
 const settings = JSON.parse(
   readFileSync(join(STUDIO, "..", ".claude", "settings.json"), "utf8"),
 );
 
-/** Every handler for an event, with its matcher, keyed by the script it runs. */
+/** Every handler for an event, with its matcher and the script it runs. */
 function handlers(event) {
   return (settings.hooks[event] ?? []).flatMap(({ matcher, hooks }) =>
     hooks.map((hook) => ({
@@ -19,169 +19,81 @@ function handlers(event) {
     })),
   );
 }
-const one = (event, script, matcher) => {
-  const found = handlers(event).filter(
-    (hook) => hook.script === script && (!matcher || hook.matcher === matcher),
-  );
-  assert.equal(found.length, 1, `${event} ${script} ${matcher ?? ""}`);
+const one = (event, script) => {
+  const found = handlers(event).filter((hook) => hook.script === script);
+  assert.equal(found.length, 1, `${event} ${script}`);
   return found[0];
 };
 
 test("every hook runs a script that exists", () => {
   for (const event of Object.keys(settings.hooks)) {
     for (const { script, command } of handlers(event)) {
-      if (command !== "node") continue;
-      assert.ok(existsSync(join(STUDIO, script)), `${event}: ${script}`);
+      if (command === "node")
+        assert.ok(existsSync(join(STUDIO, script)), `${event}: ${script}`);
     }
   }
 });
 
-test("keeps the broadcast as it was", () => {
-  const broadcast = Object.fromEntries(
-    Object.keys(settings.hooks).map((event) => [
-      event,
-      handlers(event)
-        .filter(({ script }) => script === "emit.mjs")
-        .map(({ matcher, async, timeout }) => [
-          matcher ?? "",
-          async ?? false,
-          timeout,
-        ]),
-    ]),
-  );
-  const tools =
-    "Edit|Write|Bash|Agent|Workflow|SendMessage|SubagentHandback|WebSearch|WebFetch|TaskCreate|TaskUpdate";
-  assert.deepEqual(broadcast, {
-    SessionStart: [["", true, undefined]],
-    UserPromptSubmit: [["", true, undefined]],
-    PreToolUse: [["Agent|Workflow", true, undefined]],
-    PostToolUse: [[tools, true, undefined]],
-    PostToolUseFailure: [["Bash|Agent|Edit|Write", true, undefined]],
-    PostToolBatch: [["", true, undefined]],
-    PermissionDenied: [["", true, undefined]],
-    MessageDisplay: [["", false, 5]],
-    SubagentStart: [["", true, undefined]],
-    SubagentStop: [["", true, undefined]],
-    TaskCreated: [["", true, undefined]],
-    TaskCompleted: [["", true, undefined]],
-    TeammateIdle: [["", true, undefined]],
-    Stop: [["", false, 5]],
-    StopFailure: [["", false, 5]],
-    // Raised from the 1.5 s default budget so the last broadcast leaves.
-    SessionEnd: [["", false, 5]],
-  });
-});
-
-test("the guard covers file tools and every MCP tool, failing closed, and Bash", () => {
-  for (const matcher of ["Edit|Write|NotebookEdit", "mcp__.*", "Bash"]) {
-    const guard = one("PreToolUse", "guard.mjs", matcher);
-    assert.equal(guard.onFailure, "block", matcher);
-    assert.equal(guard.async, undefined, matcher);
-    // A Bash hook with `if` runs only for commands Claude Code reads as matching: every spelling
-    // must reach the guard.
-    assert.equal(guard.if, undefined, matcher);
-  }
-  // Claude Code reads a matcher with other characters than letters, digits and | as a regular
-  // expression, so this one reaches every server's tools, connectors and plugins included.
-  const mcp = new RegExp(one("PreToolUse", "guard.mjs", "mcp__.*").matcher);
-  for (const tool of [
-    "mcp__github__merge_pull_request",
-    "mcp__claude_ai_GitHub__push_files",
-    "mcp__plugin_tools_github__create_or_update_file",
-  ]) {
-    assert.match(tool, mcp);
-  }
-  assert.doesNotMatch("Bash", mcp);
-});
-
-test("merging goes through merge.mjs alone: no hook gates another way", () => {
+test("the broadcast never holds a session up", () => {
   for (const event of Object.keys(settings.hooks)) {
-    assert.ok(
-      handlers(event).every(({ script }) => script !== "gate.mjs"),
-      event,
-    );
+    for (const hook of handlers(event).filter(
+      ({ script }) => script === "emit.mjs",
+    )) {
+      assert.ok(hook.async || hook.timeout <= 5, event);
+    }
   }
-  assert.ok(
-    settings.permissions.allow.includes("Bash(node .studio/merge.mjs *)"),
-  );
-  assert.ok(
-    settings.permissions.allow.every((rule) => !rule.startsWith("Bash(gh pr")),
-  );
 });
 
-test("hooks reach the network through the cloud's proxy: Node's fetch needs NODE_USE_ENV_PROXY", () => {
-  assert.equal(settings.env.NODE_USE_ENV_PROXY, "1");
-});
-
-test("the sprint pre-flight runs without a prompt, as unattended routines need", () => {
-  assert.ok(
-    settings.permissions.allow.includes("Bash(node .studio/next-sprint.mjs)"),
-  );
-  assert.ok(existsSync(join(STUDIO, "next-sprint.mjs")));
-});
-
-test("reviewers' verdicts are recorded and posted, with time for GitHub", () => {
-  for (const event of ["SubagentStart", "SubagentStop"]) {
-    const verdict = one(
-      event,
-      "verdict.mjs",
-      "code-reviewer|qa-engineer|design-director",
-    );
-    assert.ok(verdict.timeout >= 20 && !verdict.async, event);
-  }
+test("the guard covers the file tools and blocks if it crashes", () => {
+  const guard = one("PreToolUse", "guard.mjs");
+  assert.equal(guard.matcher, "Edit|Write|NotebookEdit");
+  assert.equal(guard.onFailure, "block");
+  assert.equal(guard.async, undefined);
 });
 
 test("builders stop only after pnpm verify, inside the hook's timeout", () => {
-  const verify = one(
-    "SubagentStop",
-    "verify-stop.mjs",
-    "engineer|creative-engineer",
-  );
+  const verify = one("SubagentStop", "verify-stop.mjs");
   const [, limit] = verify.args;
   assert.ok(Number(limit) > 0 && Number(limit) + 15 <= verify.timeout);
   assert.equal(verify.async, undefined);
 });
 
-test("the watchdog sees what its rules need, and decides in sync", () => {
+test("the watchdog decides a stop in sync and hears the rest in the background", () => {
   assert.equal(one("Stop", "watchdog.mjs").async, undefined);
-  assert.equal(
-    one("PreToolUse", "watchdog.mjs", "Agent|SendMessage").async,
-    undefined,
-  );
-  for (const [event, matcher] of [
-    ["TaskCreated"],
-    ["TaskCompleted"],
-    ["SubagentStart", "engineer|creative-engineer"],
-    ["PostToolUse", "^(Bash|Write|Edit|TaskUpdate|mcp__.*)$"],
+  for (const event of [
+    "SubagentStart",
+    "TaskCreated",
+    "TaskCompleted",
+    "PostToolUse",
   ]) {
-    assert.equal(one(event, "watchdog.mjs", matcher).async, true, event);
+    assert.equal(one(event, "watchdog.mjs").async, true, event);
   }
 });
 
-test("denies what agents must not do, whatever the mode", () => {
+test("denies the obvious, whatever the mode", () => {
   for (const rule of [
     "Bash(gh pr merge *)",
-    "Bash(gh alias *)",
     "Bash(gh auth *)",
-    "Bash(gh config *)",
-    "Bash(*owner-approved*)",
+    "Bash(*proxy-injected*)",
+    "Bash(*GH_TOKEN=*)",
+    "Bash(*unset GH_TOKEN*)",
+    "Bash(gh api *rulesets*)",
+    "Bash(gh api *actions/secrets*)",
     "Bash(pkill *)",
     "Bash(killall *)",
+    "Bash(git push --force*)",
+    "Bash(git push * -f*)",
     "mcp__github",
-    "Edit(~/.claude.json)",
-    "Edit(~/.claude/settings*.json)",
-    "Edit(~/.claude/agents/**)",
-    "Edit(~/.claude/skills/**)",
-    "Edit(~/.claude/hooks/**)",
-    "Edit(~/.config/gh/**)",
-    "Edit(~/.gitconfig)",
     "Agent(model:*fable*)",
   ]) {
     assert.ok(settings.permissions.deny.includes(rule), rule);
   }
-  // Claude Code's own auto-memory and plans stay writable, for the owner's sessions too.
-  assert.ok(!settings.permissions.deny.includes("Edit(~/.claude/**)"));
-  // REST through gh api is how the team works with GitHub; the guard decides which calls write.
-  assert.ok(!settings.permissions.deny.includes("Bash(gh api *)"));
-  assert.ok(settings.permissions.allow.includes("Bash(gh api *)"));
+  // REST through gh api is how the team works with GitHub, and routines run unattended.
+  for (const rule of ["Bash(gh api *)", "Bash(node .studio/next-sprint.mjs)"]) {
+    assert.ok(settings.permissions.allow.includes(rule), rule);
+  }
+});
+
+test("hooks reach the network through the cloud's proxy: Node's fetch needs NODE_USE_ENV_PROXY", () => {
+  assert.equal(settings.env.NODE_USE_ENV_PROXY, "1");
 });

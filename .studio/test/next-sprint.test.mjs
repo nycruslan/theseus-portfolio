@@ -26,20 +26,27 @@ function github({
   folders = [folder("1")],
   branches = [{ name: "main" }],
   events = {},
+  reviews = {},
 } = {}) {
   // The fake gh takes the first route that matches, so each PR's own events come before the rest.
-  const table = Object.fromEntries(
-    Object.entries(events).map(([number, list]) => [
-      `${R}/issues/${number}/events`,
+  const table = Object.fromEntries([
+    ...Object.entries(events).map(([n, list]) => [
+      `${R}/issues/${n}/events`,
       list,
     ]),
-  );
+    ...Object.entries(reviews).map(([n, list]) => [
+      `${R}/pulls/${n}/reviews`,
+      list,
+    ]),
+  ]);
   Object.assign(table, {
-    [R]: { default_branch: "main" },
+    [R]: { default_branch: "main", owner: { login: "nycruslan" } },
     [`${R}/pulls`]: pulls,
     [`${R}/contents/.studio/sprint`]: folders,
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
+    [`${R}/pulls/*/reviews`]: [],
+    user: { login: "theseus-team" },
   });
   return table;
 }
@@ -48,7 +55,12 @@ function preflight(table, env = {}) {
   const log = ghLog();
   const result = runHook("next-sprint.mjs", "", {
     cwd: repo,
-    env: { GH_ROUTES: routes(table), GH_LOG: log.file, ...env },
+    env: {
+      GH_ROUTES: routes(table),
+      GH_LOG: log.file,
+      THESEUS_BOT: "theseus-team",
+      ...env,
+    },
   });
   return {
     ...result,
@@ -175,6 +187,20 @@ test("treats a missing sprint folder on main as no sprints yet", () => {
   assert.equal(state.next, 1);
 });
 
+test("stops unless GitHub calls act as the team's own account", () => {
+  const owner = github();
+  owner.user = { login: "nycruslan" };
+  for (const [table, env] of [
+    [owner, {}],
+    [github(), { THESEUS_BOT: "" }],
+  ]) {
+    const { code, stderr, state } = preflight(table, env);
+    assert.equal(code, 1);
+    assert.equal(state, null);
+    assert.match(stderr, /not the team's account/);
+  }
+});
+
 test("fails closed when GitHub can't be read", () => {
   const { code, stderr, state } = preflight(github(), { GH_FAIL: "HTTP 502" });
   assert.equal(code, 1);
@@ -198,6 +224,23 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
   assert.equal(state.open[0].needsOwner, true);
   assert.equal(state.action.do, "stand down");
   assert.equal(state.action.pr, 9);
+});
+
+test("a PR whose head the owner approved is continued", () => {
+  const approval = {
+    user: { login: "nycruslan" },
+    state: "APPROVED",
+    commit_id: "9".padStart(40, "0"),
+  };
+  const { state } = preflight(
+    github({
+      pulls: [pr(9, "sprint/1-design-tokens")],
+      events: { 9: [{ event: "labeled", label: { name: "needs-owner" } }] },
+      reviews: { 9: [approval] },
+    }),
+  );
+  assert.equal(state.open[0].needsOwner, false);
+  assert.equal(state.action.do, "continue");
 });
 
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {

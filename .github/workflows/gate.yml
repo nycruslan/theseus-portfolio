@@ -1,0 +1,55 @@
+name: gate
+
+# The required `gate` check: it holds a PR the owner has to decide (owner paths from CODEOWNERS,
+# package.json scripts, weakened tests, or needs-owner now or ever) until the owner approves its
+# head (.studio/gate.mjs). The result is a check run from the team's checks app, the only source
+# the ruleset accepts for `gate`.
+#
+# pull_request_target runs this file and the checker from the default branch, so a PR can't edit
+# the rule that judges it, and the `checks` environment, which holds the app key, only serves the
+# default branch. Never check out, install or run the PR's code here. A review doesn't trigger
+# pull_request_target, so review-relay.yml passes it on through workflow_run, which also runs from
+# the default branch.
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  workflow_run:
+    workflows: [review-relay]
+    types: [completed]
+
+permissions:
+  contents: read
+
+# One run per head at a time, the same key for both events, never cancelled in progress: a newer
+# event for that head waits, replacing any run still pending. Each run reads the PR live and posts
+# nothing if the head moved, so the newest result on a head is always current.
+concurrency:
+  group: gate-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  gate-runner:
+    runs-on: ubuntu-latest
+    environment: checks
+    timeout-minutes: 5
+    steps:
+      - run: git config --global init.defaultBranch main
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .studio
+            .github
+      - id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
+          permission-checks: write
+          permission-contents: read
+          permission-issues: read
+          permission-pull-requests: read
+      - run: node .studio/gate.mjs
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}

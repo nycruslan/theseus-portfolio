@@ -1,0 +1,39 @@
+# The owner's paths: a PR that touches one needs @nycruslan's approving review. GitHub reads this
+# file from the PR's base branch. The `gate` check and the team's file guard read it too
+# (.studio/scope.mjs), matching without regard to case. The last matching line wins, so a line
+# with no owner gives that path back to the team.
+
+# The owner's facts; drafts are the team's, for the owner to approve.
+/content/ @nycruslan
+/content/drafts/
+
+# The team's setup, apart from its memory and notes.
+/.claude/ @nycruslan
+/.claude/agent-memory/
+/.studio/ @nycruslan
+/.studio/sprint/
+/.studio/STATE.md
+/.github/ @nycruslan
+/.mcp.json @nycruslan
+
+# Instructions load wherever they are, and attributes pick merge drivers and filters.
+CLAUDE.md @nycruslan
+CLAUDE.local.md @nycruslan
+AGENTS.md @nycruslan
+AGENTS.local.md @nycruslan
+.gitattributes @nycruslan
+
+# What the team is scored by, and the toolchain's settings. package.json's scripts are the
+# owner's too; `gate` checks those, since dependencies in the same file are the team's.
+/design/rubric.md @nycruslan
+/design/calibration/ @nycruslan
+/skills-lock.json @nycruslan
+/biome.json @nycruslan
+/biome.jsonc @nycruslan
+/tsconfig.json @nycruslan
+/knip.json @nycruslan
+/knip.jsonc @nycruslan
+/pnpm-workspace.yaml @nycruslan
+/renovate.json @nycruslan
+/renovate.json5 @nycruslan
+/playwright.config.* @nycruslan

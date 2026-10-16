@@ -24,10 +24,5 @@ in a row at 6.8).
 
 **How to apply:** if the owner rules on either question, record it here and re-score.
 Tooling that worked:
-- Export main with `git archive -o <literal scratch path>.tar origin/main`, then `tar -xf` in a
-  separate command that doesn't name the worktree. The guard blocks `$VAR` paths and `tar` beside the
-  worktree path.
 - To draw scrollbars, launch with `ignoreDefaultArgs: ["--hide-scrollbars"]`.
-- The detector URL scan needs `IMPECCABLE_BROWSER` pointing at a wrapper script that adds
-  `--no-sandbox`, since it runs as root.
 - Section ids are on the h2, not the section, so select through `document.querySelectorAll("section")`.

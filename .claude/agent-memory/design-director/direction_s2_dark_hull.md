@@ -19,5 +19,4 @@ Rejected:
 **How to apply:** in review, check the accent at 16 px reads copper and not peach, selection is visible
 across a link, the scrollbar is dark, and light shows no pixel change (contract C7). Owner hasn't
 reacted to any of this yet.
-Tooling: Quill's contract (sprint 2) pins C1-C8. The guard blocks `node $VAR/script` and
-`kill $(cat pidfile)`, so use literal paths and a literal PID.
+Quill's contract (sprint 2) pins C1-C8.
