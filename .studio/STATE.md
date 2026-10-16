@@ -58,3 +58,17 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
     the focus ring).
   - Run scope.mjs's weakening rules on a new spec before review. Any added `test.skip(`, even a
     conditional one, needs the owner.
+
+## Sprint 4: accessibility pass (PR #17)
+
+- **Outcome:** a CSS-only "Skip to content" link (first Tab stop, `components/skip-link.tsx`), `main#main`
+  with `tabIndex={-1}`, one shared 2 px `--accent` `:focus-visible` ring in `@layer base`, the card arrow
+  turns copper on keyboard focus, the card link uses `outline-none` (Tailwind's `outline-hidden` paints a
+  second ring in forced colors), and Contact links are `inline-block` (24 px targets). Lens, Probe and Iris
+  (advisory, 7.5/10) said ship on 863efa2, no fix rounds; at rest the page is pixel-identical to main.
+- **Lesson:**
+  - Writing checks first caught a contract file-scope that made a check unbuildable (C8). Contracts
+    should name the outcome and let file lists be a guide, not a fence.
+  - The skip link skips nothing while `main` wraps the whole page: an a11y feature can pass every check
+    and still not serve its stated reason. Name the visitor's outcome as a check (Contact reachable in N Tabs).
+  - Production is unreachable from cloud sessions (proxy 403); C9-style comparisons use an origin/main build.
