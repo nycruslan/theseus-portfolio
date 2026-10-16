@@ -192,6 +192,7 @@ test("C2. no words added, none lost", async ({ page }) => {
     return out.join(" ");
   });
   const expected = [
+    "Skip to content",
     profile.name,
     profile.headline,
     profile.location,

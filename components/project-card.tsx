@@ -33,18 +33,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <h3 className="text-balance text-step-lg font-medium">
         {/* The link's ::after covers the whole card (the li is its containing block), so a thumb
             anywhere on the plank opens it while the link's name stays the project name alone. The
-            card draws the focus ring, so the link hides its own; `hidden` keeps a ring in forced
-            colors, where `none` would not. */}
+            card draws the focus ring, so the link draws none, in forced colors too: `none`, not
+            `hidden`, which Tailwind turns into a second ring there. */}
         <a
           href={project.href}
-          className="text-foreground underline decoration-accent decoration-1 underline-offset-4 after:absolute after:inset-0 focus-visible:outline-hidden"
+          className="text-foreground underline decoration-accent decoration-1 underline-offset-4 after:absolute after:inset-0 focus-visible:outline-none"
         >
           {project.name}
         </a>
       </h3>
       {/* One line box of the title's step, so the arrow centres on the title's first line even
-          when a long name wraps. */}
-      <span className="flex h-[1lh] items-center text-step-lg text-muted group-hover:text-accent">
+          when a long name wraps. It turns copper for keyboard focus as it does for hover. */}
+      <span className="flex h-[1lh] items-center text-step-lg text-muted group-hover:text-accent group-has-[a:focus-visible]:text-accent">
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
