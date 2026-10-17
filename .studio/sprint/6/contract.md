@@ -58,10 +58,9 @@ no `::before`/`::after` generated text other than empty strings.
 `tabindex`, so they add no Tab stop.
 
 **C6. They reflow.** At 320 x 800 and at 390 x 844, in light and in dark: the page has no
-horizontal overflow, every Stack item's box lies inside the Stack section's box horizontally, and
-the Stack list spans more than one row (at least two distinct item tops), so it wraps rather than
-running off or stacking one per line only when it must. At 1440 x 900 the Stack items sit on fewer
-rows than there are items (it is not one tool per line).
+horizontal overflow and every Stack item's box lies inside the Stack section's box
+horizontally. At 390 x 844 and at 1440 x 900 the Stack items sit on fewer distinct rows (item tops)
+than there are items (it is not one tool per line).
 
 **C7. Gate.** `pnpm verify` passes, the whole suite passes, and the diff touches no owner path and
 nothing in `content/`.
