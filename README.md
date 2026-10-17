@@ -4,7 +4,7 @@ A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
 Each time a sprint merges, a Claude Code session wakes up in this repository as **Atlas**, the team
 lead, and starts the next one, up to six a day. It sizes the next roadmap item (or the owner's
-goal, when he presses "Start a sprint" in the Studio), briefs one builder (with tests written first
+goal, when they press "Start a sprint" in the Studio), briefs one builder (with tests written first
 for anything bigger than a one-line change), and opens a pull request. GitHub then decides: CI
 must pass, a gate run from `main` must agree the PR stays out of the owner's files, and Lens, the
 code reviewer, must say ship from a fresh review in GitHub Actions. If something needs the owner,
@@ -32,7 +32,7 @@ a cloud routine. Every step streams live to the Studio.
 **Binding (GitHub),** once the owner's setup below is done. The team calls GitHub as its own
 account, with write access and no admin rights, so it can't change the rules or approve as the
 owner. The `protect-main` ruleset requires:
-- a pull request, and the owner's review wherever `.github/CODEOWNERS` names him;
+- a pull request, and the owner's review wherever `.github/CODEOWNERS` names them;
 - `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
 - `gate` (the team's checks app): it holds a PR that touches an owner path, changes
   `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner approves
@@ -44,7 +44,7 @@ owner. The `protect-main` ruleset requires:
 Only the checks app can post `gate` and `lens`, and its key lives in a `checks` environment that
 serves `main` alone, where both workflows run on `pull_request_target`. Lens reads the PR's code
 outside its workspace and never runs it. The ruleset's one bypass is the owner's, for pull requests
-only: he merges his own PRs to owner paths, since nobody can approve their own PR.
+only: they merge their own PRs to owner paths, since nobody can approve their own PR.
 
 **What starts a sprint (the owner's routine).** The routine `theseus-sprint` runs `/sprint` on
 three triggers, which only the owner can change:
