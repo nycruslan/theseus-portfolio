@@ -1,6 +1,7 @@
 // A stand-in for gh in the harness tests (kit.mjs puts it first on PATH). It fakes `gh api` from
-// GH_ROUTES, a JSON object keyed by "METHOD path", or by a bare path for GET. The query string is
-// ignored, and * matches within one path segment. A value is the response body;
+// GH_ROUTES, a JSON object keyed by "METHOD path", or by a bare path for GET. * matches within one
+// path segment. The call's query string is ignored, unless the route names one
+// (`repos/o/r/pulls?state=closed`): then the call must carry each of its parameters. A value is the response body;
 // {"$seq": [...]} answers each call with the next item and then keeps the last;
 // {"$error": 405, "message": "..."} fails as gh does, with the body on stdout and
 // "gh: message (HTTP 405)" on stderr. It applies the two --jq forms the harness uses,
@@ -51,18 +52,23 @@ for (let i = 1; i < args.length; i++) {
   else if (!arg.startsWith("-") && path === undefined) path = arg;
 }
 method = (method ?? (fields ? "POST" : "GET")).toUpperCase();
-const bare = String(path).replace(/^\//, "").split("?")[0];
+const [bare, query = ""] = String(path).replace(/^\//, "").split("?");
+const asked = new URLSearchParams(query);
 
 const routes = JSON.parse(env.GH_ROUTES || "{}");
 const literal = (text) => text.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
 const key = Object.keys(routes).find((candidate) => {
-  const [verb, route] = candidate.includes(" ")
+  const [verb, target] = candidate.includes(" ")
     ? candidate.split(" ")
     : ["GET", candidate];
+  const [route, wants = ""] = target.split("?");
   const pattern = new RegExp(
     `^${route.split("*").map(literal).join("[^/]*")}$`,
   );
-  return verb === method && pattern.test(bare);
+  const carries = [...new URLSearchParams(wants)].every(
+    ([name, value]) => asked.get(name) === value,
+  );
+  return verb === method && pattern.test(bare) && carries;
 });
 if (key === undefined) fail(404, "Not Found");
 

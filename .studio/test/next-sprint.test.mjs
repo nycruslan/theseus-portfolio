@@ -19,6 +19,12 @@ const pr = (number, branch, labels = [], from = {}) => ({
   html_url: `https://github.com/${REPO}/pull/${number}`,
 });
 const folder = (name) => ({ name, type: "dir" });
+// A sprint PR merged into main `hours` ago, as REST lists the closed PRs.
+const merged = (number, hours, from = {}) => ({
+  ...pr(number, from.branch ?? `sprint/${number}-done`, [], from),
+  base: { ref: from.base ?? "main" },
+  merged_at: new Date(Date.now() - hours * 60 * 60 * 1000).toISOString(),
+});
 
 /** The GitHub side, as REST serves it: open PRs, the sprint folders on main and the branches. */
 function github({
@@ -27,9 +33,12 @@ function github({
   branches = [{ name: "main" }],
   events = {},
   reviews = {},
+  closed = [],
 } = {}) {
-  // The fake gh takes the first route that matches, so each PR's own events come before the rest.
+  // The fake gh takes the first route that matches, so each PR's own events come before the rest,
+  // and the closed PRs before the open ones.
   const table = Object.fromEntries([
+    [`${R}/pulls?state=closed`, closed],
     ...Object.entries(events).map(([n, list]) => [
       `${R}/issues/${n}/events`,
       list,
@@ -253,4 +262,75 @@ test("fails closed when main's sprint folders can't be read for another reason t
   assert.equal(code, 1);
   assert.equal(state, null);
   assert.match(stderr, /Bad Gateway.*Don't start a sprint blind/);
+});
+
+// Five sprints merged today, and older or foreign merges that don't count toward the cap.
+const today = [
+  ...[1, 3, 5, 8, 20].map((hours, i) => merged(30 + i, hours)),
+  merged(40, 25),
+  merged(41, 2, { base: "team/v5" }),
+  merged(42, 2, { repo: "stranger/theseus-portfolio" }),
+  merged(43, 2, { association: "CONTRIBUTOR" }),
+  { ...pr(44, "sprint/44-closed"), base: { ref: "main" }, merged_at: null },
+  merged(45, 2, { branch: "team/v6" }),
+];
+
+test("under the daily cap, the next sprint starts", () => {
+  const { code, state } = preflight(github({ closed: today }));
+  assert.equal(code, 0);
+  assert.deepEqual(state.daily, { merged: 5, cap: 6 });
+  assert.equal(state.action.do, "start");
+});
+
+test("at the daily cap, the run stands down until a day's merges age out", () => {
+  const { state } = preflight(github({ closed: [...today, merged(46, 0.5)] }));
+  assert.deepEqual(state.daily, { merged: 6, cap: 6 });
+  assert.equal(state.action.do, "stand down");
+  assert.match(
+    state.action.say,
+    /^6 sprints merged in the last 24 hours, the daily cap \(6\); the next run picks up after .+Z\. Don't start a new sprint/,
+  );
+  // The oldest of today's six, merged 20 hours ago, is a day old in 4 hours.
+  const after = Date.parse(state.action.say.match(/after (\S+Z)\./)[1]);
+  const inFour = Date.now() + 4 * 60 * 60 * 1000;
+  assert.ok(Math.abs(after - inFour) < 60_000);
+});
+
+test("THESEUS_DAILY_SPRINTS sets the cap", () => {
+  const { state } = preflight(github({ closed: today }), {
+    THESEUS_DAILY_SPRINTS: "5",
+  });
+  assert.deepEqual(state.daily, { merged: 5, cap: 5 });
+  assert.equal(state.action.do, "stand down");
+  assert.match(state.action.say, /the daily cap \(5\)/);
+});
+
+test("an open sprint PR is continued even at the daily cap: finishing work isn't starting it", () => {
+  const { state } = preflight(
+    github({ closed: today, pulls: [pr(50, "sprint/50-finish")] }),
+    { THESEUS_DAILY_SPRINTS: "2" },
+  );
+  assert.deepEqual(state.daily, { merged: 5, cap: 2 });
+  assert.equal(state.action.do, "continue");
+  assert.equal(state.action.pr, 50);
+});
+
+test("an invalid THESEUS_DAILY_SPRINTS means the default cap of 6", () => {
+  for (const value of ["0", "-3", "2.5", "three", "", " "]) {
+    const { state } = preflight(github({ closed: today }), {
+      THESEUS_DAILY_SPRINTS: value,
+    });
+    assert.equal(state.daily.cap, 6, `for ${JSON.stringify(value)}`);
+    assert.equal(state.action.do, "start");
+  }
+});
+
+test("reads today's merges from one page of the closed PRs, most recently updated first", () => {
+  const { calls } = preflight(github());
+  const closed = calls.filter((args) =>
+    args.some((arg) => /\/pulls\?state=closed/.test(arg)),
+  );
+  assert.equal(closed.length, 1);
+  assert.match(closed[0].join(" "), /sort=updated&direction=desc&per_page=100/);
+  assert.ok(!closed[0].includes("--paginate"));
 });
