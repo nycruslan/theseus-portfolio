@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
-import { HEIGHT, halfModel, LENGTH } from "@/lib/half-model";
+import { HeroUpgrade } from "@/components/hero-upgrade";
+import { HEIGHT, LENGTH } from "@/lib/half-model";
+import { halfModel } from "@/lib/half-model-svg";
 
 // How lit a place is (0 to 1). The tone itself is mixed in CSS from the page's tokens, once per
 // scheme (app/globals.css, "The hero half-model"), so the hull follows the theme with no script.
@@ -12,12 +14,13 @@ const light = (value: number) =>
 /**
  * The hero: a shipwright's lift half-model, seven planks and one copper one, hung on the page
  * like a model on its backboard (.studio/sprint/7/direction-iris.md). A static, server-rendered
- * SVG, decoration only: hidden from assistive tech, never hit or focused, and no text inside.
+ * SVG, decoration only: hidden from assistive tech, never hit or focused, and no text inside. On a
+ * device that can take it, HeroUpgrade later draws the same hull in WebGL over it (sprint 10).
  */
 export function Hero() {
   const { deck, lifts, copper, butts } = halfModel;
   return (
-    <div data-hero aria-hidden="true" className="hero">
+    <HeroUpgrade>
       <svg
         aria-hidden="true"
         viewBox={`0 0 ${LENGTH} ${HEIGHT}`}
@@ -51,6 +54,6 @@ export function Hero() {
           <path d={butts} className="hero-butts" />
         </g>
       </svg>
-    </div>
+    </HeroUpgrade>
   );
 }
