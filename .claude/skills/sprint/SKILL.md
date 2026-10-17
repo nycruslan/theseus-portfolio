@@ -14,8 +14,8 @@ flight. The script reads GitHub and prints, as JSON, the open sprint PRs, the ne
 and what to do (`action`):
 - `continue`: check out that PR's branch, read its body, its comments and `.studio/sprint/<n>/`,
   and do what's missing.
-- `stand down`: every open sprint PR waits for the owner, or the day's cap of new sprints is
-  reached (`daily`). Start nothing and open no PR; end with a short report saying which, and
+- `stand down`: every open sprint PR waits for the owner, the one to continue changed in the last
+  45 minutes (another run is on it), or the day's cap of new sprints is reached (`daily`). Start nothing and open no PR; end with a short report saying which, and
   naming the PR and what it waits for.
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`, made from the latest
   `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main.
