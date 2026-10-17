@@ -12,7 +12,7 @@ Roadmap item "A subtle 3D hero element that degrades gracefully on low-end devic
 
 ## Review
 
-Lens said changes on 96f0b2a, f96f53f and 2355550. Rounds 1 and 2 fixed C3 (bow tip at every width), C14 (WebGL chunk found by comparison), C9 (`main`'s tabindex -1) and C10 (chunk after load). Lens's third review raised a new important finding in Part B (C10's proximity test passes at load) plus nits. The fix-round cap was spent, so I cut scope (decisions.md #4, "Contract change" in the contract): **Part A is the contract, and Part B is a draft** that its own sprint rewrites after Probe's WebGL spike, carrying Lens's open findings. I also took Lens's C7 nits into Part A. `lens` stays red, and `gate` is red because of `needs-owner`. `check` is green.
+Lens said changes on 96f0b2a, f96f53f and 2355550. Rounds 1 and 2 fixed C3 (bow tip at every width), C14 (WebGL chunk found by comparison), C9 (`main`'s tabindex -1) and C10 (chunk after load). Lens's third review raised a new important finding in Part B (C10's proximity test passes at load) plus nits. The fix-round cap was spent, so I cut scope (decisions.md #4, "Contract change" in the contract): **Part A is the contract, and Part B is a draft** that its own sprint rewrites after Probe's WebGL spike, carrying Lens's open findings. I also took Lens's C7 nits into Part A. **Lens said ship on the close-out (02a7835, kept on 4b50a2d), with five nits left for Part A's sprint (retro followUps).** `check` and `lens` are green. `gate` is red only because of `needs-owner`.
 
 ## Needs owner decision
 
@@ -21,7 +21,6 @@ By merging, the owner accepts:
 2. **The split:** Part A binding now, and Part B drafted, to be re-contracted after a spike. You can also call A enough and drop B.
 3. **The 15 KB gzip budget** for Part B, which rules out three.js.
 4. **Quill's two calls:** darkening the dark top face below 3:1 rather than exempting it, and capping the hero at 172 px tall below 768. Also the 390–768 width ramp, which Iris hasn't reviewed.
-5. **Merging with `lens` red:** its open finding is in the Part B draft, which is listed in the contract and not accepted by this merge.
 
 ## Not verified
 
