@@ -15,8 +15,9 @@ and what to do (`action`):
 - `continue`: check out that PR's branch, read its body, its comments and `.studio/sprint/<n>/`,
   and do what's missing.
 - `stand down`: every open sprint PR waits for the owner, the one to continue changed in the last
-  45 minutes (another run is on it), or the day's cap of new sprints is reached (`daily`). Start nothing and open no PR; end with a short report saying which, and
-  naming the PR and what it waits for.
+  45 minutes (another run is on it), a sprint branch with no PR yet was committed to in that time
+  (another run is starting it), or the day's cap of new sprints is reached (`daily`). Start nothing and open no PR; end with a short report saying which, and
+  naming the PR (or, when no PR is open yet, the branch) and what it waits for.
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`, made from the latest
   `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main.
 
@@ -81,9 +82,11 @@ either: they decide it by merging it with their bypass.
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
 `git remote get-url origin` and write it out in each command. Pass long text as a file.
-- Open the PR early, as a normal PR (REST can't mark a draft ready), with "Work in progress" at the
-  top of the body until the close-out, then the goal (saying "chosen by the owner" when it's theirs),
-  size, contract and its results, and the decisions:
+- Open the PR with the branch's first push, as a normal PR (REST can't mark a draft ready): the
+  pre-flight knows a sprint is in flight by its open PR, and a branch without one only for 45
+  minutes after its last commit. Put "Work in progress" at the top of the body until the
+  close-out, then the goal (saying "chosen by the owner" when it's theirs), size, contract and its
+  results, and the decisions:
   `gh api repos/<owner>/<repo>/pulls -f title="…" -f head=<branch> -f base=main -F body=@.studio/sprint/<n>/pr.md --jq .html_url`
 - Update the body: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`
 - Label: `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=review'`
