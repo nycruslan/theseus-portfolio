@@ -17,6 +17,8 @@ const pr = (number, branch, labels = [], from = {}) => ({
   },
   labels: labels.map((name) => ({ name })),
   html_url: `https://github.com/${REPO}/pull/${number}`,
+  updated_at:
+    from.updatedAt ?? new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
 });
 const folder = (name) => ({ name, type: "dir" });
 // A sprint PR merged into main `hours` ago, as REST lists the closed PRs.
@@ -295,6 +297,24 @@ test("THESEUS_DAILY_SPRINTS sets the cap", () => {
   assert.deepEqual(state.daily, { merged: 5, cap: 5 });
   assert.equal(state.action.do, "stand down");
   assert.match(state.action.say, /the daily cap \(5\)/);
+});
+
+test("leaves an open sprint PR that changed in the last 45 minutes to the run working on it", () => {
+  const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString();
+  const busy = preflight(
+    github({
+      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
+    }),
+  ).state;
+  assert.equal(busy.action.do, "stand down");
+  assert.equal(busy.action.pr, 9);
+  assert.match(busy.action.say, /changed 10 min ago/);
+  const quiet = preflight(
+    github({
+      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(50) })],
+    }),
+  ).state;
+  assert.equal(quiet.action.do, "continue");
 });
 
 test("an open sprint PR is continued even at the daily cap: finishing work isn't starting it", () => {

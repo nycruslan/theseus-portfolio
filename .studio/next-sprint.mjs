@@ -19,6 +19,8 @@
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
 //   every open one does or when the day's cap is reached, or start the next sprint, with its
 //   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
+//   One that changed in the last 45 minutes is left alone, since another run is most likely still
+//   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
@@ -30,6 +32,7 @@ const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
+const ACTIVE_MS = 45 * 60 * 1000;
 configure({ timeout: 20_000 });
 
 let repo;
@@ -61,6 +64,7 @@ function preflight(repo) {
         number: pr.number,
         branch: pr.head.ref,
         head: pr.head.sha,
+        updatedAt: pr.updated_at,
         needsOwner:
           carriedNeedsOwner({ repo, number: pr.number, labels }) &&
           !approvedByOwner({
@@ -170,6 +174,15 @@ function action(open, next, daily) {
       do: "stand down",
       pr: first.number,
       say: `PR #${first.number} (${first.branch}) waits for the owner (needs-owner)${others(first)}. Don't start a new sprint: stand down with a short report.`,
+    };
+  }
+  const quietFor = Date.now() - Date.parse(current.updatedAt);
+  if (quietFor < ACTIVE_MS) {
+    const minutes = Math.max(0, Math.floor(quietFor / 60_000));
+    return {
+      do: "stand down",
+      pr: current.number,
+      say: `PR #${current.number} (${current.branch}) changed ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for 45 minutes.`,
     };
   }
   return {
