@@ -1,5 +1,3 @@
-**Work in progress.**
-
 ## Sprint 10: the hero's Part B, the WebGL upgrade
 
 **Goal:** the roadmap's top open item, the subtle 3D hero, Part B: build the WebGL upgrade the owner
@@ -50,6 +48,13 @@ tightenings), amended for the owner: see `.studio/sprint/10/contract-change.md` 
    resizes or the scheme flips; then it would stretch or show the old colours, so the SVG comes back at its
    rest pose. That is the jump your decision 2 wanted to avoid, but only on those two events. Merge to
    accept, or say a frozen canvas must stay through them (stretched or off-colour).
+
+## Review
+
+- Lens: changes on c2829a1 (the owner section; already fixed in the body), ship on c76f72d (one nit,
+  `mountHull` teardown, left as a follow-up).
+- Iris (advice): ship 7.8 (`.studio/sprint/10/review-iris.md`); items 1 (print keeps the SVG) and 2
+  (dither) taken in fix round 1; item 3 (retina ticks at the bow tip) is a follow-up.
 
 ## Not verified
 

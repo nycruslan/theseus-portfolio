@@ -146,3 +146,17 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - The cloud sandbox's Chromium (141) isn't CI's (156), so browser-sensitive checks get their first real
     run in CI; a check that tests the harness alone (C17) makes that readout cheap.
   - Read pixels from screenshots: `readPixels`/`toDataURL` return zeros outside the drawing frame.
+
+## Sprint 10: the hero's Part B, the WebGL upgrade (PR #35)
+
+- **Outcome:** the WebGL hull built on #32's contract: a first-load gate (no shader code) idle-loads a
+  3.6 KB gzip hand-written renderer of the same `lib/half-model.ts` hull, which turns ±0.24 with scroll,
+  draws only on a pose change, freezes after three slow frames and falls back to the SVG on context loss;
+  the box is 138 px under `@container (width >= 48rem)`; print keeps the SVG. Probe's specs failed first,
+  CI green on Chromium 156 on the first build push, Lens ship after one fix round, Iris ship 7.8. Left
+  with `needs-owner`: CI's 156 grants the caveat flag the spike saw 141 refuse, so C17/C14 now use the
+  harness's own refusal (`contract-change.md`), and a frozen canvas returns to the SVG on resize.
+- **Lesson:**
+  - Pushing the specs alone first (C17 as the readout) caught the failed premise before any product code
+    depended on it; keep that step for browser-sensitive work.
+  - Settle the PR body and labels before the `review` label: Lens reads the body at the start of its run.
