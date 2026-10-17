@@ -2,7 +2,7 @@
 
 Spec: `e2e/profile-sections.spec.ts`, one test per check, named by number. Facts come from
 `content/profile.ts`. Additive helper: `STACK` and `EDUCATION` selectors in `e2e/helpers.ts`.
-No existing test line changed; no skip, fixme or fail.
+One existing test line changed: `e2e/reveal.spec.ts:323` (`sectionIds` gains `stack` and `education`, decisions.md #4); no skip, fixme or fail.
 
 Proved on this branch (sections absent): all six fail, each on the missing section or order, none
 on a test bug. Proved buildable and biting: a scratch reference page (Stack as a `flex-wrap` `ul`,

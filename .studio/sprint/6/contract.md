@@ -72,7 +72,7 @@ nothing in `content/`.
 - New color or type tokens; any change to `app/globals.css` custom properties.
 - The skip-link open question and the 3D hero (later sprints).
 - Turning `e2e/content.spec.ts`'s `test.fixme` back into `test` (content no longer carries
-  `TODO(owner)`; a follow-up for Probe, kept out so this PR changes no existing test line).
+  `TODO(owner)`; a follow-up for Probe, kept out so the only existing test line this PR changes is the one decisions.md #4 records).
 
 ## Notes for the builder
 
