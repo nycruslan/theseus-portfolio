@@ -81,8 +81,9 @@ body {
   }
 
   /* main takes focus only as the skip link's landing spot; it is not a control, so no ring (Chrome
-     would otherwise draw its own once the skip link is used from the keyboard). */
-  [tabindex="-1"]:focus {
+     would otherwise draw its own once the skip link is used from the keyboard). Only main: anything
+     else made focusable from script keeps its ring. */
+  #main:focus {
     outline: none;
   }
 }
