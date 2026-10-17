@@ -42,8 +42,10 @@ export function refuseWebGl() {
 }
 
 /**
- * Turns `failIfMajorPerformanceCaveat: true` into false before the real call: the browser refuses
- * it (software renderer), and a test that needs a context has to get one.
+ * Turns `failIfMajorPerformanceCaveat: true` into false before the real call. Some browsers refuse
+ * it (a software renderer: the sandbox's Chromium 141), others grant it (CI's 156), so the tests
+ * never depend on which: they strip it where they need a context and use `refuseCaveat` where they
+ * need the refusal.
  */
 function stripCaveat() {
   const original = HTMLCanvasElement.prototype.getContext as (
@@ -116,6 +118,27 @@ function recordWebGl() {
       };
     }
   }
+}
+
+/**
+ * Simulates a device with no cheap GPU: a WebGL request carrying `failIfMajorPerformanceCaveat: true`
+ * gets null, as the browser would answer for a software or blocklisted renderer. Any other request
+ * passes through. Added after the strip, so it sees the page's own attributes.
+ */
+function refuseCaveat() {
+  const original = HTMLCanvasElement.prototype.getContext as (
+    this: HTMLCanvasElement,
+    type: string,
+    attrs?: Record<string, unknown>,
+  ) => unknown;
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    type: string,
+    attrs?: Record<string, unknown>,
+  ) {
+    if (/webgl/.test(type) && attrs?.failIfMajorPerformanceCaveat) return null;
+    return original.call(this, type, attrs);
+  } as never;
 }
 
 /** What the page's gate reads: cores, memory and Save-Data, set the way a page sees them. */
@@ -245,8 +268,10 @@ export type RunOptions = {
   saveData?: boolean;
   /** getContext returns null for the WebGL types. */
   refuseWebGl?: boolean;
-  /** Strip `failIfMajorPerformanceCaveat` (default: yes, or no run could get a context here). */
+  /** Strip `failIfMajorPerformanceCaveat` (default: yes, or a run might get no context). */
   stripCaveat?: boolean;
+  /** Refuse any WebGL request that carries `failIfMajorPerformanceCaveat: true`. */
+  refuseCaveat?: boolean;
   slowClock?: boolean;
   spacer?: boolean;
   /** The swap watchers of C10 and C11. */
@@ -299,6 +324,7 @@ export async function openRun(
   });
   if (options.refuseWebGl) await context.addInitScript(refuseWebGl);
   if (options.stripCaveat ?? true) await context.addInitScript(stripCaveat);
+  if (options.refuseCaveat) await context.addInitScript(refuseCaveat);
   if (options.slowClock) await context.addInitScript(slowFrameClock);
   if (options.spacer) await context.addInitScript(addSpacer);
   if (options.watch) await context.addInitScript(watchSwap);

@@ -32,9 +32,10 @@ import {
 // existing `[data-hero-hull]` / `[data-hero-copper]` in the SVG. How each check is read, and what
 // the build can rely on: .studio/sprint/10/probe-checks.md.
 //
-// These specs need a browser that refuses `failIfMajorPerformanceCaveat: true` (a software
-// renderer, as CI's is; C17 asserts it). Every run uses devicePixelRatio 1 and reads pixels from
-// `page.screenshot` only. Where a test hides the SVG, it is to measure the canvas alone, whatever
+// These specs do not depend on whether the browser itself refuses `failIfMajorPerformanceCaveat:
+// true` (the sandbox's Chromium 141 does, CI's 156 grants it; C17 reports which). They strip the
+// flag where a run needs a context and simulate the refusal with `refuseCaveat` where one is
+// needed. Every run uses devicePixelRatio 1 and reads pixels from `page.screenshot` only. Where a test hides the SVG, it is to measure the canvas alone, whatever
 // the build does with the SVG once the canvas is up.
 
 const AXE_TAGS = [
@@ -711,7 +712,7 @@ test("C14. It falls back: reduced motion, Save-Data, a weak device, no context, 
     { name: "deviceMemory 2", options: { memory: 2 } },
     { name: "hardwareConcurrency 2", options: { cores: 2 } },
     { name: "getContext returning null", options: { refuseWebGl: true } },
-    { name: "the caveat flag refused", options: { stripCaveat: false } },
+    { name: "the caveat flag refused", options: { refuseCaveat: true } },
   ];
   for (const refusal of refusals) {
     const run = await open(browser, refusal.options);
@@ -733,7 +734,7 @@ test("C14. It falls back: reduced motion, Save-Data, a weak device, no context, 
     expect
       .soft(run.requests.includes(chunkUrl), `chunk requested ${where}`)
       .toBe(false);
-    if (refusal.options.stripCaveat === false) {
+    if (refusal.options.refuseCaveat) {
       // Proves the flag is passed: one request, with the flag, and no other.
       const requests = await run.page.evaluate(
         () => (window as HarnessWindow).__ctxReqs ?? [],
@@ -933,19 +934,31 @@ test("C15. Weight: at most 15,360 B after load, one chunk with the shaders, 2,04
 test("C17. The harness holds: the caveat flag is refused, the strip grants a context, the recorder and the draw counter see it, a screenshot shows it", async ({
   browser,
 }) => {
+  const askAll = (page: Page) =>
+    page.evaluate(() =>
+      ["webgl", "webgl2", "experimental-webgl"].map(
+        (type) =>
+          document
+            .createElement("canvas")
+            .getContext(type, { failIfMajorPerformanceCaveat: true }) === null,
+      ),
+    );
+
+  // What this browser does by itself is reported, not asserted: the sandbox's Chromium 141 refuses
+  // the flag (a software renderer), CI's 156 grants it.
   const bare = await open(browser, { stripCaveat: false });
   await bare.page.goto("about:blank");
-  const refused = await bare.page.evaluate(() =>
-    ["webgl", "webgl2", "experimental-webgl"].map(
-      (type) =>
-        document
-          .createElement("canvas")
-          .getContext(type, { failIfMajorPerformanceCaveat: true }) === null,
-    ),
-  );
+  test.info().annotations.push({
+    type: "native-caveat-refusal",
+    description: `[webgl, webgl2, experimental-webgl] refused by the browser itself: ${JSON.stringify(await askAll(bare.page))}`,
+  });
+
+  // The harness's own refusal, which C14 relies on: null for all three types.
+  const refusing = await open(browser, { refuseCaveat: true });
+  await refusing.page.goto("about:blank");
   expect(
-    refused,
-    "failIfMajorPerformanceCaveat: true refused for webgl, webgl2 and experimental-webgl without the strip (this browser is not a software renderer if not)",
+    await askAll(refusing.page),
+    "failIfMajorPerformanceCaveat: true refused by the harness for webgl, webgl2 and experimental-webgl",
   ).toEqual([true, true, true]);
 
   const granted = await open(browser);

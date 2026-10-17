@@ -59,7 +59,8 @@ not CI's 156; the first CI run is the readout for the measured thresholds.
   shear stays unclamped).
 - **C15**: 15.1 and 15.2 from the same control run; `/_not-found` in a second context; 15.3 reads the
   `[data-hero]` `outerHTML` from a JS-off context (as served) and from the control run (canvas up).
-- **C17**: `about:blank`; the refusal for `webgl`, `webgl2`, `experimental-webgl`; then a stripped context
+- **C17**: `about:blank`; the browser's own answer to the flag is annotated, not asserted (see "CI 156
+  readout"); the harness's `refuseCaveat` script gives null for `webgl`, `webgl2`, `experimental-webgl`; then a stripped context
   that compiles a 3-vertex program, draws once, and a screenshot's centre pixel must be `rgb(0,255,0)`.
 - **hero.spec edits**: `expectedBox` (138 from 768, `8 + 130 * hullWidth / 624` below; C8 follows), the C2
   title, the 138.5 bound, a hull-centred check (air above and below within 1.5 px, seven widths), and
@@ -105,6 +106,30 @@ not CI's 156; the first CI run is the readout for the measured thresholds.
 - `pnpm verify`: green (lint, typecheck, knip, build). `e2e/webgl.ts` exports only `refuseWebGl`, `openRun`
   and the small helpers the specs use, so knip is clean.
 
+## CI 156 readout (d5c2a06) and the amendment
+
+CI's Chromium 156 **grants** `failIfMajorPerformanceCaveat: true` for `webgl`, `webgl2` and
+`experimental-webgl` (C17's `refused` was `[false, false, false]`); the sandbox's 141 refuses it. The
+contract's premise ("the browser refuses it: software renderer", spike §1) was true of 141 only, and the
+test stopped there, so whether 156 draws is still unread. C10 to C14 failed for want of the product, as
+expected. Amended (smallest change that keeps every proof):
+- New init script `refuseCaveat` (`e2e/webgl.ts`): a WebGL `getContext` carrying
+  `failIfMajorPerformanceCaveat: true` gets null, any other request passes through. It is added after the
+  strip and before the recorder, so it sees the page's own attributes and the recorder still logs them.
+- **C17**: the browser's own answer is an annotation (`native-caveat-refusal`), not an assertion. Asserted
+  instead: `refuseCaveat` gives null for all three types. Unchanged: the strip grants a context whose own
+  attribute is false, the recorder reports `true`, one draw is counted, the screenshot shows
+  `rgb(0,255,0)`. The strip's attribute clause holds on a granting browser too (the strip rewrites the
+  request).
+- **C14's caveat case** uses `refuseCaveat` instead of "strip switched off": one recorded request with the
+  flag `true`, no other context request, no chunk, SVG visible. Control and the other five cases are unchanged.
+- `hero.spec.ts` edit 4 is untouched (`refuseWebGl` nulls every request). Lint: the annotations are infos
+  (function length and complexity); `biome ci --error-on-warnings` is clean.
+- Proof at 141 (scratch reference): C17 and C14 pass on the correct build; C14 fails on the mutant whose
+  probe drops the flag (2 requests `[webgl, undefined], [webgl, true]`, chunk requested).
+- This is a failed premise, so the contract change goes to the owner (Atlas writes it up). Nothing was
+  widened: no threshold changed.
+
 ## What is not proven, and the risks to read in CI
 
 - **Chromium 156.** Everything above is 141. Thresholds most likely to move on 156: C13.1 (edges), C13.2
@@ -112,10 +137,8 @@ not CI's 156; the first CI run is the readout for the measured thresholds.
   seams), C13.3 (mean 8, copper median 6), C11.3 (2 to 7 px of air; a rounded clip makes the box's top row
   good to half a pixel), C14.1 (the 10-draw growth in 0.5 s, the 8-draw ceiling).
   Every measured threshold prints the measured value in its failure message.
-- **Software GL assumed.** C17's first assertion, and C14's caveat case, need a browser that refuses
-  `failIfMajorPerformanceCaveat: true` (CI's and the sandbox's headless shell do). On a developer machine
-  with a GPU these two fail for a reason that is not a bug in the product; `hero.spec.ts` is not affected
-  (its `refuseWebGl` is explicit).
+- **No assumption about the browser's own refusal** (after the CI readout below). Runs strip the flag where
+  they need a context and use the `refuseCaveat` script where the contract says "refused".
 - **Not tested at all:** the butt joints (vertical seams), retina, a GPU-backed context, Safari and
   Firefox, a real phone, a classic scrollbar. No spec claims them.
 - **A premise I added:** C13 and C11 hide the SVG. If the build removes the SVG from the DOM when the canvas
