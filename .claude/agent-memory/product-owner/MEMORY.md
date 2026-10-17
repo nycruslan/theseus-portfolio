@@ -4,4 +4,6 @@
 - Name tokens in the contract (fixed custom-property names) so Probe's e2e checks are deterministic; dark-block default is "kept, parity only"
 - Sprint 4 (.studio/sprint/4/): adding visible text breaks project-cards C2 (exact text outside cards); say in the contract which single line Probe inserts, additions only (scope.mjs flags removed lines)
 - Sprint 4 (.studio/sprint/4/): unlayered CSS beats Tailwind utilities, so a global :focus-visible rule goes in `@layer base`; globals.css may declare no new custom property (project-cards C8 snapshot)
+- Sprint 7 (.studio/sprint/7/): invariants' literal scan bans `oklch(`/`oklab(` calls and hex-like ids (`url(#face)`); decor in `main` must be a `div` (reveal C2 hard-codes five sections), have no `tabindex` or text node; tones via `color-mix(in oklab, var(--t)…)`
+- Sprint 7 (.studio/sprint/7/): a direction's numbers can contradict (2.9:1 box vs 180 px cap, binding from 499 px); cross-check them. CI Chromium draws WebGL in software, so WebGL checks need init-script control (strip failIfMajorPerformanceCaveat, count draws); split such an item into a static part and an upgrade part
 - Sprint 4 (.studio/sprint/4/): axe was already clean per scheme, so an "axe pass" contract must target what axe can't see (keyboard order, skip link, forced colors) and add a stricter tag-set run
