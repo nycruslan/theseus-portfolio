@@ -1,7 +1,8 @@
 # Sprint 5: Pixel's build
 
-Built: the section reveal on scroll, CSS only. The section fades in place and its heading rises. `e2e/reveal.spec.ts` C1 to C8 and the whole existing
-suite pass, and nothing in `e2e/` was edited. At rest the page is pixel-identical to `origin/main`
+Built: the section reveal on scroll, CSS only. As of fix round 2, each section's heading rises 16 px
+into place as the section scrolls in, and nothing fades. `e2e/reveal.spec.ts` C1 to C8 and the
+whole existing suite pass, and nothing in `e2e/` was edited. At rest the page is pixel-identical to `origin/main`
 in light and dark at 1440 and 390.
 
 ## What changed
@@ -11,16 +12,20 @@ One file, `app/globals.css`: a block at the end, unlayered, no new tokens, no cl
 - `@supports (animation-timeline: view())` wraps `@media (prefers-reduced-motion: no-preference)`,
   which holds both the keyframes and the rule, so reduced motion and browsers without view timelines
   get no animation at all (C5, C6, and `cards.spec`'s `getAnimations()` count).
-- `@keyframes section-fade` (`from { opacity: 0 }`) runs on the section and `@keyframes
-  section-rise` (`from { translate: 0 16px }`) runs on its `h2`. Both have only a `from`, so the end
-  is each element's own style.
-- `main > section`: `view-timeline: --section block`, then `animation: section-fade
-  cubic-bezier(0.33, 1, 0.68, 1) backwards`, `animation-timeline: --section`,
-  `animation-range: entry 0% entry 64px` and `will-change: contents`. `main > section > h2` runs
-  `section-rise` on the same named timeline and range, so the heading follows the section. It does
-  not follow its own shorter box. `main > section` never matches the header (C3).
-- Fix round 1 changed this: at first the whole section rose. Now only the heading moves, and nothing
-  that can be clicked or focused does. See "Fix round 1" below.
+- Final state, after fix round 2:
+  - `@keyframes section-rise` has only a `from { translate: 0 16px }`, so the end is the heading's
+    own style.
+  - `main > section` has only `view-timeline: --section block`.
+  - `main > section > h2` has `animation: section-rise cubic-bezier(0.33, 1, 0.68, 1) backwards`,
+    then `animation-timeline: --section`, `animation-range: entry 0% entry 64px` and
+    `will-change: contents`.
+  - `main > section` never matches the header (C3).
+- History:
+  - cd26f19 faded and raised the whole section.
+  - Fix round 1 (8d87127) faded the section and raised only the heading.
+  - Fix round 2 removed the fade. See the two sections below.
+  - The notes on the range, `backwards` and the ease below still hold. They now apply to the
+    heading.
 
 The built CSS keeps the gate intact (lightningcss writes the start as `entry`, which is `entry 0%`;
 the computed `animation-range-start` in the production build reads `entry`). It adds 297 bytes to
@@ -145,7 +150,69 @@ Evidence after the fix:
 - **Subpixel text antialiasing loss** without the hint is inferred, not seen. The headless
   screenshots show only the arrow.
 
-Needs decision (Iris): two things.
+## Fix round 2: Iris's contrast band, and Lens's nits on 8d87127
+
+**Cause (Iris, `.studio/sprint/5/review-iris.md`).** Any section whose top edge loads 1 to 30 px
+inside the viewport sits partway through its fade until the visitor scrolls. Projects' top sits at
+about 745 to 757 px, so the band covers ordinary windows. Iris counted 114 axe color-contrast
+failures on `#projects` at load, at 390 x 758–788 and 1440 x 746–774, with the worst at 1.17:1.
+Every fade length she tried left some band. My own "partly revealed at load" note had accepted
+this, and that was wrong for a fade.
+
+**Change.**
+- I deleted `@keyframes section-fade`, and with it the section's `animation`,
+  `animation-timeline` and `animation-range`.
+- The section keeps `view-timeline: --section block`.
+- The heading keeps its rise: 16 px over 64 px, the same curve.
+- The comment header now says only the heading surfaces, and why nothing fades.
+- Lens's nits:
+  - The "(cards.spec did, in CI)" parenthetical is gone.
+  - The range comment now names the Tab-to-Contact bound next to the page-end bound.
+
+**`will-change: contents` stays, now on the heading.** Without it my 28-shot diff was **not 0**: the
+same 10 pixels (11 in dark) of the card arrow differed at 1440, in all 7 stops, in both schemes. That
+is 147 pixels in total. The animated heading's layer makes Chrome assume it may overlap what paints
+after it, so the cards are lifted onto layers too. Iris's 8 shots without the hint came back 0; my
+28 did not. I injected the hint on the section and, separately, on the `h2`: each gave 0. I put it on
+the `h2`, the element that animates. Final diff against `origin/main`: **0 differing pixels in all
+28 shots**.
+
+**The Tab bound, measured.** In Chromium, tabbing to the first Contact link centres it, clamped at
+the end of the page. That leaves Contact 166 to 169 px into its entry at 1440 x 900, 390 x 844,
+1280 x 720 and 1440 x 764, and 136 px at 320 x 640. Lens's "about 70 px" matches a browser that
+scrolls a focused element only just into view: then Contact is in by its own height, 70 to 73 px.
+That is the tighter bound, so the comment states it that way. 64 px clears both.
+
+**Evidence.**
+- Iris's height-band scan, rewritten without CSS injection (`band.mjs` in my scratchpad):
+  - axe `color-contrast` at load, after two frames, with motion allowed.
+  - Widths 390, 1024 and 1440; heights 700 to 900 in 2 px steps; light and dark. That covers all
+    of her bands.
+  - Result: **606 loads, 0 failures, and 0 elements under a section below opacity 1.**
+  - In 162 of those loads a heading was in view and partway through its rise, at most 16 px low and
+    at full opacity. That is the "partly revealed at load" the contract allows.
+- `pnpm verify`: exit 0.
+- `PLAYWRIGHT_PORT=3363 pnpm test:e2e`: 41 passed, 1 skipped (the `TODO(owner)` fixme).
+- `reveal.spec.ts`, `keyboard.spec.ts` and `cards.spec.ts`, `--repeat-each 15 --workers 8`: **270
+  passed, 0 failed.** C1 to C8 all pass with a heading-only rise. C1, C7 and C8 see Contact as
+  not at rest through its `h2`'s translate.
+- agent-browser `--session pixel5`, 1440 x 900 and 390 x 844, light and dark:
+  - Contact's `h2` translate is 16, 5.4, 0.9 and 0 px at +0, +20, +40 and +64 px.
+  - The section stays at opacity 1 and the list's translate stays `none` throughout.
+- Perf, measured as before (390 x 844, DPR 3, 4x CPU, three runs):
+  - Frame p50 and p95 were 16.7 ms on both builds.
+  - 0 long animation frames and 0 layouts.
+  - Style recalc was 41 to 48 ms over 173 recalcs.
+  - Task time was 973 to 1023 ms on the branch and 655 to 864 ms on main. Iris's servers were
+    running at the same time, so these are noisy, and the difference is at most about 1 ms a frame
+    at 4x.
+- The stylesheet is 13,596 bytes, 332 more than main.
+
+Needs decision (Quill): amend the contract's outcome from "a short rise and fade" to "a short rise
+of each section's heading", as Iris proposes.
+
+Needs decision (Iris): two things, both now settled by her review (16 px over 64 px is kept, and the
+heading-only rise is accepted). For the record:
 - Is the weight right? The motion is 16 px over 64 px of scroll, and quiet by design. At 1440 x 900
   it shows only on Contact.
 - Fix round 1 changed the motion: the section now fades in place while only its heading rises. If
