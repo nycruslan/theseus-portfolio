@@ -97,3 +97,16 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - Specs that hard-code the page's section list (`reveal.spec.ts` C2) break on any new section;
     a contract that adds a section should name that line as an expected edit.
   - agent-browser isn't on PATH in cloud sessions; builders and Iris fell back to Playwright scripts.
+
+## Sprint 7: 3D hero contract (PR #28)
+
+- **Outcome:** the L lane's first step, no product code. Iris's direction (`direction-iris.md`): a
+  shipwright's lift half-model, seven planks with one copper plank, hung after the header, moving only
+  on scroll, an inline SVG every visitor gets and WebGL as an idle-loaded upgrade. Quill's contract
+  (`contract.md`) splits it into Part A (static SVG, C1–C9) and Part B (WebGL, C10–C16) and binds it to
+  the existing specs with none edited. PR #28 waits for the owner (`needs-owner`).
+- **Lesson:**
+  - Reading the existing specs before the contract found that the color scan bans `oklch(`/`oklab(`
+    calls and hex-looking SVG ids, and that `reveal.spec` C2's section list makes the hero a `div`:
+    each would have failed a correct build.
+  - LCP on this page is body text (the bio, or the first Experience summary at 1440), not the h1.
