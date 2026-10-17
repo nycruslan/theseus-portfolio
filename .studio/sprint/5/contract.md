@@ -11,8 +11,10 @@ Roadmap item 4, the top open item: **section reveal motion on scroll, disabled u
 
 ## Outcome
 
-As a visitor scrolls, each section below the header (Experience, Projects, Contact) eases in once,
-a short rise and fade tied to its own scroll position, and then sits exactly where it sits today.
+As a visitor scrolls, each section below the header (Experience, Projects, Contact) eases in: its
+heading rises a short way into place, tied to the section's own scroll position, and then sits
+exactly where it sits today. Nothing fades (amended by decision 4; the first draft said "a short
+rise and fade").
 It is CSS only (scroll-driven animations, `animation-timeline: view()`), so it adds no JavaScript
 and works with scripts off. The header never moves or fades: the first paint shows the owner's
 name at once. Under reduced motion, and in browsers without scroll-driven animations, nothing

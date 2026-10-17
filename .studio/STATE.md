@@ -72,3 +72,17 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - The skip link skips nothing while `main` wraps the whole page: an a11y feature can pass every check
     and still not serve its stated reason. Name the visitor's outcome as a check (Contact reachable in N Tabs).
   - Production is unreachable from cloud sessions (proxy 403); C9-style comparisons use an origin/main build.
+
+## Sprint 5: section reveal on scroll (PR #22)
+
+- **Outcome:** each section's h2 rises 16 px into place over the first 64 px of the section's entry,
+  CSS only (`view-timeline` on the section, gated by `@supports (animation-timeline: view())` and
+  `prefers-reduced-motion: no-preference`, `backwards` fill, `will-change: contents` on the h2 to keep
+  rest pixel-identical). Nothing fades and nothing clickable moves. Lens ship on 0ae070e after two fix
+  rounds; CI green; Iris's 7.2 changes was on the previous head. `keyboard.spec` `settled()` now waits
+  only for clock animations plus two frames.
+- **Lesson:**
+  - A scroll-driven animation is one frame stale after a jump scroll: never move click targets with it.
+  - A fade tied to scroll leaves sections mid-fade at load in some window heights, which fails axe
+    contrast. The suite's fixed viewports miss such bands; sweep heights for motion work.
+  - Helpers that await every animation hang on view-timeline animations; filter to `document.timeline`.

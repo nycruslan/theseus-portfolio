@@ -53,9 +53,10 @@ the page's one stylesheet (13,264 to 13,561, uncompressed).
   `will-change: opacity` to main's sections: that build matched the branch exactly. The hint keeps the
   sections painted with the page. The cost is that the 64 px rise paints on the main thread, and I
   measured that cost (below).
-- **Ease.** An ease-out cubic over the range, so most of the rise and fade happens as the section's
+- **Ease.** An ease-out cubic over the range, so most of the rise happens as the section's
   top edge clears the bottom of the screen, and the last few pixels settle slowly. At +20 px of the
-  range Contact is at opacity 0.67 and its heading at translate 5.4 px; at +40 px, 0.94 and 0.9 px.
+  range Contact's heading is at translate 5.4 px; at +40 px, 0.9 px. (The opacity figures elsewhere in
+  this note describe cd26f19 and 8d87127; the final build fades nothing.)
 
 ## Evidence
 
@@ -208,8 +209,7 @@ That is the tighter bound, so the comment states it that way. 64 px clears both.
     at 4x.
 - The stylesheet is 13,596 bytes, 332 more than main.
 
-Needs decision (Quill): amend the contract's outcome from "a short rise and fade" to "a short rise
-of each section's heading", as Iris proposes.
+Settled by Atlas (decisions.md item 4): the contract's outcome now reads as a heading-only rise.
 
 Needs decision (Iris): two things, both now settled by her review (16 px over 64 px is kept, and the
 heading-only rise is accepted). For the record:
