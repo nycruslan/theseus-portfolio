@@ -10,3 +10,9 @@
    `content.spec.ts` fixme are each S, but one sprint ships one PR. They stay as follow-ups.
 3. **No `decide` run.** The technique (WebGL library versus hand-written WebGL or CSS) is a build
    call bounded by the contract's budgets, not a call the owner needs to settle now.
+4. **Scope cut after fix round 2.** Lens said changes on 96f0b2a, f96f53f and 2355550. Quill fixed
+   rounds 1 and 2, and each round's important findings were new ones, mostly in Part B, whose checks
+   rest on a WebGL spike nobody has run. With the round cap reached, I recorded a contract change
+   (`contract.md`, "Contract change"): Part A (C1 to C9) is the contract, Part B (C10 to C16) is a
+   draft that its own sprint rewrites after Probe's spike, and Lens's open findings travel with it.
+   I amended C7 from Lens's nits myself (painted shapes only, a chroma floor for the hue test).

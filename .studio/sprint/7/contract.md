@@ -4,7 +4,7 @@ Size: L, built as two M pull requests. This sprint ships the contract only; the 
 merging this PR (`needs-owner`). No product code changes.
 - **Part A, the next sprint:** the static half-model, an inline SVG in the HTML, no client JavaScript,
   no dependency. Pixel builds, Probe writes C1 to C9 first, Lens reviews in CI, Iris reviews as advice.
-- **Part B, the sprint after:** the WebGL upgrade on top of A, with C10 to C16. Same roles.
+- **Part B, the sprint after:** the WebGL upgrade on top of A, with C10 to C16, a draft its own sprint rewrites first (see "Contract change"). Same roles.
 
 ## Goal
 
@@ -95,8 +95,12 @@ need not keep the same one; "text" is the line. Not a gate, and shown in Probe's
 (a plain `request.get("/")` body contains `data-hero-hull`). Part A adds no client component and no
 dependency: shown by `next build`'s first-load JS for `/` equal to `origin/main`'s, in Pixel's report.
 
-**C7. Quiet, in tokens, in both schemes.** Probe resolves every `stop-color` and every non-`url()` `fill`
-and `stroke` inside `[data-hero]` through a canvas, against the resolved `--background`.
+**C7. Quiet, in tokens, in both schemes.** Probe resolves every `stop-color`, and the computed `fill` and
+`stroke` of every painted shape (`path`, `line`, `rect`, `polygon`, `polyline`, `circle`, `ellipse`)
+inside `[data-hero]`, skipping `none` and `url()` values, through a canvas, against the resolved
+`--background`. Containers (`svg`, `g`, `defs`, gradients) are not read. The hue test below skips tones
+with OKLCH chroma under 0.005, where 8-bit rounding moves hue by more than the window (amended by
+Atlas after fix round 2, from Lens's nits on 2355550).
 - Each non-copper tone is `--background` exactly (the seams) or 1.15 to 3.0 : 1 against it. **This
   settles Iris's open point: the dark top face measured 3.55 : 1, so it is darkened below the ceiling
   (aim for 2.8), not exempted.** A decoration that outshines the muted text is the first thing the eye
@@ -173,6 +177,24 @@ build does not fit; the technique is Pixel's call inside the budget.
 
 **C16. Gate.** C1 to C9 still pass; `pnpm verify` and the suite pass; nothing in `package.json`'s
 `scripts` or an owner path changed. The new dependency, if any, is in `dependencies` and used (knip).
+
+## Contract change (Atlas, after fix round 2)
+
+Lens said changes three times, and every finding after round 1 was in Part B, the half that depends
+on a WebGL spike nobody has run. The sprint's two fix rounds are spent, so the scope is cut here:
+- **Part A (C1 to C9) is the contract.** The owner accepts it by merging. Lens's findings on Part A
+  are fixed (C3, C8, C9 and the C7 amendment above).
+- **Part B (C10 to C16) is a draft and not yet accepted.** It sets the intent, the 15 KB budget and the
+  fallback cases. Part B's own sprint starts with Probe's spike, then rewrites C10 to C16 against what
+  the CI browser really does, and puts the rewrite to Lens before anyone builds. These open findings
+  from Lens's review of 2355550 go with it:
+  - **C10:** the proximity test at 320 x 640 already passes at load (the box top is about 600 to 700 px,
+    inside 2 x 640). Use a viewport where the box starts more than one viewport height below, and
+    assert that first.
+  - **C14:** the 60 ms frame-clock case has to scroll continuously after the patch, and first show the
+    draw count growing.
+  - **C15 and C6:** Lens in CI runs nothing, so either Probe asserts the sizes from the build output or
+    Lens checks the numbers Pixel reports. Say which.
 
 ## Out of scope
 
