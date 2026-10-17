@@ -3,15 +3,15 @@
 // exists because the cloud's proxy refuses GraphQL, and with it `gh pr merge` and auto-merge, so
 // it's REST only (github.mjs).
 // It reads the checks to wait for from the base branch's active rules (protect-main requires
-// `check`, `gate` and `lens`), so the list can't drift from GitHub's; rules it can't read, or that
-// require no check, are a NO-GO. It polls every 15 s, for up to 8 minutes, until each required
-// check has reported, every check on the head has finished, and GitHub knows the PR's
-// mergeable_state. Then it asks GitHub to squash-merge, with `sha` set so a push in between makes
-// GitHub refuse, unless a required check never reported or the state already rules a merge out (a
-// conflict, a draft, a branch behind its base). "unstable" or "blocked" may come from a check the
-// ruleset doesn't require, so GitHub's answer decides those, and its message is the reason given.
-// Either way the checks go on air as StudioGateChecked. Run it with the Bash tool's timeout at 10
-// minutes.
+// `check`, `gate` and `lens`, each from a named app), so the list can't drift from GitHub's; rules
+// it can't read, or that require no check, are a NO-GO. It polls every 15 s, for up to 8 minutes,
+// until each required check has reported, every check on the head has finished, and GitHub knows
+// the PR's mergeable_state. Then it asks GitHub to squash-merge, with `sha` set so a push in
+// between makes GitHub refuse, unless a required check never reported or the state already rules
+// a merge out (a conflict, a draft, a branch behind its base). "unstable" or "blocked" may come
+// from a check the ruleset doesn't require, so GitHub's answer decides those, and its message is
+// the reason given. Either way the checks go on air as StudioGateChecked. Run it with the Bash
+// tool's timeout at 10 minutes.
 
 import { setTimeout as sleep } from "node:timers/promises";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
@@ -71,7 +71,7 @@ broadcast({
     target: "merge",
     pr: number,
     head,
-    items: checks,
+    items: checks.map(({ app, ...check }) => check),
     pass: Boolean(merged),
   },
 });
@@ -85,10 +85,11 @@ if (merged) {
 }
 
 // Done once the branch moved, or every required check reported, every check finished and GitHub
-// knows if the PR merges cleanly.
+// knows if the PR merges cleanly. Rules that require nothing leave nothing to wait for.
 function settled() {
   const known = pr.mergeable_state && pr.mergeable_state !== "unknown";
   return (
+    !required.length ||
     pr.head.sha !== head ||
     (known &&
       !unreported().length &&
@@ -98,14 +99,15 @@ function settled() {
 
 // Why asking GitHub to merge is pointless now, or null to ask.
 function refusal() {
+  // Rules that require no check would let this merge on nothing.
+  if (!required.length) return `the ${pr.base.ref} rules require no checks`;
   if (pr.head.sha !== head)
     return `the branch moved to ${pr.head.sha.slice(0, 7)} while it waited`;
   if (pr.state !== "open")
     return `the PR is ${pr.merged ? "already merged" : pr.state}`;
   const missing = unreported();
   if (missing.length) {
-    const hint = missing.includes("lens") ? "; label the PR `review`" : "";
-    return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${hint}`;
+    return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${lensHint(missing)}`;
   }
   if (["dirty", "draft", "behind", "unknown"].includes(pr.mergeable_state)) {
     return `GitHub says "${pr.mergeable_state}" (${line()})`;
@@ -113,42 +115,55 @@ function refusal() {
   return null;
 }
 
-// The checks the base branch's rules require, by name. Rules that can't be read throw, and rules
-// that require none would let this merge on nothing, so both stop the merge.
+// Lens reviews only a PR labelled `review`, so without the label it never will.
+function lensHint(missing) {
+  if (!missing.includes("lens")) return "";
+  const labelled = pr.labels?.some(({ name }) => name === "review");
+  return labelled ? "; Lens hasn't finished yet" : "; label the PR `review`";
+}
+
+// The checks the base branch's rules require: each a context, and the app it must come from
+// (integration_id) when the rules name one. Rules that can't be read throw, which stops the merge.
 function requiredChecks(base) {
-  const names = list(`repos/${repo}/rules/branches/${base}?per_page=100`, {
-    cwd,
-  })
+  return list(`repos/${repo}/rules/branches/${base}?per_page=100`, { cwd })
     .filter(({ type }) => type === "required_status_checks")
-    .flatMap(({ parameters }) => parameters.required_status_checks)
-    .map(({ context }) => context);
-  if (!names.length) throw new Error(`the ${base} rules require no checks`);
-  return [...new Set(names)];
+    .flatMap(({ parameters }) => parameters.required_status_checks);
 }
 
-// The required checks with no run or status on the head yet.
+// The names of the required checks with no run from the right app, or status, on the head yet.
+// A commit status doesn't say which app posted it, so it counts by its context alone.
 function unreported() {
-  return required.filter((name) => !checks.some(({ who }) => who === name));
+  const missing = required.filter(
+    ({ context, integration_id: app }) =>
+      !checks.some(
+        (check) =>
+          check.who === context &&
+          (!app || check.app === undefined || check.app === app),
+      ),
+  );
+  return [...new Set(missing.map(({ context }) => context))];
 }
 
-// The latest run of each check on the commit (an older one may be a superseded, cancelled run),
-// plus the commit statuses, such as Vercel's preview.
+// The latest run of each check from each app on the commit (an older one may be a superseded,
+// cancelled run), plus the commit statuses, such as Vercel's preview.
 function checksOn(sha) {
   const latest = new Map();
   for (const run of list(
     `repos/${repo}/commits/${sha}/check-runs?per_page=100`,
     { key: "check_runs", cwd },
   )) {
-    if (!(latest.get(run.name)?.id > run.id)) latest.set(run.name, run);
+    const key = `${run.name} ${run.app?.id}`;
+    if (!(latest.get(key)?.id > run.id)) latest.set(key, run);
   }
   const statuses = list(`repos/${repo}/commits/${sha}/status?per_page=100`, {
     key: "statuses",
     cwd,
   });
   return [
-    ...[...latest.values()].map(({ name, status, conclusion }) =>
-      item(name, status === "completed" ? conclusion : "pending"),
-    ),
+    ...[...latest.values()].map(({ name, status, conclusion, app }) => ({
+      ...item(name, status === "completed" ? conclusion : "pending"),
+      app: app?.id,
+    })),
     ...statuses.map(({ context, state }) => item(context, state)),
   ];
 }
