@@ -6,6 +6,10 @@ import { profile } from "../content/profile";
 
 /** The Projects section. Its `projects` id sits on the h2, so the section is found by its label. */
 export const PROJECTS = 'section[aria-labelledby="projects"]';
+/** The Stack and Education sections, found by their label like Projects. */
+export const STACK = 'section[aria-labelledby="stack"]';
+export const EDUCATION = 'section[aria-labelledby="education"]';
+
 /** The projects that have a link, so their card is one. */
 export const withLink = profile.projects.filter((project) => project.href);
 
