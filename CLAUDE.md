@@ -45,6 +45,10 @@ the brief, decisions you need and from whom ("Needs decision (Iris): …"), and 
 verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) make that first line
 `Verdict: ship`, `Verdict: changes` or `Verdict: blocked`.
 
+Visitors watch every command you run in the Studio, which says it by its Bash `description`. So
+give every Bash call one: a short imperative line of what it does, such as "Wait for the e2e run to
+finish", never the command itself.
+
 ## Merge policy
 
 GitHub decides what merges, through the `protect-main` ruleset. Its one bypass is the owner's: the
