@@ -320,7 +320,7 @@ async function tabUntil(page: Page, selector: string, max = 20) {
   return false;
 }
 
-const sectionIds = ["experience", "projects", "contact"];
+const sectionIds = ["experience", "projects", "stack", "education", "contact"];
 
 test("C1. Sections below the fold wait, then arrive", async ({ page }) => {
   await load(page);
