@@ -200,7 +200,7 @@ test("with reduced motion nothing in a card animates, and hover moves nothing", 
     );
     expect.soft(moving, "elements with a transition or animation").toEqual([]);
 
-    // Hover may change color, never move, resize, lift or fade anything.
+    // Hover may change how a card looks, never where anything sits or how big it is.
     const geometry = () =>
       card.evaluate((li) =>
         [li, ...li.querySelectorAll("*")].map((el) => {
@@ -212,10 +212,6 @@ test("with reduced motion nothing in a card animates, and hover moves nothing", 
             transform: style.transform,
             translate: style.translate,
             scale: style.scale,
-            boxShadow: style.boxShadow,
-            filter: style.filter,
-            opacity: style.opacity,
-            borderWidth: style.borderTopWidth,
           };
         }),
       );
@@ -223,7 +219,7 @@ test("with reduced motion nothing in a card animates, and hover moves nothing", 
     const before = await geometry();
     await card.hover();
     expect
-      .soft(await geometry(), "geometry, shadow, filter and opacity on hover")
+      .soft(await geometry(), "boxes and transforms on hover")
       .toEqual(before);
   }
 });

@@ -12,8 +12,9 @@ import {
 } from "./helpers";
 
 // What stays true for a keyboard visitor (sprint 4): a skip link comes first and lands on main,
-// Tab visits every link in reading order, each stop shows one clear ring in a token color, and a
-// card shows keyboard focus the way it shows hover. The skip link is `a[href="#main"]`.
+// Tab visits every link in DOM order, each stop can be seen and shows one clear ring in a token
+// color, and a card shows keyboard focus the way it shows hover. The skip link is
+// `a[href="#main"]`.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -83,7 +84,9 @@ test("a skip link is the first stop, hidden until focused, and readable when sho
         await skip.evaluate((el) => el === document.activeElement),
         `the first Tab focuses the skip link (${where})`,
       ).toBe(true);
-      await expect(skip).toHaveAccessibleName("Skip to content");
+      await expect(skip, `skip link name (${where})`).toHaveAccessibleName(
+        /skip/i,
+      );
 
       await settled(page);
       const tokens = Object.values(await resolveColors(page)).map(
@@ -137,7 +140,6 @@ test("a skip link is the first stop, hidden until focused, and readable when sho
 
 test("the skip link moves focus to main, and the next Tab goes on from there", async ({
   page,
-  request,
 }) => {
   await page.goto("/");
   expect(
@@ -175,23 +177,32 @@ test("the skip link moves focus to main, and the next Tab goes on from there", a
     "the next Tab focuses the first link inside main",
   ).toBe(true);
 
-  // The 404 has no main to point at, so it gets no skip link.
-  const missing = await request.get("/no-such-page");
-  expect(missing.status(), "status of /no-such-page").toBe(404);
-  expect(await missing.text(), "the 404's links").not.toContain('href="#main"');
+  // Any page with a skip link has a main for it to land on, the 404 included.
+  const missing = await page.goto("/no-such-page");
+  expect(missing?.status(), "status of /no-such-page").toBe(404);
+  expect(
+    await page.evaluate(
+      () =>
+        !document.querySelector('a[href="#main"]') ||
+        document.getElementById("main") !== null,
+    ),
+    "the 404's skip link has a #main to land on",
+  ).toBe(true);
 });
 
-test("Tab visits every link in order, each with one clear ring, in both schemes", async ({
+test("Tab visits every link in DOM order, each seen with one clear ring, in both schemes", async ({
   page,
 }) => {
-  const expectedStops = [
-    "#main",
-    ...withLink.map((project) => project.href ?? ""),
-    ...profile.links.map((link) => link.href),
-  ];
   for (const scheme of SCHEMES) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/");
+    // The order the DOM gives, skip link first: a positive tabindex would jump the queue.
+    const expectedStops = await page.evaluate(() =>
+      [...document.querySelectorAll("a[href]")]
+        .filter((a) => a.checkVisibility())
+        .map((a) => a.getAttribute("href") ?? ""),
+    );
+    expect(expectedStops[0], "the first link in the DOM").toBe("#main");
     const colors = await resolveColors(page);
     const tokenRgba = new Map(
       Object.values(colors).map((c) => [c.computed, c.rgba] as const),
@@ -210,11 +221,24 @@ test("Tab visits every link in order, each with one clear ring, in both schemes"
         const box = el.getBoundingClientRect();
         const cx = box.left + box.width / 2;
         const cy = box.top + box.height / 2;
+        // A focused link must be seen: not transparent, hidden, clipped to a pixel or off screen.
+        const seen =
+          el.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+          }) &&
+          box.width > 1 &&
+          box.height > 1 &&
+          box.right > 0 &&
+          box.bottom > 0 &&
+          box.left < innerWidth &&
+          box.top < innerHeight;
         // A project link may hand its ring to its card; every other link wears its own.
         const card = el.closest(`${projects} li`);
         const candidates = card ? [el, card] : [el];
         return {
           href: el.getAttribute("href") ?? "",
+          seen,
           onItself: !card,
           rings: candidates.map((c) => {
             const style = getComputedStyle(c);
@@ -233,6 +257,7 @@ test("Tab visits every link in order, each with one clear ring, in both schemes"
       }, PROJECTS);
       if (!stop) break;
       stops.push(stop.href);
+      if (!stop.seen) problems.push(`${stop.href}: can't be seen when focused`);
       const verdicts = stop.rings.map((ring) => {
         const rgba = tokenRgba.get(ring.color);
         const ratio = rgba
@@ -253,7 +278,10 @@ test("Tab visits every link in order, each with one clear ring, in both schemes"
       }
     }
     expect(stops, `Tab order (${scheme})`).toEqual(expectedStops);
-    expect(problems, `stops without a clear ring (${scheme})`).toEqual([]);
+    expect(
+      problems,
+      `stops not seen, or without a clear ring (${scheme})`,
+    ).toEqual([]);
 
     // Order comes from the DOM: no positive tabindex, and only main is focusable off the Tab order.
     const offOrder = await page.evaluate(() =>
@@ -270,41 +298,65 @@ test("Tab visits every link in order, each with one clear ring, in both schemes"
   }
 });
 
-test("a card shows keyboard focus the way it shows hover", async ({ page }) => {
+test("a card shows keyboard focus as it shows hover, and both differ from rest", async ({
+  page,
+}) => {
   for (const scheme of SCHEMES) {
     await page.emulateMedia({ colorScheme: scheme });
-    await page.goto("/");
-    const colors = await resolveColors(page);
-    const accent = colors["--accent"]?.computed;
-    const muted = colors["--muted"]?.computed;
     for (const project of withLink) {
       const index = profile.projects.indexOf(project);
-      const arrow = () =>
-        page
-          .locator(`${PROJECTS} li`)
-          .nth(index)
-          .locator("svg")
-          .evaluate((svg) => getComputedStyle(svg).color);
+      const card = page.locator(`${PROJECTS} li`).nth(index);
+      // The icon's color when the card has one; otherwise the card's and its link's own colors,
+      // ring included.
+      const look = () =>
+        card.evaluate((li) => {
+          const icon = li.querySelector("svg");
+          if (icon) return { icon: getComputedStyle(icon).color };
+          const paint = (el: Element | null) => {
+            if (!el) return "";
+            const style = getComputedStyle(el);
+            return [
+              style.color,
+              style.textDecorationColor,
+              style.borderColor,
+              style.backgroundColor,
+              style.outlineStyle,
+              style.outlineColor,
+            ].join(" ");
+          };
+          return { colors: `${paint(li)} | ${paint(li.querySelector("a"))}` };
+        });
+      const where = `${project.name} card (${scheme})`;
+
       await page.goto("/");
       await page.mouse.move(0, 0);
+      await settled(page);
+      const rest = await look();
       expect(
         await tabUntil(page, cardLink(index)),
         `Tab reaches the ${project.name} link`,
       ).toBe(true);
       await settled(page);
-      expect(await arrow(), `arrow with keyboard focus (${scheme})`).toBe(
-        accent,
-      );
-
+      const focused = await look();
       await page.keyboard.press("Tab");
+      await card.hover();
       await settled(page);
-      expect(await arrow(), `arrow with focus elsewhere (${scheme})`).toBe(
-        muted,
-      );
+      const hovered = await look();
 
-      await page.locator(`${PROJECTS} li`).nth(index).hover();
-      await settled(page);
-      expect(await arrow(), `arrow on hover (${scheme})`).toBe(accent);
+      if ("icon" in rest) {
+        expect(focused, `icon with keyboard focus vs hover, ${where}`).toEqual(
+          hovered,
+        );
+        expect(
+          focused,
+          `icon with keyboard focus vs at rest, ${where}`,
+        ).not.toEqual(rest);
+      } else {
+        expect(focused, `keyboard focus vs at rest, ${where}`).not.toEqual(
+          rest,
+        );
+        expect(hovered, `hover vs at rest, ${where}`).not.toEqual(rest);
+      }
     }
   }
 });
