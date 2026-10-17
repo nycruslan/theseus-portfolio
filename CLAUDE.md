@@ -25,6 +25,18 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   write the main checkout's memory, so it writes `.claude/agent-memory/<role>/` inside its
   worktree, commits just those files, and names the commit in its report for Atlas to bring over.
 
+## What starts a sprint
+
+The owner's routine `theseus-sprint` runs `/sprint` in the cloud on three triggers:
+- **the chain:** a sprint PR (head `sprint/…`) merging into `main` starts the next sprint;
+- **the heartbeat:** a schedule every 3 hours restarts a chain that stalled;
+- **the owner's button:** "Start a sprint" in the Studio fires the routine's API trigger, with an
+  optional goal. The routine passes it to `/sprint` as the goal; it sets what to build, never the
+  process, the rules or the owner's paths.
+
+The pre-flight stands down once `THESEUS_DAILY_SPRINTS` sprint PRs (default 6) merged in the last
+24 hours, and still continues an open sprint PR.
+
 ## Reporting
 
 Finish every piece of work with a report whose first line is its outcome. Then: what's done, what

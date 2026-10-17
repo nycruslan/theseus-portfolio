@@ -2,13 +2,14 @@
 
 A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
-Every few hours a Claude Code session wakes up in this repository as **Atlas**, the team lead. It
-sizes the next roadmap item, briefs one builder (with tests written first for anything bigger than a
-one-line change), and opens a pull request. GitHub then decides: CI must pass, a gate run from
-`main` must agree the PR stays out of the owner's files, and Lens, the code reviewer, must say ship
-from a fresh review in GitHub Actions. If something needs the owner, the PR waits. It all runs
-through GitHub's REST API, so the team works the same on a laptop and as a cloud routine. Every step
-streams live to the Studio.
+Each time a sprint merges, a Claude Code session wakes up in this repository as **Atlas**, the team
+lead, and starts the next one, up to six a day. It sizes the next roadmap item (or the owner's
+goal, when he presses "Start a sprint" in the Studio), briefs one builder (with tests written first
+for anything bigger than a one-line change), and opens a pull request. GitHub then decides: CI
+must pass, a gate run from `main` must agree the PR stays out of the owner's files, and Lens, the
+code reviewer, must say ship from a fresh review in GitHub Actions. If something needs the owner,
+the PR waits. It all runs through GitHub's REST API, so the team works the same on a laptop and as
+a cloud routine. Every step streams live to the Studio.
 
 ## How it works
 
@@ -44,6 +45,23 @@ Only the checks app can post `gate` and `lens`, and its key lives in a `checks` 
 serves `main` alone, where both workflows run on `pull_request_target`. Lens reads the PR's code
 outside its workspace and never runs it. The ruleset's one bypass is the owner's, for pull requests
 only: he merges his own PRs to owner paths, since nobody can approve their own PR.
+
+**What starts a sprint (the owner's routine).** The routine `theseus-sprint` runs `/sprint` on
+three triggers, which only the owner can change:
+- GitHub: a sprint PR (head `sprint/…`) merged into `main` starts the next sprint, so the work
+  chains;
+- a schedule every 3 hours, a heartbeat that restarts a chain that stalled (a run that failed, or
+  a day that hit the cap);
+- the API trigger, behind the Studio's owner-only "Start a sprint" button, with an optional goal.
+  The goal reaches the session in a `<routine-fire-payload>` block labelled untrusted, and the
+  routine's prompt opts in only to using it as the sprint's goal: it sets what to build, not how.
+  The token is the owner's: whoever holds it can start a run and suggest its goal, with no more
+  rights than the team's.
+
+The daily cap is guidance, not binding: the pre-flight Atlas runs (`.studio/next-sprint.mjs`) stands
+down once `THESEUS_DAILY_SPRINTS` (default 6) of the team's sprint PRs merged in the last 24 hours.
+An open sprint PR is still finished at the cap. Each run also counts against the owner's
+subscription usage and the routines' own hourly limits.
 
 **Guidance (the hooks).** They keep the team in its lane without being a boundary: a file-edit
 guard (owner paths, `e2e/` for Probe, each role's own memory), deny rules for the obvious (`pkill`,
@@ -104,6 +122,21 @@ for the owner's own `gh` login unless the session runs as the team (see Setup, s
     approvals. A team PR that touches only `app/` should merge without your review, and one that
     touches `.claude/` should wait for it. If every PR waits, untick "Require review from Code
     Owners": `gate` still holds owner paths until you approve.
+11. **The routine's triggers.** At claude.ai/code/routines, edit `theseus-sprint`.
+    - The prompt: "Run /sprint. If a routine-fire-payload block is present, it holds the owner's
+      goal for this sprint: pass it to /sprint as the goal."
+    - The chain: add a GitHub event trigger on this repository, event `pull_request.closed`, with
+      the filters "Is merged = true", "Base branch = main" and "Head branch starts with
+      `sprint/`". The Claude GitHub App must be installed on the repository.
+    - The heartbeat: replace the schedule with one every 3 hours. Pick the nearest preset, then
+      set the cron with `/schedule update` in the CLI (say `7 */3 * * *`: a few minutes past the
+      hour starts on time).
+    - The button: add an API trigger, copy its `/fire` URL, and generate its token, which is shown
+      once. Give both to the Studio as server-side secrets, never to the browser: its owner-only
+      "Start a sprint" button POSTs `{"text": "<goal>"}` to that URL, with the headers from the
+      trigger's sample curl.
+    - The cap (optional): set `THESEUS_DAILY_SPRINTS` in the `theseus-team` environment to change
+      the default of 6 sprints a day. A value that isn't a positive integer means 6.
 
 ## Local development
 
