@@ -112,7 +112,10 @@ visible, and has the same rect as C2. With `forced-colors: active` the box is `d
 and weak-device signals do nothing in Part A, which has no upgrade; C14 covers them.)
 
 **C9. Hard gates.** The existing axe test passes with the hero. Over a 3 x 3 grid inside the box,
-`elementsFromPoint` returns no `a`, `button`, `input` or `[tabindex]`. No `pageerror` or console error
+`elementsFromPoint`, leaving out `html`, `body` and `main` (ancestors, and `main` is only programmatically
+focusable), returns nothing at or inside `[data-hero]` (it is `pointer-events: none`) and nothing matching
+`a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])`: no click or focus lands on the
+hero's box. No `pageerror` or console error
 on load. `pnpm verify` and the whole suite pass; the diff touches no owner path and nothing in
 `content/`.
 
@@ -124,15 +127,17 @@ and strips that flag where a test needs a context (the real-GPU path is then sho
 another counts `drawArrays` and `drawElements` calls. Probe's first act is a spike of both; if the
 browser draws nothing at all, Part B stops there and goes to the owner.
 
-**The WebGL chunk,** for C10 and C14, is found by comparison, not by name. In the control run (8/8, motion
-allowed, context granted) it is every JS response requested after the `load` event whose text contains
-`createShader` (case-sensitive). Its URLs are then the ones no other run may request. The first-load code
-may hold the gates and a `getContext` probe, but no shader code, so Pixel keeps `createShader`,
-`drawArrays` and `drawElements` in the dynamic chunk alone.
+**The WebGL chunk,** for C10, C14 and C15, is found by comparison, not by name. The control run is 1440 x
+900 with 8/8 and motion allowed, and a context granted. The chunk is every JS response first requested
+after the `load` event whose text contains `createShader` (case-sensitive), and it must be exactly one
+file. Its URL is then the one no other run may request. The first-load code (everything fetched before
+`load`) holds the gates and a capability probe, which asks a throwaway canvas for a context with
+`failIfMajorPerformanceCaveat: true` and requests the chunk only if that succeeds; it holds no shader
+code. Pixel keeps `createShader`, `drawArrays` and `drawElements` in the chunk alone.
 
 **C10. The upgrade.** With `hardwareConcurrency` and `deviceMemory` set to 8: at 1440 x 900 the WebGL
-chunk is requested before the `load` event (`loadEventEnd`), and a `canvas` is in `[data-hero]` within 5 s of
-it. At 320 x 640 (hero below the fold) no canvas and no chunk request until the box is within one
+chunk is requested after the `load` event, once the page is idle: not before `loadEventEnd` and within 5 s
+after it. A `canvas` is in `[data-hero]` within 5 s of that request. At 320 x 640 (hero below the fold) no canvas and no chunk request until the box is within one
 viewport height of the viewport. After the swap the box's rect and CLS are unchanged, the canvas is
 `aria-hidden`, and the only animation anywhere in the hero is an opacity transition of at most 200 ms.
 
@@ -151,15 +156,18 @@ least 99.5% of the box. No non-copper pixel, outside the copper plank's box plus
 against `--background` in either scheme (lighting does not push past C7).
 
 **C14. It falls back.** Each of these leaves the SVG visible, no canvas, and no request for the WebGL
-chunk (the URLs found in the control run): reduced motion (after scrolling the page top to bottom and waiting 3 s); Save-Data; `deviceMemory`
-2; `hardwareConcurrency` 2; `getContext("webgl")` returning null; and a context that is refused when the
-page passed `failIfMajorPerformanceCaveat: true` (this proves the flag is passed). Control: with 8/8 and
-motion allowed, that chunk is requested (so the check is not empty). A `webglcontextlost` event on the canvas returns the SVG with the
-same rect. With the frame clock patched so each frame reports 60 ms, the draw count stops growing after
+chunk (the URL found in the control run): reduced motion (after scrolling the page top to bottom and
+waiting 3 s); Save-Data; `deviceMemory` 2; `hardwareConcurrency` 2; `getContext("webgl")` returning
+null; and a context refused when the probe passed `failIfMajorPerformanceCaveat: true` (this proves the
+flag is passed). Control: with 8/8 and motion allowed, that chunk is requested (so the check is not
+empty). Then, in the control run: a `webglcontextlost` event on the canvas returns the SVG with the same
+rect; and with the frame clock patched so each frame reports 60 ms, the draw count stops growing after
 three frames while the canvas stays put.
 
-**C15. Weight.** The WebGL code, libraries included, is one dynamic chunk of at most 15360 bytes gzip
-(`gzipSync` of the response body) and is not in `/`'s first load. First-load JS for `/` grows by at most
+**C15. Weight.** The WebGL code, libraries included, is the one chunk defined above, and all JS first
+requested after `load` in the control run adds up to at most 15360 bytes gzip (`gzipSync` of each response
+body, summed), so a library split into a second file still counts. None of it is in `/`'s first load.
+First-load JS for `/` grows by at most
 2048 bytes gzip against `origin/main`; Pixel shows it from `next build` and Lens checks it. A three.js
 build does not fit; the technique is Pixel's call inside the budget.
 
