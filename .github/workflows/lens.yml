@@ -16,6 +16,10 @@ name: lens
 # Cost: a review runs when Atlas adds the `review` label, on a new base, and on pushes while the
 # label is on, unless the push only touches notes and Lens's last ship still stands (lens.mjs).
 # Opus 5.5, as Lens is locally, capped at 40 turns and 30 minutes, on the owner's subscription.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment,
+# because they run with the app key and the Claude token: a moved tag can't change what runs.
+# Renovate (renovate.json) keeps the pins current once the owner installs its app.
 on:
   pull_request_target:
     branches: [main]
@@ -44,18 +48,18 @@ jobs:
     steps:
       - run: git config --global init.defaultBranch main
       # The default branch at the workspace root: the harness, CLAUDE.md and the agents.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # The PR's files, to read only. checkout writes inside the workspace, so move them out.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr
           persist-credentials: false
       - run: mv pr "$RUNNER_TEMP/pr"
       - id: app
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
           private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
@@ -69,7 +73,7 @@ jobs:
           APP_SLUG: ${{ steps.app.outputs.app-slug }}
       - id: review
         if: steps.plan.outputs.review == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967 # v1.0.252
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}

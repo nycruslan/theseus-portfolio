@@ -2,7 +2,9 @@ name: review-relay
 
 # A review doesn't trigger pull_request_target, and pull_request_review runs without the `checks`
 # environment, so this only marks the moment: its completion starts gate.yml through workflow_run,
-# from the default branch, to judge the PR again once the owner approves or a review is dismissed.
+# from the default branch, to judge the PR again once the owner approves or his review is
+# dismissed. Only the owner's reviews release the gate, so other reviews (Lens's, posted by the
+# checks app on every run) skip the job, and gate.yml ignores a skipped relay.
 on:
   pull_request_review:
     types: [submitted, dismissed]
@@ -11,6 +13,7 @@ permissions: {}
 
 jobs:
   relay:
+    if: github.event.review.user.login == github.repository_owner
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:

@@ -27,11 +27,15 @@ const RESULT_FIELDS = {
   Bash: ["gitOperation"],
 };
 // A PR opened through REST, or merged by merge.mjs: the Studio shows its number, which only the
-// command's output has. Only the PR's URL leaves; the rest of stdout stays local.
+// command's output has. Only the PR's URL leaves; the rest of stdout stays local. A merge's URL
+// comes only from the "Merged PR #<n> …" line merge.mjs prints once GitHub merged, since a
+// command that runs it can succeed without merging (`… || true`).
 const OPENS_PR =
   /\bgh\s+api\b(?=[^;&|\n]*\brepos\/[\w.-]+\/[\w.-]+\/pulls(?![\w/]))(?=[^;&|\n]*\s(-f|-F|--field|--raw-field)\s)/;
-const MERGES_PR = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
+const RUNS_MERGE = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
 const PR_URL = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/;
+const MERGED_URL =
+  /^Merged PR #\d+ .*?(https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+)/m;
 const NARRATION_LENGTH = 1200;
 const PROMPT_LENGTH = 1000;
 const ERROR_LINES = 3;
@@ -89,11 +93,12 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
 }
 
 function pullRequestUrl({ tool_name: tool, tool_input: input }, result) {
+  if (tool !== "Bash") return undefined;
   const command = String(input?.command ?? "");
-  if (tool !== "Bash" || !(OPENS_PR.test(command) || MERGES_PR.test(command))) {
-    return undefined;
-  }
-  return String(result?.stdout ?? "").match(PR_URL)?.[0];
+  const stdout = String(result?.stdout ?? "");
+  if (OPENS_PR.test(command)) return stdout.match(PR_URL)?.[0];
+  if (RUNS_MERGE.test(command)) return stdout.match(MERGED_URL)?.[1];
+  return undefined;
 }
 
 // check-ignore exits 1 for a file git would track, 0 for an ignored one and 128 outside a repository.

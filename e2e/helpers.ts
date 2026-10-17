@@ -1,7 +1,13 @@
 import type { Page } from "@playwright/test";
+import { profile } from "../content/profile";
 
 // Shared by the specs. Spec files can't import each other's helpers without running their tests,
 // so they live here.
+
+/** The Projects section. Its `projects` id sits on the h2, so the section is found by its label. */
+export const PROJECTS = 'section[aria-labelledby="projects"]';
+/** The projects that have a link, so their card is one. */
+export const withLink = profile.projects.filter((project) => project.href);
 
 /** The design system's color roles, as custom properties on :root. */
 export const COLOR_TOKENS = [
@@ -136,6 +142,22 @@ export async function resolveSteps(page: Page) {
     probe.remove();
     return sizes;
   }, STEP_TOKENS);
+}
+
+/** "rgb(r, g, b)" or "rgba(r, g, b, a)" as the browser computes it; null for any other syntax. */
+export function parseColor(value: string): Rgba | null {
+  const match = value.match(
+    /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/,
+  );
+  if (!match) return null;
+  const [, r = "0", g = "0", b = "0", a] = match;
+  const alpha =
+    a === undefined
+      ? 1
+      : a.endsWith("%")
+        ? Number.parseFloat(a) / 100
+        : Number.parseFloat(a);
+  return [Number(r), Number(g), Number(b), alpha];
 }
 
 /** A #rrggbb color as the browser computes it: rgb(r, g, b). */

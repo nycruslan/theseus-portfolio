@@ -10,6 +10,10 @@ name: gate
 # default branch. Never check out, install or run the PR's code here. A review doesn't trigger
 # pull_request_target, so review-relay.yml passes it on through workflow_run, which also runs from
 # the default branch.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment,
+# because they run with the app key: a moved tag can't change what runs.
+# Renovate (renovate.json) keeps the pins current once the owner installs its app.
 on:
   pull_request_target:
     branches: [main]
@@ -23,26 +27,33 @@ permissions:
 
 # One run per head at a time, the same key for both events, never cancelled in progress: a newer
 # event for that head waits, replacing any run still pending. Each run reads the PR live and posts
-# nothing if the head moved, so the newest result on a head is always current.
+# nothing if the head moved, so the newest result on a head is always current. A relay whose job
+# was skipped (a review by anyone but the owner, such as Lens's) has nothing to judge, so it runs
+# in a group of its own: in the head's group it would replace a pending run that an owner's
+# approval queued, then skip, and leave gate red.
 concurrency:
-  group: gate-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+  group: >-
+    gate-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}${{
+    github.event.workflow_run.conclusion == 'skipped' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: false
 
 jobs:
   gate-runner:
+    # Any other relay judges again, even one that failed for the runner's reasons.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'skipped'
     runs-on: ubuntu-latest
     environment: checks
     timeout-minutes: 5
     steps:
       - run: git config --global init.defaultBranch main
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
             .studio
             .github
       - id: app
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
           private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}

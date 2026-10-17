@@ -14,19 +14,36 @@ import {
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
 const HEAD = "4ead4ead4ead";
-const done = (name, conclusion = "success", id = 1) => ({
+// Check runs from the checks app, the one the rules name (integration_id 1).
+const APP = { id: 1, slug: "theseus-checks" };
+const done = (name, conclusion = "success", id = 1, app = APP) => ({
   id,
   name,
   status: "completed",
   conclusion,
+  app,
 });
 const RUNNING = {
   id: 9,
   name: "lens",
   status: "in_progress",
   conclusion: null,
+  app: APP,
 };
 const GREEN = [done("check"), done("gate"), done("lens")];
+/** The base branch's active rules, as GitHub lists them, requiring these checks. */
+const rules = (...names) => [
+  { type: "pull_request", parameters: { require_code_owner_review: true } },
+  {
+    type: "required_status_checks",
+    parameters: {
+      required_status_checks: names.map((context) => ({
+        context,
+        integration_id: APP.id,
+      })),
+    },
+  },
+];
 const pr = (extra = {}) => ({
   number: 12,
   state: "open",
@@ -41,12 +58,14 @@ const pr = (extra = {}) => ({
 /** The GitHub side of PR #12. `pulls` and `checks` may be {$seq: […]} to change between polls. */
 function github({
   pulls = pr(),
+  required = rules("check", "gate", "lens"),
   checks = GREEN,
   statuses = [],
   merge = { sha: "5a1e5a1e5a1e", merged: true },
 } = {}) {
   return {
     [`${R}/pulls/12`]: pulls,
+    [`${R}/rules/branches/main`]: required,
     [`${R}/commits/${HEAD}/check-runs`]: checks.$seq
       ? { $seq: checks.$seq.map((runs) => ({ check_runs: runs })) }
       : { check_runs: checks },
@@ -102,6 +121,86 @@ test("waits while a check runs, then merges", () => {
   );
 });
 
+test("waits while no check has reported, then while one runs, then merges", () => {
+  const { code, stdout, merges } = merge(
+    github({
+      checks: { $seq: [[], [done("check"), done("gate"), RUNNING], GREEN] },
+    }),
+  );
+  assert.equal(code, 0);
+  assert.equal(merges.length, 1);
+  assert.match(
+    stdout,
+    /Waiting on PR #12 at 4ead4ea: check not reported, gate not reported, lens not reported\./,
+  );
+  assert.match(stdout, /check go, gate go, lens pending/);
+});
+
+test("refuses without asking GitHub when a required check never reports, and says why for lens", () => {
+  const short = { env: { THESEUS_MERGE_WAIT_MS: "300" } };
+  const unlabelled = merge(
+    github({ checks: [done("check"), done("gate")] }),
+    short,
+  );
+  assert.equal(unlabelled.code, 1);
+  assert.equal(unlabelled.merges.length, 0);
+  assert.match(
+    unlabelled.stderr,
+    /NO-GO for PR #12: lens never reported on 4ead4ea; label the PR `review`\./,
+  );
+  const labelled = merge(
+    github({
+      pulls: pr({ labels: [{ name: "review" }] }),
+      checks: [done("check"), done("gate")],
+    }),
+    short,
+  );
+  assert.match(
+    labelled.stderr,
+    /lens never reported on 4ead4ea; Lens hasn't finished yet\./,
+  );
+});
+
+test("counts a required check only from the app the rules name", () => {
+  const impostor = done("lens", "success", 5, { id: 99, slug: "someone" });
+  const { code, stderr, merges } = merge(
+    github({ checks: [done("check"), done("gate"), impostor] }),
+    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  );
+  assert.equal(code, 1);
+  assert.equal(merges.length, 0);
+  assert.match(stderr, /lens never reported on 4ead4ea/);
+  const both = merge(github({ checks: [...GREEN, impostor] }));
+  assert.equal(both.code, 0);
+});
+
+test("waits for the checks the base branch's rules require, not a fixed list", () => {
+  const { code } = merge(
+    github({ required: rules("check"), checks: [done("check")] }),
+  );
+  assert.equal(code, 0);
+  const strict = merge(
+    github({ required: rules("check", "preview"), checks: [done("check")] }),
+    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  );
+  assert.match(strict.stderr, /preview never reported on 4ead4ea\./);
+});
+
+test("fails closed when the rules can't be read or require no check", () => {
+  for (const [required, reason] of [
+    [{ $error: 404, message: "Not Found" }, /couldn't be read .*: Not Found/],
+    [
+      rules().slice(0, 1),
+      /NO-GO for PR #12: the main rules require no checks\./,
+    ],
+  ]) {
+    const { code, stderr, merges } = merge(github({ required }));
+    assert.equal(code, 1);
+    assert.equal(merges.length, 0);
+    assert.match(stderr, reason);
+  }
+});
+
 test("counts only the latest run of a check, so a superseded cancelled run doesn't hold the PR", () => {
   const { code } = merge(
     github({
@@ -127,19 +226,18 @@ test("asks GitHub whatever a check it doesn't require says, and reports GitHub's
   const refused = merge(
     github({
       pulls: pr({ mergeable_state: "blocked" }),
-      checks: [done("check"), done("gate", "failure")],
+      checks: [done("check"), done("gate", "failure"), done("lens")],
       merge: {
         $error: 405,
-        message: 'Required status check "lens" is expected.',
+        message: 'Required status check "gate" is failing.',
       },
     }),
   );
   assert.equal(refused.code, 1);
   assert.match(
     refused.stderr,
-    /refused the merge: Required status check "lens" is expected\./,
+    /refused the merge: Required status check "gate" is failing\./,
   );
-  assert.match(refused.stderr, /lens hasn't run: label the PR `review`/);
 });
 
 test("doesn't ask when GitHub says no or can't yet tell: a conflict, a draft, a branch behind, unknown", () => {

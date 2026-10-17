@@ -47,11 +47,18 @@ written down, each in its own worktree. A hook won't let a builder stop until `p
 or it reports what still fails. Name everyone you bring in (`forge`, `forge-2` …) and track each
 piece as a task with its owner.
 
-**Review.** Push the branch and open the PR (see Ship). When the build is pushed, add the `review`
-label: Lens reviews the head in CI, posts the findings as a review on the PR, and the `lens` check
-passes only on ship. Every later push is reviewed again, except one that only touches notes (see
-CLAUDE.md), which keeps Lens's last ship. Send Important findings back
-to the same builder, and push the fix. Two fix rounds at most: if Lens still says changes after
+**Memory, with the build.** Each role that worked adds at most three memory lines, each citing the
+sprint path, and corrects lines that proved wrong. Bring memory commits made in worktrees to the
+sprint branch, oldest first, with `git cherry-pick <sha>` (skip one that's already on it). Push
+them with the build, before the `review` label: memory loads into the agents' prompts, so Lens
+reviews it, and memory pushed after Lens's ship pays for a second review. A role that reports after
+the label (Iris) adds its lines with a fix-round push, or in the next sprint's build.
+
+**Review.** Push the branch and open the PR (see Ship). When the build and its memory are pushed,
+add the `review` label: Lens reviews the head in CI, posts the findings as a review on the PR, and
+the `lens` check passes only on ship. Every later push is reviewed again, except one that only
+touches notes (see CLAUDE.md), which keeps Lens's last ship. Send Important findings back to the
+same builder, and push the fix. Two fix rounds at most: if Lens still says changes after
 the second, cut scope yourself (revert, or record a contract change) or stop. Weigh Iris's advice
 and act on what's cheap; her `changes` alone is no reason for `needs-owner`. CI runs Probe's checks
 on every push; ask Probe for an exploratory pass only on interaction-heavy work.
@@ -73,32 +80,41 @@ which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path s
 - Ask the owner to review: `gh api repos/<owner>/<repo>/pulls/<n>/requested_reviewers -f 'reviewers[]=<owner>'`
 - Read: `…/pulls/<n>`, `…/pulls/<n>/reviews` (Lens's findings) and `…/commits/<sha>/check-runs`.
 
-Once Lens says ship, push the close-out below, which only touches notes, and take "Work in
-progress" out of the body. Then run `node .studio/merge.mjs <n>` from the repository root, on its
-own, with the Bash timeout at 10 minutes (600000 ms). It waits for the checks and squash-merges the
-head, or says why not: act on what it says, or stop. If anything needs the owner and he hasn't
-approved the head yet, don't run it; leave the PR waiting for him. A smaller ship, or no ship with the
-reason, is a fine outcome. A quiet downgrade isn't. Say what nobody verified. Don't end the session
-with "waiting for …" unless background work is still running.
+Once Lens says ship, push the close-out (see Close), which only touches notes, so Lens's ship
+stands, and take "Work in progress" out of the body. Then run `node .studio/merge.mjs <n>` from the
+repository root, on its own, with the Bash timeout at 10 minutes (600000 ms). It waits for the
+checks and squash-merges the head, or says why not: act on what it says, or stop. If anything needs
+the owner and he hasn't approved the head yet, don't run it; leave the PR waiting for him. A
+smaller ship, or no ship with the reason, is a fine outcome. A quiet downgrade isn't. Say what
+nobody verified. Don't end the session with "waiting for …" unless background work is still
+running.
 
 **Close** with `.studio/sprint/<n>/retro.json`, a few fields measured the same way every sprint,
 so model and lane choices can follow the data:
 
 ```json
 {
-  "sprint": 3, "pr": 15, "size": "M", "outcome": "merged", "fixRounds": 0, "minutes": 24,
+  "sprint": 5, "pr": 18, "goal": "…", "size": "M", "outcome": "merged", "fixRounds": 0,
+  "minutes": 24,
   "agents": [{ "role": "engineer", "model": "sonnet", "tokens": 182000, "minutes": 9 }],
   "lens": { "runs": 1, "tokens": 96000, "important": 0, "actedOn": 0, "nits": 2 },
   "wentWrong": [{ "what": "…", "evidence": "…" }],
-  "proposals": [{ "change": "…", "moves": "…" }]
+  "proposals": [{ "change": "…", "moves": "…" }],
+  "followUps": [{ "who": "Probe", "what": "…" }]
 }
 ```
 
-Each agent's tokens and minutes come from its result, and Lens's from the footer of its PR comment.
-List at most three things that went wrong, each with its evidence. Propose setup changes with the
-number they should move; never apply them.
+- `agents`: each agent that worked, with the tokens and minutes from its result.
+- `lens`: Lens's runs and findings, with the tokens from the footer of each review it posted on
+  the PR.
+- `wentWrong`: at most three things, each with its evidence.
+- `proposals`: setup changes, each with the number it should move. Never apply them.
+- `followUps`: what's left open, and whose it is.
 
-Each role that worked adds at most three memory lines, each citing the sprint path, and corrects
-lines that proved wrong. Bring memory commits made in worktrees to the sprint branch, oldest first,
-with `git cherry-pick <sha>` (skip one that's already on it). Add one STATE.md entry: the outcome
-and the lesson.
+Sprints before 5 used an older shape (snake_case fields such as `went_wrong`); leave those as they
+are.
+
+Tick the roadmap item in `ROADMAP.md`, with the sprint and PR, and note open follow-ups under it.
+Add one STATE.md entry: the outcome and the lesson. The close-out touches only notes: the sprint
+folder's `.md` files and `retro.json`, STATE.md and ROADMAP.md. Anything else makes Lens review the
+PR again.

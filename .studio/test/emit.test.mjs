@@ -198,6 +198,12 @@ test("forwards only the PR's URL from opening it through REST or merging it with
       "node .studio/merge.mjs 14",
       `Waiting for CI on PR #14 at abc1234: check still running; 0 of 1 done (0:15 of 9:00).\nMerged PR #14 (abc1234) as def5678: ${url}\n`,
     ),
+    // A run that didn't merge, whose command succeeded anyway: no URL, so no merge to show.
+    bash(
+      "refused",
+      "node .studio/merge.mjs 14 || true",
+      `Waiting on PR #14 at abc1234: lens pending.\nSee ${url}\n`,
+    ),
     bash("read", "gh api repos/nycruslan/theseus-portfolio/pulls/14", opened),
     bash("echo", `echo ${url}`, `${url}\n`),
   ]);
@@ -207,6 +213,7 @@ test("forwards only the PR's URL from opening it through REST or merging it with
   for (const id of ["open", "short", "merge"]) {
     assert.deepEqual(byId[id].tool_response, { prUrl: url }, id);
   }
+  assert.equal(byId.refused.tool_response, undefined);
   assert.equal(byId.read.tool_response, undefined);
   assert.equal(byId.echo.tool_response, undefined);
 });

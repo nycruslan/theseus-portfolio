@@ -54,8 +54,9 @@ export default function Home() {
           <ol className="flex flex-col gap-8">
             {profile.experience.map((role) => (
               <li key={`${role.company}-${role.period}`}>
+                {/* A no-break space keeps "· Company" together, so the dot never ends a line. */}
                 <h3 className="text-balance text-step-lg font-medium">
-                  {role.title} · {role.company}
+                  {role.title} ·&nbsp;{role.company}
                 </h3>
                 <p className="text-step-sm text-muted">{role.period}</p>
                 <p className="mt-2 text-step-base">{role.summary}</p>
