@@ -12,9 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { broadcast } from "./post.mjs";
 
-// merge.mjs exits non-zero unless it merged, and a failed command reaches PostToolUseFailure
-// instead, so a PostToolUse for it means the PR merged.
-const MERGED = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
+// A merge counts when a command ran merge.mjs and its output says it merged: merge.mjs prints
+// "Merged PR #<n> …" only then. Its exit code isn't enough, since `… || true` or a pipe after it
+// succeeds either way.
+const RUNS_MERGE = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.studio\/merge\.mjs\s+\d+/;
+const MERGED = /^Merged PR #\d+ /m;
 const STATE_FILE = /(^|\/)\.studio\/STATE\.md$/;
 // A shell append or write to it: `>> .studio/STATE.md`, `tee -a …/.studio/STATE.md`.
 const STATE_WRITE = /(>|\btee(\s+-a)?)\s*\S*\.studio\/STATE\.md\b/;
@@ -41,18 +43,24 @@ function watch(event) {
       if (!event.agent_id) note({ taskDone: String(event.task_id) });
       return;
     case "PostToolUse":
-      return recordTool(event.tool_name, event.tool_input ?? {});
+      return recordTool(
+        event.tool_name,
+        event.tool_input ?? {},
+        event.tool_response ?? {},
+      );
     case "Stop":
       return stalledStop(event);
   }
 }
 
-function recordTool(tool, input) {
+function recordTool(tool, input, result) {
   const command = String(input.command ?? "");
   if (tool === "TaskUpdate" && input.status === "deleted") {
     note({ taskDone: String(input.taskId ?? input.task_id) });
   }
-  if (MERGED.test(command)) note({ shipped: true });
+  if (RUNS_MERGE.test(command) && MERGED.test(String(result.stdout ?? ""))) {
+    note({ shipped: true });
+  }
   if (
     STATE_FILE.test(String(input.file_path ?? "")) ||
     STATE_WRITE.test(command)

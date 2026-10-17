@@ -27,14 +27,24 @@ const completed = (task_id) => ({
   task_id,
   task_subject: "",
 });
-const used = (tool_name, tool_input) => ({
+const used = (tool_name, tool_input, tool_response = {}) => ({
   ...common,
   hook_event_name: "PostToolUse",
   tool_name,
   tool_input,
-  tool_response: {},
+  tool_response,
   tool_use_id: "toolu_03",
 });
+/** What merge.mjs prints: the merged line only once GitHub merged. */
+const MERGED_OUT = {
+  stdout:
+    "Merged PR #14 (4ead4ea) as 5a1e5a1: https://github.com/nycruslan/theseus-portfolio/pull/14\n",
+  stderr: "",
+};
+const REFUSED_OUT = {
+  stdout: "Waiting on PR #14 at 4ead4ea: check go, gate go, lens pending.\n",
+  stderr: "NO-GO for PR #14: lens never reported on 4ead4ea.\n",
+};
 const stop = (extra = {}) => ({
   ...common,
   hook_event_name: "Stop",
@@ -124,8 +134,8 @@ test("W1 never holds a session waiting on background work or a wake-up", () => {
 
 test("W1 lets a sprint end once it shipped or wrote itself up", () => {
   for (const closing of [
-    used("Bash", { command: "node .studio/merge.mjs 14" }),
-    used("Bash", { command: "node ../../.studio/merge.mjs 14" }),
+    used("Bash", { command: "node .studio/merge.mjs 14" }, MERGED_OUT),
+    used("Bash", { command: "node ../../.studio/merge.mjs 14" }, MERGED_OUT),
     used("Write", { file_path: "/repo/.studio/STATE.md", content: "…" }),
     used("Edit", {
       file_path: "/repo/.studio/STATE.md",
@@ -140,13 +150,25 @@ test("W1 lets a sprint end once it shipped or wrote itself up", () => {
     const { answer } = all(...SPRINT_01, closing, stop());
     assert.equal(answer, null, JSON.stringify(closing.tool_input));
   }
-  // Only running the merge counts, not a command that mentions it.
-  const { all } = session();
-  const mention = used("Bash", {
-    command:
-      'echo "next: node .studio/merge.mjs 14" >> .studio/sprint/1/notes.md',
-  });
-  assert.equal(all(...SPRINT_01, mention, stop()).answer.decision, "block");
+  // Only a merge that happened counts: not a command that mentions merge.mjs, nor one that ran it
+  // and succeeded anyway (`|| true`, a pipe) when it didn't merge.
+  for (const notShipped of [
+    used("Bash", {
+      command:
+        'echo "next: node .studio/merge.mjs 14" >> .studio/sprint/1/notes.md',
+    }),
+    used("Bash", { command: "node .studio/merge.mjs 14 || true" }, REFUSED_OUT),
+    used(
+      "Bash",
+      { command: "node .studio/merge.mjs 14 | tail -5" },
+      REFUSED_OUT,
+    ),
+    used("Bash", { command: 'echo "Merged PR #14 (x)"' }, MERGED_OUT),
+  ]) {
+    const { all } = session();
+    const { answer } = all(...SPRINT_01, notShipped, stop());
+    assert.equal(answer?.decision, "block", notShipped.tool_input.command);
+  }
 });
 
 test("W1 counts only the lead's own tasks, not those a subagent creates", () => {
