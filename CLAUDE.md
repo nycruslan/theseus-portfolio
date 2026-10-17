@@ -14,7 +14,7 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   either; that's the sprint skill's rule, since the owner's own sessions also run as the lead.
 - **Shared state:**
   - `.studio/STATE.md`: what the team learned.
-  - `ROADMAP.md`: what's next, owned by Quill.
+  - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
   - `.studio/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
   - `design/rubric.md`: the design bar, calibrated by the owner's examples in `design/calibration/`.
 
