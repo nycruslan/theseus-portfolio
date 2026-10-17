@@ -75,9 +75,10 @@ on every push; ask Probe for an exploratory pass only on interaction-heavy work.
 
 **Escalate** scope to Quill and taste to Iris. Owner facts, or anything risky, go to the owner
 under "Needs owner decision" in the PR, with the `needs-owner` label. Once the head is final (the
-close-out pushed), tell the owner with a push notification: the PR's link and what it needs. The PR
-is under the owner's login, so GitHub sends them nothing about it, and they can't approve it
-either: they decide it by merging it with their bypass.
+close-out pushed) and every required check but `gate` passed on it, tell the owner with a push
+notification: the PR's link and what it needs. The PR is under the owner's login, so GitHub sends
+them nothing about it, and they can't approve it either: they decide it by merging it with their
+bypass, which skips the checks too, so a red `check` handed over lands on main.
 
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
