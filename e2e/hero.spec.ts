@@ -16,6 +16,7 @@ import {
   resolvedBackground,
   SCHEMES,
 } from "./helpers";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 8, Part A of sprint 7's contract (.studio/sprint/7/contract.md, C1 to C9): the hero is a
 // static inline SVG, a lift half-model of seven planks and one copper one, placed right after the
@@ -25,6 +26,14 @@ import {
 // .studio/sprint/8/probe-checks.md.
 
 test.use({ viewport: { width: 1440, height: 900 } });
+
+// Part B (sprint 10) swaps the SVG for a WebGL canvas on a device that can take it. These checks
+// are about the SVG, so every context they open gets a getContext that returns null for the WebGL
+// types: they keep testing the SVG on a machine with a GPU, where the caveat flag would not
+// refuse. (hero-3d.spec.ts tests the canvas.) It adds a precondition and removes nothing.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(refuseWebGl);
+});
 
 const HERO = "[data-hero]";
 const HULL = "[data-hero-hull]";
@@ -41,15 +50,19 @@ const AXE_TAGS = [
   "best-practice",
 ];
 
-// The widths C2 and C3 name: 320 and 390 (height cw / 2.9), 600 and 767 (height capped at 172),
-// 768 (the first desktop width), and 1024 and 1440.
+// The widths C2 and C3 name: 320 and 390, 600 and 767 (heights from the formula below), 768 (the
+// first desktop width), and 1024 and 1440.
 const FOOTPRINT_WIDTHS = [320, 390, 600, 767, 768, 1024, 1440] as const;
 
-/** The box the contract wants at a viewport's `clientWidth`: 688 x 172 from 768, else full-bleed. */
+/**
+ * The box the contract wants at a viewport's `clientWidth`: 688 x 138 from 768, else full-bleed and
+ * 8 + 130 s tall, s the hull's width over 624 (the turn's envelope plus 4 px each side;
+ * .studio/sprint/9/contract.md, "C2 trim").
+ */
 function expectedBox(cw: number) {
   return cw >= 768
-    ? { width: 688, height: 172 }
-    : { width: cw, height: Math.min(cw / 2.9, 172) };
+    ? { width: 688, height: 138 }
+    : { width: cw, height: 8 + (130 * expectedHullWidth(cw)) / 624 };
 }
 
 /** Where the hull's bow tip sits: the header's right edge, `cw - 24` below 672. */
@@ -287,7 +300,7 @@ test("C1. Place and role: one aria-hidden, inert div in main, between the header
   expect.soft(found.withBackground, "computed background images").toEqual([]);
 });
 
-test("C2. Footprint: 688 x 172 from 768, full-bleed below, 64 px from the header and the first section", async ({
+test("C2. Footprint: 688 x 138 from 768, full-bleed below, 64 px from the header and the first section", async ({
   page,
 }) => {
   for (const cw of FOOTPRINT_WIDTHS) {
@@ -323,14 +336,32 @@ test("C2. Footprint: 688 x 172 from 768, full-bleed below, 64 px from the header
       .toBeLessThanOrEqual(1);
   }
 
-  // Never taller than 172, at any width (the contract names these four; the rest are extra).
+  // Never taller than 138, at any width (the contract names these four; the rest are extra).
   for (const cw of [360, 480, 500, 700, 1920]) {
     await open(page, cw);
     const g = await geometry(page);
     if (!g.box) continue;
     expect
       .soft(g.box.bottom - g.box.top, `box height at ${cw}`)
-      .toBeLessThanOrEqual(172.5);
+      .toBeLessThanOrEqual(138.5);
+  }
+
+  // The hull sits centred in the box at rest: the same air above and below.
+  for (const cw of FOOTPRINT_WIDTHS) {
+    await open(page, cw);
+    const g = await geometry(page);
+    expect(g.hull, `[data-hero-hull] exists at ${cw}`).not.toBeNull();
+    if (!(g.box && g.hull)) continue;
+    const [above, below] = [
+      g.hull.top - g.box.top,
+      g.box.bottom - g.hull.bottom,
+    ];
+    expect
+      .soft(
+        Math.abs(above - below),
+        `air above the hull ${above.toFixed(1)} px and below ${below.toFixed(1)} px at ${cw}`,
+      )
+      .toBeLessThanOrEqual(1.5);
   }
 
   await open(page, 320, 640);
@@ -444,6 +475,7 @@ test("C4. Still and steady: no layout shift, the same rect without scripts, noth
       javaScriptEnabled: false,
       viewport: { width, height: 900 },
     });
+    await context.addInitScript(refuseWebGl);
     const bare = await context.newPage();
     await bare.goto("/");
     const withoutScripts = await geometry(bare);
@@ -880,6 +912,7 @@ test("C8. It degrades to the same object: scripts off, reduced motion, and gone 
         ...variant.options,
         viewport: { width, height: 900 },
       });
+      await context.addInitScript(refuseWebGl);
       const page = await context.newPage();
       await page.goto("/");
       const where = `with ${variant.name} at ${width}`;
@@ -924,6 +957,7 @@ test("C8. It degrades to the same object: scripts off, reduced motion, and gone 
     extraHTTPHeaders: { "Save-Data": "on" },
     viewport: { width: 1440, height: 900 },
   });
+  await weak.addInitScript(refuseWebGl);
   await weak.addInitScript(() => {
     Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 2 });
     Object.defineProperty(navigator, "deviceMemory", { get: () => 2 });
@@ -945,6 +979,7 @@ test("C8. It degrades to the same object: scripts off, reduced motion, and gone 
     forcedColors: "active",
     viewport: { width: 1440, height: 900 },
   });
+  await forced.addInitScript(refuseWebGl);
   const forcedPage = await forced.newPage();
   await forcedPage.goto("/");
   expect(
