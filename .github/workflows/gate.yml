@@ -30,6 +30,8 @@ concurrency:
 
 jobs:
   gate-runner:
+    # A relay whose job was skipped (a review by anyone but the owner) has nothing to judge.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: checks
     timeout-minutes: 5
