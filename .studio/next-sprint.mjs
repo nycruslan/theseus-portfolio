@@ -3,6 +3,10 @@
 // number, so a run continues an open sprint instead of starting a duplicate one. Two cloud runs on
 // 2026-10-13 showed why: a sprint's folder only reaches main when its PR merges, so a run that
 // looked at main alone started sprint 1 again while sprint 1's PR was open.
+// - actingAs: who GitHub thinks is calling. In a cloud session that is always the owner: the
+//   cloud's GitHub proxy swaps any token a request carries, the team's own included, for the
+//   owner's connection (tested 2026-10-17). So the rules hold through gate, Lens, merge.mjs and
+//   the guard, not through a separate account.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
 //   whether it waits for the owner: as the gate holds it, it carries needs-owner now or ever did,
 //   and the owner hasn't approved its head.
@@ -17,9 +21,6 @@
 //   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
-// First it checks who GitHub thinks is calling. The team works as its own account, named in
-// THESEUS_BOT; a session that reaches GitHub as anyone else (the owner, through the cloud proxy)
-// must not run a sprint, so it stops there.
 
 import { approvedByOwner, carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
@@ -33,17 +34,10 @@ configure({ timeout: 20_000 });
 
 let repo;
 try {
-  const bot = process.env.THESEUS_BOT;
-  const login = api("user").login;
-  if (!bot || login.toLowerCase() !== bot.toLowerCase()) {
-    console.error(
-      `GitHub calls here act as ${login}, not the team's account (THESEUS_BOT=${bot ?? "unset"}). Don't start a sprint: report that the environment needs the team's GH_TOKEN and THESEUS_BOT, and stop.`,
-    );
-    process.exit(1);
-  }
+  const actingAs = api("user").login;
   repo = repoOf(toplevel(process.cwd()));
   if (!repo) throw new Error("this checkout has no GitHub origin remote");
-  console.log(JSON.stringify(preflight(repo), null, 2));
+  console.log(JSON.stringify({ actingAs, ...preflight(repo) }, null, 2));
 } catch (error) {
   console.error(
     `The pre-flight couldn't read GitHub (${String(error.message).trim()}). Don't start a sprint blind: report it and stop.`,
