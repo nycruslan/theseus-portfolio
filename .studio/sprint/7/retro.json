@@ -4,14 +4,30 @@
   "goal": "Roadmap item: a subtle 3D hero element that degrades gracefully, L lane step one (direction and contract for the owner)",
   "goalFrom": "roadmap",
   "size": "L",
-  "outcome": "open, needs-owner: contract and direction for the owner to accept by merging; lens red after two fix rounds, scope cut to Part A binding and Part B draft",
+  "outcome": "open, needs-owner: contract and direction for the owner to accept by merging; Lens ship on the close-out after two fix rounds and a scope cut (Part A binding, Part B draft)",
   "fixRounds": 2,
   "minutes": 60,
   "agents": [
-    { "role": "design-director", "model": "opus", "tokens": 123901, "minutes": 11 },
-    { "role": "product-owner", "model": "opus", "tokens": 123895, "minutes": 6 }
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 123901,
+      "minutes": 11
+    },
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 123895,
+      "minutes": 6
+    }
   ],
-  "lens": { "runs": 3, "tokens": 785970, "important": 6, "actedOn": 5, "nits": 5 },
+  "lens": {
+    "runs": 4,
+    "tokens": 1774237,
+    "important": 6,
+    "actedOn": 5,
+    "nits": 10
+  },
   "wentWrong": [
     {
       "what": "Each Lens run found new important defects in the contract's checks, mostly in Part B (WebGL), so two fix rounds didn't converge",
@@ -22,8 +38,8 @@
       "evidence": "contract.md Part B preamble; Lens on 2355550 (C10 passes at load)"
     },
     {
-      "what": "Quill has no shell, so layout numbers (bow tip at 672-767, box top at 320) went unmeasured until Lens traced them",
-      "evidence": "Lens on 96f0b2a (C3) and 2355550 (C10)"
+      "what": "The close-out's retro.json wasn't biome-formatted, so CI's check went red on a notes-only push",
+      "evidence": "CI run 39004926603, pnpm verify lint step"
     }
   ],
   "proposals": [
@@ -34,12 +50,36 @@
     {
       "change": "Let the L lane contract cover only what is grounded (current page or a spike), with later parts drafted, by rule in the sprint skill",
       "moves": "fix rounds on contract PRs, 2 this sprint"
+    },
+    {
+      "change": "Run biome on the sprint folder before every close-out push (or have the sprint skill say so)",
+      "moves": "red check runs on notes-only pushes, 1 this sprint"
     }
   ],
   "followUps": [
-    { "who": "Owner", "what": "Accept the 3D hero contract by merging PR #28 (symbol, split, 15 KB budget, the 172 px cap); lens is red on Part B draft findings" },
-    { "who": "Probe", "what": "Part B's sprint: spike WebGL in the CI browser, then rewrite C10-C16 with Lens's open findings (contract.md 'Contract change')" },
-    { "who": "Iris", "what": "Look at Quill's 390-768 hull-width ramp (C3), not in the direction" },
-    { "who": "Quill", "what": "Settle the skip-link open question; Probe's content.spec.ts fixme; Iris's Stack dots" }
+    {
+      "who": "Owner",
+      "what": "Accept the 3D hero contract by merging PR #28 (symbol, split, 15 KB budget, the 172 px cap); lens is red on Part B draft findings"
+    },
+    {
+      "who": "Probe",
+      "what": "Part B's sprint: spike WebGL in the CI browser, then rewrite C10-C16 with Lens's open findings (contract.md 'Contract change')"
+    },
+    {
+      "who": "Iris",
+      "what": "Look at Quill's 390-768 hull-width ramp (C3), not in the direction"
+    },
+    {
+      "who": "Quill",
+      "what": "Settle the skip-link open question; Probe's content.spec.ts fixme; Iris's Stack dots"
+    },
+    {
+      "who": "Iris",
+      "what": "Correct the memory line recommending oklch(from ...): invariants.spec bans oklch( (Lens nit on 02a7835)"
+    },
+    {
+      "who": "Probe",
+      "what": "Part A sprint: Lens's nits on 02a7835 (C6 evidence if next build prints no first-load JS, count direction for the third lift, copper gradient stops in C7, run C5 against origin/main first)"
+    }
   ]
 }
