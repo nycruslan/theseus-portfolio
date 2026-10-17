@@ -1,6 +1,6 @@
 # Sprint 5: Pixel's build
 
-Built: the section reveal on scroll, CSS only. `e2e/reveal.spec.ts` C1 to C8 and the whole existing
+Built: the section reveal on scroll, CSS only. The section fades in place and its heading rises. `e2e/reveal.spec.ts` C1 to C8 and the whole existing
 suite pass, and nothing in `e2e/` was edited. At rest the page is pixel-identical to `origin/main`
 in light and dark at 1440 and 390.
 
@@ -11,11 +11,16 @@ One file, `app/globals.css`: a block at the end, unlayered, no new tokens, no cl
 - `@supports (animation-timeline: view())` wraps `@media (prefers-reduced-motion: no-preference)`,
   which holds both the keyframes and the rule, so reduced motion and browsers without view timelines
   get no animation at all (C5, C6, and `cards.spec`'s `getAnimations()` count).
-- `@keyframes section-reveal` has only a `from`: `opacity: 0; translate: 0 16px`. The end is the
-  section's own style.
-- `main > section`: `animation: section-reveal cubic-bezier(0.33, 1, 0.68, 1) backwards`, then
-  `animation-timeline: view()`, `animation-range: entry 0% entry 64px`, `will-change: contents`.
-  `main > section` matches the three `Section`s and never the header (C3).
+- `@keyframes section-fade` (`from { opacity: 0 }`) runs on the section and `@keyframes
+  section-rise` (`from { translate: 0 16px }`) runs on its `h2`. Both have only a `from`, so the end
+  is each element's own style.
+- `main > section`: `view-timeline: --section block`, then `animation: section-fade
+  cubic-bezier(0.33, 1, 0.68, 1) backwards`, `animation-timeline: --section`,
+  `animation-range: entry 0% entry 64px` and `will-change: contents`. `main > section > h2` runs
+  `section-rise` on the same named timeline and range, so the heading follows the section. It does
+  not follow its own shorter box. `main > section` never matches the header (C3).
+- Fix round 1 changed this: at first the whole section rose. Now only the heading moves, and nothing
+  that can be clicked or focused does. See "Fix round 1" below.
 
 The built CSS keeps the gate intact (lightningcss writes the start as `entry`, which is `entry 0%`;
 the computed `animation-range-start` in the production build reads `entry`). It adds 297 bytes to
@@ -45,7 +50,7 @@ the page's one stylesheet (13,264 to 13,561, uncompressed).
   measured that cost (below).
 - **Ease.** An ease-out cubic over the range, so most of the rise and fade happens as the section's
   top edge clears the bottom of the screen, and the last few pixels settle slowly. At +20 px of the
-  range Contact is at opacity 0.67 and translate 5.4 px; at +40 px, 0.94 and 0.9 px.
+  range Contact is at opacity 0.67 and its heading at translate 5.4 px; at +40 px, 0.94 and 0.9 px.
 
 ## Evidence
 
@@ -78,6 +83,53 @@ the page's one stylesheet (13,264 to 13,561, uncompressed).
   `will-change: contents`) measured the same within noise (845 to 904 ms, same 173 recalcs), so the
   pixel fix costs nothing measurable.
 
+## Fix round 1: CI `check` failed on cd26f19 (cards.spec "the whole of a linked card is its link")
+
+**Root cause.** A view timeline's value is sampled once per frame, during the rendering update. A
+script that jumps the scroll and then reads layout in the same task gets the old timeline value. So
+for one frame after `scrollIntoViewIfNeeded`, a section that was below the fold is still in its start
+state, even though it is now well inside the viewport.
+
+At 1280 x 720, Projects is below the fold at load (opacity 0, translate 16 px). The test scrolls the
+card into view, measures its rect, and then clicks the corner 8 px in from the bottom. The rect was
+measured 16 px low, and by the click the card had risen. The point landed 8 px below the card, so no
+navigation happened. 390 x 844 is unaffected because Projects is already at rest at load there.
+Whether a run fails depends on whether a frame falls between the measure and the click, which is why
+it passed locally and failed in CI.
+
+**Evidence.** `cardrace.mjs` in the scratchpad replays the test's measure-then-click and logs the
+state at each step. On cd26f19:
+- CPU 1x: 10 misses in 20.
+- CPU 4x: 2 misses in 20.
+
+Every miss looks the same: when the test measures, `scrollY` is 455 but the section still reads
+`opacity 0, translate 0px 16px` and the card's bottom is 503.44. At the click it is `translate none`
+and the bottom is 487.44, while the corner is at y 495.44.
+
+**Fix (product code only).** The section now only fades: opacity moves no box and does not change
+hit-testing. The 16 px rise moved to the section's `h2`, which is never a target, on the section's
+named view timeline. A stale frame can now change only how faint the section looks, not where
+anything is. After the fix, the replay had 0 misses in 40 at CPU 1x and 0 in 40 at 4x, and the
+card's bottom is 487.44 both when measured and when clicked.
+
+Lens's nit: the `will-change` comment is re-wrapped.
+
+Evidence after the fix:
+- `pnpm verify`: exit 0.
+- `PLAYWRIGHT_PORT=3363 pnpm test:e2e`: 41 passed, 1 skipped.
+- `cards.spec.ts --repeat-each 30 --workers 8`: 150 passed.
+- `reveal.spec.ts` and `keyboard.spec.ts --repeat-each 5 --workers 8`: 65 passed.
+- Pixel diff against `origin/main`: 0 differing pixels in all 28 shots (light and dark, 1440 and
+  390, every scroll stop plus the full page).
+- agent-browser `--session pixel5`, at 1440 x 900 and 390 x 844 in both schemes: Contact's opacity
+  is 0, 0.67, 0.94 and 1 at +0, +20, +40 and +64 px. The `h2` translate is 16, 5.4, 0.9 and 0 px, and
+  the links' translate stays `none`.
+- Perf, measured as before: frames p50 and p95 are 16.7 ms on both builds, with 0 long animation
+  frames and 0 layouts. Style recalc is 44 to 51 ms over 173 recalcs (about 0.3 ms each at 4x
+  throttle). Task time over about 345 frames was 682 to 754 ms on main and 797 to 913 ms on the
+  branch.
+- The CSS is 13,755 bytes (+491 over main).
+
 ## Not done, or not verifiable here
 
 - **"Eases in once" is per scroll position.** CSS can't latch, so this is inherent to a CSS-only
@@ -93,6 +145,9 @@ the page's one stylesheet (13,264 to 13,561, uncompressed).
 - **Subpixel text antialiasing loss** without the hint is inferred, not seen. The headless
   screenshots show only the arrow.
 
-Needs decision (Iris): is 16 px over 64 px of scroll the right weight for this site? It is quiet by
-design. At 1440 x 900 it is only visible on Contact, since the other two sections are in view at
-load.
+Needs decision (Iris): two things.
+- Is the weight right? The motion is 16 px over 64 px of scroll, and quiet by design. At 1440 x 900
+  it shows only on Contact.
+- Fix round 1 changed the motion: the section now fades in place while only its heading rises. If
+  the whole section should rise, it would need the contract's checks to tolerate a card moving in
+  the frame after a jump scroll. As built, nothing clickable moves.

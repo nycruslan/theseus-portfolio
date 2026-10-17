@@ -94,8 +94,9 @@ body {
 }
 
 /*
- * Section reveal: each section below the header surfaces as it scrolls in, a short rise and a fade,
- * then sits exactly where it sat before. Sprint 5: .studio/sprint/5/.
+ * Section reveal: each section below the header surfaces as it scrolls in. The section fades in
+ * place while its heading rises into it, then both sit exactly where they sat before. Sprint 5:
+ * .studio/sprint/5/.
  *
  * It is a scroll-driven animation, so it follows the section's own position (no JavaScript, works
  * with scripts off), and it is gated twice: browsers without view timelines and visitors who ask
@@ -104,21 +105,29 @@ body {
  */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    /* Only a start state: the end is the section's own style, so at rest nothing is overridden. */
-    @keyframes section-reveal {
+    /* Only start states: the end is each element's own style, so at rest nothing is overridden. */
+    @keyframes section-fade {
       from {
         opacity: 0;
+      }
+    }
+
+    @keyframes section-rise {
+      from {
         translate: 0 16px;
       }
     }
 
     /* The sections only, never the header: the owner's name is on screen at the first paint. */
     main > section {
+      /* One timeline per section, named so its heading can follow the section rather than its
+         own, shorter box. */
+      view-timeline: --section block;
       /* `backwards` holds the start state while a section waits below the fold. With no forwards
          fill, the animation leaves no style behind once its range ends. */
-      animation: section-reveal cubic-bezier(0.33, 1, 0.68, 1) backwards;
+      animation: section-fade cubic-bezier(0.33, 1, 0.68, 1) backwards;
       /* After the shorthand, which resets it. */
-      animation-timeline: view();
+      animation-timeline: --section;
       /* A fixed 64 px of scroll from the moment the section's top edge enters, not a share of its
          height: a share made the short Contact section snap in over 22 px while a tall one
          dragged. It is also short enough that a section already in view at load is at rest
@@ -129,10 +138,21 @@ body {
       /* A scroll-driven animation stays current for as long as the page can scroll back, so
          Chrome would keep each section on a composited layer forever: at rest the card arrow
          rasterises differently, and where the system uses subpixel text antialiasing the
-         section's text can lose it. This hint keeps the
-         sections painted with the page, so at rest they are the same pixels as without the
-         reveal; the rise then paints on the main thread, which costs nothing measurable here. */
+         section's text can lose it. This hint keeps the sections painted with the page, so at
+         rest they are the same pixels as without the reveal; the reveal then paints on the main
+         thread, which costs nothing measurable here. */
       will-change: contents;
+    }
+
+    /* Only the heading moves; nothing that can be clicked or focused does. A timeline's value
+       updates on the next frame after a scroll, so straight after a jump (a script's
+       scrollIntoView, a fragment link) a section still sits at its start state for one frame.
+       Had the whole section risen, anything that measured a card in that frame and then clicked
+       it would land 16 px off, below the card (cards.spec did, in CI). Opacity moves no box. */
+    main > section > h2 {
+      animation: section-rise cubic-bezier(0.33, 1, 0.68, 1) backwards;
+      animation-timeline: --section;
+      animation-range: entry 0% entry 64px;
     }
   }
 }
