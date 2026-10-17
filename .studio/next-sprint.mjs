@@ -9,8 +9,12 @@
 // - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
 //   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
 //   sprint/<n>-…). next is one past the highest of them.
+// - daily: the team's sprint PRs merged into the base in the last 24 hours, and the cap on them,
+//   THESEUS_DAILY_SPRINTS (a positive integer; anything else means the default, 6). A merged
+//   sprint starts the next one (the routine's GitHub trigger), so the cap is what stops a chain.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
-//   every open one does, or start the next sprint, with its branch name.
+//   every open one does or when the day's cap is reached, or start the next sprint, with its
+//   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 // First it checks who GitHub thinks is calling. The team works as its own account, named in
@@ -23,6 +27,8 @@ import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
+const DAY = 24 * 60 * 60 * 1000;
+const DAILY_DEFAULT = 6;
 configure({ timeout: 20_000 });
 
 let repo;
@@ -53,12 +59,7 @@ function preflight(repo) {
   // Otherwise a stranger's PR could have Atlas check out its code, stand down, or skip numbers.
   // The title is free text a visitor can write, so it stays out of what Atlas is told.
   const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
-    .filter(
-      ({ head, author_association: association }) =>
-        head?.repo?.full_name?.toLowerCase() === repo.toLowerCase() &&
-        TRUSTED.has(association) &&
-        SPRINT_BRANCH.test(head?.ref ?? ""),
-    )
+    .filter(ours(repo))
     .sort((a, b) => a.number - b.number)
     .map((pr) => {
       const labels = pr.labels.map(({ name }) => name);
@@ -87,7 +88,51 @@ function preflight(repo) {
     ),
   };
   const next = Math.max(...Object.values(highest)) + 1;
-  return { repo, base, open, highest, next, action: action(open, next) };
+  const daily = mergedToday(repo, base);
+  return {
+    repo,
+    base,
+    open,
+    highest,
+    next,
+    daily: { merged: daily.merged, cap: daily.cap },
+    action: action(open, next, daily),
+  };
+}
+
+// The team's own sprint PRs, as GitHub lists them.
+function ours(repo) {
+  return ({ head, author_association: association }) =>
+    head?.repo?.full_name?.toLowerCase() === repo.toLowerCase() &&
+    TRUSTED.has(association) &&
+    SPRINT_BRANCH.test(head?.ref ?? "");
+}
+
+// The team's sprint PRs merged into the base in the last 24 hours. One page of the closed PRs, most
+// recently updated first: a merge updates a PR, so every one merged today is among them unless more
+// than 100 closed PRs changed since, far past any cap.
+function mergedToday(repo, base) {
+  const since = Date.now() - DAY;
+  const times = api(
+    `repos/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
+  )
+    .filter(ours(repo))
+    .filter((pr) => pr.base?.ref === base && pr.merged_at)
+    .map((pr) => Date.parse(pr.merged_at))
+    .filter((time) => time > since)
+    .sort((a, b) => a - b);
+  const cap = dailyCap(process.env.THESEUS_DAILY_SPRINTS);
+  // At the cap, a new sprint may start once enough of today's merges are a day old.
+  const reopens =
+    times.length >= cap
+      ? new Date(times[times.length - cap] + DAY).toISOString()
+      : null;
+  return { merged: times.length, cap, reopens };
+}
+
+function dailyCap(value) {
+  const text = String(value ?? "").trim();
+  return /^[1-9]\d*$/.test(text) ? Number(text) : DAILY_DEFAULT;
 }
 
 // The sprint folders on the base branch; none yet when .studio/sprint/ isn't there.
@@ -103,7 +148,14 @@ function sprintFolders(repo, base) {
 }
 
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
-function action(open, next) {
+function action(open, next, daily) {
+  if (!open.length && daily.merged >= daily.cap) {
+    const sprints = daily.merged === 1 ? "sprint" : "sprints";
+    return {
+      do: "stand down",
+      say: `${daily.merged} ${sprints} merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
+    };
+  }
   if (!open.length) {
     return {
       do: "start",

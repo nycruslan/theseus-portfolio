@@ -25,6 +25,18 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   write the main checkout's memory, so it writes `.claude/agent-memory/<role>/` inside its
   worktree, commits just those files, and names the commit in its report for Atlas to bring over.
 
+## What starts a sprint
+
+The owner's routine `theseus-sprint` runs `/sprint` in the cloud on three triggers:
+- **the chain:** a sprint PR (head `sprint/…`) merging into `main` starts the next sprint;
+- **the heartbeat:** a schedule every 3 hours restarts a chain that stalled;
+- **the owner's button:** "Start a sprint" in the Studio fires the routine's API trigger, with an
+  optional goal. The routine passes it to `/sprint` as the goal; it sets what to build, never the
+  process, the rules or the owner's paths.
+
+The pre-flight stands down once `THESEUS_DAILY_SPRINTS` sprint PRs (default 6) merged in the last
+24 hours, and still continues an open sprint PR.
+
 ## Reporting
 
 Finish every piece of work with a report whose first line is its outcome. Then: what's done, what
@@ -37,7 +49,7 @@ verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) m
 
 GitHub decides what merges, through the `protect-main` ruleset. Its one bypass is the owner's: the
 repository admin role, for pull requests only. The team's account isn't an admin. The ruleset
-requires a pull request, the owner's review wherever `.github/CODEOWNERS` names him, and three
+requires a pull request, the owner's review wherever `.github/CODEOWNERS` names them, and three
 checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
 - `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
@@ -53,7 +65,7 @@ Reach GitHub only as that account: never use the proxy's `proxy-injected` placeh
 set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
 checks and asks GitHub to squash-merge the head. Iris's verdict is advice until she's calibrated
 (`design/rubric.md`). If anything needs the owner, leave the PR open with a "Needs owner decision"
-section and the `needs-owner` label, and ask for his review once the head is final: a later push
+section and the `needs-owner` label, and ask for their review once the head is final: a later push
 needs a new approval. Never push to `main`.
 
 ## The owner's
