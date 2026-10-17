@@ -1,5 +1,6 @@
 // `node .studio/merge.mjs <number>`: waits until GitHub says the sprint PR can merge, then
-// squash-merges the head it checked. GitHub enforces the rules, so this only waits and asks. It
+// squash-merges the head it checked. It refuses itself when a required check failed: in the cloud
+// GitHub calls act as the owner, whose admin bypass would let GitHub merge it anyway. It
 // exists because the cloud's proxy refuses GraphQL, and with it `gh pr merge` and auto-merge, so
 // it's REST only (github.mjs).
 // It reads the checks to wait for from the base branch's active rules (protect-main requires
@@ -109,6 +110,10 @@ function refusal() {
   if (missing.length) {
     return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${lensHint(missing)}`;
   }
+  const failed = failing();
+  if (failed.length) {
+    return `${failed.join(", ")} didn't pass on ${head.slice(0, 7)}`;
+  }
   if (["dirty", "draft", "behind", "unknown"].includes(pr.mergeable_state)) {
     return `GitHub says "${pr.mergeable_state}" (${line()})`;
   }
@@ -142,6 +147,19 @@ function unreported() {
       ),
   );
   return [...new Set(missing.map(({ context }) => context))];
+}
+
+// The required checks whose run from the right app, or status, didn't pass on the head.
+function failing() {
+  const failed = required.filter(({ context, integration_id: app }) =>
+    checks.some(
+      (check) =>
+        check.who === context &&
+        (!app || check.app === undefined || check.app === app) &&
+        check.state === "nogo",
+    ),
+  );
+  return [...new Set(failed.map(({ context }) => context))];
 }
 
 // The latest run of each check from each app on the commit (an older one may be a superseded,

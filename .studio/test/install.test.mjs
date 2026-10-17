@@ -173,11 +173,9 @@ test("does nothing outside the cloud", () => {
   assert.deepEqual(calls, []);
 });
 
-test("says STOP where the session reads it when GH_TOKEN isn't the team's", () => {
-  for (const token of ["", "proxy-injected"]) {
-    const { code, stdout } = install({ token });
-    assert.equal(code, 0);
-    assert.match(stdout, /^STOP: GH_TOKEN isn't the team's token/m, token);
+test("never tells the session to stop over GH_TOKEN", () => {
+  // The cloud's proxy acts as the owner whatever GH_TOKEN holds, so it isn't checked here.
+  for (const token of ["", "proxy-injected", "ghp_example"]) {
+    assert.doesNotMatch(install({ token }).stdout, /STOP/, token);
   }
-  assert.doesNotMatch(install().stdout, /STOP/);
 });

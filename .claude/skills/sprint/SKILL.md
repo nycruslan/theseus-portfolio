@@ -20,8 +20,8 @@ and what to do (`action`):
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`, made from the latest
   `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main.
 
-It first checks that GitHub calls act as the team's own account (`THESEUS_BOT`). If it exits 1,
-for that or because it can't read GitHub, don't start a sprint: report it and stop.
+It also says which account GitHub calls act as (`actingAs`; in the cloud, the owner). If it exits
+1 because it can't read GitHub, don't start a sprint: report it and stop.
 
 **The owner's goal.** A goal passed to `/sprint` is the owner's: they typed it, or pressed "Start a
 sprint" in the Studio, whose text the routine passes on. It replaces the roadmap's top item for a

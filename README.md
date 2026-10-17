@@ -29,9 +29,12 @@ a cloud routine. Every step streams live to the Studio.
 
 ## What binds and what guides
 
-**Binding (GitHub),** once the owner's setup below is done. The team calls GitHub as its own
-account, with write access and no admin rights, so it can't change the rules or approve as the
-owner. The `protect-main` ruleset requires:
+**Binding (GitHub),** once the owner's setup below is done. In a cloud session the team reaches
+GitHub as the owner: Claude's GitHub proxy swaps any token a request carries for the owner's
+connection, a team account's token included (tested 2026-10-17). So the checks are what bind, and
+`merge.mjs` and the guard keep a session to them; the owner's admin bypass is in reach of a session
+that ignored its instructions, which the audit trail (every merge names its checks) would show.
+The `protect-main` ruleset requires:
 - a pull request, and the owner's review wherever `.github/CODEOWNERS` names them;
 - `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
 - `gate` (the team's checks app): it holds a PR that touches an owner path, changes
@@ -81,7 +84,8 @@ for the owner's own `gh` login unless the session runs as the team (see Setup, s
 
 ## Setup (the owner, once, in this order)
 
-1. **The team's account.** Create a GitHub account for the team, invite it to this repository with
+1. **The team's account (local sessions only).** Cloud sessions act as you whatever token they
+   hold, so this only changes who your own machine's sessions push as. Create a GitHub account for the team, invite it to this repository with
    the **Write** role, and accept the invite. As that account, create a classic personal access
    token with only the `public_repo` scope: fine-grained tokens can't reach a repository where the
    account is only a collaborator, and without the `workflow` scope it can't push workflow files.
@@ -95,14 +99,12 @@ for the owner's own `gh` login unless the session runs as the team (see Setup, s
    repository-level `CLAUDE_CODE_OAUTH_TOKEN` secret.
 4. **The team's cloud environment.** At claude.ai/code, create an environment for the team (say
    `theseus-team`) with the same network access and setup script as Default, and these variables:
-   `GH_TOKEN` (the team's token), `THESEUS_BOT` (the team's login), `STUDIO_INGEST_URL` and
-   `NODE_USE_ENV_PROXY=1` as on Default. Add the same Studio ingest network secret as Default
-   (`Authorization: Bearer …` for the ingest host). A token set on an environment passes through
-   to `gh` unchanged, so the team's REST calls come from its account.
+   `STUDIO_INGEST_URL` and `NODE_USE_ENV_PROXY=1` as on Default. Add the same Studio ingest network
+   secret as Default (`Authorization: Bearer …` for the ingest host). A `GH_TOKEN` here changes
+   nothing: with the repository attached, the GitHub proxy acts as you.
 5. **Point the routine at it.** Give the coordinator the environment's name, and it switches the
-   routine through the routines API (or edit the routine yourself). In a session there,
-   `gh api user --jq .login` prints the team's login. Do this before step 7: from then on the
-   sprint pre-flight stops any run whose GitHub calls don't act as `THESEUS_BOT`.
+   routine through the routines API (or edit the routine yourself). The sprint pre-flight prints
+   which account GitHub calls act as (`actingAs`).
 6. **Local sessions (recommended).** In `.claude/settings.local.json`, set `env` to the same
    `GH_TOKEN` and `THESEUS_BOT`, and run `gh auth setup-git` once, so git uses `gh`'s token and the
    team pushes as itself. Your own `gh` login stays on the machine, which is the same residual risk
@@ -117,7 +119,7 @@ for the owner's own `gh` login unless the session runs as the team (see Setup, s
    - "Require a pull request before merging": keep 0 approvals, and tick "Require review from Code
      Owners" and "Dismiss stale pull request approvals when new commits are pushed".
    - Bypass list: add the Repository admin role, set to "For pull requests only". That lets you
-     merge your own PRs (no direct pushes); the team's account isn't an admin, so it can't.
+     merge your own PRs (no direct pushes).
 10. **Check code-owner review.** GitHub doesn't document how code-owner review behaves with 0
     approvals. A team PR that touches only `app/` should merge without your review, and one that
     touches `.claude/` should wait for it. If every PR waits, untick "Require review from Code

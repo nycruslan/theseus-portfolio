@@ -161,6 +161,21 @@ test("refuses without asking GitHub when a required check never reports, and say
   );
 });
 
+test("refuses without asking GitHub when a required check failed: the owner's bypass would merge it", () => {
+  for (const name of ["check", "gate", "lens"]) {
+    const checks = GREEN.map((run) =>
+      run.name === name ? done(name, "failure") : run,
+    );
+    const { code, stderr, merges } = merge(github({ checks }));
+    assert.equal(code, 1, name);
+    assert.equal(merges.length, 0, name);
+    assert.match(
+      stderr,
+      new RegExp(`NO-GO for PR #12: ${name} didn't pass on 4ead4ea\\.`),
+    );
+  }
+});
+
 test("counts a required check only from the app the rules name", () => {
   const impostor = done("lens", "success", 5, { id: 99, slug: "someone" });
   const { code, stderr, merges } = merge(
@@ -226,17 +241,16 @@ test("asks GitHub whatever a check it doesn't require says, and reports GitHub's
   const refused = merge(
     github({
       pulls: pr({ mergeable_state: "blocked" }),
-      checks: [done("check"), done("gate", "failure"), done("lens")],
       merge: {
         $error: 405,
-        message: 'Required status check "gate" is failing.',
+        message: "Waiting on code owner review from nycruslan.",
       },
     }),
   );
   assert.equal(refused.code, 1);
   assert.match(
     refused.stderr,
-    /refused the merge: Required status check "gate" is failing\./,
+    /refused the merge: Waiting on code owner review from nycruslan\./,
   );
 });
 

@@ -20,7 +20,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Whether the PR passes, with a one-line summary and the holds behind it. A PR the owner opened
- * himself holds like any other: GitHub doesn't let an author approve his own PR, so he merges it
+ * themselves holds like any other: GitHub doesn't let an author approve their own PR, so they merge it
  * with the ruleset's pull-request bypass instead. Passing it on authorship would trust exactly
  * what a session could fake by reaching GitHub as the owner, and the bypass doesn't need gate.
  */
@@ -32,7 +32,7 @@ export function decide({ notes, everHeld, approved, byOwner = false }) {
   if (holds.length && approved) summary = "The owner approved this head.";
   else if (holds.length && byOwner) {
     summary =
-      "The owner opened this PR, so he merges it himself with the ruleset's bypass.";
+      "The owner opened this PR, so they merge it themselves with the ruleset's bypass.";
   } else if (holds.length) {
     summary = "This PR needs the owner's approving review of its head.";
   }

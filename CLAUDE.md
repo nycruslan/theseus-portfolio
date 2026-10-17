@@ -48,7 +48,7 @@ verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) m
 ## Merge policy
 
 GitHub decides what merges, through the `protect-main` ruleset. Its one bypass is the owner's: the
-repository admin role, for pull requests only. The team's account isn't an admin. The ruleset
+repository admin role, for pull requests only. The ruleset
 requires a pull request, the owner's review wherever `.github/CODEOWNERS` names them, and three
 checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
@@ -60,9 +60,10 @@ checks:
   push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md,
   ROADMAP.md) keeps Lens's last ship; memory loads into prompts, so it's reviewed.
 
-The team works as its own GitHub account (`THESEUS_BOT`), with write access and no admin rights.
-Reach GitHub only as that account: never use the proxy's `proxy-injected` placeholder, and never
-set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
+In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the owner's
+connection. So the owner's bypass is in reach, and never yours to use: merge only through
+`merge.mjs`, never approve, dismiss reviews, change settings or rulesets, or push to `main`, and
+never set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
 checks and asks GitHub to squash-merge the head. Iris's verdict is advice until she's calibrated
 (`design/rubric.md`). If anything needs the owner, leave the PR open with a "Needs owner decision"
 section and the `needs-owner` label, and ask for their review once the head is final: a later push
