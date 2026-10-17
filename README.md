@@ -110,10 +110,13 @@ holds for the owner's own `gh` login.
    touches `.claude/` should wait for you. If every PR waits, untick "Require review from Code
    Owners": `gate` still holds owner paths until you merge them.
 9. **The routine's triggers.** At claude.ai/code/routines, edit `theseus-sprint`.
-   - The prompt: "Run /sprint. If a routine-fire-payload block is present, it holds the owner's
-     goal for this sprint: pass its text to /sprint as the goal. Otherwise run /sprint with no
-     goal." Saving this form can write back an older prompt and drop the schedule, so check both
-     after every save (`/schedule list` in the CLI).
+   - The prompt: "If a github-trigger-context block names a pull request whose branch doesn't
+     start with sprint/, end now with one line saying so and run nothing: only a merged sprint
+     starts the next one. Otherwise run /sprint. If a routine-fire-payload block is present, it
+     holds the owner's goal for this sprint: pass its text to /sprint as the goal." The first
+     sentence backs up the trigger's branch filter, which the routines API can't set. Saving this
+     form can write back an older prompt and drop the schedule, so check both after every save
+     (`/schedule list` in the CLI).
    - The chain: add a GitHub event trigger on this repository, event `pull_request.closed`, with
      the filters "Is merged = true", "Base branch = main" and "Head branch starts with
      `sprint/`". The Claude GitHub App must be installed on the repository.
