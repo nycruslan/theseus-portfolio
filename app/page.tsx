@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Hero } from "@/components/hero";
 import { ProjectCard } from "@/components/project-card";
 import { Section } from "@/components/section";
 import { SkipLink } from "@/components/skip-link";
@@ -28,97 +29,104 @@ export default function Home() {
   return (
     <>
       <SkipLink />
-      {/* tabIndex -1: focusable by the skip link, never a Tab stop of its own. */}
-      <main
-        id="main"
-        tabIndex={-1}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24"
-      >
-        <script
-          type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(person).replace(/</g, "\\u003c"),
-          }}
-        />
-        <header className="flex flex-col gap-4">
-          <h1 className="text-step-2xl font-semibold tracking-tight">
-            {profile.name}
-          </h1>
-          <p className="text-step-xl">{profile.headline}</p>
-          <p className="text-step-base text-muted">{profile.location}</p>
-          <p className="text-step-lg">{profile.bio}</p>
-        </header>
+      {/* A size container, so the hero can go full-bleed in units of the page's own width (the
+        viewport less any scrollbar). Not on body or html: containment there stops the body's
+        background from reaching the canvas. */}
+      <div className="@container">
+        {/* tabIndex -1: focusable by the skip link, never a Tab stop of its own. */}
+        <main
+          id="main"
+          tabIndex={-1}
+          className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24"
+        >
+          <script
+            type="application/ld+json"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(person).replace(/</g, "\\u003c"),
+            }}
+          />
+          <header className="flex flex-col gap-4">
+            <h1 className="text-step-2xl font-semibold tracking-tight">
+              {profile.name}
+            </h1>
+            <p className="text-step-xl">{profile.headline}</p>
+            <p className="text-step-base text-muted">{profile.location}</p>
+            <p className="text-step-lg">{profile.bio}</p>
+          </header>
 
-        <Section id="experience" title="Experience">
-          <ol className="flex flex-col gap-8">
-            {profile.experience.map((role) => (
-              <li key={`${role.company}-${role.period}`}>
-                {/* A no-break space keeps "· Company" together, so the dot never ends a line. */}
-                <h3 className="text-balance text-step-lg font-medium">
-                  {role.title} ·&nbsp;{role.company}
-                </h3>
-                <p className="text-step-sm text-muted">{role.period}</p>
-                <p className="mt-2 text-step-base">{role.summary}</p>
-              </li>
-            ))}
-          </ol>
-        </Section>
+          <Hero />
 
-        <Section id="projects" title="Projects">
-          <ul className="flex flex-col">
-            {profile.projects.map((project) => (
-              <ProjectCard key={project.name} project={project} />
-            ))}
-          </ul>
-        </Section>
+          <Section id="experience" title="Experience">
+            <ol className="flex flex-col gap-8">
+              {profile.experience.map((role) => (
+                <li key={`${role.company}-${role.period}`}>
+                  {/* A no-break space keeps "· Company" together, so the dot never ends a line. */}
+                  <h3 className="text-balance text-step-lg font-medium">
+                    {role.title} ·&nbsp;{role.company}
+                  </h3>
+                  <p className="text-step-sm text-muted">{role.period}</p>
+                  <p className="mt-2 text-step-base">{role.summary}</p>
+                </li>
+              ))}
+            </ol>
+          </Section>
 
-        <Section id="stack" title="Stack">
-          {/* Plain words on a wrapping line; the gap alone separates them, so no separator text
+          <Section id="projects" title="Projects">
+            <ul className="flex flex-col">
+              {profile.projects.map((project) => (
+                <ProjectCard key={project.name} project={project} />
+              ))}
+            </ul>
+          </Section>
+
+          <Section id="stack" title="Stack">
+            {/* Plain words on a wrapping line; the gap alone separates them, so no separator text
             ends up inside an item. */}
-          <ul className="flex flex-wrap gap-x-6 gap-y-1">
-            {profile.stack.map((tool) => (
-              <li key={tool} className="text-step-base">
-                {tool}
-              </li>
-            ))}
-          </ul>
-        </Section>
+            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+              {profile.stack.map((tool) => (
+                <li key={tool} className="text-step-base">
+                  {tool}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-        <Section id="education" title="Education">
-          {/* Same shape as an Experience entry, so the two read as one family. */}
-          <ol className="flex flex-col gap-8">
-            {profile.education.map((entry) => (
-              <li key={`${entry.school}-${entry.period}`}>
-                <h3 className="text-balance text-step-lg font-medium">
-                  {entry.school}
-                </h3>
-                <p className="text-step-sm text-muted">{entry.period}</p>
-                <p className="mt-2 text-pretty text-step-base">
-                  {entry.credential}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </Section>
+          <Section id="education" title="Education">
+            {/* Same shape as an Experience entry, so the two read as one family. */}
+            <ol className="flex flex-col gap-8">
+              {profile.education.map((entry) => (
+                <li key={`${entry.school}-${entry.period}`}>
+                  <h3 className="text-balance text-step-lg font-medium">
+                    {entry.school}
+                  </h3>
+                  <p className="text-step-sm text-muted">{entry.period}</p>
+                  <p className="mt-2 text-pretty text-step-base">
+                    {entry.credential}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </Section>
 
-        <Section id="contact" title="Contact">
-          <ul className="flex flex-wrap gap-6">
-            {profile.links.map((link) => (
-              <li key={link.href}>
-                {/* inline-block so the target is the whole 1.6 line box (WCAG 2.2's 24 px
+          <Section id="contact" title="Contact">
+            <ul className="flex flex-wrap gap-6">
+              {profile.links.map((link) => (
+                <li key={link.href}>
+                  {/* inline-block so the target is the whole 1.6 line box (WCAG 2.2's 24 px
                   minimum), not the shorter glyph box an inline link reports. */}
-                <a
-                  href={link.href}
-                  className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      </main>
+                  <a
+                    href={link.href}
+                    className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        </main>
+      </div>
     </>
   );
 }
