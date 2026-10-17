@@ -177,6 +177,9 @@ SVG, phones, reduced motion, scripts off), and in B the object sits visibly low 
 her review of this PR, the table's B row replaces A in C2 and C11.3 and nothing else changes. Without an
 answer, A.
 
+**Decided (Iris, `direction-iris.md`): A**, 138 px with the hull centred at rest; the `8 + 130 s` formula
+below 768 stands.
+
 The breakpoint is `@container (width >= 48rem)` on the page wrapper (`app/page.tsx`'s `@container`), as
 Lens suggested, so a classic scrollbar can't step the hull's length. Width rules are unchanged: 688 px
 from the breakpoint, full-bleed below; the 64 px gaps above and below stay. CI's headless browser has
@@ -188,8 +191,9 @@ overlay scrollbars, so the classic-scrollbar case can't be tested there; no spec
 2. C2's "never taller than 172.5" (at 360, 480, 500, 700, 1920) becomes 138.5.
 3. C2 gains: the hull's rect is centred in the box, top air and bottom air within 1.5 px, at the seven
    `FOOTPRINT_WIDTHS`.
-4. A `beforeEach` init script makes `getContext` return null for the WebGL types, so Part A's checks keep
-   testing the SVG on a developer's machine with a GPU (in CI the caveat flag already refuses). It adds a
+4. An init script on every context the spec opens (`context.addInitScript` in a `beforeEach`, and on each
+   `browser.newContext` in C4, C5 and C8) makes `getContext` return null for the WebGL types, so Part A's
+   checks keep testing the SVG on a developer's machine with a GPU (in CI the caveat flag already refuses). It adds a
    precondition and removes nothing.
 5. C3 (the hull's x geometry), C1 and C5 to C9 are unedited. C4's "same rect with and without scripts"
    follows the new box by itself.
@@ -210,7 +214,7 @@ overlay scrollbars, so the classic-scrollbar case can't be tested there; no spec
     owner decision" in the build PR. It is never widened quietly.
   - Builders can only run 141 locally, so expect one CI-only round; the sprint allows two.
 - **The butt joints (vertical seams) are not in the spike**, nor retina, nor a GPU-backed context, nor
-  Safari or Firefox, nor a real phone. C13.2's 0.1% (about 120 px at 1440) leaves room for the butts; if
+  Safari or Firefox, nor a real phone. C13.2's 0.1% of the 138 px box (about 95 px at 1440, 39 px at 390, against a measured worst case of 4 px) leaves room for the butts; if
   they overshoot it, Pixel moves them, Probe doesn't widen the check. The rest are not gated: Pixel reports
   what it tried, Iris reviews the look.
 - **A module shared between the gate and the chunk** lands in a first-load chunk (spike §4). C15.1 (no

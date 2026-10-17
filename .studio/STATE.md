@@ -131,3 +131,18 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
     real risk; the colour guard was, since it could draw a black hull.
   - The cloud browser can't show classic scrollbars or other engines, so size against the container,
     not the viewport, even at breakpoints.
+
+## Sprint 9: the hero's Part B contract (PR #32)
+
+- **Outcome:** the L lane's contract step for the WebGL upgrade, no product code. Probe's spike
+  (`spike-probe.md`): the headless Chromium draws WebGL in SwiftShader, refuses
+  `failIfMajorPerformanceCaveat`, and init scripts can strip the flag and count draws; a hand-written
+  renderer of the real hull was 2.7 KB gzip, pixel-identical across runs, within 1 px of the SVG, CLS 0.
+  Quill rewrote C10–C16 on those numbers and added C17 (the harness holds on a blank page); Iris chose
+  the centred 138 px box. Lens ship on the first run (two wording nits, applied). PR #32 waits for the
+  owner (`needs-owner`).
+- **Lesson:**
+  - Spiking before the contract worked: sprint 7's draft took three Lens rounds, the measured rewrite one.
+  - The cloud sandbox's Chromium (141) isn't CI's (156), so browser-sensitive checks get their first real
+    run in CI; a check that tests the harness alone (C17) makes that readout cheap.
+  - Read pixels from screenshots: `readPixels`/`toDataURL` return zeros outside the drawing frame.

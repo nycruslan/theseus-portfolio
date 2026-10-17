@@ -1,0 +1,46 @@
+{
+  "sprint": 9,
+  "pr": 32,
+  "goal": "Roadmap item: the subtle 3D hero, Part B's contract (WebGL upgrade): Probe's spike, then C10-C16 rewritten on what it measured",
+  "goalFrom": "roadmap",
+  "size": "L",
+  "outcome": "needs-owner",
+  "fixRounds": 0,
+  "minutes": 30,
+  "agents": [
+    { "role": "qa-engineer", "model": "sonnet", "tokens": 164383, "minutes": 18 },
+    { "role": "product-owner", "model": "sonnet", "tokens": 87890, "minutes": 4 },
+    { "role": "design-director", "model": "opus", "tokens": 68159, "minutes": 3 }
+  ],
+  "lens": { "runs": 1, "tokens": 225305, "important": 0, "actedOn": 2, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The run was fired by PR #30 closing unmerged (a duplicate the owner stopped), not by a merge; the routine's prompt only filters non-sprint branches, so a closed duplicate starts a sprint",
+      "evidence": "github-trigger-context: pull_request.closed, #30 merged=false; owner's closing comment on #30"
+    },
+    {
+      "what": "The cloud sandbox's Playwright Chromium is build 1194 (Chromium 141) behind a symlink named for revision 1248, while CI installs 1248 (Chromium 156), so every WebGL measurement is on a different browser than CI's",
+      "evidence": ".studio/sprint/9/spike-probe.md, top section"
+    },
+    {
+      "what": "Older qa-engineer memory lines (7-14: guard refusals, ports, kill recipes) are environment workarounds that CLAUDE.md says belong in retros",
+      "evidence": "Probe's report; .claude/agent-memory/qa-engineer/MEMORY.md"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have the routine's prompt (or the pre-flight) stand down when the triggering sprint PR closed without merging",
+      "moves": "sprints started by a duplicate's closure (1 here)"
+    },
+    {
+      "change": "Setup bug: install the Chromium revision @playwright/test pins in the cloud image, or point the 1248 symlink at the real build",
+      "moves": "CI-only fix rounds on browser-sensitive checks (the contract expects one for Part B)"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "Accept Part B's contract by merging PR #32, or call Part A enough" },
+    { "who": "Probe", "what": "Build sprint: write e2e/hero-3d.spec.ts (C10-C17) and the hero.spec.ts tightenings first; C17 on CI's Chromium 156 is the readout" },
+    { "who": "Iris", "what": "Add her two sprint 9 memory lines (listed in direction-iris.md) with the build sprint" },
+    { "who": "Probe", "what": "Move memory lines 7-14's environment workarounds out of qa-engineer memory" }
+  ]
+}
