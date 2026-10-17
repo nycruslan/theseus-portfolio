@@ -73,6 +73,33 @@ export default function Home() {
           </ul>
         </Section>
 
+        <Section id="stack" title="Stack">
+          {/* Plain words on a wrapping line; the gap alone separates them, so no separator text
+            ends up inside an item. */}
+          <ul className="flex flex-wrap gap-x-6 gap-y-2">
+            {profile.stack.map((tool) => (
+              <li key={tool} className="text-step-base">
+                {tool}
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section id="education" title="Education">
+          {/* Same shape as an Experience entry, so the two read as one family. */}
+          <ol className="flex flex-col gap-8">
+            {profile.education.map((entry) => (
+              <li key={`${entry.school}-${entry.period}`}>
+                <h3 className="text-balance text-step-lg font-medium">
+                  {entry.school}
+                </h3>
+                <p className="text-step-sm text-muted">{entry.period}</p>
+                <p className="mt-2 text-step-base">{entry.credential}</p>
+              </li>
+            ))}
+          </ol>
+        </Section>
+
         <Section id="contact" title="Contact">
           <ul className="flex flex-wrap gap-6">
             {profile.links.map((link) => (
