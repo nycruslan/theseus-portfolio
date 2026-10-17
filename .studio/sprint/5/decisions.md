@@ -14,3 +14,9 @@
    range. The builder keeps the range short (Probe's reference: `entry 0% entry 30%`).
 3. **C3 counts an animation on an ancestor of the header (e.g. `main`) as animating the header.**
    Accepted as written.
+4. **Contract change: the heading rises, nothing fades.** Fix round 1 moved the rise from the
+   section to its h2 (a rising section moved cards between measure and click). Iris then found
+   the section fade fails axe contrast at load in ordinary window heights (1440 x 746–774,
+   390 x 758–788; `review-iris.md`). So the Outcome now reads: as a visitor scrolls, each
+   section's heading rises a short way into place, tied to its own scroll position. C1 to C8
+   stand as written (C1 counts the heading's translate).
