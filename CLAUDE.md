@@ -54,7 +54,8 @@ checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
 - `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
   touches an owner path, changes `package.json`'s scripts, weakens a test or ever carried
-  `needs-owner`, until the owner approves its current head;
+  `needs-owner`, until the owner decides it. The team's PRs are under the owner's login, and
+  nobody can approve their own PR, so the owner decides those by merging them with the bypass;
 - `lens` (`lens.yml`, posted by the checks app): Lens reviews the PR in CI, and the check passes
   only on ship. It runs when the PR carries the `review` label, on a new base and on each push. A
   push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md,
@@ -62,12 +63,12 @@ checks:
 
 In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the owner's
 connection. So the owner's bypass is in reach, and never yours to use: merge only through
-`merge.mjs`, never approve, dismiss reviews, change settings or rulesets, or push to `main`, and
-never set or unset `GH_TOKEN`. Atlas merges with `node .studio/merge.mjs <number>`, which waits for the
-checks and asks GitHub to squash-merge the head. Iris's verdict is advice until she's calibrated
-(`design/rubric.md`). If anything needs the owner, leave the PR open with a "Needs owner decision"
-section and the `needs-owner` label, and ask for their review once the head is final: a later push
-needs a new approval. Never push to `main`.
+`merge.mjs`, and never approve or dismiss reviews, change settings or rulesets, or push to `main`.
+Atlas merges with `node .studio/merge.mjs <number>`, which waits for the checks, refuses a PR whose
+required checks didn't pass, and asks GitHub to squash-merge the head. Iris's verdict is advice
+until she's calibrated (`design/rubric.md`). If anything needs the owner, leave the PR open with a
+"Needs owner decision" section and the `needs-owner` label, and tell the owner once the head is
+final; the owner merges it, so don't.
 
 ## The owner's
 

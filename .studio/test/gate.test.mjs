@@ -179,15 +179,12 @@ test("after the review relay, judges the open PR into the default branch at the 
   assert.equal(check.conclusion, "success");
 });
 
-test("an owner's own PR holds, and says they merge it with the bypass", () => {
+test("a PR under the owner's login (every team PR) holds, and says the owner merges it with the bypass", () => {
   const { check } = gate([changed(".claude/settings.json")], {
     pull: pr({ user: { login: "NYCRuslan" } }),
   });
   assert.equal(check.conclusion, "failure");
-  assert.match(
-    check.output.title,
-    /merge it themselves with the ruleset's bypass/,
-  );
+  assert.match(check.output.title, /merge it with the ruleset's bypass/);
 });
 
 test("posts nothing when the head moved while it judged", () => {

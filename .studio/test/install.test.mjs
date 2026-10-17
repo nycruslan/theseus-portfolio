@@ -74,7 +74,7 @@ exit 0
   };
 }
 
-function install({ remote = true, images, fail, token = "ghp_team" } = {}) {
+function install({ remote = true, images, fail } = {}) {
   const project = tempDir();
   const shim = join(tempDir(), "shim");
   const envFile = join(project, "env.sh");
@@ -89,7 +89,6 @@ function install({ remote = true, images, fail, token = "ghp_team" } = {}) {
       THESEUS_BROWSERS_IMAGE: images ?? join(tempDir(), "none"),
       THESEUS_BROWSERS_SHIM: shim,
       ...(remote && { CLAUDE_CODE_REMOTE: "true" }),
-      ...(token && { GH_TOKEN: token }),
     },
   });
   // What a later command in the session sees.
@@ -171,11 +170,4 @@ test("does nothing outside the cloud", () => {
   const { code, calls } = install({ remote: false, images: image() });
   assert.equal(code, 0);
   assert.deepEqual(calls, []);
-});
-
-test("never tells the session to stop over GH_TOKEN", () => {
-  // The cloud's proxy acts as the owner whatever GH_TOKEN holds, so it isn't checked here.
-  for (const token of ["", "proxy-injected", "ghp_example"]) {
-    assert.doesNotMatch(install({ token }).stdout, /STOP/, token);
-  }
 });

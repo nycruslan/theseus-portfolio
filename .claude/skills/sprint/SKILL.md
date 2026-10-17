@@ -44,8 +44,8 @@ unsure, take the smaller lane.
   roadmap pick itself is unclear. Probe first writes the checks as failing Playwright tests in
   `e2e/`, one per numbered check. The builder makes them pass. Then CI and Lens. For visual work,
   Iris reviews the running site, and you post her report on the PR as advice.
-- **L: ambiguous or cross-cutting.** Quill writes `contract.md`, and the owner approves it in a PR
-  labelled `needs-owner`. Iris gives direction when it brings new visual language. When two
+- **L: ambiguous or cross-cutting.** Quill writes `contract.md` in a PR of its own, labelled
+  `needs-owner`; the owner accepts it by merging that PR. Iris gives direction when it brings new visual language. When two
   approaches compete and the call matters, run the `decide` skill. Then split the work into S and
   M pull requests and run those lanes.
 
@@ -74,7 +74,9 @@ on every push; ask Probe for an exploratory pass only on interaction-heavy work.
 
 **Escalate** scope to Quill and taste to Iris. Owner facts, or anything risky, go to the owner
 under "Needs owner decision" in the PR, with the `needs-owner` label. Once the head is final (the
-close-out pushed), ask for the owner's review; their approval of that head releases the `gate`.
+close-out pushed), tell the owner with a push notification: the PR's link and what it needs. The PR
+is under the owner's login, so GitHub sends them nothing about it, and they can't approve it
+either: they decide it by merging it with their bypass.
 
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
@@ -86,14 +88,13 @@ which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path s
 - Update the body: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`
 - Label: `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=review'`
 - Comment: `gh api repos/<owner>/<repo>/issues/<n>/comments -F body=@<file>`
-- Ask the owner to review: `gh api repos/<owner>/<repo>/pulls/<n>/requested_reviewers -f 'reviewers[]=<owner>'`
 - Read: `…/pulls/<n>`, `…/pulls/<n>/reviews` (Lens's findings) and `…/commits/<sha>/check-runs`.
 
 Once Lens says ship, push the close-out (see Close), which only touches notes, so Lens's ship
 stands, and take "Work in progress" out of the body. Then run `node .studio/merge.mjs <n>` from the
 repository root, on its own, with the Bash timeout at 10 minutes (600000 ms). It waits for the
 checks and squash-merges the head, or says why not: act on what it says, or stop. If anything needs
-the owner and they haven't approved the head yet, don't run it; leave the PR waiting for them. A
+the owner, don't run it: the PR waits for the owner to merge it. A
 smaller ship, or no ship with the reason, is a fine outcome. A quiet downgrade isn't. Say what
 nobody verified. Don't end the session with "waiting for …" unless background work is still
 running.

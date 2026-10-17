@@ -1,8 +1,10 @@
 // The `gate` check (.github/workflows/gate.yml). It holds a PR the owner has to decide:
 // - it touches an owner path, changes package.json's scripts or weakens a test (scope.mjs);
 // - it carries needs-owner now, or ever did.
-// The owner releases it with an approving review of the PR's current head; a later push needs a
-// new one. The result goes on the head as a check run from the team's checks app, the source the
+// The owner releases a PR someone else opened with an approving review of its current head; a
+// later push needs a new one. The team's PRs are under the owner's login (cloud sessions act as
+// the owner), and nobody can approve their own PR, so the owner decides those by merging them with
+// the ruleset's bypass. The result goes on the head as a check run from the team's checks app, the source the
 // ruleset requires, so no other workflow or account can stand in for it.
 // The workflow runs this from the default branch (pull_request_target, and workflow_run after the
 // review relay), never the PR's code. It reads the PR live rather than from the event, and posts
@@ -19,10 +21,10 @@ export const HOLD_LABEL = "needs-owner";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * Whether the PR passes, with a one-line summary and the holds behind it. A PR the owner opened
- * themselves holds like any other: GitHub doesn't let an author approve their own PR, so they merge it
- * with the ruleset's pull-request bypass instead. Passing it on authorship would trust exactly
- * what a session could fake by reaching GitHub as the owner, and the bypass doesn't need gate.
+ * Whether the PR passes, with a one-line summary and the holds behind it. A PR under the owner's
+ * login, which every team PR is, holds like any other: passing it on authorship would let any
+ * session through, since they all reach GitHub as the owner. The owner merges it with the
+ * ruleset's pull-request bypass, which doesn't need gate.
  */
 export function decide({ notes, everHeld, approved, byOwner = false }) {
   const holds = everHeld
@@ -32,7 +34,7 @@ export function decide({ notes, everHeld, approved, byOwner = false }) {
   if (holds.length && approved) summary = "The owner approved this head.";
   else if (holds.length && byOwner) {
     summary =
-      "The owner opened this PR, so they merge it themselves with the ruleset's bypass.";
+      "This PR is under the owner's login, so the owner decides it: they merge it with the ruleset's bypass.";
   } else if (holds.length) {
     summary = "This PR needs the owner's approving review of its head.";
   }

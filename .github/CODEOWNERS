@@ -1,4 +1,5 @@
-# The owner's paths: a PR that touches one needs @nycruslan's approving review. GitHub reads this
+# The owner's paths: a PR that touches one waits for @nycruslan, who merges the team's (they're under
+# the owner's login) with the ruleset's bypass and approves anyone else's. GitHub reads this
 # file from the PR's base branch. The `gate` check and the team's file guard read it too
 # (.studio/scope.mjs), matching without regard to case. The last matching line wins, so a line
 # with no owner gives that path back to the team.
