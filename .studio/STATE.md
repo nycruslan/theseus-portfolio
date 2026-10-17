@@ -86,3 +86,14 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - A fade tied to scroll leaves sections mid-fade at load in some window heights, which fails axe
     contrast. The suite's fixed viewports miss such bands; sweep heights for motion work.
   - Helpers that await every animation hang on view-timeline animations; filter to `document.timeline`.
+
+## Sprint 6: education and stack (PR #27)
+
+- **Outcome:** Stack and Education sections in `app/page.tsx` on `Section` (so they inherit the
+  heading rise): Stack a `flex-wrap` list of plain words, Education shaped like an Experience entry,
+  facts verbatim. Lens ship on a7195be and on b7e0576 (Iris's cheap advice, one fix round), CI and
+  gate green, Iris ship 7.3 (advisory). Chosen over the 3D hero, which is L and needs an owner contract.
+- **Lesson:**
+  - Specs that hard-code the page's section list (`reveal.spec.ts` C2) break on any new section;
+    a contract that adds a section should name that line as an expected edit.
+  - agent-browser isn't on PATH in cloud sessions; builders and Iris fell back to Playwright scripts.

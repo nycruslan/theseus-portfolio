@@ -18,7 +18,7 @@ sprint 5 heading rise). No new component, no CSS, no new tokens.
 - `PLAYWRIGHT_PORT=3318 pnpm test:e2e`: 47 passed, 1 skipped (the existing `content.spec.ts` fixme).
   `profile-sections.spec.ts` C1-C6 all pass; `reveal.spec.ts` C1-C8 pass with the new sections.
 - Browser: production build on port 3319, screenshots at 390 and 1440 px, light and dark, scrolled
-  to the Stack heading. Wraps to 5 rows at 390 px and 4 rows at 1440 px for 18 tools.
+  to the Stack heading. Wraps to 6 rows at 390 px (Forge first counted 5; Iris measured 6, `review-iris.md`) and 4 rows at 1440 px for 18 tools, before fix round 1 tightened the row gap.
 
 Screenshots (scratchpad, not in git), all in
 /tmp/claude-0/-home-user-theseus-portfolio/93d5a88d-d017-55ed-ab03-1992ece69f4e/scratchpad/:
@@ -37,4 +37,4 @@ Screenshots (scratchpad, not in git), all in
 
 ## Fix round 1
 
-Fix round 1 (Atlas, from `review-iris.md` items 1 and 3): Stack `ul` `gap-y-2` to `gap-y-1`; `text-pretty` on the Education credential `p`. Item 2 (drawn dots) skipped. `pnpm verify` exit 0; `PLAYWRIGHT_PORT=3318 pnpm test:e2e` full suite re-run.
+Fix round 1 (Atlas, from `review-iris.md` items 1 and 3): Stack `ul` `gap-y-2` to `gap-y-1`; `text-pretty` on the Education credential `p`. Item 2 (drawn dots) skipped. `pnpm verify` exit 0; `PLAYWRIGHT_PORT=3318 pnpm test:e2e` full suite re-run: 47 passed, 1 skipped (the existing `content.spec.ts` fixme).

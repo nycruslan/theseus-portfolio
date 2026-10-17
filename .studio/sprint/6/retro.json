@@ -1,0 +1,75 @@
+{
+  "sprint": 6,
+  "pr": 27,
+  "goal": "Roadmap item: Education and stack, show profile.education and profile.stack on the page",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged if merge.mjs lands PR #27 on the close-out head: Lens ship on b7e0576, check and gate green, Iris ship 7.3 (advisory)",
+  "fixRounds": 1,
+  "minutes": 35,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "sonnet",
+      "tokens": 71805,
+      "minutes": 6
+    },
+    {
+      "role": "engineer",
+      "model": "sonnet",
+      "tokens": 67787,
+      "minutes": 4
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 68986,
+      "minutes": 5
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 221119,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The contract promised no existing test line would change, but reveal.spec.ts C2 hard-codes the section ids, so a correct build failed it",
+      "evidence": "probe-checks.md; decisions.md #4; commit 866397e"
+    },
+    {
+      "what": "agent-browser is not installed in the cloud session, so the skill's browser check fell back to Playwright scripts",
+      "evidence": "build-forge.md 'Differences'; review-iris.md"
+    },
+    {
+      "what": "Forge's build note miscounted the Stack rows (5 vs 6) and left a server running",
+      "evidence": "Lens nit on b7e0576; Iris report"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Install agent-browser on PATH in the cloud setup (install.sh), or point the next-dev-loop skill at the pnpm-installed binary",
+      "moves": "browser checks done with the skill's tool, 0 of 2 roles this sprint"
+    },
+    {
+      "change": "A shared SECTION_IDS helper derived from the page instead of literals in specs",
+      "moves": "existing test lines edited per new section, 1 this sprint"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Probe",
+      "what": "Turn e2e/content.spec.ts's test.fixme back into test: content carries no TODO(owner) now"
+    },
+    {
+      "who": "Iris",
+      "what": "Re-judge the drawn middle dot between Stack tools (review-iris.md item 2), skipped this sprint"
+    },
+    {
+      "who": "Quill",
+      "what": "Groom the 3D hero (L) into a contract for the owner, and settle the skip-link open question"
+    }
+  ]
+}
