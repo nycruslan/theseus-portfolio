@@ -10,6 +10,10 @@ name: gate
 # default branch. Never check out, install or run the PR's code here. A review doesn't trigger
 # pull_request_target, so review-relay.yml passes it on through workflow_run, which also runs from
 # the default branch.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment,
+# because they run with the app key: a moved tag can't change what runs.
+# Renovate (renovate.json) keeps the pins current once the owner installs its app.
 on:
   pull_request_target:
     branches: [main]
@@ -37,14 +41,14 @@ jobs:
     timeout-minutes: 5
     steps:
       - run: git config --global init.defaultBranch main
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
             .studio
             .github
       - id: app
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
           private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
