@@ -116,3 +116,27 @@ Screenshots in `scratchpad/px/shots/` (`ab-*.png`, `pose-*.png`, `c13-*.png`, `d
   as the box leaves the top. That's the contract's mapping, not a choice I made.
 - Lint: biome reads `gl.useProgram(...)` as a React hook (`useHookAtTopLevel`), so it's called through
   `.call`. `invariants.spec.ts` scans `components/` for `rgb(`, so no function may be named `rgb`.
+
+## Fix round 1 (Lens's nit, Iris's items 1 and 2)
+
+- **Colour reads (Lens):** `colourReader` reads each computed colour twice, over the fill styles
+  `black` and `white`. If the two reads differ, or the colour isn't opaque, the colour didn't parse and
+  the read gives null. `buildMesh` then returns null, so the page keeps the SVG (on a scheme change it
+  comes back). No colour is reused from a previous read. Only the success path is exercised (C13 and the
+  live scheme switch); I found no computed stop colour Chromium can't parse.
+- **Print (Iris 1):** the SVG under the canvas now hides by a class (`hero-covered`), not an inline
+  style, so `@media print` can hide the canvas and show the SVG without `!important` (biome's
+  `noImportantStyles`). Emulated print with the canvas up at scroll 450 (shear -0.086): the canvas is
+  `display: none` and the SVG `visible`, at rest (`scratchpad/px/shots/fix1-print-hero.png`).
+- **Dither (Iris 2):** the fragment shader adds ±0.5/255 of interleaved-gradient noise per pixel
+  before premultiplying. Run lengths along row 120 of the 1440 box at dpr 2: the canvas's median run
+  is now **1 px** (SVG 1; Iris measured 8 to 9 before), and its longest is 19 light and 28 dark (SVG
+  13 and 11; before: 153).
+- **C13 again** (light / dark): mean difference 1.43 / 1.10 at 1440, 3.66 / 2.55 at 390 (was 1.38 /
+  1.05 and 3.61 / 2.50; limit 8). Edges, stray pixels (0 to 5), copper medians (0) and loudest pixel
+  (2.80) are unchanged at all five widths.
+- **Weight:** the chunk is 3,648 B gzip by the spec's measure (was 3,491) and first load is +842 B
+  against `/_not-found`. C14.1 is still +15 draws, C11 is unchanged.
+- `pnpm verify` green; `PLAYWRIGHT_PORT=3377 pnpm test:e2e`: 63 passed, 1 skipped (the `TODO(owner)` one).
+- Left as they are, per Atlas: the retina comb at the bow tip (Iris 3) and a frozen canvas going back
+  to the SVG on resize.

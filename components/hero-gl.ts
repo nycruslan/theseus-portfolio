@@ -55,7 +55,8 @@ void main() {
 // edge, so each band fades out within half a CSS pixel of its edges (h widens that for a denser
 // canvas). v runs 0 to 1 across a band, e is the distance to its nearest butt or transom, both in
 // board units, so their screen gradients turn them into pixels. The fade is alpha: the page shows
-// through, whatever its colour.
+// through, whatever its colour. Half a level of screen-space noise (interleaved gradient noise)
+// dithers the long, low-contrast gradients as Chromium dithers the SVG's, so they don't band.
 const FRAGMENT = `
 #extension GL_OES_standard_derivatives : enable
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -70,7 +71,8 @@ void main() {
   float across = min(w.x, 1.0 - w.x) / length(vec2(dFdx(w.x), dFdy(w.x)));
   float along = w.y / length(vec2(dFdx(w.y), dFdy(w.y)));
   float a = clamp(min(across, along) - h, 0.0, 1.0);
-  gl_FragColor = vec4(o * a, a);
+  float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  gl_FragColor = vec4(clamp(o + (n - 0.5) / 255.0, 0.0, 1.0) * a, a);
 }`;
 
 /** One region of the model drawn as a strip of quads: a lift, or the deck. */
@@ -131,18 +133,28 @@ function strip(band: Band, out: number[]) {
   }
 }
 
-/** The SVG's colours as the browser resolved them, in sRGB, through a 1 px 2D canvas. */
+/**
+ * The SVG's colours as the browser resolved them, in sRGB, through a 1 px 2D canvas. A colour the
+ * canvas can't parse leaves its fill style unchanged, so each colour is read over two different
+ * sentinels: if the reads differ (or aren't opaque), it didn't take, and the answer is null.
+ */
 function colourReader() {
   const ink = document
     .createElement("canvas")
     .getContext("2d", { willReadFrequently: true });
-  return (css: string): Rgb => {
-    if (!ink) return [0, 0, 0];
+  const read = (css: string, sentinel: string) => {
+    if (!ink) return null;
     ink.clearRect(0, 0, 1, 1);
+    ink.fillStyle = sentinel;
     ink.fillStyle = css;
     ink.fillRect(0, 0, 1, 1);
-    const [r = 0, g = 0, b = 0] = ink.getImageData(0, 0, 1, 1).data;
-    return [r / 255, g / 255, b / 255];
+    return [...ink.getImageData(0, 0, 1, 1).data];
+  };
+  return (css: string): Rgb | null => {
+    const [first, second] = [read(css, "black"), read(css, "white")];
+    if (!(first && second) || first.join() !== second.join()) return null;
+    const [r = 0, g = 0, b = 0, alpha = 0] = first;
+    return alpha === 255 ? [r / 255, g / 255, b / 255] : null;
   };
 }
 
@@ -153,13 +165,18 @@ function colourReader() {
 function gradient(
   path: SVGGraphicsElement,
   stops: Element[],
-  resolve: (css: string) => Rgb,
+  resolve: (css: string) => Rgb | null,
 ) {
   const box = path.getBBox();
-  const points = stops.map((stop) => ({
-    x: box.x + Number(stop.getAttribute("offset")) * box.width,
-    tone: resolve(getComputedStyle(stop).stopColor),
-  }));
+  const points: { x: number; tone: Rgb }[] = [];
+  for (const stop of stops) {
+    const tone = resolve(getComputedStyle(stop).stopColor);
+    if (!tone) return null;
+    points.push({
+      x: box.x + Number(stop.getAttribute("offset")) * box.width,
+      tone,
+    });
+  }
   const tone = (x: number): Rgb => {
     const after = points.findIndex((p) => p.x >= x);
     const [a, b] =
@@ -227,16 +244,20 @@ function buildMesh(svg: SVGSVGElement) {
   const copper = svg.querySelector("[data-hero-copper]");
   const deck = svg.querySelector(".hero-deck");
   if (!(copper && deck) || paths.length !== LIFTS) return null;
+  // A colour that didn't resolve keeps the SVG: no guessed tone is drawn.
   const copperTone = resolve(getComputedStyle(copper).fill);
+  const deckTone = resolve(getComputedStyle(deck).fill);
+  if (!(copperTone && deckTone)) return null;
 
   const out: number[] = [];
   for (const [k, path] of paths.entries()) {
     const stops = [...(gradients[k]?.querySelectorAll("stop") ?? [])];
-    if (stops.length === 0) return null;
-    strip(liftBand(k, gradient(path, stops, resolve), copperTone), out);
+    const shade = stops.length > 0 ? gradient(path, stops, resolve) : null;
+    if (!shade) return null;
+    strip(liftBand(k, shade, copperTone), out);
   }
   const lifts = out.length / STRIDE;
-  strip(deckBand(resolve(getComputedStyle(deck).fill)), out);
+  strip(deckBand(deckTone), out);
   return { data: new Float32Array(out), lifts, all: out.length / STRIDE };
 }
 
@@ -431,7 +452,7 @@ export function mountHull(box: HTMLElement) {
     loop.frozen() ? restore() : draw(),
   );
   const hideSvg = () => {
-    svg.style.visibility = "hidden";
+    svg.classList.add("hero-covered");
   };
   const fade = window.setTimeout(hideSvg, 400);
   const restore = () => {
@@ -441,7 +462,7 @@ export function mountHull(box: HTMLElement) {
     resized.disconnect();
     canvas.remove();
     box.removeAttribute("data-hero-shear");
-    svg.style.visibility = "";
+    svg.classList.remove("hero-covered");
   };
 
   // The canvas fades in over the SVG (CSS: .hero canvas), drawn before its first paint; the SVG

@@ -224,6 +224,23 @@ body {
   }
 }
 
+/* Once the canvas has faded in, the SVG under it hides, so a turned pose never shows the rest pose
+   behind it. */
+.hero-covered {
+  visibility: hidden;
+}
+
+/* Paper gets the vector SVG at rest, not a screen bitmap at whatever pose the reader scrolled to. */
+@media print {
+  .hero canvas {
+    display: none;
+  }
+
+  .hero-covered {
+    visibility: visible;
+  }
+}
+
 /*
  * The tones. Each place on the hull carries how lit it is (--l, 0 to 1, from the model's light in
  * lib/half-model.ts), and here that becomes a share of --muted in --background: lightness only, so
