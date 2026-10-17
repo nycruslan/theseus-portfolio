@@ -34,3 +34,7 @@ Screenshots (scratchpad, not in git), all in
   `agent-browser --session forge`. Setup bug for the retro.
 - I read only the first and fourth screenshots visually (390 light, 1440 dark); the other two were
   produced by the same script and covered by C6's dark/light overflow checks.
+
+## Fix round 1
+
+Fix round 1 (Atlas, from `review-iris.md` items 1 and 3): Stack `ul` `gap-y-2` to `gap-y-1`; `text-pretty` on the Education credential `p`. Item 2 (drawn dots) skipped. `pnpm verify` exit 0; `PLAYWRIGHT_PORT=3318 pnpm test:e2e` full suite re-run.
