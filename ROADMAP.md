@@ -11,3 +11,4 @@ sprint.
 - [x] Accessibility pass: landmarks, focus styles, skip link, and zero axe violations. (Sprint 4, PR #17, merged as 2e792ee: a skip link, one shared focus ring, the card arrow on keyboard focus, one ring in forced colors, strict axe and 24 px targets, checked in `e2e/keyboard.spec.ts` and `e2e/invariants.spec.ts`.)
   - Open question: the skip link skips nothing. `main` wraps the whole page, header included, so Enter then Tab lands where Tab alone would (`.studio/sprint/4/retro.json`). Give it something to skip (the header as a banner landmark outside `main`, or a target past the project list), or decide it's convention only.
 - [ ] A subtle 3D hero element that degrades gracefully on low-end devices.
+- [ ] Education and stack: show `profile.education` and `profile.stack` (the owner's 2026 facts, now in `content/profile.ts`) on the page, in its own style. Only how they look is the team's; the facts are the owner's.
