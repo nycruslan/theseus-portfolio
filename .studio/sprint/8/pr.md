@@ -1,5 +1,3 @@
-**Work in progress**
-
 ## Sprint 8: the hero half-model, Part A
 
 **Goal:** the roadmap's open item, the subtle 3D hero, Part A of the contract the owner accepted by merging #28. **Size:** M.
@@ -23,6 +21,12 @@
 - Safari and Firefox.
 - A real classic scrollbar between 672 and 768 px.
 - Real phones.
+
+**Review:**
+- Lens: ship on 55f86c3 and on 75d4653, with no Important findings. The two nits (a memory line, and the 768 breakpoint under a classic scrollbar) are follow-ups in `retro.json`.
+- Iris: ship 7.8/10 (`.studio/sprint/8/review-iris.md`).
+
+**Fix round 1:** Iris's dark copper (92% mix, ΔL −0.043 against C7's 0.06) and an `@supports` guard for the `calc()`-in-`color-mix` form.
 
 Screenshots, kept out of git, are in the build session's `.studio/screenshots/sprint-8/`: 1440 and 390 in light and dark, and the box at 2x.
 
