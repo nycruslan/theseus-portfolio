@@ -11,3 +11,6 @@
 - Production URL is blocked by the sandbox egress proxy (CONNECT 403). Stand in for it with a local build of `main` in a scratchpad worktree (`pnpm install --offline` works). Say that you did.
 - Placeholder gate: the owner ruled on 2026-10-14 (rubric). "Company name" and the other stand-ins already on prod are the owner's pending content, so note them but don't fail on them. Fail only stand-ins a sprint adds or makes more prominent.
 - Guard: write scripts with Write before you run them, and stop servers by PID (no pkill).
+- Sprint 5 review (.studio/sprint/5/review-iris.md): changes 7.2/10 at 8d87127, same as prod at rest (0 px diff). The section fade fails axe contrast at load in a ~30 px band of window heights (Projects: 390x758-788, 1440x746-774). Every fade range leaves a band; only rise-only clears it. Asked to drop the fade and keep the 16 px h2 rise.
+- Motion rulings (sprint 5): 16 px rise over 64 px of scroll with ease-out is the right weight for this short page. Never move a click target (stale timeline frame after a jump scroll). The heading leads its section. Don't make motion louder to make up for a short page.
+- Review habit from sprint 5: for any scroll-linked or at-load state, scan axe across window heights (2 px steps near each section top), not just the suite's sizes. An opacity floor makes axe count off-screen sections too.

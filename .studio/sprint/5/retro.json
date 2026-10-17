@@ -1,0 +1,71 @@
+{
+  "sprint": 5,
+  "pr": 22,
+  "goal": "Roadmap item 4: section reveal motion on scroll, disabled under prefers-reduced-motion",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged if merge.mjs lands PR #22 on 0ae070e: Lens ship on 0ae070e, CI check and gate green; Iris's changes (7.2) on 8d87127 was acted on in fix round 2 but not re-reviewed",
+  "fixRounds": 2,
+  "minutes": 115,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "sonnet",
+      "tokens": 124248,
+      "minutes": 22
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 201278,
+      "minutes": 41
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 148347,
+      "minutes": 38
+    }
+  ],
+  "lens": {
+    "runs": 3,
+    "tokens": 791089,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 8
+  },
+  "wentWrong": [
+    {
+      "what": "A whole-section rise passed 40 local repeats but failed CI: a view timeline is one frame stale after a jump scroll, so cards.spec measured a card 16 px low and clicked beside it",
+      "evidence": "CI run 38998158801 on cd26f19; build-pixel.md 'Fix round 1'"
+    },
+    {
+      "what": "The section fade failed axe contrast at load in ordinary window heights (1440 x 746-774, 390 x 758-788) that the suite's viewports just miss; neither Probe's checks nor Lens could see it",
+      "evidence": "review-iris.md; decisions.md item 4"
+    },
+    {
+      "what": "The contract said to keep keyboard.spec unedited, but its settled() awaited every animation and hangs on any scroll-driven animation before its range",
+      "evidence": "probe-checks.md; decisions.md item 1"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Add a height sweep (e.g. 700-900 px in 2 px steps at 390 and 1440) of the axe contrast check to invariants for motion work, as Iris's band scan did",
+      "moves": "visual regressions found only by Iris after Lens ship: 1 in sprint 5"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Pixel",
+      "what": "Memory line 3 in .claude/agent-memory/creative-engineer/MEMORY.md says 'fade the section, rise only its heading'; it should say 'rise only its heading; nothing fades' (Lens nit on 0ae070e, left to avoid a re-review)"
+    },
+    {
+      "who": "Iris",
+      "what": "Re-review the shipped heading-only rise (0ae070e); her 7.2 changes was on 8d87127 and she expected 7.5 ship after this fix"
+    },
+    {
+      "who": "Probe",
+      "what": "Consider pinning 'no section below opacity 1 at load across heights' so a fade can't come back"
+    }
+  ]
+}

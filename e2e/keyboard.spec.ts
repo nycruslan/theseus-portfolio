@@ -22,13 +22,24 @@ const CONTACT = 'section[aria-labelledby="contact"]';
 /** The link inside the project card at `index`. */
 const cardLink = (index: number) => `${PROJECTS} li:nth-child(${index + 1}) a`;
 
-/** Waits for any transition (a ring may fade in) to run its course before styles are read. */
+/**
+ * Waits for any transition (a ring may fade in) to run its course before styles are read. Only
+ * clock animations: a scroll-driven one (the section reveal) that is still before its range never
+ * finishes, and awaiting it would hang. Two frames then let a scroll that Tab caused (a focused
+ * link brought into view) update those scroll-driven animations before styles are read.
+ */
 async function settled(page: Page) {
-  await page.evaluate(() =>
-    Promise.all(
-      document.getAnimations().map((animation) => animation.finished),
-    ),
-  );
+  await page.evaluate(async () => {
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.timeline === document.timeline)
+        .map((animation) => animation.finished),
+    );
+    for (let frame = 0; frame < 2; frame++) {
+      await new Promise((done) => requestAnimationFrame(done));
+    }
+  });
 }
 
 /** Presses Tab until the focused element matches `selector`, at most `max` times. */
