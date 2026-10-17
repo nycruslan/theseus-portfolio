@@ -1,1 +1,2 @@
 - Tailwind v4 auto-detection scans .studio and .claude and ships their class names; `@import "tailwindcss" source(none);` plus `@source "../app"; @source "../components";` cut CSS from 19946 to 10298 bytes, see .studio/sprint/1/review-lens.md finding 1.
+- Sprint 6 (`.studio/sprint/6/build-forge.md`): Stack/Education are plain markup in `app/page.tsx` on `Section`; Education mirrors an Experience entry (h3, period, then body) and Stack draws separation with flex gaps only, since profile-sections C2/C4 forbid separator text in an `li`.
