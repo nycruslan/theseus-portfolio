@@ -28,11 +28,19 @@ const merged = (number, hours, from = {}) => ({
   merged_at: new Date(Date.now() - hours * 60 * 60 * 1000).toISOString(),
 });
 
-/** The GitHub side, as REST serves it: open PRs, the sprint folders on main and the branches. */
+const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString();
+// A branch as REST lists it, with its head commit.
+const branch = (name, sha = "a".repeat(40)) => ({ name, commit: { sha } });
+
+/**
+ * The GitHub side, as REST serves it: open PRs, the sprint folders on main, the branches, and when
+ * each head commit was made (`commits`, by sha; any other is two hours old).
+ */
 function github({
   pulls = [],
   folders = [folder("1")],
   branches = [{ name: "main" }],
+  commits = {},
   events = {},
   reviews = {},
   closed = [],
@@ -41,6 +49,10 @@ function github({
   // and the closed PRs before the open ones.
   const table = Object.fromEntries([
     [`${R}/pulls?state=closed`, closed],
+    ...Object.entries(commits).map(([sha, date]) => [
+      `${R}/commits/${sha}`,
+      { commit: { committer: { date } } },
+    ]),
     ...Object.entries(events).map(([n, list]) => [
       `${R}/issues/${n}/events`,
       list,
@@ -57,6 +69,7 @@ function github({
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
     [`${R}/pulls/*/reviews`]: [],
+    [`${R}/commits/*`]: { commit: { committer: { date: minutesAgo(120) } } },
     user: { login: "nycruslan" },
   });
   return table;
@@ -300,7 +313,6 @@ test("THESEUS_DAILY_SPRINTS sets the cap", () => {
 });
 
 test("leaves an open sprint PR that changed in the last 45 minutes to the run working on it", () => {
-  const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString();
   const busy = preflight(
     github({
       pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
@@ -345,4 +357,56 @@ test("reads today's merges from one page of the closed PRs, most recently update
   assert.equal(closed.length, 1);
   assert.match(closed[0].join(" "), /sort=updated&direction=desc&per_page=100/);
   assert.ok(!closed[0].includes("--paginate"));
+});
+
+test("stands down while a sprint branch with no PR yet was committed to in the last 45 minutes", () => {
+  // 2026-10-17: sprint 8 pushed its branch at once and opened its PR an hour later; the heartbeat
+  // in between saw no open PR and started sprint 9 on the same work.
+  const fresh = "8".repeat(40);
+  const committedAt = minutesAgo(20);
+  const { state } = preflight(
+    github({
+      branches: [branch("main"), branch("sprint/8-hero-half-model", fresh)],
+      commits: { [fresh]: committedAt },
+      pulls: [pr(14, "sprint/3-cards")],
+    }),
+  );
+  assert.deepEqual(state.unopened, [
+    { branch: "sprint/8-hero-half-model", committedAt },
+  ]);
+  assert.equal(state.action.do, "stand down");
+  assert.equal(state.action.branch, "sprint/8-hero-half-model");
+  assert.match(
+    state.action.say,
+    /^Branch sprint\/8-hero-half-model has no PR yet and was committed to 20 min ago, so another run is most likely working on it\. Don't touch it or start a new sprint/,
+  );
+  assert.equal(state.next, 9);
+});
+
+test("a sprint branch quiet for 45 minutes with no PR holds nothing up", () => {
+  const stale = "7".repeat(40);
+  const { state } = preflight(
+    github({
+      branches: [branch("main"), branch("sprint/8-abandoned", stale)],
+      commits: { [stale]: minutesAgo(50) },
+    }),
+  );
+  assert.deepEqual(state.unopened, []);
+  assert.equal(state.action.do, "start");
+  assert.equal(state.next, 9);
+});
+
+test("an open PR's own branch is its PR's to judge, so its commit isn't read", () => {
+  const { state, calls } = preflight(
+    github({
+      branches: [branch("main"), branch("sprint/5-print")],
+      commits: { ["a".repeat(40)]: minutesAgo(5) },
+      pulls: [pr(9, "sprint/5-print")],
+    }),
+  );
+  assert.deepEqual(state.unopened, []);
+  assert.equal(state.action.do, "continue");
+  assert.ok(
+    !calls.some((args) => args.some((arg) => arg.includes("/commits/"))),
+  );
 });

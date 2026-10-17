@@ -16,11 +16,15 @@
 // - daily: the team's sprint PRs merged into the base in the last 24 hours, and the cap on them,
 //   THESEUS_DAILY_SPRINTS (a positive integer; anything else means the default, 6). A merged
 //   sprint starts the next one (the routine's GitHub trigger), so the cap is what stops a chain.
+// - unopened: the sprint branches with no open PR whose last commit is from the last 45 minutes.
+//   A run pushes its branch before it opens the PR, sometimes an hour before: on 2026-10-17 the
+//   heartbeat saw no PR for sprint 8's fresh branch and started sprint 9 on the same work.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
 //   every open one does or when the day's cap is reached, or start the next sprint, with its
 //   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
 //   One that changed in the last 45 minutes is left alone, since another run is most likely still
-//   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide.
+//   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
+//   everything while an unopened sprint branch is that fresh.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
@@ -76,26 +80,44 @@ function preflight(repo) {
         url: pr.html_url,
       };
     });
+  const branches = list(`repos/${repo}/branches?per_page=100`);
   const highest = {
     main: highestOf(sprintFolders(repo, base)),
     prs: highestOf(open.map(({ branch }) => sprintOf(branch))),
-    branches: highestOf(
-      list(`repos/${repo}/branches?per_page=100`).map(({ name }) =>
-        sprintOf(name),
-      ),
-    ),
+    branches: highestOf(branches.map(({ name }) => sprintOf(name))),
   };
   const next = Math.max(...Object.values(highest)) + 1;
+  const unopened = freshBranches(repo, branches, open);
   const daily = mergedToday(repo, base);
   return {
     repo,
     base,
     open,
+    unopened,
     highest,
     next,
     daily: { merged: daily.merged, cap: daily.cap },
-    action: action(open, next, daily),
+    action: action(open, unopened, next, daily),
   };
+}
+
+// The sprint branches no open PR is from, whose last commit is under 45 minutes old, newest first.
+// Only the repository's own branches are listed, and only collaborators can push one.
+function freshBranches(repo, branches, open) {
+  const opened = new Set(open.map(({ branch }) => branch));
+  return branches
+    .filter(
+      ({ name, commit }) => sprintOf(name) && !opened.has(name) && commit?.sha,
+    )
+    .map(({ name, commit }) => ({
+      branch: name,
+      committedAt: api(`repos/${repo}/commits/${commit.sha}`).commit.committer
+        .date,
+    }))
+    .filter(
+      ({ committedAt }) => Date.now() - Date.parse(committedAt) < ACTIVE_MS,
+    )
+    .sort((a, b) => Date.parse(b.committedAt) - Date.parse(a.committedAt));
 }
 
 // The team's own sprint PRs, as GitHub lists them.
@@ -146,7 +168,16 @@ function sprintFolders(repo, base) {
 }
 
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
-function action(open, next, daily) {
+function action(open, unopened, next, daily) {
+  const [busy] = unopened;
+  if (busy) {
+    const minutes = minutesSince(busy.committedAt);
+    return {
+      do: "stand down",
+      branch: busy.branch,
+      say: `Branch ${busy.branch} has no PR yet and was committed to ${minutes} min ago, so another run is most likely working on it. Don't touch it or start a new sprint: stand down with a short report.`,
+    };
+  }
   if (!open.length && daily.merged >= daily.cap) {
     const sprints = daily.merged === 1 ? "sprint" : "sprints";
     return {
@@ -176,9 +207,8 @@ function action(open, next, daily) {
       say: `PR #${first.number} (${first.branch}) waits for the owner (needs-owner)${others(first)}. Don't start a new sprint: stand down with a short report.`,
     };
   }
-  const quietFor = Date.now() - Date.parse(current.updatedAt);
-  if (quietFor < ACTIVE_MS) {
-    const minutes = Math.max(0, Math.floor(quietFor / 60_000));
+  if (Date.now() - Date.parse(current.updatedAt) < ACTIVE_MS) {
+    const minutes = minutesSince(current.updatedAt);
     return {
       do: "stand down",
       pr: current.number,
@@ -190,6 +220,10 @@ function action(open, next, daily) {
     pr: current.number,
     say: `PR #${current.number} (${current.branch}) is open${others(current)}. Continue it rather than starting a new sprint: run what's missing, then node .studio/merge.mjs ${current.number}.`,
   };
+}
+
+function minutesSince(time) {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(time)) / 60_000));
 }
 
 function sprintOf(name) {
