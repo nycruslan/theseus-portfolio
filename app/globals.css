@@ -152,3 +152,130 @@ body {
     }
   }
 }
+
+/*
+ * The hero half-model (components/hero.tsx, sprint 8): a static SVG between the header and the
+ * first section. Contract: .studio/sprint/7/contract.md, C1 to C9.
+ *
+ * The box. Below 768 px it is full-bleed at 2.9 : 1, never taller than 172 px; from 768 it hangs
+ * 32 px past the column on both sides, as the project cards do: 688 x 172. Its width comes from the
+ * page wrapper's container units (app/page.tsx), which are the viewport minus any scrollbar, so a
+ * classic scrollbar never makes it overhang the page the way 100vw would.
+ */
+.hero {
+  display: flex;
+  align-items: center;
+  /* The bow is placed from the right; on phones the stern runs off the left edge, cropped. */
+  justify-content: flex-end;
+  width: 100cqw;
+  margin-inline: calc(50% - 50cqw);
+  aspect-ratio: 2.9;
+  max-height: 172px;
+  overflow: clip;
+  pointer-events: none;
+}
+
+/*
+ * The model. The bow tip sits on the header's right edge: 24 px in from the viewport below 672,
+ * then the column's edge. Its length is 1.12 x the viewport up to 390 (on a phone a whole hull reads
+ * as a boat icon; cropped, it is an object you stand next to), then grows evenly to the column's
+ * 624 px at 768, so nothing steps at the breakpoint. Height follows the viewBox.
+ */
+.hero-model {
+  display: block;
+  flex: none;
+  width: min(112cqw, 436.8px + (100cqw - 390px) * 0.495238, 624px);
+  height: auto;
+  margin-right: max(24px, 50cqw - 312px);
+}
+
+@media (width >= 48rem) {
+  .hero {
+    width: 688px;
+    height: 172px;
+    margin-inline: -32px;
+  }
+
+  .hero-model {
+    width: 624px;
+    margin-right: 32px;
+  }
+}
+
+/*
+ * The tones. Each place on the hull carries how lit it is (--l, 0 to 1, from the model's light in
+ * lib/half-model.ts), and here that becomes a share of --muted in --background: lightness only, so
+ * the hue stays the page's. Lit means paler on the light ground and brighter on the dark one, so
+ * the light comes from the same side in both schemes. The ranges keep every tone between 1.2 and
+ * 2.8 : 1 against the ground: present, but quieter than the muted text.
+ */
+.hero {
+  --hero-shade: 52%;
+  --hero-span: -40%;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero {
+    --hero-shade: 18%;
+    --hero-span: 36%;
+  }
+}
+
+.hero stop {
+  stop-color: color-mix(
+    in oklab,
+    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
+    var(--background)
+  );
+}
+
+.hero-deck {
+  fill: color-mix(
+    in oklab,
+    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
+    var(--background)
+  );
+}
+
+/* The one freshly fitted plank: the page's copper, as its links are. */
+.hero-copper {
+  fill: var(--accent);
+}
+
+/* On the dark ground the full accent is the brightest thing in the box, so the plank sits one notch
+   back toward the hull: still copper (C7 keeps it within 0.06 lightness of the accent). */
+@media (prefers-color-scheme: dark) {
+  .hero-copper {
+    fill: color-mix(in oklab, var(--accent) 92%, var(--background));
+  }
+}
+
+/* Seams: a 1 px hairline of the ground between lifts and at each butt, at any size. */
+.hero-model path {
+  stroke: var(--background);
+  stroke-width: 1px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.hero-butts {
+  fill: none;
+}
+
+/* Forced colors would flatten every tone to one system color: a silhouette with no planks. The
+   model is decoration, so it steps aside, and so does it where color-mix() can't draw it. */
+@media (forced-colors: active) {
+  .hero {
+    display: none;
+  }
+}
+
+/* The guard tests the form the tones use, a calc() inside the mix's percentage: a browser that
+   parses color-mix() but not that would otherwise draw every stop black. */
+@supports not (
+    color: color-mix(in oklab, currentcolor calc(10% + 10%), transparent)
+  ) {
+  .hero {
+    display: none;
+  }
+}

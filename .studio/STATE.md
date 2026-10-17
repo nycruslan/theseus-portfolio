@@ -114,3 +114,20 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - LCP on this page is body text (the bio, or the first Experience summary at 1440), not the h1.
   - Checks written for code nobody has spiked (Part B's WebGL in a software-rendering CI browser) keep
     failing review: contract only what a spike or the current page can ground, and draft the rest.
+
+## Sprint 8: the hero half-model, Part A (PR #31)
+
+- **Outcome:** a static, server-rendered inline SVG lift half-model after the header: seven lifts, a dark
+  deck strip, staggered butts and one copper plank on the third lift. The geometry comes from
+  `lib/half-model.ts` at build time and the tones are `color-mix` of the tokens. It adds no client JS
+  (first-load JS for `/` is unchanged), and a `div.@container` around `main` gives it the page's width
+  without `100vw`. Probe's C1–C9 failed first and caught 29 mutants. Lens said ship twice (55f86c3,
+  75d4653), and Iris said ship at 7.8. One fix round took Iris's dark copper (92% mix) and an
+  `@supports` guard that tests the `calc()` form.
+- **Lesson:**
+  - A contract that the owner accepted with checks grounded in the current page built in one pass:
+    the cost of sprint 7's three Lens rounds paid off here.
+  - Advice taken after Lens's ship costs a full re-review. Batch cheap advisory items unless one is a
+    real risk; the colour guard was, since it could draw a black hull.
+  - The cloud browser can't show classic scrollbars or other engines, so size against the container,
+    not the viewport, even at breakpoints.

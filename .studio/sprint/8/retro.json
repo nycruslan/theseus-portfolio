@@ -1,0 +1,75 @@
+{
+  "sprint": 8,
+  "pr": 31,
+  "goal": "Roadmap item: the subtle 3D hero, Part A of the sprint 7 contract (static SVG lift half-model, C1-C9)",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 72,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "inherit",
+      "tokens": 143980,
+      "minutes": 37
+    },
+    {
+      "role": "creative-engineer",
+      "model": "inherit",
+      "tokens": 234995,
+      "minutes": 24
+    },
+    {
+      "role": "design-director",
+      "model": "inherit",
+      "tokens": 100772,
+      "minutes": 8
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 931189,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The fix round, for advice Iris marked non-blocking, cost a second full Lens run (401k tokens) on a PR Lens had already passed",
+      "evidence": "Lens ship on 55f86c3 and again on 75d4653; Iris's items 1 and 2 in review-iris.md"
+    },
+    {
+      "what": "Probe's memory took an environment workaround (next start via dist/bin with kill $!), which CLAUDE.md says belongs in the retro",
+      "evidence": "Lens nit on 55f86c3, .claude/agent-memory/qa-engineer/MEMORY.md:17"
+    },
+    {
+      "what": "Classic-scrollbar and non-Chromium behaviour can't be seen in the CI or cloud browser, so two reviewers reasoned about it instead of measuring",
+      "evidence": "Lens nit on 75d4653 (app/globals.css:598, 8 px step at 768 with a 15 px scrollbar); Iris and Pixel list Safari and Firefox as unverified"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Setup bug: a `next start` run in the background leaves a stray next-server unless it is started through node_modules/next/dist/bin/next and killed with kill $!; give agents a helper that starts and stops a build server",
+      "moves": "minutes per agent spent on stray servers and port clashes"
+    },
+    {
+      "change": "Let the lead batch an advisory reviewer's cheap items into the next sprint's build rather than a fix round after Lens's ship",
+      "moves": "lens.runs per sprint (2 here, 1 needed)"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Pixel",
+      "what": "Switch the 768 breakpoint for the hero box and hull to `@container (width >= 48rem)` so a classic scrollbar can't step the hull's length (Lens nit on 75d4653); carry it with Part B"
+    },
+    {
+      "who": "Probe",
+      "what": "Move the next-server workaround out of qa-engineer memory line 17, keeping the LCP-candidate lesson (Lens nit on 55f86c3)"
+    },
+    {
+      "who": "Quill",
+      "what": "Part B's sprint: Probe's WebGL spike first, then rewrite C10-C16, and trim C2's 172 px box to the measured silhouette at both ends of the turn (Iris item 3)"
+    }
+  ]
+}
