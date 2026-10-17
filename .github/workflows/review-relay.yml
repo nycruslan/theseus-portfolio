@@ -4,7 +4,7 @@ name: review-relay
 # environment, so this only marks the moment: its completion starts gate.yml through workflow_run,
 # from the default branch, to judge the PR again once the owner approves or his review is
 # dismissed. Only the owner's reviews release the gate, so other reviews (Lens's, posted by the
-# checks app on every run) skip the job, and gate.yml ignores a relay that didn't succeed.
+# checks app on every run) skip the job, and gate.yml ignores a skipped relay.
 on:
   pull_request_review:
     types: [submitted, dismissed]
