@@ -73,9 +73,13 @@ and `scrollWidth === clientWidth` at 320. Box top minus header bottom is 64 (wit
 first section's top minus box bottom. At 390 x 844, 1024 x 768 and 1440 x 900 at least half the box is
 inside the first viewport.
 
-**C3. The hull's tips.** At 768 and up, `[data-hero-hull]`'s rect has the header's left and right edges
-within 2 px, and a width of 624 (within 2). Below 768 its right edge is `clientWidth - 24` (within 2),
-its width is `1.12 x clientWidth` (within 3), and its left edge is negative.
+**C3. The hull's tips.** At every width tested (320, 390, 600, 767, 768, 1024, 1440),
+`[data-hero-hull]`'s right edge is `main > header`'s right edge (within 2). That is `clientWidth - 24`
+below 672 and `(clientWidth + 624) / 2` from there up, so the bow never jumps. Its width (`cw` is
+`clientWidth`) is `1.12 x cw` up to 390 (within 3), then linear from 437 at 390 to 624 at 768 (within 3),
+and 624 from 768 up (within 2). So at 768 and up its left edge is the header's (within 2), at 320 and 390
+the stern is cropped (left edge negative), and between 390 and 768 it grows steadily with no step: its
+left edge and width at 767 and at 768 differ by at most 2 px. This keeps Iris's 1.12 crop on phones.
 
 **C4. Still and steady.** CLS is 0 across load plus 2 s at 390, 1024 and 1440. With scripts on and with
 scripts off, the box's rect is the same (within 0.5). In Part A, `getAnimations()` has no animation,
@@ -103,9 +107,9 @@ and `stroke` inside `[data-hero]` through a canvas, against the resolved `--back
   of `--accent`'s, chroma within 0.03, lightness within 0.06; its width is 20% to 40% of the hull's.
 - Seven `[data-hero-lift]` paths; the copper plank sits on the third.
 
-**C8. It degrades to the same object.** With scripts off, with reduced motion, and with a Save-Data
-signal, the box is present, visible, and has the same rect as C2. With `forced-colors: active` the box is
-`display: none`.
+**C8. It degrades to the same object.** With scripts off and with reduced motion, the box is present,
+visible, and has the same rect as C2. With `forced-colors: active` the box is `display: none`. (Save-Data
+and weak-device signals do nothing in Part A, which has no upgrade; C14 covers them.)
 
 **C9. Hard gates.** The existing axe test passes with the hero. Over a 3 x 3 grid inside the box,
 `elementsFromPoint` returns no `a`, `button`, `input` or `[tabindex]`. No `pageerror` or console error
@@ -120,9 +124,15 @@ and strips that flag where a test needs a context (the real-GPU path is then sho
 another counts `drawArrays` and `drawElements` calls. Probe's first act is a spike of both; if the
 browser draws nothing at all, Part B stops there and goes to the owner.
 
-**C10. The upgrade.** With `hardwareConcurrency` and `deviceMemory` set to 8: at 1440 x 900 no WebGL JS
-is requested before the `load` event (`loadEventEnd`), and a `canvas` is in `[data-hero]` within 5 s of
-it. At 320 x 640 (hero below the fold) no canvas and no WebGL request until the box is within one
+**The WebGL chunk,** for C10 and C14, is found by comparison, not by name. In the control run (8/8, motion
+allowed, context granted) it is every JS response requested after the `load` event whose text contains
+`createShader` (case-sensitive). Its URLs are then the ones no other run may request. The first-load code
+may hold the gates and a `getContext` probe, but no shader code, so Pixel keeps `createShader`,
+`drawArrays` and `drawElements` in the dynamic chunk alone.
+
+**C10. The upgrade.** With `hardwareConcurrency` and `deviceMemory` set to 8: at 1440 x 900 the WebGL
+chunk is requested before the `load` event (`loadEventEnd`), and a `canvas` is in `[data-hero]` within 5 s of
+it. At 320 x 640 (hero below the fold) no canvas and no chunk request until the box is within one
 viewport height of the viewport. After the swap the box's rect and CLS are unchanged, the canvas is
 `aria-hidden`, and the only animation anywhere in the hero is an opacity transition of at most 200 ms.
 
@@ -140,11 +150,11 @@ change. After a scroll, it does (so the zero is not a dead canvas).
 least 99.5% of the box. No non-copper pixel, outside the copper plank's box plus 2 px, is above 3.05 : 1
 against `--background` in either scheme (lighting does not push past C7).
 
-**C14. It falls back.** Each of these leaves the SVG visible, no canvas, and no JS response containing
-`webgl`: reduced motion (after scrolling the page top to bottom and waiting 3 s); Save-Data; `deviceMemory`
+**C14. It falls back.** Each of these leaves the SVG visible, no canvas, and no request for the WebGL
+chunk (the URLs found in the control run): reduced motion (after scrolling the page top to bottom and waiting 3 s); Save-Data; `deviceMemory`
 2; `hardwareConcurrency` 2; `getContext("webgl")` returning null; and a context that is refused when the
 page passed `failIfMajorPerformanceCaveat: true` (this proves the flag is passed). Control: with 8/8 and
-motion allowed, such a response exists. A `webglcontextlost` event on the canvas returns the SVG with the
+motion allowed, that chunk is requested (so the check is not empty). A `webglcontextlost` event on the canvas returns the SVG with the
 same rect. With the frame clock patched so each frame reports 60 ms, the draw count stops growing after
 three frames while the canvas stays put.
 
