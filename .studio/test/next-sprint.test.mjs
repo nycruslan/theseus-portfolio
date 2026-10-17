@@ -383,7 +383,7 @@ test("stands down while a sprint branch with no PR yet was committed to in the l
   assert.equal(state.next, 9);
 });
 
-test("a sprint branch quiet for 45 minutes with no PR holds nothing up", () => {
+test("a sprint branch with no PR, quiet for more than 45 minutes, holds nothing up", () => {
   const stale = "7".repeat(40);
   const { state } = preflight(
     github({

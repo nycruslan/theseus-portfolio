@@ -82,9 +82,11 @@ either: they decide it by merging it with their bypass.
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
 `git remote get-url origin` and write it out in each command. Pass long text as a file.
-- Open the PR early, as a normal PR (REST can't mark a draft ready), with "Work in progress" at the
-  top of the body until the close-out, then the goal (saying "chosen by the owner" when it's theirs),
-  size, contract and its results, and the decisions:
+- Open the PR with the branch's first push, as a normal PR (REST can't mark a draft ready): the
+  pre-flight knows a sprint is in flight by its open PR, and a branch without one only for 45
+  minutes after its last commit. Put "Work in progress" at the top of the body until the
+  close-out, then the goal (saying "chosen by the owner" when it's theirs), size, contract and its
+  results, and the decisions:
   `gh api repos/<owner>/<repo>/pulls -f title="…" -f head=<branch> -f base=main -F body=@.studio/sprint/<n>/pr.md --jq .html_url`
 - Update the body: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`
 - Label: `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=review'`
