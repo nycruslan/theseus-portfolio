@@ -8,11 +8,32 @@
   "fixRounds": 2,
   "minutes": 115,
   "agents": [
-    { "role": "qa-engineer", "model": "sonnet", "tokens": 124248, "minutes": 22 },
-    { "role": "creative-engineer", "model": "opus", "tokens": 201278, "minutes": 41 },
-    { "role": "design-director", "model": "opus", "tokens": 148347, "minutes": 38 }
+    {
+      "role": "qa-engineer",
+      "model": "sonnet",
+      "tokens": 124248,
+      "minutes": 22
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 201278,
+      "minutes": 41
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 148347,
+      "minutes": 38
+    }
   ],
-  "lens": { "runs": 3, "tokens": 791089, "important": 0, "actedOn": 0, "nits": 8 },
+  "lens": {
+    "runs": 3,
+    "tokens": 791089,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 8
+  },
   "wentWrong": [
     {
       "what": "A whole-section rise passed 40 local repeats but failed CI: a view timeline is one frame stale after a jump scroll, so cards.spec measured a card 16 px low and clicked beside it",
@@ -34,8 +55,17 @@
     }
   ],
   "followUps": [
-    { "who": "Pixel", "what": "Memory line 3 in .claude/agent-memory/creative-engineer/MEMORY.md says 'fade the section, rise only its heading'; it should say 'rise only its heading; nothing fades' (Lens nit on 0ae070e, left to avoid a re-review)" },
-    { "who": "Iris", "what": "Re-review the shipped heading-only rise (0ae070e); her 7.2 changes was on 8d87127 and she expected 7.5 ship after this fix" },
-    { "who": "Probe", "what": "Consider pinning 'no section below opacity 1 at load across heights' so a fade can't come back" }
+    {
+      "who": "Pixel",
+      "what": "Memory line 3 in .claude/agent-memory/creative-engineer/MEMORY.md says 'fade the section, rise only its heading'; it should say 'rise only its heading; nothing fades' (Lens nit on 0ae070e, left to avoid a re-review)"
+    },
+    {
+      "who": "Iris",
+      "what": "Re-review the shipped heading-only rise (0ae070e); her 7.2 changes was on 8d87127 and she expected 7.5 ship after this fix"
+    },
+    {
+      "who": "Probe",
+      "what": "Consider pinning 'no section below opacity 1 at load across heights' so a fade can't come back"
+    }
   ]
 }
