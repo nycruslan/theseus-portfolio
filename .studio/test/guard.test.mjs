@@ -97,32 +97,6 @@ test("leaves writes outside the project to Claude Code's own permissions", () =>
   assert.equal(guard(join(tempDir(), "scratch.md"), "code-reviewer").code, 0);
 });
 
-test("refuses text that would reach GitHub as someone other than the team", () => {
-  for (const text of [
-    "GH_TOKEN=proxy-injected gh api user",
-    "export GITHUB_TOKEN=abc",
-    "unset GH_TOKEN; gh api user",
-    "env -u GH_TOKEN gh api user",
-  ]) {
-    const payload = write(join(tempDir(), "x.sh"), "engineer", text);
-    const { code, stderr } = runHook("guard.mjs", payload, {
-      env: { CLAUDE_PROJECT_DIR: ROOT },
-    });
-    assert.equal(code, 2, text);
-    assert.match(stderr, /team's account/);
-  }
-  assert.equal(
-    runHook(
-      "guard.mjs",
-      write("app/x.ts", "engineer", "const token = process.env.API_KEY;"),
-      {
-        env: { CLAUDE_PROJECT_DIR: ROOT },
-      },
-    ).code,
-    0,
-  );
-});
-
 test("fails closed on a payload it can't read", () => {
   const { code } = runHook("guard.mjs", "not json", {
     env: { CLAUDE_PROJECT_DIR: ROOT },

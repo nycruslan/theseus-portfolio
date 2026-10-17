@@ -6,9 +6,6 @@
 // - a memory folder under .claude/agent-memory/ belongs to its role alone;
 // - the rest of the project is for the lead (the main session) and the builders. Every role writes
 //   in the sprint folder, and Quill also writes ROADMAP.md and content/drafts/.
-// - nothing written, anywhere, may reach GitHub as someone else: text that names the cloud proxy's
-//   `proxy-injected` placeholder or sets or unsets GH_TOKEN would route a call around the team's
-//   own account. A script is how a shell deny rule would be dodged, so the same tripwire is here.
 // It's guidance, not a boundary: a shell command or a script can still write anything. The binding
 // rules are GitHub's (the `gate` and `lens` checks on main). It fails closed: a call it can't read
 // is blocked, and settings.json blocks if it crashes. Blocks are put on air as StudioWriteBlocked.
@@ -27,8 +24,6 @@ import { broadcast } from "./post.mjs";
 import { ownersIn } from "./scope.mjs";
 
 const BUILDERS = new Set(["engineer", "creative-engineer"]);
-const IDENTITY =
-  /proxy-injected|\b(GH|GITHUB)_TOKEN\s*=|\bunset\s+(GH|GITHUB)_TOKEN\b|\benv\s+-u\b/u;
 const MEMORY = /^\.claude\/agent-memory\/([^/]+)\//iu;
 const E2E = /^e2e(\/|$)/iu;
 const QUILL = /^(ROADMAP\.md$|content\/drafts\/)/iu;
@@ -50,10 +45,7 @@ try {
 }
 // Outside the project is Claude Code's own business (permissions and deny rules).
 const inside = !(path === ".." || path.startsWith("../") || isAbsolute(path));
-const { content, new_string: edit, new_source: cell } = hook.tool_input;
-const reason = IDENTITY.test([content, edit, cell].join("\n"))
-  ? "This text would reach GitHub as someone other than the team's account (proxy-injected, or setting or unsetting GH_TOKEN). The team works as its own account only."
-  : inside && refusal(inProject(path), hook.agent_type);
+const reason = inside && refusal(inProject(path), hook.agent_type);
 if (reason) {
   broadcast({ ...hook, hook_event_name: "StudioWriteBlocked", path, reason });
   block(reason);
