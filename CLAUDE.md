@@ -72,7 +72,8 @@ Atlas merges with `node .studio/merge.mjs <number>`, which waits for the checks,
 required checks didn't pass, and asks GitHub to squash-merge the head. Iris's verdict is advice
 until she's calibrated (`design/rubric.md`). If anything needs the owner, leave the PR open with a
 "Needs owner decision" section and the `needs-owner` label, and tell the owner once the head is
-final; the owner merges it, so don't.
+final and every required check but `gate` passed on it (their bypass skips the checks); the owner
+merges it, so don't.
 
 ## The owner's
 
