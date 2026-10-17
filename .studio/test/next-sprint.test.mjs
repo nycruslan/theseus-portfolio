@@ -410,3 +410,37 @@ test("an open PR's own branch is its PR's to judge, so its commit isn't read", (
     !calls.some((args) => args.some((arg) => arg.includes("/commits/"))),
   );
 });
+
+test("a just-merged sprint's branch, still listed, doesn't hold up the run its merge starts", () => {
+  // The chain's run starts the moment the PR merges, with the close-out commits minutes old. If
+  // the branch outlives the merge (delete_branch_on_merge off), it's still that PR's, not new work.
+  const head = "6".repeat(40);
+  const done = {
+    ...merged(31, 0.05, { branch: "sprint/8-hero-half-model" }),
+    head: {
+      ref: "sprint/8-hero-half-model",
+      sha: head,
+      repo: { full_name: REPO },
+    },
+  };
+  const { state } = preflight(
+    github({
+      closed: [done],
+      branches: [branch("main"), branch("sprint/8-hero-half-model", head)],
+      commits: { [head]: minutesAgo(5) },
+    }),
+  );
+  assert.deepEqual(state.unopened, []);
+  assert.equal(state.action.do, "start");
+  assert.equal(state.next, 9);
+  // A commit pushed after the PR closed is new work, and holds the run up again.
+  const later = "5".repeat(40);
+  const reopened = preflight(
+    github({
+      closed: [done],
+      branches: [branch("main"), branch("sprint/8-hero-half-model", later)],
+      commits: { [later]: minutesAgo(5) },
+    }),
+  ).state;
+  assert.equal(reopened.action.do, "stand down");
+});

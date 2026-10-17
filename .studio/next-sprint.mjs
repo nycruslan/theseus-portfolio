@@ -16,9 +16,12 @@
 // - daily: the team's sprint PRs merged into the base in the last 24 hours, and the cap on them,
 //   THESEUS_DAILY_SPRINTS (a positive integer; anything else means the default, 6). A merged
 //   sprint starts the next one (the routine's GitHub trigger), so the cap is what stops a chain.
-// - unopened: the sprint branches with no open PR whose last commit is from the last 45 minutes.
-//   A run pushes its branch before it opens the PR, sometimes an hour before: on 2026-10-17 the
-//   heartbeat saw no PR for sprint 8's fresh branch and started sprint 9 on the same work.
+// - unopened: the sprint branches no PR was opened from yet whose last commit is from the last 45
+//   minutes. A run pushes its branch before it opens the PR, sometimes an hour before: on
+//   2026-10-17 the heartbeat saw no PR for sprint 8's fresh branch and started sprint 9 on the
+//   same work. A branch whose head a closed PR ended on is that PR's, merged or not, so the run
+//   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
+//   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
 //   every open one does or when the day's cap is reached, or start the next sprint, with its
 //   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
@@ -87,8 +90,13 @@ function preflight(repo) {
     branches: highestOf(branches.map(({ name }) => sprintOf(name))),
   };
   const next = Math.max(...Object.values(highest)) + 1;
-  const unopened = freshBranches(repo, branches, open);
-  const daily = mergedToday(repo, base);
+  // One page of the team's closed sprint PRs, most recently updated first: what merged today, and
+  // the heads the branches of recently closed ones are still on.
+  const closed = api(
+    `repos/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
+  ).filter(ours(repo));
+  const unopened = freshBranches(repo, branches, open, closed);
+  const daily = mergedToday(closed, base);
   return {
     repo,
     base,
@@ -101,13 +109,19 @@ function preflight(repo) {
   };
 }
 
-// The sprint branches no open PR is from, whose last commit is under 45 minutes old, newest first.
-// Only the repository's own branches are listed, and only collaborators can push one.
-function freshBranches(repo, branches, open) {
+// The sprint branches with no PR yet, whose last commit is under 45 minutes old, newest first: not
+// an open PR's branch, nor still on the head a closed PR ended on. Only the repository's own
+// branches are listed, and only collaborators can push one.
+function freshBranches(repo, branches, open, closed) {
   const opened = new Set(open.map(({ branch }) => branch));
+  const ended = new Set(closed.map(({ head }) => head.sha));
   return branches
     .filter(
-      ({ name, commit }) => sprintOf(name) && !opened.has(name) && commit?.sha,
+      ({ name, commit }) =>
+        sprintOf(name) &&
+        commit?.sha &&
+        !opened.has(name) &&
+        !ended.has(commit.sha),
     )
     .map(({ name, commit }) => ({
       branch: name,
@@ -128,15 +142,12 @@ function ours(repo) {
     SPRINT_BRANCH.test(head?.ref ?? "");
 }
 
-// The team's sprint PRs merged into the base in the last 24 hours. One page of the closed PRs, most
-// recently updated first: a merge updates a PR, so every one merged today is among them unless more
-// than 100 closed PRs changed since, far past any cap.
-function mergedToday(repo, base) {
+// The team's sprint PRs merged into the base in the last 24 hours, from one page of the closed
+// ones, most recently updated first: a merge updates a PR, so every one merged today is among them
+// unless more than 100 closed PRs changed since, far past any cap.
+function mergedToday(closed, base) {
   const since = Date.now() - DAY;
-  const times = api(
-    `repos/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
-  )
-    .filter(ours(repo))
+  const times = closed
     .filter((pr) => pr.base?.ref === base && pr.merged_at)
     .map((pr) => Date.parse(pr.merged_at))
     .filter((time) => time > since)
