@@ -101,3 +101,7 @@ Screenshots, production build, in `.studio/screenshots/sprint-8/` (gitignored):
   In dark mode the copper plank is the brightest thing in the box at 7.45 : 1, the accent as the
   links use it. It is the contract's "one part freshly fitted", but it is the one place the hero
   is loud.
+
+## Fix round 1 (Iris's two cheap items, `review-iris.md`)
+
+Dark copper is now `color-mix(in oklab, var(--accent) 92%, var(--background))` (light unchanged): measured in Chrome rgb(215,128,93) vs the accent's rgb(235,138,100), dL −0.043, dC −0.011, dh +0.53° against C7's 0.06 / 0.03 / 3°. The `@supports` guard now tests `color-mix(in oklab, currentcolor calc(10% + 10%), transparent)`, the form the tones use. Chromium still draws the box. `pnpm verify` passes, and the suite is 56 passed with 1 skipped. Screenshot: `.studio/screenshots/sprint-8/hero-box-1440-dark@2x-fix1.png`.

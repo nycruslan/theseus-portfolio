@@ -242,6 +242,14 @@ body {
   fill: var(--accent);
 }
 
+/* On the dark ground the full accent is the brightest thing in the box, so the plank sits one notch
+   back toward the hull: still copper (C7 keeps it within 0.06 lightness of the accent). */
+@media (prefers-color-scheme: dark) {
+  .hero-copper {
+    fill: color-mix(in oklab, var(--accent) 92%, var(--background));
+  }
+}
+
 /* Seams: a 1 px hairline of the ground between lifts and at each butt, at any size. */
 .hero-model path {
   stroke: var(--background);
@@ -262,7 +270,11 @@ body {
   }
 }
 
-@supports not (color: color-mix(in oklab, currentcolor, transparent)) {
+/* The guard tests the form the tones use, a calc() inside the mix's percentage: a browser that
+   parses color-mix() but not that would otherwise draw every stop black. */
+@supports not (
+    color: color-mix(in oklab, currentcolor calc(10% + 10%), transparent)
+  ) {
   .hero {
     display: none;
   }
