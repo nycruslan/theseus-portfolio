@@ -160,3 +160,14 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - Pushing the specs alone first (C17 as the readout) caught the failed premise before any product code
     depended on it; keep that step for browser-sensitive work.
   - Settle the PR body and labels before the `review` label: Lens reads the body at the start of its run.
+
+## Sprint 11: Stack separators (PR #36)
+
+- **Outcome:** with the roadmap exhausted, Quill groomed a new Next list and picked Iris's sprint 6 dot
+  (S). Forge drew a 3 px `before:` dot in `bg-muted`, centred in the 24 px gap, the row's leading dot
+  clipped by `overflow-hidden` on the `ul`; `innerText` and the suite unchanged. Lens said changes once
+  (Forge had also loosened `gap-y-1` to `gap-y-2`, copying a recipe written before item 1 shipped),
+  then ship on 4bee361 with two nits left as follow-ups (forced colors, the all-sides clip).
+- **Lesson:**
+  - A recipe from an old review is a diff against an old baseline: brief builders to apply only its
+    named change onto main's current classes, not to paste its className.
