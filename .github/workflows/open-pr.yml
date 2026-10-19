@@ -1,0 +1,60 @@
+name: open-pr
+
+# Opens a pull request from a branch into the default branch as the team's checks app, so the PR
+# isn't under the owner's login. Cloud sessions reach GitHub as the owner, and nobody can approve
+# their own PR: opened by the app, a PR is one the owner can approve, which releases `gate` and
+# counts as their code-owner review, and then merge with the usual button, every required check
+# included. `.studio/open-pr.mjs` asks for this run, waits for the PR and fills in its title and body.
+#
+# workflow_dispatch runs this file from the ref it's given, but the `checks` environment, which
+# holds the app key, serves the default branch alone: a run from any other ref fails before the
+# key is read. The branch is data, so it reaches the step through env, never the script's text.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment, as in
+# gate.yml and lens.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: The branch to open a pull request from
+        required: true
+        type: string
+
+permissions: {}
+
+# Two requests for one branch run one after the other, so the second finds the first's PR.
+concurrency:
+  group: open-pr-${{ inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    environment: checks
+    timeout-minutes: 2
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          BASE: ${{ github.event.repository.default_branch }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          if [ "$BRANCH" = "$BASE" ]; then
+            echo "::error::A pull request can't come from $BASE itself."
+            exit 1
+          fi
+          open=$(gh api --method GET "repos/$REPO/pulls" -f head="$OWNER:$BRANCH" -f state=open --jq length)
+          if [ "$open" != 0 ]; then
+            echo "$BRANCH already has an open pull request."
+            exit 0
+          fi
+          gh api "repos/$REPO/pulls" -f head="$BRANCH" -f base="$BASE" -f title="$BRANCH" \
+            -f body="Work in progress: the team fills this in." --jq '"Opened \(.html_url)"'

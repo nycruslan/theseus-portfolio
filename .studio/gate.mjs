@@ -2,10 +2,11 @@
 // - it touches an owner path, changes package.json's scripts or weakens a test (scope.mjs);
 // - it carries needs-owner now, or ever did.
 // The owner releases a PR someone else opened with an approving review of its current head; a
-// later push needs a new one. The team's PRs are under the owner's login (cloud sessions act as
-// the owner), and nobody can approve their own PR, so the owner decides those by merging them with
-// the ruleset's bypass. The result goes on the head as a check run from the team's checks app, the source the
-// ruleset requires, so no other workflow or account can stand in for it.
+// later push needs a new one. The team's checks app opens the team's PRs (open-pr.mjs), so the
+// owner can approve them. A PR under the owner's own login can't be approved by them (nobody can
+// approve their own PR), so they decide one with the ruleset's bypass. The result goes on the head
+// as a check run from the team's checks app, the source the ruleset requires, so no other workflow
+// or account can stand in for it.
 // The workflow runs this from the default branch (pull_request_target, and workflow_run after the
 // review relay), never the PR's code. It reads the PR live rather than from the event, and posts
 // nothing if the head moved while it judged, so whatever triggered it, a result is about the head
@@ -22,9 +23,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Whether the PR passes, with a one-line summary and the holds behind it. A PR under the owner's
- * login, which every team PR is, holds like any other: passing it on authorship would let any
- * session through, since they all reach GitHub as the owner. The owner merges it with the
- * ruleset's pull-request bypass, which doesn't need gate.
+ * login holds like any other: passing it on authorship would let any session through, since they
+ * all reach GitHub as the owner. The owner merges it with the ruleset's pull-request bypass, which
+ * doesn't need gate.
  */
 export function decide({ notes, everHeld, approved, byOwner = false }) {
   const holds = everHeld

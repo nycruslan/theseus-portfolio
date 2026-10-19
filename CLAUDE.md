@@ -15,6 +15,7 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
 - **Shared state:**
   - `.studio/STATE.md`: what the team learned.
   - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
+    It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
   - `.studio/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
   - `design/rubric.md`: the design bar, calibrated by the owner's examples in `design/calibration/`.
 
@@ -58,8 +59,9 @@ checks:
 - `check` (`ci.yml`): lint, typecheck, knip, build, the harness tests and the end-to-end suite;
 - `gate` (`gate.yml`, run from `main` and posted by the team's checks app): holds a PR that
   touches an owner path, changes `package.json`'s scripts, weakens a test or ever carried
-  `needs-owner`, until the owner decides it. The team's PRs are under the owner's login, and
-  nobody can approve their own PR, so the owner decides those by merging them with the bypass;
+  `needs-owner`, until the owner approves its head. The team's checks app opens the team's PRs
+  (`open-pr.mjs`), so the owner can approve them; one under the owner's own login can't be (nobody
+  can approve their own PR), and the owner decides it by merging it with the bypass;
 - `lens` (`lens.yml`, posted by the checks app): Lens reviews the PR in CI, and the check passes
   only on ship. It runs when the PR carries the `review` label, on a new base and on each push. A
   push that only touches notes (the sprint folder's `.md` files and `retro.json`, STATE.md,
@@ -72,8 +74,9 @@ Atlas merges with `node .studio/merge.mjs <number>`, which waits for the checks,
 required checks didn't pass, and asks GitHub to squash-merge the head. Iris's verdict is advice
 until she's calibrated (`design/rubric.md`). If anything needs the owner, leave the PR open with a
 "Needs owner decision" section and the `needs-owner` label, and tell the owner once the head is
-final and every required check but `gate` passed on it (their bypass skips the checks); the owner
-merges it, so don't.
+final and every required check but `gate` passed on it. Their approving review of the head is
+their decision: `gate` passes, and the owner merges it, or a later run does with `merge.mjs`.
+Before that, don't merge it.
 
 ## The owner's
 

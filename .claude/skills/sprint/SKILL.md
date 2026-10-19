@@ -76,19 +76,22 @@ on every push; ask Probe for an exploratory pass only on interaction-heavy work.
 **Escalate** scope to Quill and taste to Iris. Owner facts, or anything risky, go to the owner
 under "Needs owner decision" in the PR, with the `needs-owner` label. Once the head is final (the
 close-out pushed) and every required check but `gate` passed on it, tell the owner with a push
-notification: the PR's link and what it needs. The PR is under the owner's login, so GitHub sends
-them nothing about it, and they can't approve it either: they decide it by merging it with their
-bypass, which skips the checks too, so a red `check` handed over lands on main.
+notification: the PR's link and what it needs. They decide by approving its head (or asking for
+changes). If `open-pr.mjs` had to open the PR under the owner's login, they can't approve it and
+decide it by merging with their bypass, which skips the checks too, so a red `check` handed over
+lands on main.
 
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
 `git remote get-url origin` and write it out in each command. Pass long text as a file.
-- Open the PR with the branch's first push, as a normal PR (REST can't mark a draft ready): the
-  pre-flight knows a sprint is in flight by its open PR, and a branch without one only for 45
-  minutes after its last commit. Put "Work in progress" at the top of the body until the
-  close-out, then the goal (saying "chosen by the owner" when it's theirs), size, contract and its
-  results, and the decisions:
-  `gh api repos/<owner>/<repo>/pulls -f title="…" -f head=<branch> -f base=main -F body=@.studio/sprint/<n>/pr.md --jq .html_url`
+- Open the PR right after the branch's first push: the pre-flight knows a sprint is in flight by
+  its open PR, and a branch without one only for 45 minutes after its last commit. Put "Work in
+  progress" at the top of the body until the close-out, then the goal (saying "chosen by the owner"
+  when it's theirs), size, contract and its results, and the decisions. Open it with
+  `node .studio/open-pr.mjs --head <branch> --title "…" --body .studio/sprint/<n>/pr.md`, with the
+  Bash timeout at 5 minutes (300000 ms): the team's checks app opens it, so the owner can approve
+  it, and the script sets the title and body. If the app's PR doesn't come, the script opens it
+  under the owner's login and says so; say that in your report.
 - Update the body: `gh api --method PATCH repos/<owner>/<repo>/pulls/<n> -F body=@.studio/sprint/<n>/pr.md`
 - Label: `gh api repos/<owner>/<repo>/issues/<n>/labels -f 'labels[]=review'`
 - Comment: `gh api repos/<owner>/<repo>/issues/<n>/comments -F body=@<file>`
@@ -98,7 +101,7 @@ Once Lens says ship, push the close-out (see Close), which only touches notes, s
 stands, and take "Work in progress" out of the body. Then run `node .studio/merge.mjs <n>` from the
 repository root, on its own, with the Bash timeout at 10 minutes (600000 ms). It waits for the
 checks and squash-merges the head, or says why not: act on what it says, or stop. If anything needs
-the owner, don't run it: the PR waits for the owner to merge it. A
+the owner, don't run it until the owner approved the head: the PR waits for them. A
 smaller ship, or no ship with the reason, is a fine outcome. A quiet downgrade isn't. Say what
 nobody verified. Don't end the session with "waiting for …" unless background work is still
 running.
