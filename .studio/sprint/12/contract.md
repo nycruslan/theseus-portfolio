@@ -90,6 +90,14 @@ Both shapes have `outcome`; a missing or non-string one means no mark. Why `outc
 goal has a leading `Roadmap item:` or `Roadmap item N:` removed (case-insensitive), then its first letter
 capitalised; backticks are dropped from the goal and from every item.
 
+**A real space between the number and the goal (this overrides direction §3's markup).** Below 768 the
+number span is inline, and Iris's markup puts the goal right after it with no whitespace, which reads as
+"Sprint 11Stack separators…" in the h3's accessible name and in `textContent`. The build must put a real
+space between the number span and the goal text (for example `{" "}` after the span, with the span's margin
+adjusted so the look does not change), at every width. From 768 the number hangs 16 px left of the goal
+(C6.1), and the space must not move it: the hang is set by the span's own width and margin, not by the
+space. Where the direction's markup and this paragraph differ, this paragraph wins.
+
 **The count** `n` is the length of the reader's result. The home line reads `Build log`, then a no-break
 space, a dot and `n sprints` (`1 sprint` when n is 1). When n is 0 the home line is left out (a link to
 an empty page helps nobody) and `/sprints` is not linked.
@@ -150,20 +158,24 @@ the floor is "at least 11 and every anchor present". Viewports: 320 x 800, 390 x
    so the two pages open the same way.
 
 **C2. Metadata** (direction "Also"). Title includes "Build log" and is not `/`'s. Canonical is
-`https://theseus-portfolio.vercel.app/sprints`; `og:url` is the same; `og:description` and the meta
-description are not `profile.bio` (the shared `openGraph` object carries the bio, so a page that
-spreads it must replace the description). `/sitemap.xml` lists both `/` and `/sprints`. `/robots.txt`
+`https://theseus-portfolio.vercel.app/sprints`; `og:url` is the same; `og:description`, `twitter:description` and the
+meta description are not `profile.bio` (the shared `openGraph` object carries the bio, and
+`app/layout.tsx` sets `twitter.description: profile.bio`; Next merges metadata per top-level key, so a
+page that spreads `openGraph` must replace its description, and Forge must also override `twitter` with
+its own description). `/sitemap.xml` lists both `/` and `/sprints`. `/robots.txt`
 does not disallow `/sprints`.
 
 **C3. Order and count.**
 1. `ol` items in the section: `valid.length` of them, no fewer than 11. Their sprint numbers (read from
-   the `sr-only` prefix) are exactly `valid` sorted descending by the number in the file.
+   the number span, or from the h3's accessible name; not from the `sr-only` prefix, which holds only
+   "Sprint ") are exactly `valid` sorted descending by the number in the file.
 2. Anchors: the entry for 10 comes before 9 and the entry for 2 before 1 (a sort by folder name puts 9
    after 11 and 10 before 2; this fails that sort), and the last entry is 1.
 
 **C4. One entry's words** (direction §3.1 to 3.3). For every valid retro:
-1. The h3's accessible name is `Sprint N ` plus the goal as transformed above; its visible text has the
-   number and the goal in that order. Anchors, word for word: sprint 1 "Design tokens (5 colors, 5 fluid type
+1. The h3's accessible name is `Sprint N ` plus the goal as transformed above, with one real space
+   between the number and the goal at every width (never "Sprint 11Stack"; see "A real space" above); its
+   visible text has the number and the goal in that order. Anchors, word for word: sprint 1 "Design tokens (5 colors, 5 fluid type
    steps in app/globals.css, used across the page)"; sprint 8 "The subtle 3D hero, Part A of the sprint 7
    contract (static SVG lift half-model, C1-C9)"; sprint 11 "Stack separators: a drawn middle dot between
    the tools in the Stack section (Iris's sprint 6 item 2)".
@@ -182,10 +194,14 @@ does not disallow `/sprints`.
    normalised, in file order. Anchor: sprint 11 renders exactly 2, and every anchor sprint renders
    between 1 and 3.
 2. Nothing is truncated or hidden: no text ends in an ellipsis that the source lacks; `main` has no
-   `details`, `summary`, `button`, `[aria-expanded]`, `[hidden]` or element with `display: none`; every
+   `details`, `summary`, `button`, `[aria-expanded]`, `[hidden]` or element with `display: none`, except `script`, `template` and `style` elements, which
+   browsers hide by default and Next may inject (the scan skips them; `/sprints` carries no JSON-LD, so
+   nothing of the page's own is hidden in them); every
    `li` is visible and its `scrollHeight` equals its `clientHeight`.
 3. Not rendered: no `outcome` string and no `evidence` string from any retro appears in `main`'s text,
-   unless it is a substring of a rendered `what`. No backtick appears anywhere in `main`. Links in `main`
+   unless it is a substring of a rendered `what` or of a rendered goal. Only strings of more than two
+   words are scanned: a one-word outcome such as "merged" would match any goal or item that happens to
+   contain it, so it is neither a proof nor a failure. No backtick appears anywhere in `main`. Links in `main`
    are only the back link and the PR links (the set of hrefs is checked).
 
 **C6. Spacing and the hang** (direction §3.1, §3.6, §4). Tolerance 1 px, measured from `getBoundingClientRect`
@@ -263,7 +279,8 @@ the test writes into the temp directory). Fixtures, one folder each:
 
 **C14. The home line** (direction §1.2, §1.3, §6). On `/`:
 1. `main > header` has as its last child a `p.text-step-base` holding `a[href="/sprints"]` whose text is
-   `Build log`, then a `span` whose text is exactly ` · ${n} sprints` (`1 sprint` for 1), where `n` is
+   `Build log`, then a `span` whose text is exactly ` · ${n} sprints` (`1 sprint` for 1; the span's first character is U+00A0, the no-break space of the data
+   rules, never an ordinary space, and the spec writes it as the escape `\u00a0· ${n} sprints`), where `n` is
    the number of entries `/sprints` renders and equals the number of valid retro files. The spec reads
    `n` from `/sprints` and the files and asserts they agree; it holds no number.
 2. The link is `--accent` with an underline, the span `--muted`; the link's height is at least 24 px at

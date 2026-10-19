@@ -171,3 +171,17 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 - **Lesson:**
   - A recipe from an old review is a diff against an old baseline: brief builders to apply only its
     named change onto main's current classes, not to paste its className.
+
+## Sprint 12: the build log's contract (PR #37)
+
+- **Outcome:** the L lane's contract step for "Watch the team build", no product code. Iris prototyped a
+  `/sprints` log on a build fed by all eleven real retros and chose a route of its own, reached by a
+  copper "Build log · N sprints" line under the bio; Quill's contract (C1–C15) splits the build into PR A
+  (reader and route, M) and PR B (the home line, S), fails the build on a malformed retro, and derives
+  "Owner's call" from `needs-owner` in `outcome`. Lens ship on the first run, with seven nits; six went
+  into the contract as a notes-only push. PR #37 waits for the owner (`needs-owner`).
+- **Lesson:**
+  - The retros were written as notes, not as copy: `outcome` is set before the merge (false for sprints
+    1–2). Before publishing any team file, check which of its fields stay true after the merge.
+  - A prototype fed by the real data settled two calls (show every item; no status word) that a written
+    direction would have guessed.
