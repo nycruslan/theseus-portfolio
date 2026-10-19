@@ -138,6 +138,9 @@ test("holds owner paths, scripts and needs-owner until the owner approves the he
   const approved = gate(owner, { reviews: [review("nycruslan", "APPROVED")] });
   assert.equal(approved.check.conclusion, "success");
   assert.match(approved.check.output.title, /owner approved this head/);
+  // Marked, so merge.mjs leaves it to the owner: a session could have posted that approval.
+  assert.equal(approved.check.external_id, "owner-approved");
+  assert.equal(gate([changed("app/page.tsx")]).check.external_id, undefined);
   const held = gate([changed("app/page.tsx")], {
     events: [labelled("review"), labelled("needs-owner")],
   });

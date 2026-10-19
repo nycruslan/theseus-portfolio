@@ -68,22 +68,14 @@ try {
       `PR #${existing.number} was already open from ${head}; it has the new title and body: ${existing.html_url}`,
     );
   } else {
-    const { pr, reason } = await fromApp(base, openPr);
-    if (pr) {
-      update(pr);
-      console.log(
-        `Opened PR #${pr.number} through the checks app, so the owner can approve it: ${pr.html_url}`,
-      );
-    } else {
-      const own = api(`repos/${repo}/pulls`, {
-        method: "POST",
-        cwd,
-        body: { ...fields, head, base },
-      });
-      console.log(
-        `Opened PR #${own.number} under the owner's login, since ${reason}. The owner can't approve it, so if it needs them they merge it with the bypass: ${own.html_url}`,
-      );
-    }
+    const { pr: app, reason } = await fromApp(base, openPr);
+    const { pr, own } = app ? { pr: app } : openOwn(base, openPr);
+    if (!own) update(pr);
+    console.log(
+      own
+        ? `Opened PR #${pr.number} under the owner's login, since ${reason}. The owner can't approve it, so if it needs them they merge it with the bypass: ${pr.html_url}`
+        : `Opened PR #${pr.number} through the checks app, so the owner can approve it: ${pr.html_url}`,
+    );
   }
 } catch (error) {
   console.error(`Couldn't open a PR from ${head}: ${error.message}`);
@@ -112,6 +104,23 @@ async function fromApp(base, openPr) {
         reason: `the checks app hadn't opened it after ${minutes} min (see ${WORKFLOW}'s runs)`,
       };
     }
+  }
+}
+
+// Opens the PR under the owner's login. The app's PR may land between the last poll and this
+// call: then GitHub refuses a second one, and the app's is the one to keep.
+function openOwn(base, openPr) {
+  try {
+    const pr = api(`repos/${repo}/pulls`, {
+      method: "POST",
+      cwd,
+      body: { ...fields, head, base },
+    });
+    return { pr, own: true };
+  } catch (error) {
+    const late = error.status === 422 && openPr();
+    if (!late) throw error;
+    return { pr: late };
   }
 }
 

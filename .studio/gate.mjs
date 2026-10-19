@@ -19,6 +19,10 @@ import { api, list, postCheck } from "./github.mjs";
 import { checkScope, ownersIn } from "./scope.mjs";
 
 export const HOLD_LABEL = "needs-owner";
+// The check run's external_id when the owner's approval is what released the PR. Sessions reach
+// GitHub as the owner, so they could post that approval too: merge.mjs leaves such a PR for the
+// owner to merge by hand.
+export const OWNER_APPROVED = "owner-approved";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
@@ -39,7 +43,8 @@ export function decide({ notes, everHeld, approved, byOwner = false }) {
   } else if (holds.length) {
     summary = "This PR needs the owner's approving review of its head.";
   }
-  return { pass: !holds.length || approved, summary, notes: holds };
+  const released = holds.length > 0 && approved;
+  return { pass: !holds.length || approved, released, summary, notes: holds };
 }
 
 /** Whether the owner's latest review that decided anything approves exactly this head. */
@@ -125,6 +130,7 @@ function main() {
     pass: result.pass,
     title: result.summary,
     summary,
+    externalId: result.released ? OWNER_APPROVED : undefined,
   });
   console.log(
     `gate on #${number} at ${head.slice(0, 7)}: ${result.pass ? "pass" : "hold"}\n${summary}`,

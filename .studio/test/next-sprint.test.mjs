@@ -267,7 +267,7 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
   assert.equal(state.action.pr, 9);
 });
 
-test("a PR whose head the owner approved is continued", () => {
+test("a held PR waits for the owner even once they approved its head: they merge it", () => {
   const approval = {
     user: { login: "nycruslan" },
     state: "APPROVED",
@@ -280,8 +280,9 @@ test("a PR whose head the owner approved is continued", () => {
       reviews: { 9: [approval] },
     }),
   );
-  assert.equal(state.open[0].needsOwner, false);
-  assert.equal(state.action.do, "continue");
+  assert.equal(state.open[0].needsOwner, true);
+  assert.equal(state.action.do, "stand down");
+  assert.equal(state.action.pr, 9);
 });
 
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {

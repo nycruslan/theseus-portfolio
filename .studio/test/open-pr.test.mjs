@@ -37,7 +37,7 @@ function github({ open = [], dispatch = "" } = {}) {
   };
 }
 
-function openPr(table, { args = ARGS } = {}) {
+function openPr(table, { args = ARGS, env = {} } = {}) {
   const log = ghLog();
   const result = runHook("open-pr.mjs", "", {
     cwd: repo,
@@ -48,6 +48,7 @@ function openPr(table, { args = ARGS } = {}) {
       GH_STATE: tempDir(),
       THESEUS_OPEN_PR_POLL_MS: "10",
       THESEUS_OPEN_PR_WAIT_MS: "300",
+      ...env,
     },
   });
   const calls = log.calls();
@@ -99,6 +100,22 @@ test("opens the PR itself, under the owner's login, when the app's PR doesn't co
   assert.deepEqual(sent("POST", `${R}/pulls`), [
     { ...FIELDS, head: BRANCH, base: "main" },
   ]);
+});
+
+test("keeps the app's PR when it lands just as the script opens its own", () => {
+  // A 1 ms budget allows one poll: the first read and that poll find nothing, GitHub refuses the
+  // script's own PR, and the read after that finds the app's.
+  const table = github({ open: { $seq: [[], [], [pr(7)]] } });
+  table[`POST ${R}/pulls`] = {
+    $error: 422,
+    message: "A pull request already exists for nycruslan:sprint/3-dots.",
+  };
+  const { code, stdout, sent } = openPr(table, {
+    env: { THESEUS_OPEN_PR_WAIT_MS: "1" },
+  });
+  assert.equal(code, 0);
+  assert.match(stdout, /^Opened PR #7 through the checks app/m);
+  assert.deepEqual(sent("PATCH", `${R}/pulls/7`), [FIELDS]);
 });
 
 test("opens the PR itself when GitHub won't start the workflow", () => {

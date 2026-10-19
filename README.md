@@ -73,9 +73,10 @@ all of them.
 **The residual risk.** In the cloud, every GitHub call goes through Claude's GitHub proxy with the
 owner's connection, git pushes included, whatever token the session holds: a deliberately fake
 token was answered as the owner (tested 2026-10-17). So a session can do anything the owner can,
-approving a PR and the admin bypass included. `merge.mjs` refuses a PR whose required checks didn't pass, the deny
-rules block the admin endpoints and `gh pr merge`, and every merge goes on air in the Studio and
-in GitHub's audit log, but none of that stops a session set on misusing it. On a laptop the same
+approving a PR and the admin bypass included. `merge.mjs` refuses a PR whose required checks didn't
+pass or that `gate` passed only on the owner's approval; the deny rules block the admin endpoints
+and `gh pr merge`; and every merge goes on air in the Studio and in GitHub's audit log. None of
+that stops a session set on misusing it. On a laptop the same
 holds for the owner's own `gh` login.
 
 ## Setup (the owner, once, in this order)
