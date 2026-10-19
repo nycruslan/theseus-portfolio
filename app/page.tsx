@@ -81,11 +81,15 @@ export default function Home() {
           </Section>
 
           <Section id="stack" title="Stack">
-            {/* Plain words on a wrapping line; the gap alone separates them, so no separator text
-            ends up inside an item. */}
-            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+            {/* Plain words on a wrapping line. The dot between tools is drawn, not typed, so no
+            separator text ends up inside an item. Each item draws a dot in the gap before it, and
+            the list clips the one that falls left of a row's first item. */}
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 overflow-hidden">
               {profile.stack.map((tool) => (
-                <li key={tool} className="text-step-base">
+                <li
+                  key={tool}
+                  className="relative text-step-base before:absolute before:top-1/2 before:-left-[calc(0.75rem+1.5px)] before:-mt-[1.5px] before:size-[3px] before:rounded-full before:bg-muted before:content-['']"
+                >
                   {tool}
                 </li>
               ))}
