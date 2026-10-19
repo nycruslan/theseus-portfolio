@@ -10,10 +10,10 @@ boxes don't move, and `innerText` is unchanged. No new custom property.
 `before:-left-[0.8125rem]` (13 px) became `before:-left-[calc(0.75rem+1.5px)]` (13.5 px). The gap is
 24 px (`gap-x-6`), so the gap's centre is 12 px left of the next tool, and a 3 px dot centred there has
 its left edge at 12 + 1.5. At 13 px the dot sat 0.5 px right of centre at every size; at 13.5 px the
-measured error is 0. Her vertical numbers hold: the dot's centre is 0.11 px from the centre of a real
-"·" glyph at 1440 and 390, 0.7 px at 320.
+measured error is 0. Her vertical numbers hold at `gap-y-1`: the dot's centre is 0.11 px from the centre of a real
+"·" glyph at 1440 and 390, 0.7 px at 320 (the `li` box, so the row gap doesn't enter).
 
-I kept `gap-y-2`. Iris's item 1 (`gap-y-1`) is a separate change that Quill's pick leaves out.
+The Stack `ul` keeps main's `gap-y-1` (Iris's item 1 shipped already); the PR adds only `overflow-hidden` and the dot. A first build of this PR wrongly had `gap-y-2`; Lens caught it and it was restored, and everything below was re-measured at `gap-y-1` (row pitch 32.8 px).
 
 ## Verified in a real browser (agent-browser, session `forge`, `next dev` on 3341)
 

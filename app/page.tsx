@@ -84,7 +84,7 @@ export default function Home() {
             {/* Plain words on a wrapping line. The dot between tools is drawn, not typed, so no
             separator text ends up inside an item. Each item draws a dot in the gap before it, and
             the list clips the one that falls left of a row's first item. */}
-            <ul className="flex flex-wrap gap-x-6 gap-y-2 overflow-hidden">
+            <ul className="flex flex-wrap gap-x-6 gap-y-1 overflow-hidden">
               {profile.stack.map((tool) => (
                 <li
                   key={tool}
