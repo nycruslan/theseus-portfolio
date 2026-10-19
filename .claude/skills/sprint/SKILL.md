@@ -86,8 +86,9 @@ which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path s
 `git remote get-url origin` and write it out in each command. Pass long text as a file.
 - Open the PR right after the branch's first push, always with
   `node .studio/open-pr.mjs --head <branch> --title "…" --body .studio/sprint/<n>/pr.md`, run on
-  its own with the Bash timeout at 5 minutes (300000 ms), never with a `gh api …/pulls` call: the
-  team's checks app opens it, so the owner can approve it, and the script sets the title and body.
+  its own with the Bash timeout at 5 minutes (300000 ms), never by POSTing to
+  `repos/<owner>/<repo>/pulls` yourself: the team's checks app opens it, so the owner can approve
+  it, and the script sets the title and body.
   If the app's PR doesn't come, the script opens it under the owner's login itself and says so; say
   that in your report. The pre-flight knows a sprint is in flight by its open PR, and a branch
   without one only for 45 minutes after its last commit. Put "Work in progress" at the top of the
