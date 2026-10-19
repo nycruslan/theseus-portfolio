@@ -164,7 +164,7 @@ test("keeps only the whitelisted parts of a tool result", async () => {
   assert.equal(byId.toolu_04.tool_response, undefined);
 });
 
-test("forwards only the PR's URL from opening it through REST or merging it with merge.mjs", async () => {
+test("forwards only the PR's URL from opening it through REST or open-pr.mjs, or merging it with merge.mjs", async () => {
   const url = "https://github.com/nycruslan/theseus-portfolio/pull/14";
   // What `gh api …/pulls` prints: the whole PR, whose body may link other PRs.
   const opened = JSON.stringify({
@@ -198,6 +198,17 @@ test("forwards only the PR's URL from opening it through REST or merging it with
       "node .studio/merge.mjs 14",
       `Waiting for CI on PR #14 at abc1234: check still running; 0 of 1 done (0:15 of 9:00).\nMerged PR #14 (abc1234) as def5678: ${url}\n`,
     ),
+    bash(
+      "app",
+      "node .studio/open-pr.mjs --head sprint/3-x --title 'Sprint 3' --body .studio/sprint/3/pr.md",
+      `Opened PR #14 through the checks app, so the owner can approve it: ${url}\n`,
+    ),
+    // A PR that was already open: open-pr.mjs opened nothing, so there's no opening to show.
+    bash(
+      "kept",
+      "node .studio/open-pr.mjs --head sprint/3-x --title 'Sprint 3' --body .studio/sprint/3/pr.md",
+      `PR #14 was already open from sprint/3-x; it has the new title and body: ${url}\n`,
+    ),
     // A run that didn't merge, whose command succeeded anyway: no URL, so no merge to show.
     bash(
       "refused",
@@ -210,9 +221,10 @@ test("forwards only the PR's URL from opening it through REST or merging it with
   const byId = Object.fromEntries(
     posts.map((post) => [post.tool_use_id, post]),
   );
-  for (const id of ["open", "short", "merge"]) {
+  for (const id of ["open", "short", "app", "merge"]) {
     assert.deepEqual(byId[id].tool_response, { prUrl: url }, id);
   }
+  assert.equal(byId.kept.tool_response, undefined);
   assert.equal(byId.refused.tool_response, undefined);
   assert.equal(byId.read.tool_response, undefined);
   assert.equal(byId.echo.tool_response, undefined);

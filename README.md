@@ -21,6 +21,7 @@ a cloud routine. Every step streams live to the Studio.
 | The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
+| How Atlas opens a PR (through the checks app, so the owner can approve it) | [`.studio/open-pr.mjs`](.studio/open-pr.mjs) |
 | How Atlas merges (waits, then squash-merges) | [`.studio/merge.mjs`](.studio/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
 | What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
@@ -34,10 +35,10 @@ a cloud routine. Every step streams live to the Studio.
 - a pull request, and the owner's review wherever `.github/CODEOWNERS` names them;
 - `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
 - `gate` (the team's checks app): it holds a PR that touches an owner path, changes
-  `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner decides
-  it. The team's PRs are under the owner's login, and nobody can approve their own PR, so the owner
-  decides those by merging them with the bypass; anyone else's PR needs the owner's approving
-  review of its current head;
+  `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner approves
+  its current head. The checks app opens the team's PRs (`.github/workflows/open-pr.yml`), so the
+  owner can approve them and merge them with the usual button. A PR under the owner's own login
+  can't be approved by them (nobody can approve their own PR), so they decide it with the bypass;
 - `lens` (the checks app): Claude Code reviews the PR as Lens and the check passes only on ship. A
   push that only touches the team's notes (the sprint folder's `.md` files and `retro.json`,
   `STATE.md`, `ROADMAP.md`) keeps the last ship.
@@ -72,9 +73,10 @@ all of them.
 **The residual risk.** In the cloud, every GitHub call goes through Claude's GitHub proxy with the
 owner's connection, git pushes included, whatever token the session holds: a deliberately fake
 token was answered as the owner (tested 2026-10-17). So a session can do anything the owner can,
-the admin bypass included. `merge.mjs` refuses a PR whose required checks didn't pass, the deny
-rules block the admin endpoints and `gh pr merge`, and every merge goes on air in the Studio and
-in GitHub's audit log, but none of that stops a session set on misusing it. On a laptop the same
+approving a PR and the admin bypass included. `merge.mjs` refuses a PR whose required checks didn't
+pass or that `gate` passed only on the owner's approval; the deny rules block the admin endpoints
+and `gh pr merge`; and every merge goes on air in the Studio and in GitHub's audit log. None of
+that stops a session set on misusing it. On a laptop the same
 holds for the owner's own `gh` login.
 
 ## Setup (the owner, once, in this order)
@@ -104,7 +106,8 @@ holds for the owner's own `gh` login.
    - "Require a pull request before merging": keep 0 approvals, and tick "Require review from Code
      Owners" and "Dismiss stale pull request approvals when new commits are pushed".
    - Bypass list: add the Repository admin role, set to "For pull requests only". That lets you
-     merge your own PRs (no direct pushes).
+     merge your own PRs (no direct pushes). The team's PRs come from the checks app: approve
+     those and merge them with the usual button, which keeps every required check.
 8. **Check code-owner review.** GitHub doesn't document how code-owner review behaves with 0
    approvals. A team PR that touches only `app/` should merge without your review, and one that
    touches `.claude/` should wait for you. If every PR waits, untick "Require review from Code

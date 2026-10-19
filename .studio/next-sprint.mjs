@@ -8,8 +8,9 @@
 //   owner's connection (tested 2026-10-17). So the rules hold through gate, Lens, merge.mjs and
 //   the guard, not through a separate account.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
-//   whether it waits for the owner: as the gate holds it, it carries needs-owner now or ever did,
-//   and the owner hasn't approved its head.
+//   whether it waits for the owner: it carries needs-owner now or ever did. It waits until the
+//   owner merges or closes it, approved or not, since merge.mjs leaves a PR the owner's approval
+//   released to the owner.
 // - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
 //   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
 //   sprint/<n>-…). next is one past the highest of them.
@@ -31,10 +32,13 @@
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
-import { approvedByOwner, carriedNeedsOwner } from "./gate.mjs";
+import { carriedNeedsOwner } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+// The checks app opens the team's PRs (.github/workflows/open-pr.yml). GitHub calls it no
+// association at all, and a bot's login, with its [bot], is one no person can take.
+const CHECKS_APP = "theseus-checks[bot]";
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
@@ -56,10 +60,11 @@ try {
 }
 
 function preflight(repo) {
-  const { default_branch: base = "main", owner } = api(`repos/${repo}`);
+  const { default_branch: base = "main" } = api(`repos/${repo}`);
   // The repository is public, so anyone can open a PR from a fork with a branch named sprint/<n>.
-  // Only the team's own PRs count: a branch in this repository, opened by the owner, a member or a
-  // collaborator. GitHub treats repository names as case-insensitive, so they're compared that way.
+  // Only the team's own PRs count: a branch in this repository, opened by the owner, a member, a
+  // collaborator or the team's checks app (open-pr.mjs). GitHub treats repository names as
+  // case-insensitive, so they're compared that way.
   // Otherwise a stranger's PR could have Atlas check out its code, stand down, or skip numbers.
   // The title is free text a visitor can write, so it stays out of what Atlas is told.
   const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
@@ -72,14 +77,7 @@ function preflight(repo) {
         branch: pr.head.ref,
         head: pr.head.sha,
         updatedAt: pr.updated_at,
-        needsOwner:
-          carriedNeedsOwner({ repo, number: pr.number, labels }) &&
-          !approvedByOwner({
-            repo,
-            number: pr.number,
-            owner: owner.login,
-            head: pr.head.sha,
-          }),
+        needsOwner: carriedNeedsOwner({ repo, number: pr.number, labels }),
         url: pr.html_url,
       };
     });
@@ -136,9 +134,9 @@ function freshBranches(repo, branches, open, closed) {
 
 // The team's own sprint PRs, as GitHub lists them.
 function ours(repo) {
-  return ({ head, author_association: association }) =>
+  return ({ head, author_association: association, user }) =>
     head?.repo?.full_name?.toLowerCase() === repo.toLowerCase() &&
-    TRUSTED.has(association) &&
+    (TRUSTED.has(association) || user?.login === CHECKS_APP) &&
     SPRINT_BRANCH.test(head?.ref ?? "");
 }
 

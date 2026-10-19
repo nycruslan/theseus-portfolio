@@ -10,6 +10,7 @@ const pr = (number, branch, labels = [], from = {}) => ({
   number,
   title: `PR ${number}`,
   author_association: from.association ?? "OWNER",
+  user: { login: from.author ?? "nycruslan" },
   head: {
     ref: branch,
     sha: `${number}`.padStart(40, "0"),
@@ -149,6 +150,11 @@ test("ignores sprint-named PRs from forks and strangers, and never repeats a PR'
         pr(20, "sprint/7-takeover", [], { repo: "stranger/theseus-portfolio" }),
         pr(21, "sprint/8-takeover", [], { association: "NONE" }),
         pr(22, "sprint/9-takeover", [], { association: "CONTRIBUTOR" }),
+        // A person can't take a bot's login, but another app's bot is still a stranger.
+        pr(23, "sprint/10-takeover", [], {
+          association: "NONE",
+          author: "other-app[bot]",
+        }),
       ],
     }),
   );
@@ -156,7 +162,26 @@ test("ignores sprint-named PRs from forks and strangers, and never repeats a PR'
   assert.equal(state.highest.prs, 0);
   assert.equal(state.next, 2);
   assert.equal(state.action.do, "start");
-  assert.doesNotMatch(JSON.stringify(state), /PR 2[0-2]/);
+  assert.doesNotMatch(JSON.stringify(state), /PR 2[0-3]/);
+});
+
+test("counts a sprint PR the team's checks app opened", () => {
+  // open-pr.mjs has the app open the team's PRs; GitHub gives the app no association.
+  const { state } = preflight(
+    github({
+      pulls: [
+        pr(9, "sprint/1-tokens", [], {
+          association: "NONE",
+          author: "theseus-checks[bot]",
+        }),
+      ],
+    }),
+  );
+  assert.deepEqual(
+    state.open.map(({ number }) => number),
+    [9],
+  );
+  assert.equal(state.action.do, "continue");
 });
 
 test("counts the team's own PR whatever the case of the repository's name", () => {
@@ -242,7 +267,7 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
   assert.equal(state.action.pr, 9);
 });
 
-test("a PR whose head the owner approved is continued", () => {
+test("a held PR waits for the owner even once they approved its head: they merge it", () => {
   const approval = {
     user: { login: "nycruslan" },
     state: "APPROVED",
@@ -255,8 +280,9 @@ test("a PR whose head the owner approved is continued", () => {
       reviews: { 9: [approval] },
     }),
   );
-  assert.equal(state.open[0].needsOwner, false);
-  assert.equal(state.action.do, "continue");
+  assert.equal(state.open[0].needsOwner, true);
+  assert.equal(state.action.do, "stand down");
+  assert.equal(state.action.pr, 9);
 });
 
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {

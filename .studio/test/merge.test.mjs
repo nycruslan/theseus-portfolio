@@ -176,6 +176,26 @@ test("refuses without asking GitHub when a required check failed: the owner's by
   }
 });
 
+test("leaves a PR that gate passed on the owner's approval to the owner", () => {
+  // A session acts as the owner, so it could have posted that approval itself.
+  const released = { ...done("gate"), external_id: "owner-approved" };
+  const { code, stderr, merges } = merge(
+    github({ checks: [done("check"), released, done("lens")] }),
+  );
+  assert.equal(code, 1);
+  assert.equal(merges.length, 0);
+  assert.match(
+    stderr,
+    /NO-GO for PR #12: gate passed on the owner's approval, so the owner merges it\./,
+  );
+  // The same mark from another app doesn't count: only the named app's run is gate.
+  const other = {
+    ...done("gate", "success", 5, { id: 99, slug: "someone" }),
+    external_id: "owner-approved",
+  };
+  assert.equal(merge(github({ checks: [...GREEN, other] })).code, 0);
+});
+
 test("counts a required check only from the app the rules name", () => {
   const impostor = done("lens", "success", 5, { id: 99, slug: "someone" });
   const { code, stderr, merges } = merge(

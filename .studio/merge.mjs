@@ -1,6 +1,7 @@
 // `node .studio/merge.mjs <number>`: waits until GitHub says the sprint PR can merge, then
 // squash-merges the head it checked. It refuses itself when a required check failed: in the cloud
-// GitHub calls act as the owner, whose admin bypass would let GitHub merge it anyway. It
+// GitHub calls act as the owner, whose admin bypass would let GitHub merge it anyway. For the same
+// reason it leaves a PR that gate passed only on the owner's approval to the owner. It
 // exists because the cloud's proxy refuses GraphQL, and with it `gh pr merge` and auto-merge, so
 // it's REST only (github.mjs).
 // It reads the checks to wait for from the base branch's active rules (protect-main requires
@@ -15,6 +16,7 @@
 // tool's timeout at 10 minutes.
 
 import { setTimeout as sleep } from "node:timers/promises";
+import { OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 import { broadcast } from "./post.mjs";
 
@@ -72,7 +74,7 @@ broadcast({
     target: "merge",
     pr: number,
     head,
-    items: checks.map(({ app, ...check }) => check),
+    items: checks.map(({ app, released, ...check }) => check),
     pass: Boolean(merged),
   },
 });
@@ -113,6 +115,10 @@ function refusal() {
   const failed = failing();
   if (failed.length) {
     return `${failed.join(", ")} didn't pass on ${head.slice(0, 7)}`;
+  }
+  const owners = releasedByOwner();
+  if (owners.length) {
+    return `${owners.join(", ")} passed on the owner's approval, so the owner merges it`;
   }
   if (["dirty", "draft", "behind", "unknown"].includes(pr.mergeable_state)) {
     return `GitHub says "${pr.mergeable_state}" (${line()})`;
@@ -162,6 +168,20 @@ function failing() {
   return [...new Set(failed.map(({ context }) => context))];
 }
 
+// The required checks that passed only because the owner approved the head (gate.mjs). A session
+// acts as the owner, so it could have posted that approval itself: the owner merges such a PR.
+// Only a check run carries the mark, so unlike unreported() and failing() a commit status (no app)
+// never counts here.
+function releasedByOwner() {
+  const released = required.filter(({ context, integration_id: app }) =>
+    checks.some(
+      (check) =>
+        check.who === context && (!app || check.app === app) && check.released,
+    ),
+  );
+  return [...new Set(released.map(({ context }) => context))];
+}
+
 // The latest run of each check from each app on the commit (an older one may be a superseded,
 // cancelled run), plus the commit statuses, such as Vercel's preview.
 function checksOn(sha) {
@@ -178,10 +198,13 @@ function checksOn(sha) {
     cwd,
   });
   return [
-    ...[...latest.values()].map(({ name, status, conclusion, app }) => ({
-      ...item(name, status === "completed" ? conclusion : "pending"),
-      app: app?.id,
-    })),
+    ...[...latest.values()].map(
+      ({ name, status, conclusion, app, external_id: external }) => ({
+        ...item(name, status === "completed" ? conclusion : "pending"),
+        app: app?.id,
+        released: external === OWNER_APPROVED,
+      }),
+    ),
     ...statuses.map(({ context, state }) => item(context, state)),
   ];
 }
