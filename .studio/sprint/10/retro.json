@@ -1,0 +1,79 @@
+{
+  "sprint": 10,
+  "pr": 35,
+  "goal": "Roadmap item: the subtle 3D hero, Part B: build the WebGL upgrade on the contract the owner accepted in #32",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner",
+  "fixRounds": 1,
+  "minutes": 105,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "sonnet",
+      "tokens": 243390,
+      "minutes": 48
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 312603,
+      "minutes": 41
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 125246,
+      "minutes": 12
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 1335202,
+    "important": 1,
+    "actedOn": 2,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "The contract's harness premise failed on CI's browser: Chromium 156 grants failIfMajorPerformanceCaveat in its software renderer, which the spike measured 141 refusing, so C17 went red on its first clause and the PR became an owner decision",
+      "evidence": "CI check on d5c2a06 (refused = [false, false, false]); .studio/sprint/10/contract-change.md"
+    },
+    {
+      "what": "Lens's first run read the PR body before Atlas's update and labels landed, so its one Important finding was already fixed and still cost a full re-review (862,843 tokens)",
+      "evidence": "Lens review on c2829a1 quotes the old 'unchanged' body; body PATCHed and labels added minutes before"
+    },
+    {
+      "what": "The sandbox still runs Chromium 141 behind a symlink named for 1248, so builders proved every check on a browser that behaves differently from CI's on the very premise this sprint rests on",
+      "evidence": ".studio/sprint/10/probe-checks.md, 'For the retro'; Pixel found --use-angle=swiftshader makes 141 grant the flag like 156"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Write the PR body (results, owner section, labels) before adding the review label, or have lens.yml re-read the body at review time",
+      "moves": "Lens runs spent on a stale body (1 here, 862,843 tokens)"
+    },
+    {
+      "change": "Setup bug: install the Chromium revision @playwright/test pins in the cloud image (or add --use-angle=swiftshader to a local playwright profile)",
+      "moves": "CI-only contract surprises on browser-sensitive checks (1 here)"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "Decide PR #35's two items (the caveat amendment, a frozen canvas on resize or scheme change) by merging or saying otherwise"
+    },
+    {
+      "who": "Pixel",
+      "what": "Lens nit: mountHull returns a teardown and HeroUpgrade's effect cleanup calls it (components/hero-upgrade.tsx:74)"
+    },
+    {
+      "who": "Pixel",
+      "what": "Iris item 3: light ticks along the top seam near the stem head at devicePixelRatio 2 (.studio/sprint/10/review-iris.md)"
+    },
+    {
+      "who": "Probe",
+      "what": "C14.1 draw growth is +15 against a floor of 10 on 141; watch it on CI"
+    }
+  ]
+}
