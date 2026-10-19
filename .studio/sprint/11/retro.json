@@ -11,7 +11,13 @@
     { "role": "product-owner", "model": "opus", "tokens": 52509, "minutes": 1 },
     { "role": "engineer", "model": "opus", "tokens": 160930, "minutes": 7 }
   ],
-  "lens": { "runs": 2, "tokens": 149260, "important": 1, "actedOn": 1, "nits": 3 },
+  "lens": {
+    "runs": 2,
+    "tokens": 149260,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 3
+  },
   "wentWrong": [
     {
       "what": "Forge pasted the recipe's whole className, which predated Iris's item 1, and loosened the Stack's row gap from gap-y-1 to gap-y-2, costing a fix round",
@@ -29,8 +35,17 @@
     }
   ],
   "followUps": [
-    { "who": "Forge", "what": "Lens nit: the Stack dot vanishes in forced colors; add forced-colors:before:bg-[CanvasText] (app/page.tsx:91)" },
-    { "who": "Forge", "what": "Lens nit: overflow-hidden on the Stack ul clips every side; narrow it or comment why (app/page.tsx:87)" },
-    { "who": "Atlas", "what": "Decide whether the next sprint starts the L item 'Watch the team build' (Iris's direction, then a contract)" }
+    {
+      "who": "Forge",
+      "what": "Lens nit: the Stack dot vanishes in forced colors; add forced-colors:before:bg-[CanvasText] (app/page.tsx:91)"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens nit: overflow-hidden on the Stack ul clips every side; narrow it or comment why (app/page.tsx:87)"
+    },
+    {
+      "who": "Atlas",
+      "what": "Decide whether the next sprint starts the L item 'Watch the team build' (Iris's direction, then a contract)"
+    }
   ]
 }
