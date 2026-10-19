@@ -170,6 +170,8 @@ function failing() {
 
 // The required checks that passed only because the owner approved the head (gate.mjs). A session
 // acts as the owner, so it could have posted that approval itself: the owner merges such a PR.
+// Only a check run carries the mark, so unlike unreported() and failing() a commit status (no app)
+// never counts here.
 function releasedByOwner() {
   const released = required.filter(({ context, integration_id: app }) =>
     checks.some(
