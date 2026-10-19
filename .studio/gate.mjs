@@ -58,10 +58,8 @@ export function ownerApproved(reviews, owner, head) {
 }
 
 /** Whether the owner's latest review approves the PR's head, read from GitHub. */
-export function approvedByOwner({ repo, number, owner, head, cwd }) {
-  const reviews = list(`repos/${repo}/pulls/${number}/reviews?per_page=100`, {
-    cwd,
-  });
+function approvedByOwner({ repo, number, owner, head }) {
+  const reviews = list(`repos/${repo}/pulls/${number}/reviews?per_page=100`);
   return ownerApproved(reviews, owner, head);
 }
 
