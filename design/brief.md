@@ -58,7 +58,8 @@ Iris proposes it; the owner decides. Candidates to weigh, not a decision:
   CSS scroll-driven animation is an enhancement only (no Firefox). Same-document View Transitions
   work in every major browser since October 2025, so use them between pages.
 - **Skills the team has for this:** `threejs-*`, `web-design-guidelines`, `impeccable`, and with
-  Chrome DevTools, `debug-optimize-lcp` and `a11y-debugging`.
+  Chrome DevTools, `debug-optimize-lcp` and `a11y-debugging`. The DevTools server runs pinned, in a
+  throwaway profile (`.studio/chrome-devtools-mcp.sh`), whatever its skill says about `@latest`.
 
 ## How it gets built
 

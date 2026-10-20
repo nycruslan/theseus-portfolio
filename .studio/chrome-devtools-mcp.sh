@@ -1,7 +1,9 @@
 #!/bin/bash
 # Starts Chrome DevTools MCP (.mcp.json): performance traces, Lighthouse and accessibility audits
-# for Pixel, Iris and Probe (the chrome-devtools, debug-optimize-lcp and a11y-debugging skills).
-# Headless, in a throwaway profile, without usage statistics or CrUX lookups. A cloud session has
+# for Pixel and Iris (the chrome-devtools, debug-optimize-lcp and a11y-debugging skills). Headless,
+# in a throwaway profile, without usage statistics or CrUX lookups: these flags and the pinned
+# version stand, whatever the vendored chrome-devtools skill says about a persistent profile or
+# @latest. A cloud session has
 # no installed Chrome, so it drives the image's Chromium, the one agent-browser uses (install.sh);
 # a local session drives the stable Chrome. The version is pinned, as next-devtools-mcp's is.
 args=(--headless --isolated --no-usage-statistics --performanceCrux=false)

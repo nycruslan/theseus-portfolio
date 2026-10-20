@@ -7,7 +7,8 @@ description: Audits UI code against Vercel's Web Interface Guidelines, covering 
 
 The rules are in [guidelines.md](guidelines.md): Vercel's Web Interface Guidelines, pinned to one
 reviewed version so a review never runs on text nobody read (Vercel's own skill fetches them fresh
-on every run). Update the copy by hand.
+on every run). It isn't in `skills-lock.json`, which can't pin a fetched file: the pinned commit is
+in `guidelines.md`'s first line, and the copy is updated by hand.
 
 Read the files under review, or the ones a change touched, and check them against every rule that
 can apply. Report findings grouped by file as `file:line - issue`, as the guidelines' output format
