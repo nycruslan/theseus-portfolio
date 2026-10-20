@@ -197,16 +197,24 @@ test("counts the team's own PR whatever the case of the repository's name", () =
   assert.equal(state.action.do, "continue");
 });
 
-test("stands down when every open sprint PR waits for the owner, and otherwise continues one that doesn't", () => {
+test("keeps working beside one PR that waits for the owner, stands down at two, and otherwise continues one that doesn't", () => {
   const waiting = pr(12, "sprint/2-dark-mode", ["needs-owner"]);
-  const held = preflight(github({ pulls: [waiting] })).state;
+  // One waiting PR: a team keeps working while a review is pending, on something else.
+  const beside = preflight(github({ pulls: [waiting] })).state;
+  assert.equal(beside.action.do, "start");
+  assert.equal(beside.action.sprint, 3);
+  assert.equal(beside.action.waiting, 12);
+  assert.match(beside.action.say, /work that doesn't build on #12/);
+  // Two waiting PRs: the owner's queue is full, so nothing new starts.
+  const second = pr(13, "sprint/3-cards", ["needs-owner"]);
+  const held = preflight(github({ pulls: [waiting, second] })).state;
   assert.equal(held.action.do, "stand down");
   assert.equal(held.action.pr, 12);
   assert.match(
     held.action.say,
-    /PR #12 \(sprint\/2-dark-mode\) waits for the owner \(needs-owner\)\. Don't start a new sprint/,
+    /PR #12 \(sprint\/2-dark-mode\) waits for the owner \(needs-owner\) \(also open: #13\)\. Don't start a new sprint/,
   );
-  assert.equal(held.next, 3);
+  assert.equal(held.next, 4);
   const { state } = preflight(
     github({ pulls: [waiting, pr(14, "sprint/3-cards")] }),
   );
@@ -263,8 +271,8 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
     }),
   );
   assert.equal(state.open[0].needsOwner, true);
-  assert.equal(state.action.do, "stand down");
-  assert.equal(state.action.pr, 9);
+  assert.equal(state.action.do, "start");
+  assert.equal(state.action.waiting, 9);
 });
 
 test("a held PR waits for the owner even once they approved its head: they merge it", () => {
@@ -281,8 +289,36 @@ test("a held PR waits for the owner even once they approved its head: they merge
     }),
   );
   assert.equal(state.open[0].needsOwner, true);
-  assert.equal(state.action.do, "stand down");
-  assert.equal(state.action.pr, 9);
+  assert.equal(state.action.do, "start");
+  assert.equal(state.action.waiting, 9);
+});
+
+test("reminds the owner once a day about a PR that waits for them", () => {
+  const hoursAgo = (n) => new Date(Date.now() - n * 60 * 60_000).toISOString();
+  const waitingFor = (hours) =>
+    preflight(
+      github({
+        pulls: [
+          pr(12, "sprint/2-dark-mode", ["needs-owner"], {
+            updatedAt: hoursAgo(hours),
+          }),
+        ],
+      }),
+    ).state.remind;
+  assert.deepEqual(waitingFor(2), []);
+  assert.deepEqual(waitingFor(25), [
+    { number: 12, url: `https://github.com/${REPO}/pull/12`, days: 1 },
+  ]);
+  // Past the day's first heartbeat period, the next reminder waits for the next day.
+  assert.deepEqual(waitingFor(28), []);
+  assert.equal(waitingFor(49)[0].days, 2);
+  // A PR that doesn't wait for the owner is never a reminder.
+  const quiet = preflight(
+    github({
+      pulls: [pr(14, "sprint/3-cards", [], { updatedAt: hoursAgo(25) })],
+    }),
+  ).state;
+  assert.deepEqual(quiet.remind, []);
 });
 
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {
@@ -336,6 +372,19 @@ test("THESEUS_DAILY_SPRINTS sets the cap", () => {
   assert.deepEqual(state.daily, { merged: 5, cap: 5 });
   assert.equal(state.action.do, "stand down");
   assert.match(state.action.say, /the daily cap \(5\)/);
+});
+
+test("starts nothing beside a waiting PR once the day's cap is reached", () => {
+  const { state } = preflight(
+    github({
+      pulls: [pr(12, "sprint/2-dark-mode", ["needs-owner"])],
+      closed: today,
+    }),
+    { THESEUS_DAILY_SPRINTS: "5" },
+  );
+  assert.equal(state.action.do, "stand down");
+  assert.equal(state.action.pr, 12);
+  assert.match(state.action.say, /waits for the owner/);
 });
 
 test("leaves an open sprint PR that changed in the last 45 minutes to the run working on it", () => {

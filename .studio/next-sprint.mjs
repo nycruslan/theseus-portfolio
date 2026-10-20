@@ -23,9 +23,14 @@
 //   same work. A branch whose head a closed PR ended on is that PR's, merged or not, so the run
 //   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
 //   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
+// - remind: the PRs waiting for the owner that crossed another whole day of waiting since their
+//   last change within the last 3 hours, so one run a day (the heartbeat's period) reminds them.
+//   The owner was told about #35 once and it waited two days unnoticed.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
-//   every open one does or when the day's cap is reached, or start the next sprint, with its
-//   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
+//   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
+//   for the owner the team keeps working, on something that doesn't build on it, as a team does
+//   while a review is pending (it stood idle for two days behind #35); a second waiting PR stops
+//   new work. An open sprint PR is continued even at the cap: finishing work isn't starting it.
 //   One that changed in the last 45 minutes is left alone, since another run is most likely still
 //   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
 //   everything while an unopened sprint branch is that fresh.
@@ -44,6 +49,8 @@ const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
 const ACTIVE_MS = 45 * 60 * 1000;
+const HEARTBEAT_MS = 3 * 60 * 60 * 1000;
+const WAITING_CAP = 1;
 configure({ timeout: 20_000 });
 
 let repo;
@@ -103,6 +110,7 @@ function preflight(repo) {
     highest,
     next,
     daily: { merged: daily.merged, cap: daily.cap },
+    remind: reminders(open),
     action: action(open, unopened, next, daily),
   };
 }
@@ -176,6 +184,18 @@ function sprintFolders(repo, base) {
   }
 }
 
+// The waiting PRs whose wait, counted from their last change, crossed another whole day within the
+// last heartbeat period.
+function reminders(open) {
+  return open.flatMap(({ number, url, needsOwner, updatedAt }) => {
+    const waited = Date.now() - Date.parse(updatedAt);
+    const days = Math.floor(waited / DAY);
+    return needsOwner && days > 0 && waited % DAY < HEARTBEAT_MS
+      ? [{ number, url, days }]
+      : [];
+  });
+}
+
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
 function action(open, unopened, next, daily) {
   const [busy] = unopened;
@@ -210,6 +230,14 @@ function action(open, unopened, next, daily) {
   };
   if (!current) {
     const [first] = open;
+    if (open.length <= WAITING_CAP && daily.merged < daily.cap) {
+      return {
+        do: "start",
+        sprint: next,
+        waiting: first.number,
+        say: `PR #${first.number} (${first.branch}) waits for the owner. Start sprint ${next} on a branch named sprint/${next}-<slug>, on work that doesn't build on #${first.number}; if every candidate does, stand down with a short report.`,
+      };
+    }
     return {
       do: "stand down",
       pr: first.number,

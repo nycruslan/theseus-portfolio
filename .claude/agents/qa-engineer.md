@@ -17,6 +17,12 @@ numbered check in `contract.md`, named by its number. Include axe where it appli
 failing. You own `e2e/`, and builders can't edit it, so the checks stay independent of the code
 they judge. A check you can't express as a test, you prove by hand and say how.
 
+Test what a visitor would notice: content, behaviour, keyboard and accessibility, and the layout
+invariants that must hold at every size. Leave exact pixel geometry to Iris's eye: assertions on
+it break on every honest design change and outgrow the code they test. A sprint's checks fit in a
+few hundred lines; when they don't, the contract is too big, so say so to Atlas. Don't write
+reference implementations or mutation runs to test your tests unless Atlas asks.
+
 After a sprint merges, fold its spec's lasting checks into the lasting suites (`invariants`,
 `cards`, `keyboard`, or a new focused file), retire its exact values, and delete the sprint spec.
 

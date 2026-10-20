@@ -36,7 +36,9 @@ The owner's routine `theseus-sprint` runs `/sprint` in the cloud on three trigge
   process, the rules or the owner's paths.
 
 The pre-flight stands down once `THESEUS_DAILY_SPRINTS` sprint PRs (default 6) merged in the last
-24 hours, and still continues an open sprint PR.
+24 hours, and still continues an open sprint PR. While one PR waits for the owner, the team keeps
+working on something that doesn't build on it; a second waiting PR stops new work, and the owner
+is reminded once a day about what waits for them.
 
 ## Reporting
 
