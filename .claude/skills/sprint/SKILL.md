@@ -56,10 +56,10 @@ unsure, take the smaller lane.
 - **S: the diff fits in one sentence.** Brief one builder. The existing suite stays green. Then CI
   and Lens.
 - **M: a new section or component.** Write `contract.md` yourself, on one page: the outcome in a
-  sentence or two, a handful of numbered checks a visitor would notice, and what's out of scope. Ask Quill only when the
-  roadmap pick itself is unclear. Probe first writes the checks as failing Playwright tests in
-  `e2e/`, one per numbered check. The builder makes them pass. Then CI and Lens. For visual work,
-  Iris reviews the running site, and you post her report on the PR as advice.
+  sentence or two, a handful of numbered checks a visitor would notice, and what's out of scope. Ask
+  Quill only when the roadmap pick itself is unclear. Probe first writes the checks as failing
+  Playwright tests in `e2e/`, one per numbered check. The builder makes them pass. Then CI and Lens.
+  For visual work, Iris reviews the running site, and you post her report on the PR as advice.
 - **L: ambiguous or cross-cutting.** Quill writes `contract.md` in a PR of its own, labelled
   `needs-owner`; the owner accepts it by merging that PR. Iris gives direction when it brings new visual language. When two
   approaches compete and the call matters, run the `decide` skill. Then split the work into S and

@@ -23,22 +23,22 @@
 //   same work. A branch whose head a closed PR ended on is that PR's, merged or not, so the run
 //   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
 //   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
+// - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
+//   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
+//   for the owner the team keeps working, on something that neither repeats nor builds on it, as a
+//   team does while a review is pending (it stood idle for two days behind #35); a second waiting
+//   PR stops new work. An open sprint PR is continued even at the cap: finishing work isn't
+//   starting it. One that changed in the last 45 minutes is left alone, since another run is most
+//   likely still on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch
+//   collide. So is everything while an unopened sprint branch is that fresh.
 // - remind: the PRs waiting for the owner a day past their last commit and the team's last comment
 //   on them. The run that reminds the owner comments on each, which restarts its day, so the owner
 //   hears once a day while it waits. The owner was told about #35 once and it waited two days.
-// - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
-//   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
-//   for the owner the team keeps working, on something that doesn't build on it, as a team does
-//   while a review is pending (it stood idle for two days behind #35); a second waiting PR stops
-//   new work. An open sprint PR is continued even at the cap: finishing work isn't starting it.
 // - update: the PRs waiting for the owner that conflict with the base, as other sprints' close-outs
 //   edit the same notes, and that no run is on (quiet for 45 minutes). The run brings each up to
 //   date beside its action; one it can't (product code conflicts) it flags in a comment ending
 //   `theseus:conflict <head>`, and that head isn't listed again. Both lists read only the team's
 //   and the owner's comments (ownerQueue).
-//   One that changed in the last 45 minutes is left alone, since another run is most likely still
-//   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
-//   everything while an unopened sprint branch is that fresh.
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
