@@ -28,6 +28,7 @@ AGENTS.local.md @nycruslan
 # What the team is scored by, and the toolchain's settings. package.json's scripts are the
 # owner's too; `gate` checks those, since dependencies in the same file are the team's.
 /design/rubric.md @nycruslan
+/design/brief.md @nycruslan
 /design/calibration/ @nycruslan
 /skills-lock.json @nycruslan
 /biome.json @nycruslan

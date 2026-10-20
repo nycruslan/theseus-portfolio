@@ -7,6 +7,10 @@
     "next-devtools": {
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@0.4.0"]
+    },
+    "chrome-devtools": {
+      "command": "bash",
+      "args": [".studio/chrome-devtools-mcp.sh"]
     }
   }
 }

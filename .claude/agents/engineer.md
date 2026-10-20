@@ -4,7 +4,7 @@ description: Forge, a senior full-stack engineer. Owns a well-scoped piece of th
 model: sonnet
 memory: project
 effort: high
-skills: [next-dev-loop, vercel-react-best-practices, verify]
+skills: [next-dev-loop, vercel-react-best-practices, web-design-guidelines, verify]
 experimental:
   # Fix rounds resume this role after a review that can outlast the 5-minute default.
   cacheTtl: 1h
