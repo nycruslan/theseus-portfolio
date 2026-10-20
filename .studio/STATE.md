@@ -185,3 +185,18 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
     1–2). Before publishing any team file, check which of its fields stay true after the merge.
   - A prototype fed by the real data settled two calls (show every item; no status word) that a written
     direction would have guessed.
+
+## Sprint 13: the build log's route (PR #39)
+
+- **Outcome:** PR A of the build log, on the contract the owner accepted by merging #37. Probe pushed
+  `e2e/sprints.spec.ts` (C1–C12, plus the C13.1 scan) first. It was red on CI, and 49 mutants against a
+  reference build showed it catches each fault the contract names. Forge then built `lib/sprint-log.ts`,
+  `/sprints` (static) and its metadata in one pass, with the full suite green. Lens said ship on the first
+  run (two nits). Iris said ship at 7.7, with one cheap finding left for PR B: the PR link's focus ring
+  runs into the meta dot.
+- **Lesson:**
+  - A contract measured on real data plus specs proven against a reference build gave a five-minute
+    build with no fix round. The cost moved to the specs (44 minutes), so cap the mutants.
+  - Under `cacheComponents`, a sync `node:fs` read in a Server Component prerenders. `readdirSync(dir)` on
+    a runtime path needs `/* turbopackIgnore: true */` on the argument, or Turbopack traces the whole
+    project.

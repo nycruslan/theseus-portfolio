@@ -4,6 +4,9 @@
 /** The production URL. Social cards, the sitemap and canonical links point here. */
 export const SITE_URL = "https://theseus-portfolio.vercel.app";
 
+/** The team's repository, where every sprint's pull request lives. Not the owner's content. */
+export const REPO_URL = "https://github.com/nycruslan/theseus-portfolio";
+
 /**
  * Each scheme's token colors, the source for everything outside CSS: the address-bar colors, the
  * social card, /favicon.ico and app/icon.svg (an SVG file can't import them, so it repeats them).
