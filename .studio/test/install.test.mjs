@@ -159,6 +159,19 @@ test("uses Playwright's own download of the wanted build when it's there", () =>
   assert.equal(existsSync(shim), false);
 });
 
+test("doesn't take a resumed session's shim for Playwright's own download", () => {
+  const images = image("1194");
+  const shim = join(tempDir(), "shim");
+  mkdirSync(join(shim, "chromium_headless_shell-1248"), { recursive: true });
+  const { code, browsers, stderr } = install({
+    images,
+    env: { PLAYWRIGHT_BROWSERS_PATH: shim, THESEUS_BROWSERS_SHIM: shim },
+  });
+  assert.equal(code, 0);
+  assert.doesNotMatch(stderr, /its own download/);
+  assert.equal(browsers, shim);
+});
+
 test("puts the project's own tools on PATH and points git at the repo's hooks", () => {
   const { code, path, hooks, project } = install({ repo: true });
   assert.equal(code, 0);

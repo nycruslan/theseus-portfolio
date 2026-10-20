@@ -52,6 +52,9 @@ download_shell() {
 playwright_browser() {
   local want source exe platform
   # The exact build, from the environment's setup script or an earlier session: what CI runs.
+  # A resumed session still points at the shim it got last time, which isn't that build: decide
+  # afresh, from where Playwright looks by default.
+  [ "$PLAYWRIGHT_BROWSERS_PATH" = "$SHIM" ] && unset PLAYWRIGHT_BROWSERS_PATH
   want=$(wanted_shell)
   if [ -n "$want" ] && [ -d "$want" ]; then
     say "Playwright uses its own download ($want)."
