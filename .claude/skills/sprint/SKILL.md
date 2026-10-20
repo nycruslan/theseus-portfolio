@@ -22,7 +22,8 @@ and what to do (`action`):
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`, made from the latest
   `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main. When
   a PR waits for the owner (`waiting`), keep working as a team does while a review is pending:
-  pick work that doesn't build on that PR, or stand down if every candidate does.
+  pick work that neither repeats nor builds on that PR (its roadmap item isn't ticked on main
+  yet), or stand down if every candidate does.
 
 Two lists come beside the action, and neither stops it:
 - `update`: PRs waiting for the owner that conflict with main, usually in the notes another
