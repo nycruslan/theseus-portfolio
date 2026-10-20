@@ -8,11 +8,27 @@
   "fixRounds": 0,
   "minutes": 56,
   "agents": [
-    { "role": "qa-engineer", "model": "inherit", "tokens": 211733, "minutes": 44 },
+    {
+      "role": "qa-engineer",
+      "model": "inherit",
+      "tokens": 211733,
+      "minutes": 44
+    },
     { "role": "engineer", "model": "inherit", "tokens": 116710, "minutes": 5 },
-    { "role": "design-director", "model": "inherit", "tokens": 92231, "minutes": 6 }
+    {
+      "role": "design-director",
+      "model": "inherit",
+      "tokens": 92231,
+      "minutes": 6
+    }
   ],
-  "lens": { "runs": 1, "tokens": 513144, "important": 0, "actedOn": 0, "nits": 2 },
+  "lens": {
+    "runs": 1,
+    "tokens": 513144,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 2
+  },
   "wentWrong": [
     {
       "what": "Writing the checks took nine times as long as the build: 49 mutant builds proved the spec bites, but each one cost a full build",
@@ -34,8 +50,17 @@
     }
   ],
   "followUps": [
-    { "who": "Forge", "what": "PR B (sprint 14): wrap each meta-line dot in a span with mx-1 so the PR link's ring clears it (Iris item 1); Probe confirms C6 and C8 still pass" },
-    { "who": "Forge", "what": "Lens nits: lib/sprint-log.ts header comment names turbopackIgnore on both reads but only readdirSync has it; components/sprint-entry.tsx:63 keys items by text" },
-    { "who": "Quill", "what": "Log length: about 650 px per entry at 320; Iris wants a quiet grouping past about 30 entries (review-iris.md item 4)" }
+    {
+      "who": "Forge",
+      "what": "PR B (sprint 14): wrap each meta-line dot in a span with mx-1 so the PR link's ring clears it (Iris item 1); Probe confirms C6 and C8 still pass"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens nits: lib/sprint-log.ts header comment names turbopackIgnore on both reads but only readdirSync has it; components/sprint-entry.tsx:63 keys items by text"
+    },
+    {
+      "who": "Quill",
+      "what": "Log length: about 650 px per entry at 320; Iris wants a quiet grouping past about 30 entries (review-iris.md item 4)"
+    }
   ]
 }
