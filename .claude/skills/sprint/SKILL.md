@@ -23,9 +23,14 @@ and what to do (`action`):
   `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main. When
   a PR waits for the owner (`waiting`), keep working as a team does while a review is pending:
   pick work that doesn't build on that PR, or stand down if every candidate does.
+- `update`: a PR waiting for the owner conflicts with main, usually in the notes another sprint's
+  close-out changed. Merge `origin/main` into its branch, keep both sides of STATE.md and
+  ROADMAP.md, push, and once its checks pass, tell the owner its head changed and needs their
+  approval again. Start nothing else.
 
-If `remind` lists PRs, they have waited for the owner another whole day: send one push
-notification naming each, how long it has waited, and what it needs from them.
+If `remind` lists PRs, they have waited a day for the owner: send one push notification naming
+each and what it needs from them, then comment on each PR that you reminded the owner, which
+restarts its day.
 
 It also says which account GitHub calls act as (`actingAs`; in the cloud, the owner). If it exits
 1 because it can't read GitHub, don't start a sprint: report it and stop.

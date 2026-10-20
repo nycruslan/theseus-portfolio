@@ -23,14 +23,15 @@
 //   same work. A branch whose head a closed PR ended on is that PR's, merged or not, so the run
 //   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
 //   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
-// - remind: the PRs waiting for the owner that crossed another whole day of waiting since their
-//   last change within the last 3 hours, so one run a day (the heartbeat's period) reminds them.
-//   The owner was told about #35 once and it waited two days unnoticed.
+// - remind: the PRs waiting for the owner that haven't changed for a day. The run that reminds
+//   the owner comments on each, which restarts its day, so the owner hears once a day while it
+//   waits. The owner was told about #35 once and it waited two days unnoticed.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
 //   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
 //   for the owner the team keeps working, on something that doesn't build on it, as a team does
 //   while a review is pending (it stood idle for two days behind #35); a second waiting PR stops
-//   new work. An open sprint PR is continued even at the cap: finishing work isn't starting it.
+//   new work. A waiting PR in conflict with the base is brought up to date first (`update`). An
+//   open sprint PR is continued even at the cap: finishing work isn't starting it.
 //   One that changed in the last 45 minutes is left alone, since another run is most likely still
 //   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
 //   everything while an unopened sprint branch is that fresh.
@@ -49,7 +50,6 @@ const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
 const ACTIVE_MS = 45 * 60 * 1000;
-const HEARTBEAT_MS = 3 * 60 * 60 * 1000;
 const WAITING_CAP = 1;
 configure({ timeout: 20_000 });
 
@@ -88,6 +88,14 @@ function preflight(repo) {
         url: pr.html_url,
       };
     });
+  // A PR waiting for the owner can fall into conflict as other sprints merge (their close-outs
+  // edit the same notes), and nobody else will bring it up to date. GitHub says so only on the
+  // PR itself; "unknown" while it works it out counts as no conflict, so a later run sees it.
+  for (const pr of open) {
+    pr.conflicts =
+      pr.needsOwner &&
+      api(`repos/${repo}/pulls/${pr.number}`).mergeable_state === "dirty";
+  }
   const branches = list(`repos/${repo}/branches?per_page=100`);
   const highest = {
     main: highestOf(sprintFolders(repo, base)),
@@ -184,16 +192,14 @@ function sprintFolders(repo, base) {
   }
 }
 
-// The waiting PRs whose wait, counted from their last change, crossed another whole day within the
-// last heartbeat period.
+// The waiting PRs that haven't changed for a day: the reminder's own comment restarts the day.
 function reminders(open) {
-  return open.flatMap(({ number, url, needsOwner, updatedAt }) => {
-    const waited = Date.now() - Date.parse(updatedAt);
-    const days = Math.floor(waited / DAY);
-    return needsOwner && days > 0 && waited % DAY < HEARTBEAT_MS
-      ? [{ number, url, days }]
-      : [];
-  });
+  return open
+    .filter(
+      ({ needsOwner, updatedAt }) =>
+        needsOwner && Date.now() - Date.parse(updatedAt) >= DAY,
+    )
+    .map(({ number, url }) => ({ number, url }));
 }
 
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
@@ -221,6 +227,14 @@ function action(open, unopened, next, daily) {
       say: `No sprint is open. Start sprint ${next} on a branch named sprint/${next}-<slug>.`,
     };
   }
+  const conflicted = open.find(({ conflicts }) => conflicts);
+  if (conflicted) {
+    return {
+      do: "update",
+      pr: conflicted.number,
+      say: `PR #${conflicted.number} (${conflicted.branch}) waits for the owner but conflicts with main: merge origin/main into its branch, keep both sides of the notes (STATE.md, ROADMAP.md), push, and tell the owner its head changed, so it needs their approval again. Start nothing else.`,
+    };
+  }
   const current = open.find(({ needsOwner }) => !needsOwner);
   const others = (shown) => {
     const rest = open.filter((one) => one !== shown);
@@ -230,7 +244,14 @@ function action(open, unopened, next, daily) {
   };
   if (!current) {
     const [first] = open;
-    if (open.length <= WAITING_CAP && daily.merged < daily.cap) {
+    if (open.length <= WAITING_CAP && daily.merged >= daily.cap) {
+      return {
+        do: "stand down",
+        pr: first.number,
+        say: `PR #${first.number} (${first.branch}) waits for the owner, and ${daily.merged} sprints merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
+      };
+    }
+    if (open.length <= WAITING_CAP) {
       return {
         do: "start",
         sprint: next,
