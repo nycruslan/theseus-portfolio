@@ -54,8 +54,15 @@ newest() {
 
 # Downloads the build this Playwright wants into its own folder; true once it's there. The proxy
 # lets it through only when the environment's network access allows Playwright's hosts.
+# It always downloads to Playwright's own cache, whatever an earlier start pointed it at: never
+# into the image.
 download_shell() {
-  pnpm exec playwright install --only-shell chromium >/dev/null 2>&1 && [ -d "$(wanted_shell)" ]
+  (
+    unset PLAYWRIGHT_BROWSERS_PATH
+    pnpm exec playwright install --only-shell chromium >/dev/null 2>&1 && [ -d "$(wanted_shell)" ]
+  ) || return 1
+  [ -n "$PLAYWRIGHT_BROWSERS_PATH" ] && forget PLAYWRIGHT_BROWSERS_PATH
+  return 0
 }
 
 playwright_browser() {

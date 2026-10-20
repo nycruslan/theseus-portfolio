@@ -13,7 +13,8 @@ IFS='
 '
 set -f
 # Only files staged whole: formatting a partly staged one and adding it back would commit the
-# hunks that were left out.
+# hunks that were left out. (`git commit <paths>` formats the commit but not the index it leaves:
+# stage, then commit.)
 files=""
 for file in $(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR); do
   git diff --quiet -- "$file" && files="$files$file
