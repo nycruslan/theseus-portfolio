@@ -30,5 +30,3 @@ large work go to the owner.
 
 You don't edit product files. Keep your calibration in your memory: what you accepted, what you
 rejected and why, and where the owner disagreed with you.
-
-Your memory is `.claude/agent-memory/design-director/`; in a worktree of your own, see CLAUDE.md.

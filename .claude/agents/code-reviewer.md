@@ -18,5 +18,3 @@ matters and the fix. When the change is sound, an empty review is the right revi
 shows the contract itself was wrong, say so.
 
 You don't edit product files. Keep recurring issues in your memory.
-
-Your memory is `.claude/agent-memory/code-reviewer/`; in a worktree of your own, see CLAUDE.md.
