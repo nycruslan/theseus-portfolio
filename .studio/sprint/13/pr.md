@@ -1,5 +1,3 @@
-**Work in progress.**
-
 ## Goal
 
 The build log's route: PR A of "Watch the team build" (roadmap), on the contract the owner accepted by
@@ -38,9 +36,19 @@ The interface the spec reads is in `.studio/sprint/13/probe-checks.md`.
 - `readdirSync(/* turbopackIgnore: true */ dir)` keeps Turbopack from tracing the whole project.
 - Below 768 the number's `mr-[0.5ch]` is replaced by the real space the contract requires.
 
+## Reviews
+
+- Lens: ship on cb48516, first run, two nits (left for PR B; see `.studio/sprint/13/retro.json`).
+- Iris (advice): ship, 7.7, in `.studio/sprint/13/review-iris.md`. axe is clean at all five widths in
+  both schemes. There is no overflow, and CLS is 0 at 390 on slow 3G. Her one cheap finding, the PR
+  link's focus ring running into the meta dot, goes with PR B, so it doesn't cost a second review here.
+  Screenshots are in her review's list (scratchpad only). They show each width and scheme, the focus
+  rings, and `/` unchanged against main.
+
 ## Not verified
 
-Hover colour (no spec). Iris's look at 320, 768 and 1024 is pending.
+The hover colour (no spec checks it) and print. Production stood in as a local build of `main`, since
+the sandbox can't reach it.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
