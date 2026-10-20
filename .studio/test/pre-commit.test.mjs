@@ -50,6 +50,21 @@ test("formats and re-stages files staged whole, and leaves a partly staged one a
   );
 });
 
+test("runs from git itself, and handles a path with a space", () => {
+  const { dir, git } = repo();
+  writeFileSync(join(dir, "with space.json"), "spaced\n");
+  git("add", "with space.json");
+  const hooks = join(STUDIO, "..", ".githooks");
+  execFileSync(
+    "git",
+    ["-c", `core.hooksPath=${hooks}`, "commit", "-q", "-m", "x"],
+    {
+      cwd: dir,
+    },
+  );
+  assert.equal(git("show", "HEAD:with space.json"), "SPACED");
+});
+
 test("lets the commit through, saying so, when Biome isn't installed", () => {
   const { dir, git } = repo();
   execFileSync("rm", ["-rf", join(dir, "node_modules")]);

@@ -58,7 +58,7 @@ echo "$*" >> "${log}"
 case "$*" in
   "exec playwright install --dry-run --only-shell chromium")
     echo "Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248)"
-    echo "  Install location:    \${PLAYWRIGHT_BROWSERS_PATH}/chromium_headless_shell-1248"
+    echo "  Install location:    \${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}/chromium_headless_shell-1248"
     echo "  Download url:        https://cdn.playwright.dev/x.zip"
     exit 0 ;;
 ${fail.map((call) => `  "${call}") exit 1 ;;`).join("\n")}
@@ -74,7 +74,14 @@ exit 0
   };
 }
 
-function install({ remote = true, images, fail, env = {}, repo = false } = {}) {
+function install({
+  remote = true,
+  images,
+  fail,
+  env = {},
+  repo = false,
+  home = tempDir(),
+} = {}) {
   const project = tempDir();
   if (repo) execFileSync("git", ["init", "--quiet", project]);
   const shim = join(tempDir(), "shim");
@@ -83,7 +90,7 @@ function install({ remote = true, images, fail, env = {}, repo = false } = {}) {
   const result = spawnSync("bash", [join(STUDIO, "install.sh")], {
     encoding: "utf8",
     env: {
-      HOME: process.env.HOME,
+      HOME: home,
       PATH: `${fake.bin}:${process.env.PATH}`,
       CLAUDE_PROJECT_DIR: project,
       CLAUDE_ENV_FILE: envFile,
@@ -170,6 +177,23 @@ test("doesn't take a resumed session's shim for Playwright's own download", () =
   assert.equal(code, 0);
   assert.doesNotMatch(stderr, /its own download/);
   assert.equal(browsers, shim);
+});
+
+test("a resumed session that finds the exact build stops pointing at its old shim", () => {
+  const home = tempDir();
+  mkdirSync(join(home, ".cache/ms-playwright/chromium_headless_shell-1248"), {
+    recursive: true,
+  });
+  const shim = join(tempDir(), "shim");
+  const { code, browsers, stderr } = install({
+    images: image("1194"),
+    home,
+    env: { PLAYWRIGHT_BROWSERS_PATH: shim, THESEUS_BROWSERS_SHIM: shim },
+  });
+  assert.equal(code, 0);
+  assert.match(stderr, /Playwright uses its own download/);
+  // Later commands no longer see the shim the last start left them.
+  assert.equal(browsers, "");
 });
 
 test("puts the project's own tools on PATH and points git at the repo's hooks", () => {

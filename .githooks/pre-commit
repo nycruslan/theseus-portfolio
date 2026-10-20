@@ -8,14 +8,18 @@ if [ ! -x "$biome" ]; then
   echo "pre-commit: Biome isn't installed (run pnpm install), so staged files aren't formatted." >&2
   exit 0
 fi
+# One path per line, whatever characters a path holds.
+IFS='
+'
 # Only files staged whole: formatting a partly staged one and adding it back would commit the
 # hunks that were left out.
 files=""
 for file in $(git diff --cached --name-only --diff-filter=ACMR); do
-  git diff --quiet -- "$file" && files="$files $file"
+  git diff --quiet -- "$file" && files="$files$file
+"
 done
 [ -n "$files" ] || exit 0
-# shellcheck disable=SC2086 # one word per path
+# shellcheck disable=SC2086 # one word per path, split on newlines
 "$biome" format --write --no-errors-on-unmatched --files-ignore-unknown=true $files || exit 1
 # shellcheck disable=SC2086
-git add $files
+git add -- $files

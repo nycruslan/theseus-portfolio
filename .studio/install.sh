@@ -31,6 +31,15 @@ persist() {
   fi
 }
 
+# Clears a variable here and for every later command, so a value a resumed session inherited
+# from its last start doesn't outlive this run's decision.
+forget() {
+  unset "$1"
+  if [ -n "$CLAUDE_ENV_FILE" ]; then
+    printf 'unset %s\n' "$1" >>"$CLAUDE_ENV_FILE"
+  fi
+}
+
 # Where this Playwright looks for its headless Chromium under $PLAYWRIGHT_BROWSERS_PATH, such as
 # .../chromium_headless_shell-1248. A dry run only prints, so it needs no network.
 wanted_shell() {
@@ -54,7 +63,7 @@ playwright_browser() {
   # The exact build, from the environment's setup script or an earlier session: what CI runs.
   # A resumed session still points at the shim it got last time, which isn't that build: decide
   # afresh, from where Playwright looks by default.
-  [ "$PLAYWRIGHT_BROWSERS_PATH" = "$SHIM" ] && unset PLAYWRIGHT_BROWSERS_PATH
+  [ "$PLAYWRIGHT_BROWSERS_PATH" = "$SHIM" ] && forget PLAYWRIGHT_BROWSERS_PATH
   want=$(wanted_shell)
   if [ -n "$want" ] && [ -d "$want" ]; then
     say "Playwright uses its own download ($want)."
@@ -125,8 +134,12 @@ agent_browser() {
 
 pnpm install --frozen-lockfile --prefer-offline ||
   say "pnpm install failed: pnpm verify and the end-to-end checks will fail until it's run."
-# Tools the skills call by name, such as agent-browser, are the project's own packages.
-persist PATH "$PWD/node_modules/.bin:$PATH"
+# Tools the skills call by name, such as agent-browser, are the project's own packages. Only the
+# project's folder is added: each later command keeps the rest of its own PATH.
+export PATH="$PWD/node_modules/.bin:$PATH"
+if [ -n "$CLAUDE_ENV_FILE" ]; then
+  printf 'export PATH=%q:"$PATH"\n' "$PWD/node_modules/.bin" >>"$CLAUDE_ENV_FILE"
+fi
 # Commits format what they stage (.githooks/pre-commit), so a push never fails CI on formatting.
 git config core.hooksPath .githooks 2>/dev/null ||
   say "Couldn't point git at .githooks: commits won't format what they stage."
