@@ -17,7 +17,8 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
     It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
   - `.studio/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
-  - `design/rubric.md`: the design bar, calibrated by the owner's examples in `design/calibration/`.
+  - `design/brief.md`: the owner's direction for the site; `design/rubric.md`: the design bar,
+    calibrated by the owner's examples in `design/calibration/`.
 
   Production is https://theseus-portfolio.vercel.app.
 - **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`: what it learned about
@@ -90,7 +91,7 @@ The team's own setup is the owner's too:
 - `.claude/`, apart from agent memory;
 - the `.studio/` scripts (including `install.sh` and `merge.mjs`) and their tests;
 - `.github/` and `.githooks/`;
-- `design/rubric.md` and `design/calibration/`;
+- `design/brief.md`, `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;
 - the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,
   `renovate.json` and `playwright.config.*`, and the `scripts` in `package.json`. Dependencies

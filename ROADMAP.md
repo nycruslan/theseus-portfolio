@@ -22,6 +22,11 @@ sprint.
 
 ## Next (Quill, sprint 11, highest first)
 
+- [ ] Redesign (L, the owner's goal, 2026-10-20): an impressive portfolio on the direction in
+  `design/brief.md`, measured against the references in `design/calibration/`. Iris's direction
+  comes first, in a PR of its own the owner approves (concept, key screens at 1440 and 390 px, a
+  motion storyboard, budgets); then M sprints build it a section at a time, the hero first.
+
 - [x] Stack separators (S): a drawn middle dot between tools, so "LangChain Claude Agent SDK" parses as three tools and the row no longer reads as the Contact row without copper. Iris's recipe is item 2 in `.studio/sprint/6/review-iris.md` (CSS on the `li`, empty generated content, `bg-muted`, `overflow-hidden` on the `ul`); Forge verifies it in the browser before taking it. Facts and order unchanged. Sprint 11's pick (`.studio/sprint/11/pick-quill.md`). (Sprint 11, PR #36: a 3 px `before:` dot 13.5 px left of each tool, the leading one clipped by `overflow-hidden`; the existing suite covers it.)
   - Follow-ups (Lens nits): the dot vanishes in forced colors (add `forced-colors:before:bg-[CanvasText]`); `overflow-hidden` clips every side, so narrow it to the leading dots or comment why.
 - [x] Watch the team build (L, needs Iris's direction and a contract first): the site says a team of agents rebuilds it, but a visitor sees only the result and a GitHub link. A page of sprints (goal, outcome, PR link, what went wrong) from `.studio/sprint/*/retro.json` at build time would show the process. Matters most to visitors of everything here; not S or M until a direction exists. Team-written text only; the owner's facts stay as they are.

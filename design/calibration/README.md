@@ -6,7 +6,7 @@ verdicts count (see `../rubric.md`).
 
 **For the owner (about an hour, once, then occasionally):**
 1. Collect 4–6 screenshots at 1440 px: a few sites you love, a few you find generic, and the
-   current portfolio. Name them `NN-short-name.png`.
+   current portfolio. Name them `NN-short-name.png` (or `.jpg`, which keeps the repository small).
 2. For each one, add `NN-short-name.md` with your four rubric scores (design quality,
    originality, craft, functionality), the weighted score, and one or two sentences on why.
 3. Commit them in a PR. This folder is yours: the team can read it but not change it.
