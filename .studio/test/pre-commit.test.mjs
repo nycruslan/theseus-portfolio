@@ -21,12 +21,19 @@ function repo() {
   git("commit", "--quiet", "-m", "start");
   mkdirSync(join(dir, "node_modules/.bin"), { recursive: true });
   const biome = join(dir, "node_modules/.bin/biome");
+  // A file named broken* stands for one Biome can't parse: it fails, as Biome does.
   writeFileSync(
     biome,
     `#!/bin/sh
+status=0
 for arg in "$@"; do
-  case "$arg" in -*|format) ;; *) tr a-z A-Z < "$arg" > "$arg.tmp" && mv "$arg.tmp" "$arg" ;; esac
+  case "$arg" in
+    -*|format) ;;
+    broken*) status=1 ;;
+    *) tr a-z A-Z < "$arg" > "$arg.tmp" && mv "$arg.tmp" "$arg" ;;
+  esac
 done
+exit $status
 `,
   );
   chmodSync(biome, 0o755);
@@ -63,6 +70,23 @@ test("runs from git itself, and handles a path with a space", () => {
     },
   );
   assert.equal(git("show", "HEAD:with space.json"), "SPACED");
+});
+
+test("handles a path git would quote, and never blocks a commit Biome can't format", () => {
+  const { dir, git } = repo();
+  writeFileSync(join(dir, "café.json"), "accent\n");
+  writeFileSync(join(dir, "broken.json"), "{\n");
+  git("add", "café.json", "broken.json");
+  const hooks = join(STUDIO, "..", ".githooks");
+  const run = spawnSync(
+    "git",
+    ["-c", `core.hooksPath=${hooks}`, "commit", "-q", "-m", "x"],
+    { cwd: dir, encoding: "utf8" },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /committing it as it is/);
+  assert.equal(git("show", "HEAD:café.json"), "ACCENT");
+  assert.equal(git("show", "HEAD:broken.json"), "{");
 });
 
 test("lets the commit through, saying so, when Biome isn't installed", () => {

@@ -196,6 +196,16 @@ test("a resumed session that finds the exact build stops pointing at its old shi
   assert.equal(browsers, "");
 });
 
+test("tries a refused download once, when the image has no headless shell to fall back on", () => {
+  const images = join(tempDir(), "pw-browsers");
+  file(join(images, "chromium-1194/chrome-linux/chrome"), "", 0o755);
+  const download = "exec playwright install --only-shell chromium";
+  const { code, calls, stderr } = install({ images, fail: [download] });
+  assert.equal(code, 0);
+  assert.equal(calls.filter((call) => call === download).length, 1);
+  assert.match(stderr, /Couldn't download Playwright's Chromium/);
+});
+
 test("puts the project's own tools on PATH and points git at the repo's hooks", () => {
   const { code, path, hooks, project } = install({ repo: true });
   assert.equal(code, 0);

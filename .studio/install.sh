@@ -59,7 +59,7 @@ download_shell() {
 }
 
 playwright_browser() {
-  local want source exe platform
+  local want source exe platform tried
   # The exact build, from the environment's setup script or an earlier session: what CI runs.
   # A resumed session still points at the shim it got last time, which isn't that build: decide
   # afresh, from where Playwright looks by default.
@@ -82,6 +82,7 @@ playwright_browser() {
       say "Playwright downloaded the build CI runs ($(wanted_shell))."
       return
     fi
+    tried=yes
     source=$(newest chromium_headless_shell)
     exe=$(find "${source:-/nonexistent}" -maxdepth 2 \( -name chrome-headless-shell -o -name headless_shell \) -type f 2>/dev/null | head -n 1)
   fi
@@ -112,9 +113,11 @@ playwright_browser() {
     say "Playwright uses the image's $(basename "$source") as $(basename "$want") through $SHIM."
     return
   fi
-  # No image browsers: download, as on a plain machine. The system libraries need apt and root.
-  pnpm exec playwright install --only-shell chromium ||
+  # No image browsers: download, as on a plain machine (unless that was just refused). The system
+  # libraries need apt and root.
+  if [ -n "$tried" ] || ! pnpm exec playwright install --only-shell chromium; then
     say "Couldn't download Playwright's Chromium: the end-to-end checks can't run here."
+  fi
   pnpm exec playwright install-deps chromium >/dev/null 2>&1 ||
     say "Couldn't install Chromium's system libraries."
 }
