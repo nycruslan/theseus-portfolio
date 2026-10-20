@@ -6,6 +6,7 @@ import { SkipLink } from "@/components/skip-link";
 import { profile } from "@/content/profile";
 import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
+import { readSprintLog } from "@/lib/sprint-log";
 
 // This page's own address, for search engines and link previews (see app/layout.tsx).
 export const metadata: Metadata = {
@@ -26,6 +27,9 @@ const person = {
 };
 
 export default function Home() {
+  // Read when the site is built, like the log page itself, so the count and the page agree.
+  const sprintCount = readSprintLog().length;
+
   return (
     <>
       <SkipLink />
@@ -53,6 +57,24 @@ export default function Home() {
             <p className="text-step-xl">{profile.headline}</p>
             <p className="text-step-base text-muted">{profile.location}</p>
             <p className="text-step-lg">{profile.bio}</p>
+            {sprintCount > 0 ? (
+              <p className="text-step-base">
+                {/* Same classes as the Contact links. */}
+                <a
+                  href="/sprints"
+                  className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
+                >
+                  Build log
+                </a>
+                {/* Starts with a no-break space, so the dot never begins a line. The dot has its own
+                margin so the link's focus ring (4px out) clears it; textContent stays " · N sprints". */}
+                <span className="text-muted">
+                  {"\u00a0"}
+                  <span className="mx-1">·</span>
+                  {` ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
+                </span>
+              </p>
+            ) : null}
           </header>
 
           <Hero />
