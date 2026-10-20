@@ -27,6 +27,12 @@ export function SprintItem({ entry }: { entry: SprintEntry }) {
     ) : undefined,
   ].filter((part) => part !== undefined);
 
+  // Two items can carry the same text, so a key also counts the earlier ones that equal it.
+  const items = entry.wentWrong.map((text, at) => ({
+    text,
+    nth: entry.wentWrong.slice(0, at).filter((other) => other === text).length,
+  }));
+
   return (
     <li className="border-t border-rule pt-6">
       <h3 className="relative text-balance break-words text-step-lg font-medium">
@@ -44,8 +50,14 @@ export function SprintItem({ entry }: { entry: SprintEntry }) {
         <p className="text-step-sm leading-6 text-muted">
           {meta.map((part, index) => (
             <span key={typeof part === "string" ? part : "pr"}>
-              {/* A no-break space keeps each dot on the line of the item before it. */}
-              {index > 0 ? " · " : null}
+              {/* A no-break space keeps each dot on the line of the item before it. The dot has its
+              own margin so the next link's focus ring (4px out) clears it. */}
+              {index > 0 ? (
+                <>
+                  {"\u00a0"}
+                  <span className="mx-1">·</span>{" "}
+                </>
+              ) : null}
               {part}
             </span>
           ))}
@@ -57,9 +69,9 @@ export function SprintItem({ entry }: { entry: SprintEntry }) {
             What went wrong
           </h4>
           <ul className="mt-1 flex flex-col gap-2">
-            {entry.wentWrong.map((text) => (
+            {items.map(({ text, nth }) => (
               <li
-                key={text}
+                key={`${nth}-${text}`}
                 className="relative text-pretty break-words text-step-base before:absolute before:-left-3 before:top-[calc(0.5lh-1.5px)] before:size-[3px] before:rounded-full before:bg-muted before:content-['']"
               >
                 {text}
