@@ -3,11 +3,12 @@
 # the browser agent-browser drives for QA and design review. Local sessions skip it.
 #
 # Every step is best effort, and the script always exits 0: one blocked download must not skip the
-# rest. The cloud's proxy refuses Playwright's and agent-browser's browser downloads, so the image's
-# own browsers in /opt/pw-browsers come first. When the image's Chromium is an older build than the
-# one this Playwright wants, a folder of links (the shim) presents it under the wanted build's
-# name; every agent in sprints 1 and 2 built that shim by hand. A step that fails says so here,
-# and again when the tool that needed it runs.
+# rest. The browser the end-to-end checks run in should be the build CI runs: one the environment's
+# setup script downloaded, else the image's own (/opt/pw-browsers) when it's that build, else a
+# fresh download, which the cloud's proxy allows only when the environment lets Playwright's hosts
+# through. Failing all of those, a folder of links (the shim) presents the image's older Chromium
+# under the wanted build's name; every agent in sprints 1 and 2 built that shim by hand. A step
+# that fails says so here, and again when the tool that needed it runs.
 #
 # Settings reach the session's later commands through CLAUDE_ENV_FILE, which Claude Code gives
 # SessionStart hooks.
@@ -30,6 +31,15 @@ persist() {
   fi
 }
 
+# Clears a variable here and for every later command, so a value a resumed session inherited
+# from its last start doesn't outlive this run's decision.
+forget() {
+  unset "$1"
+  if [ -n "$CLAUDE_ENV_FILE" ]; then
+    printf 'unset %s\n' "$1" >>"$CLAUDE_ENV_FILE"
+  fi
+}
+
 # Where this Playwright looks for its headless Chromium under $PLAYWRIGHT_BROWSERS_PATH, such as
 # .../chromium_headless_shell-1248. A dry run only prints, so it needs no network.
 wanted_shell() {
@@ -42,8 +52,30 @@ newest() {
   ls -d "$IMAGE"/"$1"-*/ 2>/dev/null | sort -V | tail -n 1
 }
 
+# Downloads the build this Playwright wants into its own folder; true once it's there. The proxy
+# lets it through only when the environment's network access allows Playwright's hosts.
+# It always downloads to Playwright's own cache, whatever an earlier start pointed it at: never
+# into the image.
+download_shell() {
+  (
+    unset PLAYWRIGHT_BROWSERS_PATH
+    pnpm exec playwright install --only-shell chromium >/dev/null 2>&1 && [ -d "$(wanted_shell)" ]
+  ) || return 1
+  [ -n "$PLAYWRIGHT_BROWSERS_PATH" ] && forget PLAYWRIGHT_BROWSERS_PATH
+  return 0
+}
+
 playwright_browser() {
-  local want source exe platform
+  local want source exe platform tried
+  # The exact build, from the environment's setup script or an earlier session: what CI runs.
+  # A resumed session still points at the shim it got last time, which isn't that build: decide
+  # afresh, from where Playwright looks by default.
+  [ "$PLAYWRIGHT_BROWSERS_PATH" = "$SHIM" ] && forget PLAYWRIGHT_BROWSERS_PATH
+  want=$(wanted_shell)
+  if [ -n "$want" ] && [ -d "$want" ]; then
+    say "Playwright uses its own download ($want)."
+    return
+  fi
   if [ -d "$IMAGE" ]; then
     want=$(PLAYWRIGHT_BROWSERS_PATH="$IMAGE" wanted_shell)
     if [ -n "$want" ] && [ -d "$want" ]; then
@@ -51,6 +83,13 @@ playwright_browser() {
       say "Playwright uses the image's browsers ($want)."
       return
     fi
+    # An older image build behaves differently from CI's on the edges (sprints 9 and 10 measured
+    # WebGL on Chromium 141 while CI ran 156), so the exact build comes first when it can be had.
+    if download_shell; then
+      say "Playwright downloaded the build CI runs ($(wanted_shell))."
+      return
+    fi
+    tried=yes
     source=$(newest chromium_headless_shell)
     exe=$(find "${source:-/nonexistent}" -maxdepth 2 \( -name chrome-headless-shell -o -name headless_shell \) -type f 2>/dev/null | head -n 1)
   fi
@@ -81,9 +120,11 @@ playwright_browser() {
     say "Playwright uses the image's $(basename "$source") as $(basename "$want") through $SHIM."
     return
   fi
-  # No image browsers: download, as on a plain machine. The system libraries need apt and root.
-  pnpm exec playwright install --only-shell chromium ||
+  # No image browsers: download, as on a plain machine (unless that was just refused). The system
+  # libraries need apt and root.
+  if [ -n "$tried" ] || ! pnpm exec playwright install --only-shell chromium; then
     say "Couldn't download Playwright's Chromium: the end-to-end checks can't run here."
+  fi
   pnpm exec playwright install-deps chromium >/dev/null 2>&1 ||
     say "Couldn't install Chromium's system libraries."
 }
@@ -103,6 +144,15 @@ agent_browser() {
 
 pnpm install --frozen-lockfile --prefer-offline ||
   say "pnpm install failed: pnpm verify and the end-to-end checks will fail until it's run."
+# Tools the skills call by name, such as agent-browser, are the project's own packages. Only the
+# project's folder is added: each later command keeps the rest of its own PATH.
+export PATH="$PWD/node_modules/.bin:$PATH"
+if [ -n "$CLAUDE_ENV_FILE" ]; then
+  printf 'export PATH=%q:"$PATH"\n' "$PWD/node_modules/.bin" >>"$CLAUDE_ENV_FILE"
+fi
+# Commits format what they stage (.githooks/pre-commit), so a push never fails CI on formatting.
+git config core.hooksPath .githooks 2>/dev/null ||
+  say "Couldn't point git at .githooks: commits won't format what they stage."
 playwright_browser
 agent_browser
 exit 0

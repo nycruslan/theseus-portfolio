@@ -311,13 +311,21 @@ function runVerdict(event, env) {
     summary("The PR moved on while Lens reviewed: this verdict isn't posted.");
     return;
   }
-  postReview({
-    repo,
-    number: pr.number,
-    head: pr.head.sha,
-    body,
-    findings: result.review?.findings ?? [],
-  });
+  // The check is what the merge waits for, and its summary carries the whole review, so a review
+  // GitHub won't take (it once answered both attempts with an empty body) mustn't cost the check.
+  try {
+    postReview({
+      repo,
+      number: pr.number,
+      head: pr.head.sha,
+      body,
+      findings: result.review?.findings ?? [],
+    });
+  } catch (error) {
+    summary(
+      `GitHub didn't take the review (${error.message}); the check carries it.`,
+    );
+  }
   const title = result.pass
     ? "Lens: ship"
     : `Lens: ${result.review?.verdict ?? "no verdict"}`;

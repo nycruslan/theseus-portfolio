@@ -15,6 +15,7 @@
 /.studio/sprint/
 /.studio/STATE.md
 /.github/ @nycruslan
+/.githooks/ @nycruslan
 /.mcp.json @nycruslan
 
 # Instructions load wherever they are, and attributes pick merge drivers and filters.

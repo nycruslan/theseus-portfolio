@@ -87,7 +87,7 @@ The team's own setup is the owner's too:
 - every `CLAUDE.md`, `AGENTS.md` and `.gitattributes`, and `.mcp.json`;
 - `.claude/`, apart from agent memory;
 - the `.studio/` scripts (including `install.sh` and `merge.mjs`) and their tests;
-- `.github/`;
+- `.github/` and `.githooks/`;
 - `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;
 - the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,

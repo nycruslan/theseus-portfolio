@@ -1,0 +1,30 @@
+#!/bin/sh
+# Formats what a commit stages, so a push never fails CI's `biome ci` on formatting alone: sprints
+# 5, 7, 9, 10 and 11 each lost a CI round to one unformatted file. Formatting only: lint findings
+# stay for `pnpm verify` and CI to report. Set up by `pnpm install` (the prepare script) and, in
+# cloud sessions, by .studio/install.sh.
+biome=node_modules/.bin/biome
+if [ ! -x "$biome" ]; then
+  echo "pre-commit: Biome isn't installed (run pnpm install), so staged files aren't formatted." >&2
+  exit 0
+fi
+# One path per line, unquoted and never globbed, whatever characters a path holds.
+IFS='
+'
+set -f
+# Only files staged whole: formatting a partly staged one and adding it back would commit the
+# hunks that were left out. (`git commit <paths>` formats the commit but not the index it leaves:
+# stage, then commit.)
+files=""
+for file in $(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR); do
+  git diff --quiet -- "$file" && files="$files$file
+"
+done
+[ -n "$files" ] || exit 0
+# A file Biome can't parse is left as it is, for verify and CI to report: the hook never blocks.
+# shellcheck disable=SC2086 # one word per path, split on newlines
+if ! "$biome" format --write --no-errors-on-unmatched --files-ignore-unknown=true $files; then
+  echo "pre-commit: Biome couldn't format everything staged; committing it as it is." >&2
+fi
+# shellcheck disable=SC2086
+git add -- $files

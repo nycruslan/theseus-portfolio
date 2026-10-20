@@ -15,7 +15,8 @@
     "verify": "pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
     "test:e2e": "playwright test",
     "test:harness": "node --test .studio/test/*.test.mjs",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "next": "16.4.0",
