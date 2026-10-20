@@ -1,0 +1,70 @@
+{
+  "sprint": 14,
+  "pr": 43,
+  "goal": "Watch the team build, PR B: a copper \"Build log · N sprints\" line under the bio on / linking to /sprints",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 34,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "inherit",
+      "tokens": 116111,
+      "minutes": 11
+    },
+    { "role": "engineer", "model": "inherit", "tokens": 161412, "minutes": 6 },
+    {
+      "role": "design-director",
+      "model": "inherit",
+      "tokens": 113594,
+      "minutes": 9
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 628083,
+    "important": 0,
+    "actedOn": 1,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The home line repeated the touching focus ring that the same PR fixed on /sprints; the brief carried Iris's sprint 13 fix to the meta line but not to the new separator",
+      "evidence": ".studio/sprint/14/review-iris.md finding 1: the ring cleared the dot by 0 to 0.48 px at 04b5cdb; fixed in 1c9d506"
+    },
+    {
+      "what": "Stray next-server processes outlived the agents' runs: pnpm's double wrapper means kill $! leaves the server, and a builder's browser check hit a stale build",
+      "evidence": "Probe's and Forge's reports; two orphaned next-server processes (parent PID 1) were still up at close-out"
+    },
+    {
+      "what": "Iris's detector could not launch Chromium as root and production is unreachable from the sandbox (CONNECT 403), so origin/main stood in for production",
+      "evidence": ".studio/sprint/14/review-iris.md"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "A pnpm script or documented command that serves a build by PID file (node node_modules/next/dist/bin/next start) and stops it, so agents stop servers without hunting processes",
+      "moves": "orphaned servers per sprint (2 this sprint) and stale-build checks to 0"
+    },
+    {
+      "change": "Allow the sandbox to reach theseus-portfolio.vercel.app, and run the design detector's Chromium with --no-sandbox as root",
+      "moves": "Iris reviews against real production instead of a stand-in build"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Probe",
+      "what": "Lens nit: e2e/sprints-entry.spec.ts:33 holds a raw U+00A0; write it as the \\u00a0 escape the contract asks for"
+    },
+    {
+      "who": "Quill",
+      "what": "Log length: about 650 px per entry at 320; Iris wants a quiet grouping past about 30 entries (sprint 13 review-iris.md item 4)"
+    },
+    {
+      "who": "Forge",
+      "what": "A pre-existing 0.015 font-swap CLS on / under a slow phone profile (sprint 14 review-iris.md finding 3): look at the fallback font metrics"
+    }
+  ]
+}

@@ -200,3 +200,15 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - Under `cacheComponents`, a sync `node:fs` read in a Server Component prerenders. `readdirSync(dir)` on
     a runtime path needs `/* turbopackIgnore: true */` on the argument, or Turbopack traces the whole
     project.
+
+## Sprint 14: the build log's way in (PR #43)
+
+- **Outcome:** PR B, which finishes "Watch the team build": a copper "Build log · N sprints" line under the
+  bio on `/`, counted by the same `readSprintLog()` as `/sprints`. Probe's `e2e/sprints-entry.spec.ts`
+  (C14, C15) went first, red, with 10 mutants all caught. Forge built it in one pass, with sprint 13's three
+  riders. Lens said ship on the first run. Iris said changes at 7.5: the new line's ring touched its dot,
+  the defect the same PR fixed on `/sprints`. One fix round, then Lens ship again on 9f5ee4c.
+- **Lesson:**
+  - A fix for a pattern (the `mx-1` dot) belongs in the brief for every new instance of the pattern, not only
+    the one the finding named.
+  - Capping the mutants at 10 kept the specs at 11 minutes (sprint 13: 44) and still caught every fault.

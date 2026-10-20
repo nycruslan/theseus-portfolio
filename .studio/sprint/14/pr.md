@@ -1,5 +1,3 @@
-**Work in progress**
-
 ## Goal
 
 "Watch the team build", PR B: the copper "Build log · N sprints" line under the bio on `/`, linking to
@@ -21,7 +19,21 @@ footer) by merging #37.
   (Iris item 1); `lib/sprint-log.ts`'s comment now says only `readdirSync` carries `turbopackIgnore`;
   repeated "What went wrong" items no longer share a key.
 
+## Review
+
+- Lens: ship on 04b5cdb (one nit, the `lib/sprint-log.ts` comment, fixed) and ship on 9f5ee4c (one nit:
+  the spec's raw U+00A0, a follow-up for Probe).
+- Iris (advice): changes at 7.5, better than production. Her finding 1, that the home link's ring touched
+  its dot, was fixed in 1c9d506 with the same `mx-1` span (`.studio/sprint/14/review-iris.md`).
+- One fix round. Retro: `.studio/sprint/14/retro.json`.
+
 ## Not verified
 
 The `1 sprint` and no-retro branches of the home line: the checkout has 13 retros and no spec rebuilds
 the site (the reader is covered on fixtures by C12).
+
+Production itself (the sandbox can't reach it; a build of `origin/main` stood in for Iris).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_01R8SVKwperPfaifwNv2zP75
