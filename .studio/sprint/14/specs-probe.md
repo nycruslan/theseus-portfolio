@@ -22,7 +22,7 @@ On the build before this sprint, headless Chromium 141 (the cloud's; CI's is 156
 y 96, bottom 473.98; `[data-hero]` top 537.98, 99 px tall (bottom 636.98). At 320 and 1440 the hull is
 64 px below the header. The spec quotes 537.98 and expects the new top near 537.98 + 27 + 16 = 580.98
 (upper bound +3 px for font differences), well above the 844 fold. On my reference (below) the box
-top reads about 581.
+top passed the spec's bounds (between 554 and 584); I did not print the exact value.
 
 ## Proof the spec works
 
