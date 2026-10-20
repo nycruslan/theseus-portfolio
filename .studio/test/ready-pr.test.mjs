@@ -4,9 +4,10 @@ import { ghLog, gitRepo, REPO, routes, runHook, tempDir } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
-const pr = (draft) => ({
+const pr = (draft, state = "open") => ({
   number: 7,
   draft,
+  state,
   html_url: `https://github.com/${REPO}/pull/7`,
 });
 
@@ -72,6 +73,15 @@ test("says so when the PR stays a draft, or GitHub won't start the workflow", ()
     refused.stderr,
     /Couldn't mark PR #7 ready: .*Resource not accessible/,
   );
+});
+
+test("refuses a PR that isn't open", () => {
+  const closed = ready({
+    [`${R}/pulls/7`]: { ...pr(false, "closed"), merged: true },
+  });
+  assert.equal(closed.code, 1);
+  assert.match(closed.stderr, /PR #7 is merged: there's nothing to mark ready/);
+  assert.equal(closed.dispatches.length, 0);
 });
 
 test("says how to call it", () => {

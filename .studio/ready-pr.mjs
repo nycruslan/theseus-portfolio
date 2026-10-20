@@ -25,6 +25,12 @@ const read = () => api(`repos/${repo}/pulls/${number}`, { cwd });
 
 try {
   let pr = read();
+  if (pr.state !== "open") {
+    console.error(
+      `PR #${number} is ${pr.merged ? "merged" : pr.state}: there's nothing to mark ready.`,
+    );
+    process.exit(1);
+  }
   if (pr.draft) {
     const { default_branch: base } = api(`repos/${repo}`, { cwd });
     api(`repos/${repo}/actions/workflows/${WORKFLOW}/dispatches`, {
