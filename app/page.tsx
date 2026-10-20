@@ -66,9 +66,12 @@ export default function Home() {
                 >
                   Build log
                 </a>
-                {/* Starts with a no-break space, so the dot never begins a line. */}
+                {/* Starts with a no-break space, so the dot never begins a line. The dot has its own
+                margin so the link's focus ring (4px out) clears it; textContent stays " · N sprints". */}
                 <span className="text-muted">
-                  {`\u00a0· ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
+                  {"\u00a0"}
+                  <span className="mx-1">·</span>
+                  {` ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
                 </span>
               </p>
             ) : null}
