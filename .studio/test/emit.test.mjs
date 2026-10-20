@@ -209,6 +209,13 @@ test("forwards only the PR's URL from opening it through REST or open-pr.mjs, or
       "node .studio/open-pr.mjs --head sprint/3-x --title 'Sprint 3' --body .studio/sprint/3/pr.md",
       `PR #14 was already open from sprint/3-x; it has the new title and body: ${url}\n`,
     ),
+    bash(
+      "ready",
+      "node .studio/ready-pr.mjs 14",
+      `PR #14 is ready for review: ${url}\n`,
+    ),
+    // A draft that stayed one, whose command succeeded anyway: nothing to show.
+    bash("stillDraft", "node .studio/ready-pr.mjs 14 || true", `See ${url}\n`),
     // A run that didn't merge, whose command succeeded anyway: no URL, so no merge to show.
     bash(
       "refused",
@@ -221,10 +228,11 @@ test("forwards only the PR's URL from opening it through REST or open-pr.mjs, or
   const byId = Object.fromEntries(
     posts.map((post) => [post.tool_use_id, post]),
   );
-  for (const id of ["open", "short", "app", "merge"]) {
+  for (const id of ["open", "short", "app", "ready", "merge"]) {
     assert.deepEqual(byId[id].tool_response, { prUrl: url }, id);
   }
   assert.equal(byId.kept.tool_response, undefined);
+  assert.equal(byId.stillDraft.tool_response, undefined);
   assert.equal(byId.refused.tool_response, undefined);
   assert.equal(byId.read.tool_response, undefined);
   assert.equal(byId.echo.tool_response, undefined);
