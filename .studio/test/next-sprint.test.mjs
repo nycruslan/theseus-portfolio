@@ -46,6 +46,7 @@ function github({
   reviews = {},
   closed = [],
   conflicts = [],
+  comments = {},
 } = {}) {
   // The fake gh takes the first route that matches, so each PR's own events come before the rest,
   // and the closed PRs before the open ones.
@@ -64,6 +65,10 @@ function github({
       list,
     ]),
     ...conflicts.map((n) => [`${R}/pulls/${n}`, { mergeable_state: "dirty" }]),
+    ...Object.entries(comments).map(([n, list]) => [
+      `${R}/issues/${n}/comments`,
+      list,
+    ]),
   ]);
   Object.assign(table, {
     [R]: { default_branch: "main", owner: { login: "nycruslan" } },
@@ -71,6 +76,7 @@ function github({
     [`${R}/contents/.studio/sprint`]: folders,
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
+    [`${R}/issues/*/comments`]: [],
     [`${R}/pulls/*/reviews`]: [],
     [`${R}/pulls/*`]: { mergeable_state: "clean" },
     [`${R}/commits/*`]: { commit: { committer: { date: minutesAgo(120) } } },
@@ -322,22 +328,36 @@ test("reminds the owner about a PR that has waited a day since its last change",
   assert.deepEqual(quiet.remind, []);
 });
 
-test("brings a waiting PR that conflicts with main up to date before anything else", () => {
-  const { state } = preflight(
+test("lists a waiting PR that conflicts with main to bring up to date, beside the run's own work", () => {
+  const waiting = (updatedAt) =>
+    pr(12, "sprint/2-dark-mode", ["needs-owner"], { updatedAt });
+  const listed = preflight(
+    github({ pulls: [waiting()], conflicts: [12] }),
+  ).state;
+  assert.deepEqual(listed.update, [
+    { number: 12, branch: "sprint/2-dark-mode" },
+  ]);
+  // It never blocks the run: the team still starts work beside it.
+  assert.equal(listed.action.do, "start");
+  // A run is on it: left alone.
+  const busy = preflight(
+    github({ pulls: [waiting(minutesAgo(10))], conflicts: [12] }),
+  ).state;
+  assert.deepEqual(busy.update, []);
+  // A run already found this head's conflict beyond it and said so: not listed again.
+  const head = "12".padStart(40, "0");
+  const flagged = preflight(
     github({
-      pulls: [
-        pr(12, "sprint/2-dark-mode", ["needs-owner"]),
-        pr(14, "sprint/3-cards"),
-      ],
+      pulls: [waiting()],
       conflicts: [12],
+      comments: {
+        12: [{ body: `Product code conflicts.\n\ntheseus:conflict ${head}` }],
+      },
     }),
-  );
-  assert.equal(state.open[0].conflicts, true);
-  assert.equal(state.open[1].conflicts, false);
-  assert.equal(state.action.do, "update");
-  assert.equal(state.action.pr, 12);
-  assert.match(state.action.say, /merge origin\/main into its branch/);
-  assert.match(state.action.say, /needs their approval again/);
+  ).state;
+  assert.deepEqual(flagged.update, []);
+  // No conflict, nothing to do.
+  assert.deepEqual(preflight(github({ pulls: [waiting()] })).state.update, []);
 });
 
 test("fails closed when main's sprint folders can't be read for another reason than a 404", () => {

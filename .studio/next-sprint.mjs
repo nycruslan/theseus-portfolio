@@ -30,8 +30,11 @@
 //   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
 //   for the owner the team keeps working, on something that doesn't build on it, as a team does
 //   while a review is pending (it stood idle for two days behind #35); a second waiting PR stops
-//   new work. A waiting PR in conflict with the base is brought up to date first (`update`). An
-//   open sprint PR is continued even at the cap: finishing work isn't starting it.
+//   new work. An open sprint PR is continued even at the cap: finishing work isn't starting it.
+// - update: the PRs waiting for the owner that conflict with the base, as other sprints' close-outs
+//   edit the same notes, and that no run is on (quiet for 45 minutes). The run brings each up to
+//   date beside its action; one it can't (product code conflicts) it flags in a comment ending
+//   `theseus:conflict <head>`, and that head isn't listed again.
 //   One that changed in the last 45 minutes is left alone, since another run is most likely still
 //   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
 //   everything while an unopened sprint branch is that fresh.
@@ -88,14 +91,6 @@ function preflight(repo) {
         url: pr.html_url,
       };
     });
-  // A PR waiting for the owner can fall into conflict as other sprints merge (their close-outs
-  // edit the same notes), and nobody else will bring it up to date. GitHub says so only on the
-  // PR itself; "unknown" while it works it out counts as no conflict, so a later run sees it.
-  for (const pr of open) {
-    pr.conflicts =
-      pr.needsOwner &&
-      api(`repos/${repo}/pulls/${pr.number}`).mergeable_state === "dirty";
-  }
   const branches = list(`repos/${repo}/branches?per_page=100`);
   const highest = {
     main: highestOf(sprintFolders(repo, base)),
@@ -119,6 +114,7 @@ function preflight(repo) {
     next,
     daily: { merged: daily.merged, cap: daily.cap },
     remind: reminders(open),
+    update: conflicted(repo, open),
     action: action(open, unopened, next, daily),
   };
 }
@@ -192,6 +188,28 @@ function sprintFolders(repo, base) {
   }
 }
 
+// The waiting PRs that conflict with the base and that no run is on, minus those whose head a run
+// already flagged as beyond it. GitHub reports a conflict only on the PR itself; "unknown", while
+// it works one out, counts as none, so a later run sees it.
+function conflicted(repo, open) {
+  return open
+    .filter(
+      ({ needsOwner, updatedAt }) =>
+        needsOwner && Date.now() - Date.parse(updatedAt) >= ACTIVE_MS,
+    )
+    .filter(
+      ({ number }) =>
+        api(`repos/${repo}/pulls/${number}`).mergeable_state === "dirty",
+    )
+    .filter(
+      ({ number, head }) =>
+        !list(`repos/${repo}/issues/${number}/comments?per_page=100`).some(
+          ({ body }) => body?.includes(`theseus:conflict ${head}`),
+        ),
+    )
+    .map(({ number, branch }) => ({ number, branch }));
+}
+
 // The waiting PRs that haven't changed for a day: the reminder's own comment restarts the day.
 function reminders(open) {
   return open
@@ -227,14 +245,6 @@ function action(open, unopened, next, daily) {
       say: `No sprint is open. Start sprint ${next} on a branch named sprint/${next}-<slug>.`,
     };
   }
-  const conflicted = open.find(({ conflicts }) => conflicts);
-  if (conflicted) {
-    return {
-      do: "update",
-      pr: conflicted.number,
-      say: `PR #${conflicted.number} (${conflicted.branch}) waits for the owner but conflicts with main: merge origin/main into its branch, keep both sides of the notes (STATE.md, ROADMAP.md), push, and tell the owner its head changed, so it needs their approval again. Start nothing else.`,
-    };
-  }
   const current = open.find(({ needsOwner }) => !needsOwner);
   const others = (shown) => {
     const rest = open.filter((one) => one !== shown);
@@ -248,7 +258,7 @@ function action(open, unopened, next, daily) {
       return {
         do: "stand down",
         pr: first.number,
-        say: `PR #${first.number} (${first.branch}) waits for the owner, and ${daily.merged} sprints merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
+        say: `PR #${first.number} (${first.branch}) waits for the owner, and ${daily.merged} ${daily.merged === 1 ? "sprint" : "sprints"} merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
       };
     }
     if (open.length <= WAITING_CAP) {
