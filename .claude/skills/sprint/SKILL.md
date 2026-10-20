@@ -14,12 +14,27 @@ flight. The script reads GitHub and prints, as JSON, the open sprint PRs, the ne
 and what to do (`action`):
 - `continue`: check out that PR's branch, read its body, its comments and `.studio/sprint/<n>/`,
   and do what's missing.
-- `stand down`: every open sprint PR waits for the owner, the one to continue changed in the last
+- `stand down`: two open sprint PRs wait for the owner, the one to continue changed in the last
   45 minutes (another run is on it), a sprint branch with no PR yet was committed to in that time
-  (another run is starting it), or the day's cap of new sprints is reached (`daily`). Start nothing and open no PR; end with a short report saying which, and
-  naming the PR (or, when no PR is open yet, the branch) and what it waits for.
+  (another run is starting it), or the day's cap of new sprints is reached (`daily`). Start
+  nothing and open no PR; end with a short report saying which, and naming the PR (or, when no PR
+  is open yet, the branch) and what it waits for.
 - `start`: start sprint `next` on a branch named `sprint/<n>-<slug>`, made from the latest
-  `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main.
+  `origin/main`. A run that a merged sprint PR started checks out that PR's head, not main. When
+  a PR waits for the owner (`waiting`), keep working as a team does while a review is pending:
+  pick work that neither repeats nor builds on that PR (its roadmap item isn't ticked on main
+  yet), or stand down if every candidate does.
+
+Two lists come beside the action, and neither stops it:
+- `update`: PRs waiting for the owner that conflict with main, usually in the notes another
+  sprint's close-out changed. Merge `origin/main` into each one's branch. When only notes conflict
+  (STATE.md, ROADMAP.md), keep both sides, push, and once its checks pass tell the owner its head
+  changed and needs their approval again. When product code conflicts, abort the merge and
+  comment that it needs the owner's call, ending the comment with `theseus:conflict <head sha>`
+  so later runs leave that head alone.
+- `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
+  what it needs from them, then comment on each that you reminded the owner, which restarts its
+  day.
 
 It also says which account GitHub calls act as (`actingAs`; in the cloud, the owner). If it exits
 1 because it can't read GitHub, don't start a sprint: report it and stop.
@@ -40,11 +55,11 @@ need yourself, from the version-matched docs in `node_modules/next/dist/docs/` a
 unsure, take the smaller lane.
 - **S: the diff fits in one sentence.** Brief one builder. The existing suite stays green. Then CI
   and Lens.
-- **M: a new section or component.** Write `contract.md` yourself: the outcome in a sentence or
-  two, numbered checks a browser can show, and what's out of scope. Ask Quill only when the
-  roadmap pick itself is unclear. Probe first writes the checks as failing Playwright tests in
-  `e2e/`, one per numbered check. The builder makes them pass. Then CI and Lens. For visual work,
-  Iris reviews the running site, and you post her report on the PR as advice.
+- **M: a new section or component.** Write `contract.md` yourself, on one page: the outcome in a
+  sentence or two, a handful of numbered checks a visitor would notice, and what's out of scope. Ask
+  Quill only when the roadmap pick itself is unclear. Probe first writes the checks as failing
+  Playwright tests in `e2e/`, one per numbered check. The builder makes them pass. Then CI and Lens.
+  For visual work, Iris reviews the running site, and you post her report on the PR as advice.
 - **L: ambiguous or cross-cutting.** Quill writes `contract.md` in a PR of its own, labelled
   `needs-owner`; the owner accepts it by merging that PR. Iris gives direction when it brings new visual language. When two
   approaches compete and the call matters, run the `decide` skill. Then split the work into S and

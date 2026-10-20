@@ -24,11 +24,21 @@
 //   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
 //   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
-//   every open one does or when the day's cap is reached, or start the next sprint, with its
-//   branch name. An open sprint PR is continued even at the cap: finishing work isn't starting it.
-//   One that changed in the last 45 minutes is left alone, since another run is most likely still
-//   on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch collide. So is
-//   everything while an unopened sprint branch is that fresh.
+//   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
+//   for the owner the team keeps working, on something that neither repeats nor builds on it, as a
+//   team does while a review is pending (it stood idle for two days behind #35); a second waiting
+//   PR stops new work. An open sprint PR is continued even at the cap: finishing work isn't
+//   starting it. One that changed in the last 45 minutes is left alone, since another run is most
+//   likely still on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch
+//   collide. So is everything while an unopened sprint branch is that fresh.
+// - remind: the PRs waiting for the owner a day past their last commit and the team's last comment
+//   on them. The run that reminds the owner comments on each, which restarts its day, so the owner
+//   hears once a day while it waits. The owner was told about #35 once and it waited two days.
+// - update: the PRs waiting for the owner that conflict with the base, as other sprints' close-outs
+//   edit the same notes, and that no run is on (quiet for 45 minutes). The run brings each up to
+//   date beside its action; one it can't (product code conflicts) it flags in a comment ending
+//   `theseus:conflict <head>`, and that head isn't listed again. Both lists read only the team's
+//   and the owner's comments (ownerQueue).
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
@@ -44,6 +54,7 @@ const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
 const ACTIVE_MS = 45 * 60 * 1000;
+const WAITING_CAP = 1;
 configure({ timeout: 20_000 });
 
 let repo;
@@ -103,6 +114,7 @@ function preflight(repo) {
     highest,
     next,
     daily: { merged: daily.merged, cap: daily.cap },
+    ...ownerQueue(repo, open),
     action: action(open, unopened, next, daily),
   };
 }
@@ -176,6 +188,48 @@ function sprintFolders(repo, base) {
   }
 }
 
+// What the team owes the PRs waiting for the owner, read only from the team's and the owner's own
+// comments: the repository is public, and a stranger's comment must neither silence a reminder
+// nor mark a conflict as dealt with.
+// - remind: the PRs a day past their last commit and their last such comment. The run that
+//   reminds the owner comments on each, which restarts the day.
+// - update: the PRs that conflict with the base, that no run is on (quiet for 45 minutes), and
+//   whose head no such comment flagged as beyond the team (`theseus:conflict <head>`). GitHub
+//   reports a conflict only on the PR itself; "unknown", while it works one out, counts as none,
+//   so a later run sees it.
+function ownerQueue(repo, open) {
+  const remind = [];
+  const update = [];
+  for (const pr of open.filter(({ needsOwner }) => needsOwner)) {
+    const comments = list(
+      `repos/${repo}/issues/${pr.number}/comments?per_page=100`,
+    ).filter(
+      ({ author_association: association, user }) =>
+        TRUSTED.has(association) || user?.login === CHECKS_APP,
+    );
+    const committed = api(`repos/${repo}/commits/${pr.head}`).commit.committer
+      .date;
+    const lastSeen = Math.max(
+      Date.parse(committed),
+      ...comments.map(({ created_at: at }) => Date.parse(at)),
+    );
+    if (Date.now() - lastSeen >= DAY) {
+      remind.push({ number: pr.number, url: pr.url });
+    }
+    const quiet = Date.now() - Date.parse(pr.updatedAt) >= ACTIVE_MS;
+    if (
+      quiet &&
+      !comments.some(({ body }) =>
+        body?.includes(`theseus:conflict ${pr.head}`),
+      ) &&
+      api(`repos/${repo}/pulls/${pr.number}`).mergeable_state === "dirty"
+    ) {
+      update.push({ number: pr.number, branch: pr.branch });
+    }
+  }
+  return { remind, update };
+}
+
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
 function action(open, unopened, next, daily) {
   const [busy] = unopened;
@@ -210,6 +264,21 @@ function action(open, unopened, next, daily) {
   };
   if (!current) {
     const [first] = open;
+    if (open.length <= WAITING_CAP && daily.merged >= daily.cap) {
+      return {
+        do: "stand down",
+        pr: first.number,
+        say: `PR #${first.number} (${first.branch}) waits for the owner, and ${daily.merged} ${daily.merged === 1 ? "sprint" : "sprints"} merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
+      };
+    }
+    if (open.length <= WAITING_CAP) {
+      return {
+        do: "start",
+        sprint: next,
+        waiting: first.number,
+        say: `PR #${first.number} (${first.branch}) waits for the owner. Start sprint ${next} on a branch named sprint/${next}-<slug>, on work that neither repeats nor builds on #${first.number}; if every candidate does, stand down with a short report.`,
+      };
+    }
     return {
       do: "stand down",
       pr: first.number,
