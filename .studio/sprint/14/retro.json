@@ -14,7 +14,12 @@
       "tokens": 116111,
       "minutes": 11
     },
-    { "role": "engineer", "model": "inherit", "tokens": 161412, "minutes": 6 },
+    {
+      "role": "engineer",
+      "model": "inherit",
+      "tokens": 161412,
+      "minutes": 6
+    },
     {
       "role": "design-director",
       "model": "inherit",
@@ -39,8 +44,8 @@
       "evidence": "Probe's and Forge's reports; two orphaned next-server processes (parent PID 1) were still up at close-out"
     },
     {
-      "what": "Iris's detector could not launch Chromium as root and production is unreachable from the sandbox (CONNECT 403), so origin/main stood in for production",
-      "evidence": ".studio/sprint/14/review-iris.md"
+      "what": "PR #43 merged under the owner's login at its build head (9f5ee4c, 01:13:36Z) before the close-out push reached it, so the retro, roadmap tick and STATE entry needed a follow-up PR",
+      "evidence": "gh api pulls/43: merged_at 2026-10-20T01:13:36Z, head 9f5ee4c; merge.mjs then said NO-GO, already merged"
     }
   ],
   "proposals": [
@@ -51,6 +56,10 @@
     {
       "change": "Allow the sandbox to reach theseus-portfolio.vercel.app, and run the design detector's Chromium with --no-sandbox as root",
       "moves": "Iris reviews against real production instead of a stand-in build"
+    },
+    {
+      "change": "Whatever merged #43 at its build head (auto-merge or the owner) waits while the sprint folder has no retro.json on the head",
+      "moves": "close-out follow-up PRs per sprint (1 this sprint) to 0"
     }
   ],
   "followUps": [

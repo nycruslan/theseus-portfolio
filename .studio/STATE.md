@@ -203,7 +203,7 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
 
 ## Sprint 14: the build log's way in (PR #43)
 
-- **Outcome:** PR B, which finishes "Watch the team build": a copper "Build log · N sprints" line under the
+- **Outcome:** PR B (merged as 576dc32 before its close-out reached it; these notes came in a follow-up PR), which finishes "Watch the team build": a copper "Build log · N sprints" line under the
   bio on `/`, counted by the same `readSprintLog()` as `/sprints`. Probe's `e2e/sprints-entry.spec.ts`
   (C14, C15) went first, red, with 10 mutants all caught. Forge built it in one pass, with sprint 13's three
   riders. Lens said ship on the first run. Iris said changes at 7.5: the new line's ring touched its dot,
