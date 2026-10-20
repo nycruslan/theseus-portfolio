@@ -3,7 +3,8 @@
 // In the cloud every GitHub call acts as the owner, so a PR a session opens itself is the owner's,
 // and nobody can approve their own PR: the owner could decide it only with the ruleset's bypass,
 // which skips the required checks too. Opened by the app (.github/workflows/open-pr.yml), it's a PR
-// the owner can approve, and then merge with every check run.
+// the owner can approve, and then merge with every check run. Either way it opens as a draft, which
+// nobody can merge until the team marks it ready at its close-out (ready-pr.mjs).
 // It asks for the workflow, then polls every 5 s, for up to 3 minutes, until the PR is open. If the
 // workflow can't be asked for or the PR doesn't come in time, it opens the PR itself, under the
 // owner's login, and says so: a sprint never waits on the app. A branch that already has an open PR
@@ -114,7 +115,7 @@ function openOwn(base, openPr) {
     const pr = api(`repos/${repo}/pulls`, {
       method: "POST",
       cwd,
-      body: { ...fields, head, base },
+      body: { ...fields, head, base, draft: true },
     });
     return { pr, own: true };
   } catch (error) {

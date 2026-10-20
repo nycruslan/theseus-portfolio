@@ -21,7 +21,7 @@ a cloud routine. Every step streams live to the Studio.
 | The design bar | [`design/rubric.md`](design/rubric.md) |
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
-| How Atlas opens a PR (through the checks app, so the owner can approve it) | [`.studio/open-pr.mjs`](.studio/open-pr.mjs) |
+| How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.studio/open-pr.mjs`](.studio/open-pr.mjs), [`.studio/ready-pr.mjs`](.studio/ready-pr.mjs) |
 | How Atlas merges (waits, then squash-merges) | [`.studio/merge.mjs`](.studio/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
 | What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
@@ -36,7 +36,8 @@ a cloud routine. Every step streams live to the Studio.
 - `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
 - `gate` (the team's checks app): it holds a PR that touches an owner path, changes
   `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner approves
-  its current head. The checks app opens the team's PRs (`.github/workflows/open-pr.yml`), so the
+  its current head. The checks app opens the team's PRs as drafts (`.github/workflows/open-pr.yml`),
+  so nobody merges one mid-sprint, and marks them ready at the close-out (`ready-pr.yml`); the
   owner can approve them and merge them with the usual button. A PR under the owner's own login
   can't be approved by them (nobody can approve their own PR), so they decide it with the bypass;
 - `lens` (the checks app): Claude Code reviews the PR as Lens and the check passes only on ship. A

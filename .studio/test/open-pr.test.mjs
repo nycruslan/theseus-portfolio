@@ -98,7 +98,7 @@ test("opens the PR itself, under the owner's login, when the app's PR doesn't co
     /^Opened PR #8 under the owner's login, since the checks app hadn't opened it after \d+ min .*: https:\/\/github\.com\/nycruslan\/theseus-portfolio\/pull\/8$/m,
   );
   assert.deepEqual(sent("POST", `${R}/pulls`), [
-    { ...FIELDS, head: BRANCH, base: "main" },
+    { ...FIELDS, head: BRANCH, base: "main", draft: true },
   ]);
 });
 

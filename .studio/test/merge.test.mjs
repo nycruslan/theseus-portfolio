@@ -285,6 +285,18 @@ test("doesn't ask when GitHub says no or can't yet tell: a conflict, a draft, a 
   }
 });
 
+test("refuses a draft and says how to mark it ready", () => {
+  const { code, stderr, merges } = merge(
+    github({ pulls: pr({ draft: true, mergeable_state: "draft" }) }),
+  );
+  assert.equal(code, 1);
+  assert.equal(merges.length, 0);
+  assert.match(
+    stderr,
+    /NO-GO for PR #12: it's still a draft: mark it ready with node \.studio\/ready-pr\.mjs 12\./,
+  );
+});
+
 test("refuses when the branch moves or the PR isn't open", () => {
   const moved = merge(
     github({

@@ -18,9 +18,3 @@ your files and tell them by name as soon as your work touches theirs. When revie
 back, it comes to you because it's yours. You may hand searching or checking to a helper, but the
 writing stays yours. Commit on your branch. If the brief turns out to be wrong, say so rather than
 quietly building something else.
-
-Start your own dev or production server on a free port (not 3000; that's the owner's), note its
-PID, and stop it with `kill <pid>`, or `kill $!` in the same command. Never stop processes by name
-or port: other people's servers run on this machine.
-
-Your memory is `.claude/agent-memory/engineer/`; in a worktree of your own, see CLAUDE.md.

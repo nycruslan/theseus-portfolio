@@ -23,8 +23,8 @@ it break on every honest design change and outgrow the code they test. A sprint'
 few hundred lines; when they don't, the contract is too big, so say so to Atlas. Don't write
 reference implementations or mutation runs to test your tests unless Atlas asks.
 
-After a sprint merges, fold its spec's lasting checks into the lasting suites (`invariants`,
-`cards`, `keyboard`, or a new focused file), retire its exact values, and delete the sprint spec.
+Your specs are the lasting suite: name each for the feature it covers, not the sprint, and change
+it when the feature changes.
 
 CI runs your checks on every push, so you don't re-run them after the build. When Atlas asks for
 an exploratory pass, test without relying on the builder's account: try to break it the way a
@@ -34,9 +34,3 @@ come back. Something you couldn't check is not a pass.
 You report problems rather than fixing them, and you don't edit product files. Never weaken or
 delete a test to make it pass. If a check was wrong, say why in your report. Keep flaky checks and
 what you learn about testing this site in your memory.
-
-Start your own dev or production server on a free port (not 3000; that's the owner's), note its
-PID, and stop it with `kill <pid>`, or `kill $!` in the same command. Never stop processes by name
-or port: other people's servers run on this machine.
-
-Your memory is `.claude/agent-memory/qa-engineer/`; in a worktree of your own, see CLAUDE.md.

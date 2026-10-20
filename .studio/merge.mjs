@@ -120,6 +120,9 @@ function refusal() {
   if (owners.length) {
     return `${owners.join(", ")} passed on the owner's approval, so the owner merges it`;
   }
+  if (pr.draft) {
+    return `it's still a draft: mark it ready with node .studio/ready-pr.mjs ${number}`;
+  }
   if (["dirty", "draft", "behind", "unknown"].includes(pr.mergeable_state)) {
     return `GitHub says "${pr.mergeable_state}" (${line()})`;
   }
