@@ -3,11 +3,12 @@
 # the browser agent-browser drives for QA and design review. Local sessions skip it.
 #
 # Every step is best effort, and the script always exits 0: one blocked download must not skip the
-# rest. The cloud's proxy refuses Playwright's and agent-browser's browser downloads, so the image's
-# own browsers in /opt/pw-browsers come first. When the image's Chromium is an older build than the
-# one this Playwright wants, a folder of links (the shim) presents it under the wanted build's
-# name; every agent in sprints 1 and 2 built that shim by hand. A step that fails says so here,
-# and again when the tool that needed it runs.
+# rest. The browser the end-to-end checks run in should be the build CI runs: one the environment's
+# setup script downloaded, else the image's own (/opt/pw-browsers) when it's that build, else a
+# fresh download, which the cloud's proxy allows only when the environment lets Playwright's hosts
+# through. Failing all of those, a folder of links (the shim) presents the image's older Chromium
+# under the wanted build's name; every agent in sprints 1 and 2 built that shim by hand. A step
+# that fails says so here, and again when the tool that needed it runs.
 #
 # Settings reach the session's later commands through CLAUDE_ENV_FILE, which Claude Code gives
 # SessionStart hooks.
@@ -42,13 +43,31 @@ newest() {
   ls -d "$IMAGE"/"$1"-*/ 2>/dev/null | sort -V | tail -n 1
 }
 
+# Downloads the build this Playwright wants into its own folder; true once it's there. The proxy
+# lets it through only when the environment's network access allows Playwright's hosts.
+download_shell() {
+  pnpm exec playwright install --only-shell chromium >/dev/null 2>&1 && [ -d "$(wanted_shell)" ]
+}
+
 playwright_browser() {
   local want source exe platform
+  # The exact build, from the environment's setup script or an earlier session: what CI runs.
+  want=$(wanted_shell)
+  if [ -n "$want" ] && [ -d "$want" ]; then
+    say "Playwright uses its own download ($want)."
+    return
+  fi
   if [ -d "$IMAGE" ]; then
     want=$(PLAYWRIGHT_BROWSERS_PATH="$IMAGE" wanted_shell)
     if [ -n "$want" ] && [ -d "$want" ]; then
       persist PLAYWRIGHT_BROWSERS_PATH "$IMAGE"
       say "Playwright uses the image's browsers ($want)."
+      return
+    fi
+    # An older image build behaves differently from CI's on the edges (sprints 9 and 10 measured
+    # WebGL on Chromium 141 while CI ran 156), so the exact build comes first when it can be had.
+    if download_shell; then
+      say "Playwright downloaded the build CI runs ($(wanted_shell))."
       return
     fi
     source=$(newest chromium_headless_shell)
@@ -103,6 +122,11 @@ agent_browser() {
 
 pnpm install --frozen-lockfile --prefer-offline ||
   say "pnpm install failed: pnpm verify and the end-to-end checks will fail until it's run."
+# Tools the skills call by name, such as agent-browser, are the project's own packages.
+persist PATH "$PWD/node_modules/.bin:$PATH"
+# Commits format what they stage (.githooks/pre-commit), so a push never fails CI on formatting.
+git config core.hooksPath .githooks 2>/dev/null ||
+  say "Couldn't point git at .githooks: commits won't format what they stage."
 playwright_browser
 agent_browser
 exit 0

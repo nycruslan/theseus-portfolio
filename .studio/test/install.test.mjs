@@ -74,8 +74,9 @@ exit 0
   };
 }
 
-function install({ remote = true, images, fail } = {}) {
+function install({ remote = true, images, fail, env = {}, repo = false } = {}) {
   const project = tempDir();
+  if (repo) execFileSync("git", ["init", "--quiet", project]);
   const shim = join(tempDir(), "shim");
   const envFile = join(project, "env.sh");
   const fake = pnpm(fail);
@@ -89,6 +90,7 @@ function install({ remote = true, images, fail } = {}) {
       THESEUS_BROWSERS_IMAGE: images ?? join(tempDir(), "none"),
       THESEUS_BROWSERS_SHIM: shim,
       ...(remote && { CLAUDE_CODE_REMOTE: "true" }),
+      ...env,
     },
   });
   // What a later command in the session sees.
@@ -97,7 +99,7 @@ function install({ remote = true, images, fail } = {}) {
         "bash",
         [
           "-c",
-          `source "${envFile}"; echo "$PLAYWRIGHT_BROWSERS_PATH"; echo "$AGENT_BROWSER_EXECUTABLE_PATH"`,
+          `source "${envFile}"; echo "$PLAYWRIGHT_BROWSERS_PATH"; echo "$AGENT_BROWSER_EXECUTABLE_PATH"; echo "$PATH"`,
         ],
         { encoding: "utf8" },
       ).stdout.split("\n")
@@ -110,6 +112,13 @@ function install({ remote = true, images, fail } = {}) {
     shim,
     browsers: seen[0] ?? "",
     chrome: seen[1] ?? "",
+    path: seen[2] ?? "",
+    hooks: repo
+      ? spawnSync("git", ["-C", project, "config", "core.hooksPath"], {
+          encoding: "utf8",
+        }).stdout.trim()
+      : undefined,
+    project,
   };
 }
 
@@ -130,15 +139,31 @@ test("presents an older image Chromium under the build Playwright wants, without
   assert.ok(existsSync(join(shim, "ffmpeg-1011/ffmpeg-linux")));
   assert.equal(chrome, join(images, "chromium-1194/chrome-linux/chrome"));
   assert.deepEqual(listing(images), before);
-  // Nothing tried to download a browser.
-  assert.deepEqual(
-    calls.filter(
-      (call) =>
-        /install(?! --dry-run)/.test(call) &&
-        call !== "install --frozen-lockfile --prefer-offline",
-    ),
-    [],
-  );
+  // It tried for the exact build first; the fake proxy left no browser behind, so the shim stands.
+  assert.ok(calls.includes("exec playwright install --only-shell chromium"));
+  assert.ok(!calls.includes("exec agent-browser install"));
+});
+
+test("uses Playwright's own download of the wanted build when it's there", () => {
+  const cache = tempDir();
+  mkdirSync(join(cache, "chromium_headless_shell-1248"));
+  const images = image("1194");
+  const { code, browsers, shim, stderr } = install({
+    images,
+    env: { PLAYWRIGHT_BROWSERS_PATH: cache },
+  });
+  assert.equal(code, 0);
+  assert.match(stderr, /Playwright uses its own download/);
+  // Nothing overrides where Playwright already looks, and no shim is built.
+  assert.equal(browsers, "");
+  assert.equal(existsSync(shim), false);
+});
+
+test("puts the project's own tools on PATH and points git at the repo's hooks", () => {
+  const { code, path, hooks, project } = install({ repo: true });
+  assert.equal(code, 0);
+  assert.equal(path.split(":")[0], join(project, "node_modules/.bin"));
+  assert.equal(hooks, ".githooks");
 });
 
 test("uses the image as it is when it has the build Playwright wants", () => {

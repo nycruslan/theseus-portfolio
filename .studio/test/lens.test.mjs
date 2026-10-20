@@ -347,6 +347,25 @@ test("when GitHub refuses an inline comment, the findings stay in the review's b
   assert.equal(checks[0].conclusion, "success");
 });
 
+test("when GitHub won't take the review at all, the check still carries the verdict", () => {
+  const table = {
+    [`POST ${R}/pulls/15/reviews`]: {
+      $error: 502,
+      message: "unexpected end of JSON input",
+    },
+  };
+  const { code, stdout, reviews, checks } = step("verdict", event(), {
+    table,
+    env: { STRUCTURED_OUTPUT: review("ship"), GH_STATE: tempDir() },
+  });
+  assert.equal(code, 0);
+  assert.equal(reviews.length, 2);
+  assert.equal(checks.length, 1);
+  assert.equal(checks[0].conclusion, "success");
+  assert.match(checks[0].output.summary, /Lens: ship/);
+  assert.match(stdout, /GitHub didn't take the review .*the check carries it/);
+});
+
 test("a run whose head is no longer the PR's posts nothing", () => {
   const moved = { [`${R}/pulls/15`]: { head: { sha: "newer" } } };
   const planned = step("plan", event({ action: "labeled", label: "review" }), {
