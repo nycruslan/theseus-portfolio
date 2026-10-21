@@ -23,6 +23,11 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
   specs' raw U+00A0 as escapes. (Sprint 20, PR #54: `app/page.tsx`, `components/sprint-entry.tsx`,
   `e2e/profile-sections.spec.ts` C8.)
 
+- [x] The forced-colors checks cover what sprint 20 shipped: C8 asserts the Stack list clips
+  sideways, and C9.5 checks the build log's bullets in forced colors. (Sprint 21, PR #55:
+  `e2e/profile-sections.spec.ts` C8, `e2e/sprints.spec.ts` C9.5.)
+  - Rider: C9.5 should take its selector from `ENTRIES` (Lens's nit, Probe).
+
 ## Next (highest first)
 
 - [ ] Redesign (L, the owner's goal, 2026-10-21): the site in `PRODUCT.md` and `design/brief.md`,
@@ -41,9 +46,8 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
   teardown and a reduced-motion change mid-visit (`components/hero-gl.ts`); retina ticks at the bow
   tip (`.crew/sprint/10/review-iris.md` item 3); the font-swap CLS on `/`; C14's draw-count check
   under load (`e2e/hero-3d.spec.ts`).
-- [ ] Small follow-ups (S, as riders): grouping the build log past about 30 entries (Quill); C8 also
-  asserting the Stack still clips sideways, and a forced-colors check for the build log's bullets
-  (Probe, Lens's nits on sprint 20).
+- [ ] Small follow-ups (S, as riders): grouping the build log past about 30 entries (Quill); C9.5's
+  selector from `ENTRIES` in `e2e/sprints.spec.ts` (Probe, Lens's nit on sprint 21).
 - [ ] Skip link decision (S): nothing focusable comes before the first project card, so the link
   can't save a Tab however `main` is cut. B2's navigation may answer it; otherwise keep it as
   convention and close this, or retarget it. Removing it would weaken `keyboard.spec.ts`, which is

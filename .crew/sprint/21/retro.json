@@ -1,0 +1,28 @@
+{
+  "sprint": 21,
+  "pr": 55,
+  "goal": "Automated checks now guard the high-contrast dots and the sideways-only clip that sprint 20 shipped",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 30,
+  "agents": [{ "role": "qa-engineer", "model": "inherit", "tokens": 45029, "minutes": 10 }],
+  "lens": { "runs": 1, "tokens": 108217, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The new bullet check repeats a selector the file already keeps in one place",
+      "evidence": "Lens's nit on e2e/sprints.spec.ts:1605 (review on 36793b0)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Briefs for a check added after its fix name the mutant that must turn it red",
+      "moves": "New checks that would never fail (zero this sprint: both mutants went red)"
+    }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "C9.5 takes its selector from ENTRIES in e2e/sprints.spec.ts, Lens's nit" },
+    { "who": "Owner", "what": "Approve or comment on the redesign canvas https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5" }
+  ]
+}

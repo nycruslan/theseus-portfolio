@@ -127,3 +127,14 @@ still hold:
   - In forced colors Chromium repaints a background-only dot opaque Canvas, not transparent: a check
     that it "shows" compares it with the page's background.
   - A check named "clips only sideways" needs both halves asserted; Lens reads titles against bodies.
+
+## Sprint 21: the forced-colors checks cover what sprint 20 shipped (PR #55)
+
+- **Outcome:** test-only S with Probe as the only writer: C8 now asserts the Stack list's
+  `overflow-x: clip` beside `overflow-y: visible`, and the new C9.5 checks the build log's "What went
+  wrong" bullets in forced colors (bullets exist, not transparent, not the page's colour). Each new
+  assertion was red on its own mutant in a scratchpad copy and green on the product. Lens ship on the
+  first run with one nit (C9.5 hard-codes the selector `ENTRIES` holds), left as a rider. The redesign
+  still waits for the owner's comments on sprint 17's canvas.
+- **Lesson:** a check added after the fix can't be red on main, so its brief names the mutant that must
+  turn it red; that stands in for "red first".

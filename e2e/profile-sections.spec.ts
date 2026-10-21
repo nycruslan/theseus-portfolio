@@ -265,6 +265,7 @@ test("C8. Forced colors: the Stack's drawn dots still show, and the list clips o
           ) <= 2,
       );
       return {
+        overflowX: list ? getComputedStyle(list).overflowX : null,
         overflowY: list ? getComputedStyle(list).overflowY : null,
         page: getComputedStyle(document.body).backgroundColor,
         dots: followers.map((li) => ({
@@ -294,6 +295,10 @@ test("C8. Forced colors: the Stack's drawn dots still show, and the list clips o
     ).toEqual([]);
     expect(seen.overflowY, `the Stack list's overflow-y at ${where}`).toBe(
       "visible",
+    );
+    // "Only sideways" has two halves: the sideways one is what hides the leading dot of a row.
+    expect(seen.overflowX, `the Stack list's overflow-x at ${where}`).toBe(
+      "clip",
     );
   }
 });
