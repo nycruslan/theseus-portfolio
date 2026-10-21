@@ -66,3 +66,13 @@ still hold:
   - biome lints the sprint folder too: run `pnpm exec biome ci` on any prototype before it is pushed.
   - A contract writer reading a design for checks finds what the designer missed (the cropped plank); keep
     that round before the review label, and have the designer measure every N the rule will see.
+
+## The owner's interview, 2026-10-21 (sprints 15 and 16 superseded)
+
+- **Outcome:** the owner hadn't seen sprint 15's direction before merging #47, and sprint 16's B1
+  (#49) was building on it. The owner was interviewed instead, and the redesign restarts from that
+  record (`PRODUCT.md`) and a rewritten `design/brief.md`. #47's direction is superseded, and #49
+  closed unmerged.
+- **Lesson:** a direction the owner can only reach by opening a file in the repo isn't reviewed.
+  Put it on a Design canvas, ask for their comments there, and build only once they approve (the
+  sprint skill's L lane).
