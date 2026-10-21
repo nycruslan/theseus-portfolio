@@ -1,0 +1,125 @@
+{
+  "title": "Theseus redesign direction",
+  "frames": [
+    {
+      "file": "main.webp",
+      "title": "First screen, 1440 (Full motion, crew live)",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "hero-390.webp",
+      "title": "First screen, 390",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "today.webp",
+      "title": "Production today, for the side-by-side",
+      "width": 1240,
+      "height": 900
+    },
+    {
+      "file": "work-1440.webp",
+      "title": "The facts: Work, 1440",
+      "width": 1440,
+      "height": 2060
+    },
+    {
+      "file": "work-390.webp",
+      "title": "The facts: Work, 390",
+      "width": 390,
+      "height": 2790
+    },
+    {
+      "file": "crew-1440.webp",
+      "title": "The live crew, /crew, 1440",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "crew-390.webp",
+      "title": "The live crew, /crew, 390",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "log-1440.webp",
+      "title": "The archive: ghost hull and revisions, /log/13, 1440",
+      "width": 1440,
+      "height": 1130
+    },
+    {
+      "file": "log-390.webp",
+      "title": "The archive, /log, 390",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "file": "loft.webp",
+      "title": "The loft: the signature transition, 1440",
+      "width": 2368,
+      "height": 1260
+    },
+    {
+      "file": "loft-390.webp",
+      "title": "The loft on a phone",
+      "width": 1380,
+      "height": 720
+    },
+    {
+      "file": "rest-1440.webp",
+      "title": "Rest state, crew idle, 1440",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "rest-390.webp",
+      "title": "Rest state, 390",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "night-1440.webp",
+      "title": "Night watch (dark scheme), 1440",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "motion-calm.webp",
+      "title": "Motion: Calm (and reduced motion)",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "motion-off.webp",
+      "title": "Motion: Off (also no WebGL, no JS, print)",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "motion-control.webp",
+      "title": "The motion control, close up",
+      "width": 720,
+      "height": 900
+    },
+    {
+      "file": "read-1440.webp",
+      "title": "Read as page, /read, 1440",
+      "width": 1440,
+      "height": 2240
+    },
+    {
+      "file": "read-390.webp",
+      "title": "Read as page, 390",
+      "width": 390,
+      "height": 2540
+    },
+    {
+      "file": "tokens.webp",
+      "title": "Type, colour and line tokens",
+      "width": 1440,
+      "height": 1270
+    }
+  ]
+}

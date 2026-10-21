@@ -19,7 +19,10 @@ references, before anyone builds.
 
 The owner reviews directions on a Design canvas, not in code: publish yours as an Artifact made
 from the Design type, with the key screens at 1440 and 390 px, and read the owner's comments on it
-(ArtifactComments) before you revise. Keep the canvas's link in the sprint folder.
+(ArtifactComments) before you revise. Keep the canvas's link in the sprint folder, and its
+artboards as images in the folder's `design/`, listed in order in `design/frames.json`
+(`{ "title", "frames": [{ "file", "title", "width", "height" }] }`), refreshed with every revision:
+the canvas is private and can't be embedded, so that's how the Studio shows the design.
 
 In a critique:
 - Start from the rubric's hard gates.
