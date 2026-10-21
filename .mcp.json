@@ -10,7 +10,7 @@
     },
     "chrome-devtools": {
       "command": "bash",
-      "args": [".studio/chrome-devtools-mcp.sh"]
+      "args": [".crew/chrome-devtools-mcp.sh"]
     }
   }
 }

@@ -19,12 +19,12 @@ a cloud routine. Every step streams live to the Studio.
 | How the team works | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
-| Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
+| Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.crew/`](.crew) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
-| How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.studio/open-pr.mjs`](.studio/open-pr.mjs), [`.studio/ready-pr.mjs`](.studio/ready-pr.mjs) |
-| How Atlas merges (waits, then squash-merges) | [`.studio/merge.mjs`](.studio/merge.mjs) |
-| Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
-| What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
+| How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.crew/open-pr.mjs`](.crew/open-pr.mjs), [`.crew/ready-pr.mjs`](.crew/ready-pr.mjs) |
+| How Atlas merges (waits, then squash-merges) | [`.crew/merge.mjs`](.crew/merge.mjs) |
+| Each sprint's contract, positions and decisions | [`.crew/sprint/`](.crew/sprint) |
+| What the team has done so far | [`.crew/STATE.md`](.crew/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
 
@@ -61,7 +61,7 @@ three triggers, which only the owner can change:
   The token is the owner's: whoever holds it can start a run and suggest its goal, with no more
   rights than the team's.
 
-The daily cap is guidance, not binding: the pre-flight Atlas runs (`.studio/next-sprint.mjs`) stands
+The daily cap is guidance, not binding: the pre-flight Atlas runs (`.crew/next-sprint.mjs`) stands
 down once `THESEUS_DAILY_SPRINTS` (default 6) of the team's sprint PRs merged in the last 24 hours.
 An open sprint PR is still finished at the cap. Each run also counts against the owner's
 subscription usage and the routines' own hourly limits.

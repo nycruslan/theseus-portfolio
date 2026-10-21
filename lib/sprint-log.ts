@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The build log's data: one entry per `.studio/sprint/<n>/retro.json`, read when the site is built.
+// The build log's data: one entry per `.crew/sprint/<n>/retro.json`, read when the site is built.
 // Only node:fs and node:path, by node: specifiers, so a test can call it on a folder of fixtures.
 // Only `readdirSync` carries `turbopackIgnore`: the folder is a run-time argument, and without it
 // the bundler traces the whole project into the server output. The build doesn't warn on
 // `readFileSync`. The page is static, so nothing reads at request time.
-// The rules (what throws, what is tolerated) are in .studio/sprint/12/contract.md, "The data rules".
+// The rules (what throws, what is tolerated) are in .crew/sprint/12/contract.md, "The data rules".
 
 export interface SprintEntry {
   /** The retro's `sprint`: a positive integer equal to its folder's number. */
@@ -112,7 +112,7 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
  * so the build fails instead of the public log quietly shrinking.
  */
 export function readSprintLog(
-  dir: string = join(process.cwd(), ".studio", "sprint"),
+  dir: string = join(process.cwd(), ".crew", "sprint"),
 ): SprintEntry[] {
   const files = new Map<number, string>();
   const entries: SprintEntry[] = [];

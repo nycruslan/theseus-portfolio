@@ -6,7 +6,7 @@ type: project
 Accepted: light ground #e6f3f1 (oklch 95.5% 0.014 185), ink #0f2220, muted #455e5a, copper accent
 #944126 for links only, rule #c5d5d2. Dark: #091413 / #e1eae9 / #96a9a6 / #e79d73 / #283635.
 Type: 1.2 → 1.333 scale, base 16 → 18, 2xl off-scale 48 → 76 px. Full spec is in
-.studio/sprint/1/direction.md.
+.crew/sprint/1/direction.md.
 
 Rejected:
 - Cream plus terracotta, and logbook plus red lead. That's the default AI look wearing the

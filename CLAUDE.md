@@ -10,13 +10,13 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   taste; Forge the code, and Pixel 3D and motion; Lens code review; Probe whether it works.
 - **Who writes what:** Forge and Pixel change product code. Probe owns the end-to-end checks in
   `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder and their
-  own memory. `.studio/guard.mjs` holds file edits to this. The lead doesn't write product code
+  own memory. `.crew/guard.mjs` holds file edits to this. The lead doesn't write product code
   either; that's the sprint skill's rule, since the owner's own sessions also run as the lead.
 - **Shared state:**
-  - `.studio/STATE.md`: what the team learned.
+  - `.crew/STATE.md`: what the team learned.
   - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
     It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
-  - `.studio/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
+  - `.crew/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
   - `design/brief.md`: the owner's direction for the site; `design/rubric.md`: the design bar,
     calibrated by the owner's examples in `design/calibration/`.
 
@@ -56,7 +56,7 @@ the owner's approval go in `content/drafts/`.
 The team's own setup is the owner's too:
 - every `CLAUDE.md`, `AGENTS.md` and `.gitattributes`, and `.mcp.json`;
 - `.claude/`, apart from agent memory;
-- the `.studio/` scripts (including `install.sh` and `merge.mjs`) and their tests;
+- the `.crew/` scripts (including `install.sh` and `merge.mjs`) and their tests;
 - `.github/` and `.githooks/`;
 - `design/brief.md`, `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;

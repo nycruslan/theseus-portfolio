@@ -18,12 +18,12 @@ import {
 } from "./helpers";
 import { refuseWebGl } from "./webgl";
 
-// Sprint 8, Part A of sprint 7's contract (.studio/sprint/7/contract.md, C1 to C9): the hero is a
+// Sprint 8, Part A of sprint 7's contract (.crew/sprint/7/contract.md, C1 to C9): the hero is a
 // static inline SVG, a lift half-model of seven planks and one copper one, placed right after the
 // header. One test per check, named by its number. Hooks: [data-hero] (the box), [data-hero-hull]
 // (the group of all lifts), [data-hero-lift] (seven paths), [data-hero-copper] (one plank, on the
 // third lift). How each check was read, and what the builder can rely on:
-// .studio/sprint/8/probe-checks.md.
+// .crew/sprint/8/probe-checks.md.
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -57,7 +57,7 @@ const FOOTPRINT_WIDTHS = [320, 390, 600, 767, 768, 1024, 1440] as const;
 /**
  * The box the contract wants at a viewport's `clientWidth`: 688 x 138 from 768, else full-bleed and
  * 8 + 130 s tall, s the hull's width over 624 (the turn's envelope plus 4 px each side;
- * .studio/sprint/9/contract.md, "C2 trim").
+ * .crew/sprint/9/contract.md, "C2 trim").
  */
 function expectedBox(cw: number) {
   return cw >= 768

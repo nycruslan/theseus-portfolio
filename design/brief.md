@@ -28,7 +28,7 @@ AI platforms. It has two audiences, and both must win:
 
 **The log of the Theseus**, decided when the owner merged sprint 15 (#47): a ruled ship's log, the
 hull's 22 planks replaced one per sprint, copper the newest. Iris's direction and prototype are in
-`.studio/sprint/15/` (`direction-iris.md`, `prototype/`), and Quill's contract splits the build into
+`.crew/sprint/15/` (`direction-iris.md`, `prototype/`), and Quill's contract splits the build into
 B1-B5. A new concept is the owner's call, in a PR of its own.
 
 ## Craft rules
@@ -56,7 +56,7 @@ B1-B5. A new concept is the owner's call, in a PR of its own.
   work in every major browser since October 2025, so use them between pages.
 - **Skills the team has for this:** `threejs-*`, `web-design-guidelines`, `impeccable`, and with
   Chrome DevTools, `debug-optimize-lcp` and `a11y-debugging`. The DevTools server runs pinned, in a
-  throwaway profile (`.studio/chrome-devtools-mcp.sh`), whatever its skill says about `@latest`.
+  throwaway profile (`.crew/chrome-devtools-mcp.sh`), whatever its skill says about `@latest`.
 
 ## How it gets built
 

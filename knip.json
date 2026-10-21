@@ -1,10 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": [".studio/*.mjs"],
+  "entry": [".crew/*.mjs"],
   "project": [
     "**/*.{js,mjs,cjs,ts,tsx,mts,css}",
     "!.claude/**",
-    "!.studio/sprint/**"
+    "!.crew/sprint/**"
   ],
   "ignoreDependencies": ["agent-browser"],
   "ignoreExportsUsedInFile": { "interface": true, "type": true }

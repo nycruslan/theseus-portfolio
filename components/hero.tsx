@@ -13,7 +13,7 @@ const light = (value: number) =>
 
 /**
  * The hero: a shipwright's lift half-model, seven planks and one copper one, hung on the page
- * like a model on its backboard (.studio/sprint/7/direction-iris.md). A static, server-rendered
+ * like a model on its backboard (.crew/sprint/7/direction-iris.md). A static, server-rendered
  * SVG, decoration only: hidden from assistive tech, never hit or focused, and no text inside. On a
  * device that can take it, HeroUpgrade later draws the same hull in WebGL over it (sprint 10).
  */

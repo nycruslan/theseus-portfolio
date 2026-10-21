@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { EDUCATION, horizontalOverflow, SCHEMES, STACK } from "./helpers";
 
-// Sprint 6's contract (.studio/sprint/6/contract.md), one test per numbered check: Stack and
+// Sprint 6's contract (.crew/sprint/6/contract.md), one test per numbered check: Stack and
 // Education join the page after Projects, show the owner's facts in order and nothing else, hold
 // nothing interactive, and reflow on a phone. C7 (the gate) is CI's job, not a browser check.
 // Facts are imported from content/profile.ts, never copied.

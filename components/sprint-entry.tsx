@@ -11,7 +11,7 @@ const LINK_CLASSES =
   "inline-block text-accent underline underline-offset-4 hover:text-foreground";
 
 // One sprint of the build log, shaped like an Experience entry: the goal, a muted line under it,
-// then what went wrong, in full. See .studio/sprint/12/direction-iris.md, section 3.
+// then what went wrong, in full. See .crew/sprint/12/direction-iris.md, section 3.
 export function SprintItem({ entry }: { entry: SprintEntry }) {
   const meta = [
     entry.size ? SIZE_WORDS[entry.size] : undefined,

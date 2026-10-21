@@ -1,5 +1,5 @@
 /* Scan only the code that holds class names. Automatic detection also reads the team's notes and
-   skills (.studio, .claude), which shipped utilities no component uses. A new folder that holds class
+   skills (.crew, .claude), which shipped utilities no component uses. A new folder that holds class
    names needs its own @source line here, or its utilities are silently missing from the build. */
 @import "tailwindcss" source(none);
 @source "../app";
@@ -8,7 +8,7 @@
 /*
  * Design tokens. Mood: weathered bronze gone to sea-glass verdigris, with the links as the one
  * freshly fitted part, bright copper. Hex values are used so computed styles come back as rgb();
- * the oklch intent is kept beside each one. Direction: .studio/sprint/1/direction.md.
+ * the oklch intent is kept beside each one. Direction: .crew/sprint/1/direction.md.
  */
 :root {
   --background: #e6f3f1; /* oklch(95.5% 0.014 185) pale sea-glass */
@@ -54,7 +54,7 @@
 
 /* The hull at night: the same verdigris ground, with the copper pulled toward hue 42 so it reads as
    metal, not apricot, and a deeper verdigris rule so selection shows. The address-bar colors in
-   app/layout.tsx repeat both backgrounds. Direction: .studio/sprint/2/direction.md. */
+   app/layout.tsx repeat both backgrounds. Direction: .crew/sprint/2/direction.md. */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #091413; /* oklch(18% 0.016 190) green-black hull */
@@ -95,7 +95,7 @@ body {
 
 /*
  * Section reveal: as each section below the header scrolls in, its heading surfaces, a short rise
- * into place, then sits exactly where it sat before. Sprint 5: .studio/sprint/5/.
+ * into place, then sits exactly where it sat before. Sprint 5: .crew/sprint/5/.
  *
  * It is a scroll-driven animation, so it follows the section's own position (no JavaScript, works
  * with scripts off), and it is gated twice: browsers without view timelines and visitors who ask
@@ -156,7 +156,7 @@ body {
 /*
  * The hero half-model (components/hero.tsx, sprint 8): a static SVG between the header and the
  * first section, which a capable device later covers with the same hull in WebGL (sprint 10).
- * Contracts: .studio/sprint/7/contract.md, C1 to C9, and .studio/sprint/9/contract.md (the box, C10
+ * Contracts: .crew/sprint/7/contract.md, C1 to C9, and .crew/sprint/9/contract.md (the box, C10
  * to C17).
  *
  * The box. It is the hull's turn plus 4 px each side: at rest the hull is centred with 4 + 6 s px

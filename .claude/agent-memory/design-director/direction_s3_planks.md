@@ -3,7 +3,7 @@ name: Sprint 3 project-card direction
 description: The card form I set for item 3 (planks, not tiles), what I prototyped and rejected, and what to check in review.
 type: project
 ---
-Accepted (.studio/sprint/3/direction.md): square frame in --rule. Below md it is a full-bleed strake
+Accepted (.crew/sprint/3/direction.md): square frame in --rule. Below md it is a full-bleed strake
 (border-y only, -mx-6 px-6 py-5). From md it is a hung frame (border all round, -mx-8 p-8), so the text
 stays on the column's left edge. Cards share 1 px seams (-mt-px), with no gap and never a grid. The
 title is in foreground with a permanent copper underline. There is an up-right SVG arrow outside the

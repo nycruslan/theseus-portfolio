@@ -2,7 +2,7 @@
 # PRs come from its checks app, so the owner approves and merges them; one under the owner's own
 # login can't be approved by them and is merged with the ruleset's bypass. GitHub reads this
 # file from the PR's base branch. The `gate` check and the team's file guard read it too
-# (.studio/scope.mjs), matching without regard to case. The last matching line wins, so a line
+# (.crew/scope.mjs), matching without regard to case. The last matching line wins, so a line
 # with no owner gives that path back to the team.
 
 # The owner's facts; drafts are the team's, for the owner to approve.
@@ -10,9 +10,9 @@
 /content/drafts/
 
 # The team's setup, apart from its memory and notes.
-/.studio/ @nycruslan
-/.studio/sprint/
-/.studio/STATE.md
+/.crew/ @nycruslan
+/.crew/sprint/
+/.crew/STATE.md
 /.github/ @nycruslan
 /.githooks/ @nycruslan
 /.mcp.json @nycruslan

@@ -2,7 +2,7 @@ name: gate
 
 # The required `gate` check: it holds a PR the owner has to decide (owner paths from CODEOWNERS,
 # package.json scripts, weakened tests, or needs-owner now or ever) until the owner approves its
-# head (.studio/gate.mjs). The result is a check run from the team's checks app, the only source
+# head (.crew/gate.mjs). The result is a check run from the team's checks app, the only source
 # the ruleset accepts for `gate`.
 #
 # pull_request_target runs this file and the checker from the default branch, so a PR can't edit
@@ -50,7 +50,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: |
-            .studio
+            .crew
             .github
       - id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -61,6 +61,6 @@ jobs:
           permission-contents: read
           permission-issues: read
           permission-pull-requests: read
-      - run: node .studio/gate.mjs
+      - run: node .crew/gate.mjs
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}

@@ -4,7 +4,7 @@ type ProjectCardProps = {
   project: Project;
 };
 
-// One plank of the hull (.studio/sprint/3/direction.md). The frame hangs into the column's gutter
+// One plank of the hull (.crew/sprint/3/direction.md). The frame hangs into the column's gutter
 // by exactly its own padding (24 px on phones, 32 px from md), so the text keeps the column's left
 // edge and the arrow ends on its right edge. From md the frame has side rules too, so the inline
 // padding gives back their 1 px to keep that edge exact. Planks share a seam: each after the first

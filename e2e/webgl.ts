@@ -1,8 +1,8 @@
 import { gzipSync } from "node:zlib";
 import type { Browser, BrowserContext, Page } from "@playwright/test";
 
-// The harness for Part B of the hero (the WebGL upgrade): .studio/sprint/9/contract.md, "The harness
-// and the gate", standing on .studio/sprint/9/spike-probe.md, section 1. Every init script below is
+// The harness for Part B of the hero (the WebGL upgrade): .crew/sprint/9/contract.md, "The harness
+// and the gate", standing on .crew/sprint/9/spike-probe.md, section 1. Every init script below is
 // self-contained, since Playwright sends its source to the page.
 //
 // Order matters: init scripts nest, and the one added last is outermost. A script that refuses or

@@ -1,4 +1,4 @@
-// The hero's lift half-model (.studio/sprint/7/direction-iris.md): one small parametric hull rather
+// The hero's lift half-model (.crew/sprint/7/direction-iris.md): one small parametric hull rather
 // than a drawing, so the lines stay fair and both renderers build the same object from the same
 // numbers. lib/half-model-svg.ts draws the SVG from it once, on the server, at build time;
 // components/hero-gl.ts builds the WebGL mesh from it in the browser (sprint 10). So this file holds
