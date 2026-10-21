@@ -25,9 +25,9 @@ import {
 } from "./helpers";
 
 // Sprint 13, PR A of the build log: the /sprints route and the reader behind it. The checks are
-// C1 to C12 of .studio/sprint/12/contract.md ("PR A: the route"), one describe per number, written
+// C1 to C12 of .crew/sprint/12/contract.md ("PR A: the route"), one describe per number, written
 // before the build. The reader's interface, which C12 holds Forge to, is in
-// .studio/sprint/13/probe-checks.md.
+// .crew/sprint/13/probe-checks.md.
 //
 // The oracle. Every expected value comes from the retro files in the checkout under test, read
 // and judged by `readOracle` below with a few lines of this spec's own, never by importing the
@@ -38,7 +38,7 @@ import {
 const SPRINTS = "/sprints";
 // A fixed fact of the team, not the owner's: the repository the pull requests live in.
 const REPO = "https://github.com/nycruslan/theseus-portfolio";
-const SPRINT_DIR = join(process.cwd(), ".studio", "sprint");
+const SPRINT_DIR = join(process.cwd(), ".crew", "sprint");
 /** The entries: the `ol`'s own items, never the `li` of an entry's list. */
 const ENTRIES = "main section ol > li";
 const WIDTHS = [320, 390, 768, 1024, 1440] as const;
@@ -477,7 +477,7 @@ test.describe("C3. Order and count", () => {
     // The anchors: sprints 1 to 11 are history, so they must be there whatever the oracle saw.
     expect(
       wanted,
-      "valid retros found in .studio/sprint (at least sprints 1 to 11)",
+      "valid retros found in .crew/sprint (at least sprints 1 to 11)",
     ).toEqual(
       expect.arrayContaining(Array.from({ length: 11 }, (_, i) => i + 1)),
     );
@@ -2106,7 +2106,7 @@ test.describe("C12. The reader on bad data", () => {
     expect(message, "and names the file").toContain(retroPath(dir, "3"));
   });
 
-  test("C12.6 the default folder is .studio/sprint, and reads the same as the oracle", async () => {
+  test("C12.6 the default folder is .crew/sprint, and reads the same as the oracle", async () => {
     const read = await loadReader();
     const entries = read();
     expect(

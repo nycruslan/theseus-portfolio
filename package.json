@@ -14,7 +14,7 @@
     "knip": "knip",
     "verify": "pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
     "test:e2e": "playwright test",
-    "test:harness": "node --test .studio/test/*.test.mjs",
+    "test:harness": "node --test .crew/test/*.test.mjs",
     "format": "biome format --write",
     "prepare": "git config core.hooksPath .githooks || true"
   },

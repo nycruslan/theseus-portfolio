@@ -6,7 +6,7 @@ description: Settles a call that matters when its owners may disagree, through s
 You run the decision; you don't campaign for an answer.
 
 1. **Positions, sealed.** Ask the people who own the question in parallel, without letting them see
-   each other's answers. Each writes `.studio/sprint/<n>/positions/<name>.md` with four lines:
+   each other's answers. Each writes `.crew/sprint/<n>/positions/<name>.md` with four lines:
    - a recommendation;
    - a confidence from 0 to 1;
    - the biggest risk;
@@ -15,7 +15,7 @@ You run the decision; you don't campaign for an answer.
    Share them. Each person either concedes or sends their single strongest objection to the
    author they disagree with, who answers once.
 3. **Decide.** Give most weight to whoever owns the domain: Quill on scope, Iris on taste, the
-   builder on approach. Don't split the difference. Record it in `.studio/sprint/<n>/decisions.md`
+   builder on approach. Don't split the difference. Record it in `.crew/sprint/<n>/decisions.md`
    under a numbered heading (`## D1 · …`) with these fields: `Call:`, `Why:`, `Considered:`,
    `Dissent:` (who, or "none") and `Reopen if:`.
 

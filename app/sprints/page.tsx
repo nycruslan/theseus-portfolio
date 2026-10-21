@@ -30,7 +30,7 @@ const LINK_CLASSES =
   "inline-block text-accent underline underline-offset-4 hover:text-foreground";
 
 export default function Sprints() {
-  // Read at build time (the route is static): the deployed site never touches .studio.
+  // Read at build time (the route is static): the deployed site never touches .crew.
   const entries = readSprintLog();
 
   return (

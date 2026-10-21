@@ -5,7 +5,7 @@ A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 Each time a sprint merges, a Claude Code session wakes up in this repository as **Atlas**, the team
 lead, and starts the next one, up to six a day. It sizes the next roadmap item (or the owner's
 goal, when they press "Start a sprint" in the Studio), briefs one builder (with tests written first
-for anything bigger than a one-line change), and opens a pull request. GitHub then decides: CI
+for anything bigger than a small change), and opens a pull request. GitHub then decides: CI
 must pass, a gate run from `main` must agree the PR stays out of the owner's files, and Lens, the
 code reviewer, must say ship from a fresh review in GitHub Actions. If something needs the owner,
 the PR waits. It all runs through GitHub's REST API, so the team works the same on a laptop and as
@@ -13,18 +13,28 @@ a cloud routine. Every step streams live to the Studio.
 
 ## How it works
 
+Three parts, each in its own place:
+- **The portfolio**, the product: [`app/`](app), [`components/`](components), [`lib/`](lib),
+  [`content/`](content), [`e2e/`](e2e) and [`design/`](design).
+- **The crew**, the agent team: its roles and skills in [`.claude/`](.claude), its scripts, notes
+  and sprint records in [`.crew/`](.crew), and its checks in [`.github/`](.github).
+- **The Studio**, the live view of the crew:
+  [nycruslan/theseus-studio](https://github.com/nycruslan/theseus-studio), a separate app.
+
 | Piece | Where |
 |---|---|
+| Who the site is for and what it must prove | [`PRODUCT.md`](PRODUCT.md) |
+| The owner's direction, and the research behind it | [`design/brief.md`](design/brief.md), [`design/research/`](design/research) |
 | The team's roles | [`.claude/agents/`](.claude/agents) |
 | How the team works | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
-| Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.studio/`](.studio) |
+| Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.crew/`](.crew) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
-| How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.studio/open-pr.mjs`](.studio/open-pr.mjs), [`.studio/ready-pr.mjs`](.studio/ready-pr.mjs) |
-| How Atlas merges (waits, then squash-merges) | [`.studio/merge.mjs`](.studio/merge.mjs) |
-| Each sprint's contract, positions and decisions | [`.studio/sprint/`](.studio/sprint) |
-| What the team has done so far | [`.studio/STATE.md`](.studio/STATE.md) |
+| How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.crew/open-pr.mjs`](.crew/open-pr.mjs), [`.crew/ready-pr.mjs`](.crew/ready-pr.mjs) |
+| How Atlas merges (waits, then squash-merges) | [`.crew/merge.mjs`](.crew/merge.mjs) |
+| Each sprint's contract, positions and decisions | [`.crew/sprint/`](.crew/sprint) |
+| What the team has done so far | [`.crew/STATE.md`](.crew/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
 
@@ -61,7 +71,7 @@ three triggers, which only the owner can change:
   The token is the owner's: whoever holds it can start a run and suggest its goal, with no more
   rights than the team's.
 
-The daily cap is guidance, not binding: the pre-flight Atlas runs (`.studio/next-sprint.mjs`) stands
+The daily cap is guidance, not binding: the pre-flight Atlas runs (`.crew/next-sprint.mjs`) stands
 down once `THESEUS_DAILY_SPRINTS` (default 6) of the team's sprint PRs merged in the last 24 hours.
 An open sprint PR is still finished at the cap. Each run also counts against the owner's
 subscription usage and the routines' own hourly limits.
@@ -133,7 +143,7 @@ holds for the owner's own `gh` login.
      once. Give both to the Studio as server-side secrets, never to the browser: its owner-only
      "Start a sprint" button POSTs `{"text": "<goal>"}` to that URL, with the headers from the
      trigger's sample curl.
-   - The cap (optional): set `THESEUS_DAILY_SPRINTS` in the `theseus-team` environment to change
+   - The cap (optional): set `THESEUS_DAILY_SPRINTS` in the team's environment to change
      the default of 6 sprints a day. A value that isn't a positive integer means 6.
 
 ## Local development

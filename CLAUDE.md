@@ -2,23 +2,32 @@
 
 # Team
 
-An AI agent team rebuilds this portfolio, sprint by sprint, while visitors watch. A sprint starts
-with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships one pull
-request, sized S, M or L, and only the roles that lane needs take part (see the sprint skill).
+An AI agent team, the crew, rebuilds this portfolio, sprint by sprint, while visitors watch. A
+sprint starts with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships
+one pull request, sized S, M or L, and only the roles that lane needs take part (see the sprint
+skill).
+
+Three parts, each in its own place:
+- **The portfolio**, the product: `app/`, `components/`, `lib/`, `content/`, `e2e/`, `design/`.
+- **The crew**, the agent team: its roles and skills in `.claude/`, its scripts, notes and sprint
+  records in `.crew/`, and its checks in `.github/`.
+- **The Studio**, the live view of the crew, a separate app in nycruslan/theseus-studio. The crew's
+  hooks stream to it; the crew doesn't work on it.
 
 - **Roles** (`.claude/agents/`): Quill owns the roadmap and, on large work, what "done" means; Iris
   taste; Forge the code, and Pixel 3D and motion; Lens code review; Probe whether it works.
 - **Who writes what:** Forge and Pixel change product code. Probe owns the end-to-end checks in
   `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder and their
-  own memory. `.studio/guard.mjs` holds file edits to this. The lead doesn't write product code
+  own memory. `.crew/guard.mjs` holds file edits to this. The lead doesn't write product code
   either; that's the sprint skill's rule, since the owner's own sessions also run as the lead.
 - **Shared state:**
-  - `.studio/STATE.md`: what the team learned.
+  - `.crew/STATE.md`: what the team learned.
   - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
     It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
-  - `.studio/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
-  - `design/brief.md`: the owner's direction for the site; `design/rubric.md`: the design bar,
-    calibrated by the owner's examples in `design/calibration/`.
+  - `.crew/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
+  - `PRODUCT.md`: who the site is for and what it must prove, confirmed by the owner;
+    `design/brief.md`: the owner's direction; `design/rubric.md`: the design bar, calibrated by the
+    owner's examples in `design/calibration/`.
 
   Production is https://theseus-portfolio.vercel.app.
 - **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`: what it learned about
@@ -46,8 +55,7 @@ paths and decisions) and `lens` (code review), and the owner's review wherever `
 names them. In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the
 owner's connection. So the owner's powers are in reach, and never yours to use: merge only through
 `merge.mjs`, which only Atlas runs (the sprint skill), and never approve or dismiss reviews, change
-settings or rulesets, or push to `main`. Iris's verdict is advice until she's calibrated
-(`design/rubric.md`).
+settings or rulesets, or push to `main`.
 
 ## The owner's
 
@@ -57,13 +65,13 @@ the owner's approval go in `content/drafts/`.
 The team's own setup is the owner's too:
 - every `CLAUDE.md`, `AGENTS.md` and `.gitattributes`, and `.mcp.json`;
 - `.claude/`, apart from agent memory;
-- the `.studio/` scripts (including `install.sh` and `merge.mjs`) and their tests;
+- the `.crew/` scripts (including `install.sh` and `merge.mjs`) and their tests;
 - `.github/` and `.githooks/`;
-- `design/brief.md`, `design/rubric.md` and `design/calibration/`;
+- `PRODUCT.md`, `design/brief.md`, `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;
 - the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,
-  `renovate.json` and `playwright.config.*`, and the `scripts` in `package.json`. Dependencies
-  are the team's.
+  `renovate.json`, `playwright.config.*`, `.gitignore` and `.npmrc`, and the `scripts` in
+  `package.json`. Dependencies are the team's.
 
 `.github/CODEOWNERS` is the list the checks read. Propose changes to these in the PR's retro
 instead: a PR that edits them waits for the owner.

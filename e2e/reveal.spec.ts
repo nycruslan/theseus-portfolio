@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-// Sprint 5's contract (.studio/sprint/5/contract.md), one test per numbered check: sections below
+// Sprint 5's contract (.crew/sprint/5/contract.md), one test per numbered check: sections below
 // the fold ease in on scroll with a CSS view timeline, the header never moves, reduced motion and
 // browsers without scroll-driven animations get the static page, and nothing is hidden from a
 // keyboard visitor or with scripts off.

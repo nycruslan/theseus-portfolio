@@ -1,44 +1,51 @@
 # Roadmap
 
-Quill owns this list and picks what matters most each sprint. Keep items small enough for one
-sprint.
+Quill owns this list. Atlas takes the top open item under Next, unless the owner set the goal, and
+at the close-out ticks what shipped, with its sprint and PR. Keep items small enough for one sprint.
 
-- [x] Design tokens: a color palette and a fluid typography scale in `app/globals.css`, used across the page.
+## Done
+
+- [x] Design tokens: a color palette and a fluid typography scale in `app/globals.css`.
 - [x] Dark mode that follows the system preference, with accessible contrast in both themes. (Sprint 2, PR #12.)
-- [x] Project cards: give each project a card with its name, description and link. (Sprint 3, PR #16, merged as f400ae0: `components/project-card.tsx`, checked in `e2e/cards.spec.ts`.)
-- [x] Section reveal motion on scroll, disabled under `prefers-reduced-motion`. (Sprint 5, PR #22: CSS-only scroll-driven rise of each section's heading, 16 px over 64 px, inside `@supports (animation-timeline: view())` and `prefers-reduced-motion: no-preference`; nothing fades. Checked in `e2e/reveal.spec.ts`.)
-  - Follow-ups: Iris re-reviews the shipped rise; Pixel's memory line on fading (`.studio/sprint/5/retro.json`).
-- [x] Open Graph image generated from the profile (name and headline). (Already on main: `app/opengraph-image.tsx`, tokens from `lib/site.ts`, served as image/png and checked in `e2e/smoke.spec.ts`. A dark variant is not planned.)
-- [x] Accessibility pass: landmarks, focus styles, skip link, and zero axe violations. (Sprint 4, PR #17, merged as 2e792ee: a skip link, one shared focus ring, the card arrow on keyboard focus, one ring in forced colors, strict axe and 24 px targets, checked in `e2e/keyboard.spec.ts` and `e2e/invariants.spec.ts`.)
-  - Open question: the skip link skips nothing. `main` wraps the whole page, header included, so Enter then Tab lands where Tab alone would (`.studio/sprint/4/retro.json`). Give it something to skip (the header as a banner landmark outside `main`, or a target past the project list), or decide it's convention only.
-- [x] A subtle 3D hero element that degrades gracefully on low-end devices. (Part B: sprint 10, PR #35, merged 2026-10-19: the WebGL hull as an idle-loaded chunk behind the gate, 138 px box, checked in `e2e/hero-3d.spec.ts` C10–C17. Done.)
-  - Already settled in #35, so not follow-ups: print gets the SVG (`@media print` in `app/globals.css`), the shader dithers (`components/hero-gl.ts`), and the 768 breakpoint is a container query (`@container (width >= 48rem)`).
-  - Still open, now listed below: `mountHull` teardown, retina ticks at the bow tip, C14.1's +15 against a floor of 10. See `.studio/sprint/10/retro.json`.
-  - Part A shipped: sprint 8, PR #31. A static inline SVG half-model after the header (`components/hero.tsx`, geometry in `lib/half-model.ts`, tones in `app/globals.css`), checked in `e2e/hero.spec.ts` C1–C9. Follow-ups: the 768 breakpoint as a container query (Lens nit), Part B with Probe's spike first and C2's box trimmed to the measured silhouette (Iris, `.studio/sprint/8/review-iris.md`).
-  - Part B contract: sprint 9, PR #32 (`.studio/sprint/9/contract.md`, on Probe's spike in `spike-probe.md`): C10–C17 rewritten on measured values, the box trimmed 172 → 138 px (Iris chose the centred box, `direction-iris.md`). Waits for the owner to accept it by merging #32; the next sprint builds it (Probe's specs first, Pixel builds, C17 on CI's Chromium 156 is the first readout).
-  - Contract: sprint 7, PR #28 (`.studio/sprint/7/contract.md`, Iris's direction in `direction-iris.md`): a lift half-model of seven planks with one copper plank, after the header. Part A (static inline SVG, C1–C9) next; Part B (WebGL upgrade) has draft checks C10–C16 that its own sprint rewrites after Probe's spike, with Lens's open findings listed in the contract. Waits for the owner to accept it by merging #28; tick after B unless the owner calls A enough.
-- [x] Education and stack: show `profile.education` and `profile.stack` (the owner's 2026 facts, now in `content/profile.ts`) on the page, in its own style. Only how they look is the team's; the facts are the owner's. (Sprint 6, PR #27: Stack as a wrapping list of plain words, Education shaped like an Experience entry, order Experience, Projects, Stack, Education, Contact; checked in `e2e/profile-sections.spec.ts`.)
-  - Follow-ups, now listed below: Iris's drawn middle dot between tools; `e2e/content.spec.ts`'s fixme.
+- [x] Project cards. (Sprint 3, PR #16: `components/project-card.tsx`, `e2e/cards.spec.ts`.)
+- [x] Accessibility pass: landmarks, focus styles, skip link, zero axe violations. (Sprint 4, PR #17: `e2e/keyboard.spec.ts`, `e2e/invariants.spec.ts`.)
+- [x] Section reveal motion on scroll, off under reduced motion. (Sprint 5, PR #22: `e2e/reveal.spec.ts`.)
+- [x] Open Graph image from the profile. (`app/opengraph-image.tsx`, `e2e/smoke.spec.ts`.)
+- [x] Education and stack. (Sprint 6, PR #27: `e2e/profile-sections.spec.ts`.)
+- [x] The 3D hero: a static SVG half-model (sprint 8, PR #31) and its WebGL upgrade (sprint 10, PR #35), on the contracts of sprints 7 and 9. (`e2e/hero.spec.ts`, `e2e/hero-3d.spec.ts`.)
+- [x] Stack separators. (Sprint 11, PR #36.)
+- [x] Watch the team build: `/sprints` (sprint 13, PR #39) and the home page's build-log line (sprint 14, PR #43), on sprint 12's contract. (`e2e/sprints.spec.ts`, `e2e/sprints-entry.spec.ts`.)
 
-## Next (Quill, sprint 11, highest first)
+## Next (highest first)
 
-- [ ] Redesign (L, the owner's goal, 2026-10-20): an impressive portfolio on the direction in
-  `design/brief.md`, measured against the references in `design/calibration/`. Iris's direction
-  comes first, in a PR of its own the owner approves (concept, key screens at 1440 and 390 px, a
-  motion storyboard, budgets); then M sprints build it a section at a time, the hero first.
-  - Direction and contract: sprint 15, PR #47 (`.studio/sprint/15/direction-iris.md`, prototype in
-    `prototype/`, Quill's `contract.md`): "the log of the Theseus", a ruled ship's log with the hull of 22
-    planks, one replaced per sprint, copper the newest; Besley and Libre Franklin. Build B1-B5, the hero (B1, M)
-    first with Probe's checks 1-11 red first. Waits for the owner to accept it by merging #47 (11 decisions).
-    Follow-up: Iris's environment line in memory (Lens nit).
+- [ ] Redesign (L, the owner's goal, 2026-10-21): the site in `PRODUCT.md` and `design/brief.md`,
+  on the research in `design/research/2027-redesign.md`. One experience: the portfolio shows the
+  crew at work, from the Studio's data. Iris's direction comes first, on a Design canvas the owner
+  approves (the L lane); then Quill's contract and M sprints, the hero first.
+  - Superseded: sprint 15's direction ("the log of the Theseus", #47) and sprint 16's B1 build
+    (#49, closed), which came before the owner's interview.
 
-- [x] Stack separators (S): a drawn middle dot between tools, so "LangChain Claude Agent SDK" parses as three tools and the row no longer reads as the Contact row without copper. Iris's recipe is item 2 in `.studio/sprint/6/review-iris.md` (CSS on the `li`, empty generated content, `bg-muted`, `overflow-hidden` on the `ul`); Forge verifies it in the browser before taking it. Facts and order unchanged. Sprint 11's pick (`.studio/sprint/11/pick-quill.md`). (Sprint 11, PR #36: a 3 px `before:` dot 13.5 px left of each tool, the leading one clipped by `overflow-hidden`; the existing suite covers it.)
-  - Follow-ups (Lens nits): the dot vanishes in forced colors (add `forced-colors:before:bg-[CanvasText]`); `overflow-hidden` clips every side, so narrow it to the leading dots or comment why.
-- [x] Watch the team build (L, needs Iris's direction and a contract first): the site says a team of agents rebuilds it, but a visitor sees only the result and a GitHub link. A page of sprints (goal, outcome, PR link, what went wrong) from `.studio/sprint/*/retro.json` at build time would show the process. Matters most to visitors of everything here; not S or M until a direction exists. Team-written text only; the owner's facts stay as they are.
-  - PR B shipped: sprint 14, PR #43: the "Build log · N sprints" line under the bio, checked in `e2e/sprints-entry.spec.ts` C14–C15; Iris's ring/dot fix and Lens's sprint 13 nits rode along. Done. Follow-ups: the spec's raw U+00A0 as an escape (Probe, Lens nit); grouping past about 30 entries (Quill); a pre-existing font-swap CLS on `/` (`.studio/sprint/14/retro.json`).
-  - PR A shipped: sprint 13, PR #39: `/sprints` from `lib/sprint-log.ts`, checked in `e2e/sprints.spec.ts` C1–C12. Next: PR B (S, the home line, C14–C15). Follow-ups for B: the PR link's ring runs into the meta dot (`.studio/sprint/13/review-iris.md` item 1); Lens's two nits (`.studio/sprint/13/retro.json`).
-  - Contract: sprint 12, PR #37 (`.studio/sprint/12/contract.md`, Iris's direction in `direction-iris.md`): a `/sprints` route, newest first, one Experience-shaped entry per retro (goal, size, "Owner's call" from `needs-owner` in `outcome`, PR link, every `wentWrong` item; `outcome` never printed), reached by a copper "Build log · N sprints" line under the bio. Lens ship. Waits for the owner to accept it by merging #37; then PR A (sprint 13, M: reader, route, sitemap, `e2e/sprints.spec.ts` C1–C12 red first) and PR B (sprint 14, S: the home line, C14–C15).
-- [ ] Hero lifecycle (S): `mountHull` returns its teardown (it already has `restore`) and `HeroUpgrade`'s effect cleanup calls it, so the scroll listener, `ResizeObserver` and canvas don't outlive a remount (Lens nit, `components/hero-upgrade.tsx:74`). Probe also watches C14.1's +15 draws against a floor of 10 on CI.
-- [ ] Re-arm the placeholder guard (S, Probe only, `e2e/` spec): turn `e2e/content.spec.ts`'s `test.fixme` back into `test`. Content has had no `TODO(owner)` since the 2026 facts landed. A tightening; run scope.mjs's weakening rules on it first. Fits as a rider in any sprint that has Probe.
-- [ ] Retina ticks at the bow tip (M, Pixel): at devicePixelRatio 2, within about 5 CSS px of the stem head, the canvas seam shows short light ticks the SVG doesn't (`.studio/sprint/10/review-iris.md` item 3; fade the band's alpha by its on-screen thickness). Visible only to a close look on a retina screen; needs a dpr-2 look to verify and no spec covers it.
-- [ ] Skip link decision (S): the page has no focusable content before the first project card, so the link cannot save a Tab however `main` is cut (sprint 4's open question). Either keep it as convention and close the question here, or retarget it past the project list. Removing it would weaken `keyboard.spec.ts`, which is the owner's call. Low value for visitors; do it only with a sprint that touches the layout anyway.
+- [ ] A share card for `/sprints` (S): the page sets its own `openGraph` and `twitter` metadata, which
+  drops the inherited `opengraph-image`, so a shared link shows no image while it declares
+  `summary_large_image`. Give the route an `opengraph-image` (the root's, or its own) and check
+  `og:image` beside the page's other metadata checks.
+- [ ] Re-arm the placeholder guard (S, Probe only): `e2e/content.spec.ts`'s `test.fixme` becomes
+  `test` again; content has had no `TODO(owner)` since the 2026 facts landed. A tightening; run
+  scope.mjs's weakening rules on it first. Fits as a rider in any sprint that has Probe.
+- [ ] A not-found page in the site's style (S, after B1 sets the type): today Next's default 404
+  ignores the tokens and fonts, has two titles and no way home. Fits with the redesign's B-sprints.
+- [ ] The build log's goals as copy (S): entries print internal shorthand, such as size tags that
+  repeat the size line ("(L)"), contract numbers and file paths. Strip a trailing size tag in
+  `lib/sprint-log.ts`, and write future `goal` fields for visitors (the sprint skill's Close).
+- [ ] Leftovers to check once B1 replaces the hull, and drop if it settles them: `mountHull`'s
+  teardown and a reduced-motion change mid-visit (`components/hero-gl.ts`); retina ticks at the bow
+  tip (`.crew/sprint/10/review-iris.md` item 3); the font-swap CLS on `/`; C14's draw-count check
+  under load (`e2e/hero-3d.spec.ts`).
+- [ ] Small follow-ups (S, as riders): the stack dot vanishes in forced colors
+  (`forced-colors:before:bg-[CanvasText]`) and `overflow-hidden` clips every side (Lens, sprint 11);
+  the build-log spec's raw U+00A0 as an escape (Probe); grouping the build log past about 30 entries
+  (Quill).
+- [ ] Skip link decision (S): nothing focusable comes before the first project card, so the link
+  can't save a Tab however `main` is cut. B2's navigation may answer it; otherwise keep it as
+  convention and close this, or retarget it. Removing it would weaken `keyboard.spec.ts`, which is
+  the owner's call.

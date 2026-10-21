@@ -12,7 +12,7 @@ import {
   sheer,
 } from "@/lib/half-model";
 
-// The hero's WebGL upgrade (.studio/sprint/9/contract.md, C10 to C14): the same half-model as the
+// The hero's WebGL upgrade (.crew/sprint/9/contract.md, C10 to C14): the same half-model as the
 // SVG, built from the same functions (lib/half-model.ts), turned by the scroll. Only the gate in
 // components/hero-upgrade.tsx imports this, after load, so it ships as a chunk of its own.
 //

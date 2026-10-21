@@ -1,7 +1,8 @@
-# The owner's paths: a PR that touches one waits for @nycruslan, who merges the team's (they're under
-# the owner's login) with the ruleset's bypass and approves anyone else's. GitHub reads this
+# The owner's paths: a PR that touches one waits for @nycruslan to approve its head. The team's
+# PRs come from its checks app, so the owner approves and merges them; one under the owner's own
+# login can't be approved by them and is merged with the ruleset's bypass. GitHub reads this
 # file from the PR's base branch. The `gate` check and the team's file guard read it too
-# (.studio/scope.mjs), matching without regard to case. The last matching line wins, so a line
+# (.crew/scope.mjs), matching without regard to case. The last matching line wins, so a line
 # with no owner gives that path back to the team.
 
 # The owner's facts; drafts are the team's, for the owner to approve.
@@ -9,16 +10,18 @@
 /content/drafts/
 
 # The team's setup, apart from its memory and notes.
-/.claude/ @nycruslan
-/.claude/agent-memory/
-/.studio/ @nycruslan
-/.studio/sprint/
-/.studio/STATE.md
+/.crew/ @nycruslan
+/.crew/sprint/
+/.crew/STATE.md
 /.github/ @nycruslan
 /.githooks/ @nycruslan
 /.mcp.json @nycruslan
 
-# Instructions load wherever they are, and attributes pick merge drivers and filters.
+# Instructions load wherever they are: a .claude folder's skills for work below it, as CLAUDE.md
+# and AGENTS.md, even in the team's memory. Attributes pick merge drivers and filters.
+.claude/ @nycruslan
+/.claude/agent-memory/
+/.claude/agent-memory/**/.claude/ @nycruslan
 CLAUDE.md @nycruslan
 CLAUDE.local.md @nycruslan
 AGENTS.md @nycruslan
@@ -27,6 +30,7 @@ AGENTS.local.md @nycruslan
 
 # What the team is scored by, and the toolchain's settings. package.json's scripts are the
 # owner's too; `gate` checks those, since dependencies in the same file are the team's.
+/PRODUCT.md @nycruslan
 /design/rubric.md @nycruslan
 /design/brief.md @nycruslan
 /design/calibration/ @nycruslan
@@ -40,3 +44,6 @@ AGENTS.local.md @nycruslan
 /renovate.json @nycruslan
 /renovate.json5 @nycruslan
 /playwright.config.* @nycruslan
+# Biome and knip skip what git ignores, and .npmrc changes how pnpm installs.
+/.gitignore @nycruslan
+/.npmrc @nycruslan

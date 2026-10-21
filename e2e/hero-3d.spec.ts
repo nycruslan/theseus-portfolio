@@ -25,12 +25,12 @@ import {
   sleep,
 } from "./webgl";
 
-// Sprint 10, Part B of the hero: the WebGL upgrade. The contract is .studio/sprint/9/contract.md
-// (C10 to C15 and C17; C16 is process), standing on .studio/sprint/9/spike-probe.md. One test per
+// Sprint 10, Part B of the hero: the WebGL upgrade. The contract is .crew/sprint/9/contract.md
+// (C10 to C15 and C17; C16 is process), standing on .crew/sprint/9/spike-probe.md. One test per
 // check, named by its number. Hooks the build has to give: `[data-hero] canvas` (the upgrade),
 // `data-hero-shear` on the box (the current shear, 3 decimals, gone with the canvas), and the
 // existing `[data-hero-hull]` / `[data-hero-copper]` in the SVG. How each check is read, and what
-// the build can rely on: .studio/sprint/10/probe-checks.md.
+// the build can rely on: .crew/sprint/10/probe-checks.md.
 //
 // These specs do not depend on whether the browser itself refuses `failIfMajorPerformanceCaveat:
 // true` (the sandbox's Chromium 141 does, CI's 156 grants it; C17 reports which). They strip the

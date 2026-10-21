@@ -13,9 +13,9 @@ import {
 } from "./helpers";
 
 // Sprint 14, PR B of the build log: the home line, "Build log · N sprints", under the bio on `/`.
-// The checks are C14.1 to C14.6 and C15 of .studio/sprint/12/contract.md ("PR B: the way in"), one
+// The checks are C14.1 to C14.6 and C15 of .crew/sprint/12/contract.md ("PR B: the way in"), one
 // test per number, written before the build. The notes (how each is read, what is not covered) are
-// in .studio/sprint/14/specs-probe.md.
+// in .crew/sprint/14/specs-probe.md.
 //
 // The oracle. `n` is never a literal: it is the number of valid retro files in the checkout under
 // test, counted here with a few lines of this spec's own (the contract's data rules, not the
@@ -24,7 +24,7 @@ import {
 // of sprint 12's contract pin the oracle itself.
 
 const HOME_LINK = 'main > header a[href="/sprints"]';
-const SPRINT_DIR = join(process.cwd(), ".studio", "sprint");
+const SPRINT_DIR = join(process.cwd(), ".crew", "sprint");
 const ENTRIES = "main section ol > li";
 const HEIGHT = 900;
 /** The measurements below come from layout; one px either way is the contract's tolerance. */
@@ -146,7 +146,7 @@ test.describe("C14. The home line", () => {
     // The anchors: sprints 1 to 11 are history, so the oracle has to see at least those.
     expect(
       VALID,
-      "valid retros found in .studio/sprint (at least sprints 1 to 11)",
+      "valid retros found in .crew/sprint (at least sprints 1 to 11)",
     ).toEqual(
       expect.arrayContaining(Array.from({ length: 11 }, (_, i) => i + 1)),
     );

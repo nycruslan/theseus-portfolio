@@ -45,12 +45,12 @@ next-env.d.ts
 
 # Screenshots are evidence for a report, not repository content: they go in the agent's
 # scratchpad or here, never in git (49 PNGs, 3.8 MB, after two sprints). History keeps the old ones.
-.studio/screenshots/
-.studio/sprint/**/shots/
-.studio/sprint/**/*.png
-.studio/sprint/**/*.jpg
-.studio/sprint/**/*.jpeg
-.studio/sprint/**/*.webp
+.crew/screenshots/
+.crew/sprint/**/shots/
+.crew/sprint/**/*.png
+.crew/sprint/**/*.jpg
+.crew/sprint/**/*.jpeg
+.crew/sprint/**/*.webp
 
 # parallel agents work in their own worktrees
 .claude/worktrees/

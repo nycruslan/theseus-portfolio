@@ -3,7 +3,7 @@ import { contrast, type Rgb } from "./helpers";
 
 // Reading screenshots in Node, so a pixel check needs no image library (the repo has none and the
 // WebGL checks may read pixels from `page.screenshot` only: `readPixels` and `toDataURL` return
-// blank outside the frame that drew; .studio/sprint/9/spike-probe.md, section 3).
+// blank outside the frame that drew; .crew/sprint/9/spike-probe.md, section 3).
 
 /** An 8-bit RGBA image, row by row. */
 export type Image = { width: number; height: number; data: Uint8Array };

@@ -7,7 +7,7 @@ type Device = Navigator & {
   connection?: { saveData?: boolean };
 };
 
-/** Whether this device should get the WebGL hull at all (.studio/sprint/9/contract.md, "The gate"). */
+/** Whether this device should get the WebGL hull at all (.crew/sprint/9/contract.md, "The gate"). */
 function capable() {
   const device = navigator as Device;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
