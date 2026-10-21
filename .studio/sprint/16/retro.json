@@ -1,0 +1,84 @@
+{
+  "sprint": 16,
+  "pr": 49,
+  "goal": "Redesign B1: the hero of the log of the Theseus (faces, title band, 22-plank hull from the build log, canvas parity)",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner: Lens ship on b45adc0, CI green; gate waits for the owner's approval of the spec retirements (decision 7)",
+  "fixRounds": 1,
+  "minutes": 115,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "inherit",
+      "tokens": 383594,
+      "minutes": 36
+    },
+    { "role": "engineer", "model": "inherit", "tokens": 419977, "minutes": 43 },
+    {
+      "role": "creative-engineer",
+      "model": "inherit",
+      "tokens": 174253,
+      "minutes": 14
+    },
+    {
+      "role": "design-director",
+      "model": "inherit",
+      "tokens": 158738,
+      "minutes": 12
+    }
+  ],
+  "lens": {
+    "runs": 3,
+    "tokens": 1645510,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "Two specs conflicted once the hull moved into the header: hero-3d C10.4 requires the canvas's 200 ms swap fade, reveal C3 forbids any animation in the header; the contract listed reveal.spec as standing unedited",
+      "evidence": "Pixel's run at dc4e0fa: reveal.spec.ts:405 failed 5 to 7 runs in 10; Probe narrowed C3 to leave [data-hero] to C10.4 in 0812612"
+    },
+    {
+      "what": "The font swap shifted the phone page by 0.034 on a throttled profile while every spec read 0: Linux Chromium matched none of the local() fallbacks and Besley's size-adjust was fitted to its regular weight",
+      "evidence": ".studio/sprint/16/review-iris.md finding 1; fixed in b5665c3 to 0.0007 at 390"
+    },
+    {
+      "what": "The headline cell sat in one of six subgrid columns from 640 to 1023 px, and no spec measured a width in that range",
+      "evidence": "Lens's Important on 6942e9d (app/globals.css:287); fixed in 74dac73, B1.3 runs at 768 since b45adc0"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "A contract that moves an element into a new parent lists every spec scoped to that parent (here reveal C3 on main > header) as an expected edit",
+      "moves": "spec conflicts found after the build (1 this sprint)"
+    },
+    {
+      "change": "Specs measure layout at one width inside every breakpoint band (e.g. 768 between 640 and 1024), not only at the edges' far sides",
+      "moves": "Lens Important findings that no spec could catch (1 this sprint)"
+    },
+    {
+      "change": "impeccable's URL detector needs --no-sandbox when run as root; add a wrapper or IMPECCABLE_BROWSER to the environment setup",
+      "moves": "silent detector failures in design reviews (1 this sprint)"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "Approve PR #49's head, deciding decision 7 (the spec retirements in .studio/sprint/16/specs-probe.md section 4), and merge"
+    },
+    {
+      "who": "Probe",
+      "what": "A throttled-network clause in check 9's layout-shift test, so a font-swap shift shows in CI (Iris, review-iris.md finding 1)"
+    },
+    {
+      "who": "Forge",
+      "what": "B2: Android local() fallbacks (Roboto, Noto Serif); the 4 px jog at 390 (Iris finding 6); Lens's two stale comments at app/globals.css:415 and :461; the nav must fit the 96 px top padding or B1.5 fails at 1024 x 768"
+    },
+    {
+      "who": "Forge",
+      "what": "Memory has four lines from this sprint against a cap of three; trim one in B2"
+    }
+  ]
+}

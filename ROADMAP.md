@@ -31,6 +31,11 @@ sprint.
     planks, one replaced per sprint, copper the newest; Besley and Libre Franklin. Build B1-B5, the hero (B1, M)
     first with Probe's checks 1-11 red first. Waits for the owner to accept it by merging #47 (11 decisions).
     Follow-up: Iris's environment line in memory (Lens nit).
+  - B1, the hero: sprint 16, PR #49 (`.studio/sprint/16/`): Libre Franklin site-wide, Besley on the name, the
+    ruled title band, the 22-plank hull from `lib/hull-planks.ts`, canvas parity at rest. Lens ship, CI green; waits
+    for the owner's approval of the spec retirements (decision 7, `specs-probe.md` section 4). Next: B2, the ledger.
+    Follow-ups: a throttled layout-shift clause (Probe); Android fallbacks, the 4 px jog at 390, two stale comments,
+    and the nav inside the 96 px top padding (Forge, B2). See `.studio/sprint/16/retro.json`.
 
 - [x] Stack separators (S): a drawn middle dot between tools, so "LangChain Claude Agent SDK" parses as three tools and the row no longer reads as the Contact row without copper. Iris's recipe is item 2 in `.studio/sprint/6/review-iris.md` (CSS on the `li`, empty generated content, `bg-muted`, `overflow-hidden` on the `ul`); Forge verifies it in the browser before taking it. Facts and order unchanged. Sprint 11's pick (`.studio/sprint/11/pick-quill.md`). (Sprint 11, PR #36: a 3 px `before:` dot 13.5 px left of each tool, the leading one clipped by `overflow-hidden`; the existing suite covers it.)
   - Follow-ups (Lens nits): the dot vanishes in forced colors (add `forced-colors:before:bg-[CanvasText]`); `overflow-hidden` clips every side, so narrow it to the leading dots or comment why.

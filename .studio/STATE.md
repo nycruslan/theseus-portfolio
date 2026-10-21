@@ -226,3 +226,18 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - biome lints the sprint folder too: run `pnpm exec biome ci` on any prototype before it is pushed.
   - A contract writer reading a design for checks finds what the designer missed (the cropped plank); keep
     that round before the review label, and have the designer measure every N the rule will see.
+
+## Sprint 16: B1, the redesign's hero (PR #49)
+
+- **Outcome:** the first build step of "the log of the Theseus", on the contract the owner accepted by merging
+  #47. Probe's spike and B1 checks came first, red on 16 tests, with ten mutants all killed. Forge built the faces,
+  tokens, title band and the 22-plank SVG hull from `lib/hull-planks.ts`. Pixel rebuilt the canvas for 22 planks:
+  parity at rest, 3,953 B gzip. Iris said changes at 7.7 against production's 6.5, on a 0.034 font-swap shift on a
+  throttled phone that no spec saw; Forge brought it to 0.0007. Lens found one Important on the first run (the
+  headline cell from 640 to 1023 px), fixed in one round, then ship. Waits for the owner's approval of the spec
+  retirements (`needs-owner`).
+- **Lesson:**
+  - Moving an element into a new parent hands it every rule scoped to that parent: the hull inside the header
+    tripped reveal C3. List those specs in the contract.
+  - A layout-shift check run unthrottled on localhost reads 0 whatever the fallbacks are; the font swap shows only
+    on a throttled profile.
