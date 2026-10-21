@@ -173,11 +173,14 @@ function slowFrameClock() {
     });
 }
 
-/** For C10.5: pushes the box more than a viewport below the fold, on DOMContentLoaded. */
+/**
+ * For C10.5: pushes the box more than a viewport below the fold, on DOMContentLoaded. The box is
+ * inside the header since sprint 16, so a margin on the header would no longer move it.
+ */
 function addSpacer() {
   document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
-    style.textContent = "main > header { margin-bottom: 200vh }";
+    style.textContent = "[data-hero] { margin-top: 200vh !important }";
     document.head.append(style);
   });
 }

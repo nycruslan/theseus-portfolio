@@ -1,14 +1,14 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import {
   composite,
   contrast,
+  lineSpan,
   PROJECTS,
   type Rgb,
   resolveColors,
   SCHEMES,
+  VALID,
   withLink,
 } from "./helpers";
 
@@ -18,64 +18,18 @@ import {
 // in .studio/sprint/14/specs-probe.md.
 //
 // The oracle. `n` is never a literal: it is the number of valid retro files in the checkout under
-// test, counted here with a few lines of this spec's own (the contract's data rules, not the
+// test, counted by e2e/helpers.ts (the contract's data rules, not the
 // reader), and every check also reads the number of entries `/sprints` renders and requires the
 // three to agree. So the checks stay true as sprints are added. The floor of 11 and the anchors
 // of sprint 12's contract pin the oracle itself.
 
 const HOME_LINK = 'main > header a[href="/sprints"]';
-const SPRINT_DIR = join(process.cwd(), ".studio", "sprint");
 const ENTRIES = "main section ol > li";
 const HEIGHT = 900;
 /** The measurements below come from layout; one px either way is the contract's tolerance. */
 const TOLERANCE = 1;
-/** U+00A0, the no-break space of the data rules: the dot never starts a line. */
-const NBSP = " ";
 
 type Scheme = (typeof SCHEMES)[number];
-
-// ---------------------------------------------------------------------------------------------
-// The oracle: how many retro files are valid
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** The folders whose `retro.json` the contract's data rules accept (a wrong one fails the build). */
-function validSprints(): number[] {
-  const found: number[] = [];
-  for (const folder of readdirSync(SPRINT_DIR)) {
-    const file = join(SPRINT_DIR, folder, "retro.json");
-    if (!/^\d+$/.test(folder) || !existsSync(file)) continue;
-    let retro: unknown;
-    try {
-      retro = JSON.parse(readFileSync(file, "utf8"));
-    } catch {
-      continue;
-    }
-    if (!isRecord(retro)) continue;
-    const { sprint, goal } = retro;
-    const bare =
-      typeof goal === "string"
-        ? goal.replace(/^\s*roadmap item(?:\s+\d+)?\s*:\s*/i, "")
-        : "";
-    if (
-      typeof sprint === "number" &&
-      Number.isInteger(sprint) &&
-      sprint >= 1 &&
-      sprint === Number(folder) &&
-      bare.replaceAll("`", "").trim() !== ""
-    ) {
-      found.push(sprint);
-    }
-  }
-  return found;
-}
-
-const VALID = validSprints();
-/** What the span says after the no-break space and the dot, for n entries. */
-const countWords = (n: number) => `${n} ${n === 1 ? "sprint" : "sprints"}`;
-const lineSpan = (n: number) => `${NBSP}· ${countWords(n)}`;
 
 // ---------------------------------------------------------------------------------------------
 // Shared helpers
@@ -94,16 +48,19 @@ async function entriesOnSprints(page: Page) {
   return page.locator(ENTRIES).count();
 }
 
-/** The home line as the DOM has it, read in one go. */
+/**
+ * The home line as the DOM has it, read in one go. Since sprint 16 (B1.3) it is the third cell of
+ * the title band, so the line is whatever holds the link and the span: the link's parent.
+ */
 async function readLine(page: Page) {
   return page.evaluate(() => {
     const header = document.querySelector("main > header");
-    const last = header?.lastElementChild ?? null;
-    const link = last?.querySelector(':scope > a[href="/sprints"]') ?? null;
+    const link = header?.querySelector('a[href="/sprints"]') ?? null;
+    const last = link?.parentElement ?? null;
     const span = last?.querySelector(":scope > span") ?? null;
+    const cells = [...(header?.querySelectorAll("[data-hero-cell]") ?? [])];
     return {
-      tag: last?.tagName ?? null,
-      hasStep: last?.classList.contains("text-step-base") ?? false,
+      cellIsThird: last !== null && cells[2]?.contains(last) === true,
       children: [...(last?.children ?? [])].map((el) => el.tagName),
       linkText: link?.textContent ?? null,
       linkIsFirst: link !== null && last?.firstElementChild === link,
@@ -129,17 +86,11 @@ async function settled(page: Page) {
   });
 }
 
-function near(actual: number, expected: number, what: string) {
-  expect
-    .soft(Math.abs(actual - expected), `${what}: ${actual} vs ${expected}`)
-    .toBeLessThanOrEqual(TOLERANCE);
-}
-
 // ---------------------------------------------------------------------------------------------
 // C14. The home line
 
 test.describe("C14. The home line", () => {
-  test("C14.1 the header ends with a p holding 'Build log' and a span of nbsp, a dot and the count, which the files and /sprints agree on", async ({
+  test("C14.1 the band's third cell holds 'Build log' and a span of nbsp, a dot and the count, which the files and /sprints agree on", async ({
     page,
     browser,
   }) => {
@@ -161,12 +112,11 @@ test.describe("C14. The home line", () => {
 
     const checkLine = async (how: string, target: Page) => {
       const line = await readLine(target);
-      expect.soft(line.tag, `the header's last child (${how})`).toBe("P");
       expect
-        .soft(line.hasStep, `that p has class text-step-base (${how})`)
+        .soft(line.cellIsThird, `the line is in the band's third cell (${how})`)
         .toBe(true);
       expect
-        .soft(line.children, `that p's children (${how})`)
+        .soft(line.children, `the line's children (${how})`)
         .toEqual(["A", "SPAN"]);
       expect.soft(line.linkIsFirst, `the link comes first (${how})`).toBe(true);
       expect.soft(line.spanIsLast, `the span comes last (${how})`).toBe(true);
@@ -263,56 +213,70 @@ test.describe("C14. The home line", () => {
     });
   }
 
-  test("C14.3 the line follows the bio and changes nothing above it", async ({
+  test("C14.3 the line is in the band, before the bio, and changes nothing else of the owner's text", async ({
     page,
   }) => {
     await openHome(page, 1440);
-    const found = await page.evaluate(() => {
+    const found = await page.evaluate((bioText) => {
       const header = document.querySelector("main > header");
-      const children = [...(header?.children ?? [])];
+      const h1 = header?.querySelector("h1") ?? null;
+      const band = header?.querySelector("[data-hero-band]") ?? null;
+      const cells = [...(band?.querySelectorAll("[data-hero-cell]") ?? [])];
+      const link = header?.querySelector('a[href="/sprints"]') ?? null;
+      const hero = header?.querySelector("[data-hero]") ?? null;
+      const bio = [...(header?.querySelectorAll("p") ?? [])].find(
+        (p) => p.textContent?.trim() === bioText,
+      );
+      const follows = (a: Element | null, b: Element | null | undefined) =>
+        a !== null &&
+        b != null &&
+        Boolean(
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
       return {
-        tags: children.map((el) => el.tagName),
-        texts: children.map((el) => el.textContent ?? ""),
-        heroIsNext: header?.nextElementSibling?.matches("[data-hero]") ?? false,
+        h1Count: header?.querySelectorAll("h1").length ?? 0,
+        name: h1?.textContent ?? null,
+        cellTexts: cells.map((el) => el.textContent ?? ""),
+        lineInThirdCell: link !== null && cells[2]?.contains(link) === true,
+        bandAfterName: follows(h1, band),
+        lineBeforeBio: follows(link, bio),
         heroCount: document.querySelectorAll("[data-hero]").length,
+        heroInHeader: hero !== null,
+        heroAfterBand: follows(band, hero),
         projectHrefs: [
           ...document.querySelectorAll(
             'main section[aria-labelledby="projects"] a',
           ),
         ].map((a) => a.getAttribute("href")),
       };
-    });
-    // The owner's four, then the new line, nothing in between and nothing after.
-    expect(found.tags, "the header's children").toEqual([
-      "H1",
-      "P",
-      "P",
-      "P",
-      "P",
-    ]);
+    }, profile.bio);
+    // The owner's text, from content/profile.ts, in the order the band sets it: the name, then three
+    // cells, the first two the headline and the city.
+    expect(found.h1Count, "h1 elements in the header").toBe(1);
+    expect(found.name, "the name").toBe(profile.name);
+    expect(found.cellTexts, "the band's three cells").toHaveLength(3);
     expect(
-      found.texts.slice(0, 4),
-      "the owner's text, from content/profile.ts",
-    ).toEqual([profile.name, profile.headline, profile.location, profile.bio]);
-    expect(found.heroCount, "[data-hero] elements").toBe(1);
-    expect(found.heroIsNext, "[data-hero] is the header's next sibling").toBe(
+      found.cellTexts.slice(0, 2),
+      "the first two cells, from content/profile.ts",
+    ).toEqual([profile.headline, profile.location]);
+    expect(found.lineInThirdCell, "the home line is in the third cell").toBe(
       true,
     );
+    expect(found.bandAfterName, "the band follows the name").toBe(true);
+    expect(found.lineBeforeBio, "the home line comes before the bio").toBe(
+      true,
+    );
+    expect(found.heroCount, "[data-hero] elements").toBe(1);
+    expect(found.heroInHeader, "[data-hero] is inside the header").toBe(true);
+    expect(found.heroAfterBand, "[data-hero] comes after the band").toBe(true);
     expect(found.projectHrefs, "the project cards' links").toEqual(
       withLink.map((project) => project.href),
     );
   });
 
-  test("C14.4 the hull stays above the fold at 390 x 844 and stands 64 px below the header at 320, 390 and 1440", async ({
+  test("C14.4 the hull stays above the fold at 390 x 844 and the home line stays one line at 320, 390 and 1440", async ({
     page,
   }) => {
-    // Measured on the build before this sprint (no home line), headless Chromium 141 in the cloud
-    // (CI's is 156, so text may wrap a px differently): at 390 x 844 the header ends at 473.98 and
-    // the [data-hero] box's top is 537.98, 99 px tall. The line adds its own height (27 px) and
-    // the header's 16 px gap, so the top is expected near 538 + 43 = 581, whatever the fold, and
-    // never a second line more.
-    const BEFORE_TOP = 537.98;
-    const ADDED = 27 + 16;
     await page.emulateMedia({ reducedMotion: "reduce" });
 
     const read = () =>
@@ -322,22 +286,29 @@ test.describe("C14. The home line", () => {
           return r ? { top: r.top, bottom: r.bottom, height: r.height } : null;
         };
         const header = document.querySelector("main > header");
+        const link = header?.querySelector('a[href="/sprints"]') ?? null;
+        const cell = link?.closest("[data-hero-cell]") ?? null;
+        // Lines of the cell's text: the vertical centres of its inline boxes, a line apart or more.
+        // (A block's height over its line height would count the cell's padding.)
+        const lineHeight = cell
+          ? Number.parseFloat(getComputedStyle(cell).lineHeight)
+          : Number.NaN;
+        const range = document.createRange();
+        if (cell) range.selectNodeContents(cell);
+        const centres = [...range.getClientRects()]
+          .filter((r) => r.width > 0 && r.height > 0)
+          .map((r) => (r.top + r.bottom) / 2)
+          .sort((a, b) => a - b);
+        const lines = centres.filter(
+          (c, i) => i === 0 || c - (centres[i - 1] ?? 0) > lineHeight * 0.6,
+        ).length;
         return {
           header: box(header),
-          bio: box(header?.children[3]),
-          line: box(header?.lastElementChild),
-          link: box(document.querySelector('main > header a[href="/sprints"]')),
+          line: box(link?.parentElement),
+          link: box(link),
           hero: box(document.querySelector("[data-hero]")),
           innerHeight,
-          // The p's height over its own line height: how many lines the text took.
-          lines: header?.lastElementChild
-            ? Math.round(
-                header.lastElementChild.getBoundingClientRect().height /
-                  Number.parseFloat(
-                    getComputedStyle(header.lastElementChild).lineHeight,
-                  ),
-              )
-            : 0,
+          lines,
         };
       });
 
@@ -348,31 +319,20 @@ test.describe("C14. The home line", () => {
     ] as const) {
       await page.setViewportSize({ width, height });
       await page.goto("/");
+      await page.evaluate(() => document.fonts.ready);
       const g = await read();
       const where = `${width} x ${height}`;
       expect(g.link, `the home link exists (${where})`).not.toBeNull();
       expect(g.hero && g.header && g.line, `boxes (${where})`).toBeTruthy();
-      if (!g.hero || !g.header || !g.line || !g.bio) continue;
-      near(g.hero.top - g.header.bottom, 64, `header to the hull (${where})`);
-      // Inside the header, one gap below the bio, so nothing above it moved apart.
-      near(g.line.top - g.bio.bottom, 16, `bio to the home line (${where})`);
+      if (!g.hero || !g.header || !g.line) continue;
       expect
         .soft(g.header.bottom, `the line is inside the header (${where})`)
         .toBeGreaterThanOrEqual(g.line.bottom - TOLERANCE);
       expect.soft(g.lines, `lines of the home line (${where})`).toBe(1);
       if (width === 390) {
-        expect(
-          g.hero.top,
-          `the hull box's top edge, ${where} (before the line: ${BEFORE_TOP})`,
-        ).toBeLessThan(g.innerHeight);
-        expect(
-          g.hero.top,
-          `the hull box's top only moves by the line and its gap, ${where} (before the line: ${BEFORE_TOP})`,
-        ).toBeLessThanOrEqual(BEFORE_TOP + ADDED + 3);
-        expect(
-          g.hero.top,
-          `the hull box's top is below where it was, ${where} (before the line: ${BEFORE_TOP})`,
-        ).toBeGreaterThan(BEFORE_TOP + 16);
+        expect(g.hero.top, `the hull box's top edge, ${where}`).toBeLessThan(
+          g.innerHeight,
+        );
       }
     }
   });

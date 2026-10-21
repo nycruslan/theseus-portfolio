@@ -6,6 +6,7 @@ import {
   type TestInfo,
   test,
 } from "@playwright/test";
+import { profile } from "../content/profile";
 import {
   composite,
   contrast,
@@ -16,14 +17,17 @@ import {
   resolvedBackground,
   SCHEMES,
 } from "./helpers";
+import { readPlanks } from "./hull";
 import { refuseWebGl } from "./webgl";
 
 // Sprint 8, Part A of sprint 7's contract (.studio/sprint/7/contract.md, C1 to C9): the hero is a
-// static inline SVG, a lift half-model of seven planks and one copper one, placed right after the
-// header. One test per check, named by its number. Hooks: [data-hero] (the box), [data-hero-hull]
-// (the group of all lifts), [data-hero-lift] (seven paths), [data-hero-copper] (one plank, on the
-// third lift). How each check was read, and what the builder can rely on:
-// .studio/sprint/8/probe-checks.md.
+// static inline SVG hull, placed in the page's header. One test per check, named by its number.
+// Sprint 16 (B1, the redesign's hero; .studio/sprint/15/contract.md, "B1 checks") rewrote C1 to C3,
+// C7 and C8 for the new hull of 22 planks, cropped at the stern, inside `main > header`: C1 is B1.8,
+// C2 and C3 are B1.6 and B1.7, C4 and C5 are B1.9, C7 is B1.4's tones. Hooks: [data-hero] (the box),
+// [data-hero-hull] (the hull), [data-hero-plank] (22 shapes) with [data-sprint] on the replaced ones
+// and [data-hero-copper] on the newest. What each assertion kept, moved or retired, and why:
+// .studio/sprint/16/specs-probe.md.
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -37,7 +41,7 @@ test.beforeEach(async ({ context }) => {
 
 const HERO = "[data-hero]";
 const HULL = "[data-hero-hull]";
-const LIFT = "[data-hero-lift]";
+const PLANK = "[data-hero-plank]";
 const COPPER = "[data-hero-copper]";
 
 // WCAG 2.2 A and AA, and axe's best practices (the same tags as invariants.spec.ts).
@@ -50,32 +54,20 @@ const AXE_TAGS = [
   "best-practice",
 ];
 
-// The widths C2 and C3 name: 320 and 390, 600 and 767 (heights from the formula below), 768 (the
-// first desktop width), and 1024 and 1440.
+// The widths C3 names: 320 and 390, 600 and 767 (a 6-column grid, a 1-column one), 768, 1024 (the
+// first 12-column width) and 1440; 1920 is read for the cap only.
 const FOOTPRINT_WIDTHS = [320, 390, 600, 767, 768, 1024, 1440] as const;
 
+/** The page margin, from the viewport's width: `clamp(20px, 3.4vw, 48px)` (dir section 2). */
+const pageMargin = (vw: number) => Math.min(48, Math.max(20, 0.034 * vw));
+
 /**
- * The box the contract wants at a viewport's `clientWidth`: 688 x 138 from 768, else full-bleed and
- * 8 + 130 s tall, s the hull's width over 624 (the turn's envelope plus 4 px each side;
- * .studio/sprint/9/contract.md, "C2 trim").
+ * The hull's length, `min((cw - margin) x 1.048, 1460)` (B1.6): the `svg`'s width. Its viewBox keeps
+ * a few units of air round the hull, so the bow tip sits a little inside the svg's right edge, as
+ * the prototype draws it (.studio/sprint/15/prototype/index.html, `.hull-hero`).
  */
-function expectedBox(cw: number) {
-  return cw >= 768
-    ? { width: 688, height: 138 }
-    : { width: cw, height: 8 + (130 * expectedHullWidth(cw)) / 624 };
-}
-
-/** Where the hull's bow tip sits: the header's right edge, `cw - 24` below 672. */
-function expectedHullRight(cw: number) {
-  return cw < 672 ? cw - 24 : (cw + 624) / 2;
-}
-
-/** The hull's length: 1.12 x cw up to 390, linear to 624 at 768, 624 from there up. */
-function expectedHullWidth(cw: number) {
-  if (cw <= 390) return 1.12 * cw;
-  if (cw >= 768) return 624;
-  return 1.12 * 390 + ((cw - 390) * (624 - 1.12 * 390)) / (768 - 390);
-}
+const expectedHullLength = (cw: number, vw = cw) =>
+  Math.min((cw - pageMargin(vw)) * 1.048, 1460);
 
 type Rect = { left: number; top: number; right: number; bottom: number };
 
@@ -89,7 +81,7 @@ async function open(page: Page, width: number, height = 900) {
 /** The page's layout, in document coordinates, at scroll 0. */
 async function geometry(page: Page) {
   return page.evaluate(
-    ({ hero, hull }) => {
+    ({ hero, hull, bioText }) => {
       const rect = (el: Element | null): Rect | null => {
         if (!el) return null;
         const r = el.getBoundingClientRect();
@@ -100,19 +92,30 @@ async function geometry(page: Page) {
           bottom: r.bottom + scrollY,
         };
       };
+      const bio = [...document.querySelectorAll("main > header p")].find(
+        (p) => p.textContent?.trim() === bioText,
+      );
       return {
         cw: document.documentElement.clientWidth,
+        vw: innerWidth,
         box: rect(document.querySelector(hero)),
+        // The hull's own box: the svg, its viewBox included.
+        svg: rect(document.querySelector(`${hero} svg`)),
         hull: rect(document.querySelector(hull)),
         header: rect(document.querySelector("main > header")),
+        band: rect(document.querySelector("main > header [data-hero-band]")),
+        bio: rect(bio ?? null),
+        bioLine: bio ? Number.parseFloat(getComputedStyle(bio).lineHeight) : 0,
+        h1: rect(document.querySelector("main > header h1")),
+        cells: [
+          ...document.querySelectorAll("main > header [data-hero-cell]"),
+        ].map((cell) => rect(cell)),
         section: rect(document.querySelector("main > section")),
       };
     },
-    { hero: HERO, hull: HULL },
+    { hero: HERO, hull: HULL, bioText: profile.bio },
   );
 }
-
-type Tone = { r: number; g: number; b: number; a: number };
 
 /** Sets the layout-shift counter going before the page's own scripts, so nothing is missed. */
 async function watchLayoutShift(page: Page) {
@@ -135,6 +138,7 @@ type LcpEntry = {
   time: number;
   url: string;
   inMain: boolean;
+  inHeader: boolean;
   inHero: boolean;
   tag: string;
   text: string;
@@ -156,6 +160,7 @@ async function measureLcp(page: Page, url: string) {
           time: lcp.startTime,
           url: lcp.url,
           inMain: Boolean(el?.closest("main")),
+          inHeader: Boolean(el?.closest("main > header")),
           inHero: Boolean(el?.closest("[data-hero]")),
           tag: el?.tagName.toLowerCase() ?? "(removed)",
           text: (el?.textContent ?? "").trim().slice(0, 40),
@@ -210,7 +215,7 @@ function hueDistance(a: number, b: number) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("C1. Place and role: one aria-hidden, inert div in main, between the header and the first section", async ({
+test("C1. Place and role: one aria-hidden, inert div inside main > header after the band, with the first section after the header", async ({
   page,
 }) => {
   await open(page, 1440);
@@ -219,7 +224,8 @@ test("C1. Place and role: one aria-hidden, inert div in main, between the header
     ({ hero, focusables }) => {
       const box = document.querySelector(hero);
       if (!box) return null;
-      const main = document.querySelector("main");
+      const header = document.querySelector("main > header");
+      const band = header?.querySelector("[data-hero-band]") ?? null;
       const everything = [box, ...box.querySelectorAll("*")];
       const text: string[] = [];
       const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
@@ -246,13 +252,18 @@ test("C1. Place and role: one aria-hidden, inert div in main, between the header
       }
       return {
         tag: box.tagName,
-        parentIsMain: box.parentElement === main && main?.tagName === "MAIN",
-        previousIsHeader: Boolean(
-          box.previousElementSibling?.matches("main > header"),
-        ),
+        inHeader: header?.contains(box) === true,
+        // The band comes first in the document, then the hull (B1.8).
+        afterBand:
+          band !== null &&
+          Boolean(
+            band.compareDocumentPosition(box) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+          ),
         nextIsFirstSection:
-          box.nextElementSibling === document.querySelector("main > section") &&
-          Boolean(box.nextElementSibling?.matches("main > section")),
+          header?.nextElementSibling ===
+            document.querySelector("main > section") &&
+          Boolean(header?.nextElementSibling?.matches("main > section")),
         ariaHidden: box.getAttribute("aria-hidden"),
         pointerEvents: getComputedStyle(box).pointerEvents,
         // A child that turned pointer events back on would be hit through the box.
@@ -281,10 +292,15 @@ test("C1. Place and role: one aria-hidden, inert div in main, between the header
   expect(found, "[data-hero] is in the page").not.toBeNull();
   if (!found) return;
   expect.soft(found.tag, "it is a div, not a section").toBe("DIV");
-  expect.soft(found.parentIsMain, "a direct child of main").toBe(true);
-  expect.soft(found.previousIsHeader, "main > header is before it").toBe(true);
+  expect.soft(found.inHeader, "inside main > header").toBe(true);
   expect
-    .soft(found.nextIsFirstSection, "the first main > section is after it")
+    .soft(found.afterBand, "after [data-hero-band] in the document")
+    .toBe(true);
+  expect
+    .soft(
+      found.nextIsFirstSection,
+      "the first main > section follows the header",
+    )
     .toBe(true);
   expect.soft(found.ariaHidden).toBe("true");
   expect.soft(found.pointerEvents).toBe("none");
@@ -300,75 +316,20 @@ test("C1. Place and role: one aria-hidden, inert div in main, between the header
   expect.soft(found.withBackground, "computed background images").toEqual([]);
 });
 
-test("C2. Footprint: 688 x 138 from 768, full-bleed below, 64 px from the header and the first section", async ({
+test("C2. Reach and order: nothing overflows, half the box is on the first screen, and the page reads in B1.7's order", async ({
   page,
 }) => {
-  for (const cw of FOOTPRINT_WIDTHS) {
-    await open(page, cw);
-    const g = await geometry(page);
-    const where = `at ${cw}`;
-    expect(g.box, `the box exists ${where}`).not.toBeNull();
-    if (!(g.box && g.header && g.section)) continue;
-    const want = expectedBox(g.cw);
-    expect
-      .soft(
-        Math.abs(g.box.right - g.box.left - want.width),
-        `box width ${where}`,
-      )
-      .toBeLessThanOrEqual(1);
-    expect
-      .soft(
-        Math.abs(g.box.bottom - g.box.top - want.height),
-        `box height ${where}`,
-      )
-      .toBeLessThanOrEqual(1);
-    expect
-      .soft(
-        Math.abs(g.box.top - g.header.bottom - 64),
-        `gap below the header ${where}`,
-      )
-      .toBeLessThanOrEqual(1);
-    expect
-      .soft(
-        Math.abs(g.section.top - g.box.bottom - 64),
-        `gap above the first section ${where}`,
-      )
-      .toBeLessThanOrEqual(1);
+  for (const [width, height] of [
+    [320, 640],
+    [390, 844],
+    [1440, 900],
+  ] as const) {
+    await open(page, width, height);
+    expect(
+      await horizontalOverflow(page),
+      `scrollWidth - clientWidth at ${width}`,
+    ).toBe(0);
   }
-
-  // Never taller than 138, at any width (the contract names these four; the rest are extra).
-  for (const cw of [360, 480, 500, 700, 1920]) {
-    await open(page, cw);
-    const g = await geometry(page);
-    if (!g.box) continue;
-    expect
-      .soft(g.box.bottom - g.box.top, `box height at ${cw}`)
-      .toBeLessThanOrEqual(138.5);
-  }
-
-  // The hull sits centred in the box at rest: the same air above and below.
-  for (const cw of FOOTPRINT_WIDTHS) {
-    await open(page, cw);
-    const g = await geometry(page);
-    expect(g.hull, `[data-hero-hull] exists at ${cw}`).not.toBeNull();
-    if (!(g.box && g.hull)) continue;
-    const [above, below] = [
-      g.hull.top - g.box.top,
-      g.box.bottom - g.hull.bottom,
-    ];
-    expect
-      .soft(
-        Math.abs(above - below),
-        `air above the hull ${above.toFixed(1)} px and below ${below.toFixed(1)} px at ${cw}`,
-      )
-      .toBeLessThanOrEqual(1.5);
-  }
-
-  await open(page, 320, 640);
-  expect(
-    await horizontalOverflow(page),
-    "scrollWidth - clientWidth at 320",
-  ).toBe(0);
 
   // At least half of the box is inside the first viewport.
   for (const [width, height] of [
@@ -378,6 +339,7 @@ test("C2. Footprint: 688 x 138 from 768, full-bleed below, 64 px from the header
   ] as const) {
     await open(page, width, height);
     const g = await geometry(page);
+    expect(g.box, `the box exists at ${width}`).not.toBeNull();
     if (!g.box) continue;
     const inside = Math.min(g.box.bottom, height) - Math.max(g.box.top, 0);
     expect
@@ -387,46 +349,107 @@ test("C2. Footprint: 688 x 138 from 768, full-bleed below, 64 px from the header
       )
       .toBeGreaterThanOrEqual((g.box.bottom - g.box.top) / 2);
   }
+
+  // On a phone the hull comes before the bio, and the bio still starts on the first screen.
+  await open(page, 390, 844);
+  const phone = await geometry(page);
+  expect(phone.box && phone.bio, "the box and the bio at 390").toBeTruthy();
+  if (phone.box && phone.bio) {
+    expect
+      .soft(
+        phone.box.top,
+        `the hull's top ${phone.box.top} against the bio's top ${phone.bio.top} at 390`,
+      )
+      .toBeLessThan(phone.bio.top);
+    expect.soft(phone.bio.top, "the bio's top at 390 x 844").toBeLessThan(844);
+  }
+
+  // From 1024 the bio starts in column 7 of the 12 and ends above the hull.
+  for (const [width, height] of [
+    [1024, 768],
+    [1440, 900],
+  ] as const) {
+    await open(page, width, height);
+    const g = await geometry(page);
+    expect(g.box && g.bio, `the box and the bio at ${width}`).toBeTruthy();
+    if (!(g.box && g.bio)) continue;
+    const margin = pageMargin(g.vw);
+    const gutter = Math.min(24, Math.max(16, 0.017 * g.vw));
+    const column = (g.cw - 2 * margin - 11 * gutter) / 12;
+    expect
+      .soft(
+        Math.abs(g.bio.left - (margin + 6 * (column + gutter))),
+        `the bio's left edge ${g.bio.left} against column 7 at ${width}`,
+      )
+      .toBeLessThanOrEqual(2);
+    expect
+      .soft(
+        g.bio.bottom,
+        `the bio's bottom against the hull's top ${g.box.top} at ${width}`,
+      )
+      .toBeLessThanOrEqual(g.box.top + 1);
+  }
+
+  // At 1440 x 900 the name, the headline and the start of the bio are all on the first screen.
+  await open(page, 1440, 900);
+  const wide = await geometry(page);
+  expect(
+    wide.h1 && wide.bio && wide.cells[0],
+    "name, headline, bio",
+  ).toBeTruthy();
+  if (wide.h1 && wide.bio && wide.cells[0]) {
+    expect
+      .soft(wide.h1.bottom, "the name's bottom at 1440 x 900")
+      .toBeLessThanOrEqual(900);
+    expect
+      .soft(wide.cells[0].bottom, "the headline cell's bottom at 1440 x 900")
+      .toBeLessThanOrEqual(900);
+    expect
+      .soft(
+        wide.bio.top + wide.bioLine,
+        "the bio's first line ends at 1440 x 900",
+      )
+      .toBeLessThanOrEqual(900);
+  }
 });
 
-test("C3. The hull's tips: the bow on the header's right edge, a length that never steps", async ({
+test("C3. The hull's tips: the bow on the content edge, a length that never steps, the stern cropped, 1460 at most", async ({
   page,
 }) => {
   const seen = new Map<number, { left: number; width: number }>();
-  for (const cw of FOOTPRINT_WIDTHS) {
+  for (const cw of [...FOOTPRINT_WIDTHS, 1920]) {
     await open(page, cw);
     const g = await geometry(page);
     const where = `at ${cw}`;
-    expect(g.hull, `[data-hero-hull] exists ${where}`).not.toBeNull();
-    if (!(g.hull && g.header)) continue;
-    const width = g.hull.right - g.hull.left;
-    seen.set(cw, { left: g.hull.left, width });
+    expect(g.svg, `the hull's svg exists ${where}`).not.toBeNull();
+    expect(g.band, `[data-hero-band] exists ${where}`).not.toBeNull();
+    if (!(g.svg && g.band)) continue;
+    const width = g.svg.right - g.svg.left;
+    seen.set(cw, { left: g.svg.left, width });
+    // The band is the header's content, so its right edge is the header's right content edge.
     expect
       .soft(
-        Math.abs(g.hull.right - g.header.right),
-        `bow vs the header's right edge ${where}`,
+        Math.abs(g.svg.right - g.band.right),
+        `bow vs the header's right content edge ${where}`,
       )
-      .toBeLessThanOrEqual(2);
+      .toBeLessThanOrEqual(1);
     expect
       .soft(
-        Math.abs(g.hull.right - expectedHullRight(g.cw)),
-        `bow vs its formula ${where}`,
+        Math.abs(g.band.right - (g.cw - pageMargin(g.vw))),
+        `the content edge against clientWidth less the margin ${where}`,
       )
-      .toBeLessThanOrEqual(2);
-    const tolerance = cw >= 768 ? 2 : 3;
+      .toBeLessThanOrEqual(1);
     expect
-      .soft(Math.abs(width - expectedHullWidth(g.cw)), `hull width ${where}`)
-      .toBeLessThanOrEqual(tolerance);
-    if (cw >= 768) {
-      expect
-        .soft(
-          Math.abs(g.hull.left - g.header.left),
-          `stern vs the header's left edge ${where}`,
-        )
-        .toBeLessThanOrEqual(2);
-    }
-    if (cw <= 390) {
-      expect.soft(g.hull.left, `the stern is cropped ${where}`).toBeLessThan(0);
+      .soft(
+        Math.abs(width - expectedHullLength(g.cw, g.vw)),
+        `hull length ${width} against min((cw - margin) x 1.048, 1460) ${where}`,
+      )
+      .toBeLessThanOrEqual(3);
+    // The stern is cropped by the viewport where the formula puts it there: 320 and 390 (kept from
+    // the old C3), 1024 and 1440 (above about 1441 the 1460 cap shows the whole hull; owner
+    // decision 11).
+    if ([320, 390, 1024, 1440].includes(cw)) {
+      expect.soft(g.svg.left, `the stern is cropped ${where}`).toBeLessThan(0);
     }
   }
   const [at767, at768] = [seen.get(767), seen.get(768)];
@@ -576,7 +599,7 @@ test("C4. Still and steady: no layout shift, the same rect without scripts, noth
     .toBe(true);
 });
 
-test("C5. LCP stays text: in main, not in the hero, no url, within 2500 ms at 4x CPU", async ({
+test("C5. LCP stays text: the name or the bio, in the header, not in the hero, no url, within 2500 ms at 4x CPU", async ({
   page,
 }, testInfo: TestInfo) => {
   test.setTimeout(120_000);
@@ -599,6 +622,16 @@ test("C5. LCP stays text: in main, not in the hero, no url, within 2500 ms at 4x
       expect
         .soft(lcp.inMain, `LCP <${lcp.tag}> "${lcp.text}" is in main ${where}`)
         .toBe(true);
+      // B1.9: the h1 or the bio's p, in the header, never the hull.
+      expect
+        .soft(lcp.inHeader, `LCP <${lcp.tag}> is in main > header ${where}`)
+        .toBe(true);
+      expect
+        .soft(
+          ["h1", "p"],
+          `LCP <${lcp.tag}> is the name or a paragraph ${where}`,
+        )
+        .toContain(lcp.tag);
       expect.soft(lcp.inHero, `LCP is inside the hero ${where}`).toBe(false);
       expect.soft(lcp.url, `LCP has a url ${where}`).toBe("");
       expect.soft(lcp.time, `LCP time (ms) ${where}`).toBeLessThanOrEqual(2500);
@@ -639,172 +672,30 @@ test("C6. Weight: the box is at most 8192 bytes, and the hull is in the HTML res
   );
 });
 
-/** Every painted tone in the hero in the page's current scheme, read the way the contract says. */
-async function readTones(page: Page) {
-  return page.evaluate(
-    ({ hero, copper }) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1;
-      canvas.height = 1;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) throw new Error("no 2d canvas");
-      const read = (css: string, sentinel: string) => {
-        ctx.clearRect(0, 0, 1, 1);
-        ctx.fillStyle = sentinel;
-        ctx.fillStyle = css;
-        ctx.fillRect(0, 0, 1, 1);
-        return ctx.getImageData(0, 0, 1, 1).data;
-      };
-      // Two different fallbacks: a color the canvas can't parse would come back as each of them.
-      const resolve = (css: string) => {
-        const a = read(css, "#000000");
-        const b = read(css, "#ffffff");
-        if (a.join() !== b.join()) throw new Error(`unparsable color ${css}`);
-        const [r = 0, g = 0, bl = 0, al = 0] = a;
-        return { r, g, b: bl, a: al / 255 };
-      };
-      const box = document.querySelector(hero);
-      if (!box) return null;
-      // A shape's own opacity, and every ancestor's up to the box, scale what it paints.
-      const opacity = (el: Element) => {
-        let o = 1;
-        for (let n: Element | null = el; n; n = n.parentElement) {
-          o *= Number.parseFloat(getComputedStyle(n).opacity);
-          if (n === box) break;
-        }
-        return o;
-      };
-      const reference = (value: string) =>
-        /url\(["']?[^#]*#([^"')]+)/.exec(value)?.[1] ?? null;
-      const insideCopper = (el: Element) => Boolean(el.closest(copper));
-      const shapes = [
-        ...box.querySelectorAll(
-          "path, line, rect, polygon, polyline, circle, ellipse",
-        ),
-      ].flatMap((el) => {
-        const style = getComputedStyle(el);
-        const out: {
-          what: string;
-          copper: boolean;
-          tone: ReturnType<typeof resolve> | null;
-          gradient: string | null;
-        }[] = [];
-        for (const [what, value, own] of [
-          ["fill", style.fill, style.fillOpacity],
-          ["stroke", style.stroke, style.strokeOpacity],
-        ] as const) {
-          if (value === "none") continue;
-          const id = reference(value);
-          if (value.startsWith("url(")) {
-            out.push({
-              what: `${what} of ${el.tagName}`,
-              copper: insideCopper(el),
-              tone: null,
-              gradient: id,
-            });
-            continue;
-          }
-          const tone = resolve(value);
-          tone.a *= opacity(el) * Number.parseFloat(own);
-          out.push({
-            what: `${what} of ${el.tagName}`,
-            copper: insideCopper(el),
-            tone,
-            gradient: null,
-          });
-        }
-        return out;
-      });
-      const stops = [...box.querySelectorAll("stop")].map((el) => {
-        const style = getComputedStyle(el);
-        const tone = resolve(style.stopColor);
-        tone.a *= Number.parseFloat(style.stopOpacity);
-        return {
-          tone,
-          gradient: el.parentElement?.id ?? "",
-        };
-      });
-      return { shapes, stops };
-    },
-    { hero: HERO, copper: COPPER },
-  );
-}
-
-const asRgb = (tone: Tone, background: Rgb): Rgb =>
-  composite([tone.r, tone.g, tone.b, tone.a], background).map(
-    Math.round,
-  ) as Rgb;
-
-test("C7. Quiet, in tokens, in both schemes", async ({ page }) => {
+test("C7. Quiet, in tokens, in both schemes: the newest plank is copper, every other plank is a quiet tone of the hull", async ({
+  page,
+}) => {
   for (const scheme of SCHEMES) {
     await page.emulateMedia({ colorScheme: scheme });
     await open(page, 1440);
     const where = `(${scheme})`;
 
-    // The structure first: one hull, seven lift paths, one copper plank on the third.
+    // The structure first: one hull, 22 planks, one copper plank among them.
     await expect(page.locator(HULL), `one hull ${where}`).toHaveCount(1);
-    await expect(page.locator(LIFT), `seven lifts ${where}`).toHaveCount(7);
+    await expect(page.locator(PLANK), `22 planks ${where}`).toHaveCount(22);
     await expect(page.locator(COPPER), `one copper plank ${where}`).toHaveCount(
       1,
     );
-    const layout = await page.evaluate(
-      ({ hull, lift, copper }) => {
-        const box = (el: Element) => {
-          const r = el.getBoundingClientRect();
-          return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
-        };
-        const hullEl = document.querySelector(hull);
-        const lifts = [...document.querySelectorAll(lift)];
-        const plank = document.querySelector(copper);
-        return {
-          allPaths: lifts.every((el) => el.tagName.toLowerCase() === "path"),
-          liftsInHull: lifts.every((el) => hullEl?.contains(el)),
-          lifts: lifts.map(box),
-          copper: plank ? box(plank) : null,
-          hull: hullEl ? box(hullEl) : null,
-        };
-      },
-      { hull: HULL, lift: LIFT, copper: COPPER },
-    );
-    expect.soft(layout.allPaths, `every lift is a path ${where}`).toBe(true);
-    expect
-      .soft(layout.liftsInHull, `every lift is in the hull ${where}`)
-      .toBe(true);
-    // "The third" has to mean one thing: the lifts run in DOM order up (or down) the hull.
-    const centers = layout.lifts.map((r) => (r.top + r.bottom) / 2);
-    const steps = centers.slice(1).map((c, i) => c - (centers[i] ?? 0));
-    expect
-      .soft(
-        steps.every((s) => s > 0) || steps.every((s) => s < 0),
-        `the lifts are stacked in DOM order, one above the next ${where}: centers ${centers.map((c) => c.toFixed(1)).join(", ")}`,
-      )
-      .toBe(true);
-    const third = layout.lifts[2];
-    if (layout.copper && third) {
-      const slack = 1.5;
-      expect
-        .soft(
-          layout.copper.left >= third.left - slack &&
-            layout.copper.right <= third.right + slack &&
-            layout.copper.top >= third.top - slack &&
-            layout.copper.bottom <= third.bottom + slack,
-          `the copper plank lies within the third lift ${where}: ${JSON.stringify(layout.copper)} vs ${JSON.stringify(third)}`,
-        )
-        .toBe(true);
-    }
-    if (layout.copper && layout.hull) {
-      const share =
-        (layout.copper.right - layout.copper.left) /
-        (layout.hull.right - layout.hull.left);
-      expect
-        .soft(share, `copper width / hull width ${where}`)
-        .toBeGreaterThanOrEqual(0.2);
-      expect
-        .soft(share, `copper width / hull width ${where}`)
-        .toBeLessThanOrEqual(0.4);
-    }
+    expect(
+      await page
+        .locator(COPPER)
+        .evaluate((el) => el.matches("[data-hero-plank]")),
+      `the copper one is a plank ${where}`,
+    ).toBe(true);
 
-    // The tones.
+    // The tones. A plank's tone is its own fill; any shading is a separate shape over it (the
+    // prototype's multiply layer), which paints the plank darker than its tone in dark mode by
+    // more than copper's lightness window, so the fill is what is read, as the old checks did.
     const colors = await resolveColors(page);
     const bg = parseColor(await resolvedBackground(page));
     const accent = colors["--accent"]?.rgba;
@@ -812,44 +703,19 @@ test("C7. Quiet, in tokens, in both schemes", async ({ page }) => {
     expect(accent, "--accent resolves").toBeDefined();
     if (!(bg && accent)) continue;
     const background: Rgb = [bg[0], bg[1], bg[2]];
-    const bgLch = oklch(background);
     const accentLch = oklch([accent[0], accent[1], accent[2]]);
-    const found = await readTones(page);
-    expect(found, `the hero is there ${where}`).not.toBeNull();
-    if (!found) continue;
+    const planks = await readPlanks(page, { step: 8 });
+    expect(planks.length, `planks read ${where}`).toBe(22);
 
-    // A gradient is copper when a copper shape paints with it and no other shape does.
-    const used = (copper: boolean) =>
-      new Set(
-        found.shapes
-          .filter((s) => s.copper === copper && s.gradient)
-          .map((s) => s.gradient),
-      );
-    const copperGradients = used(true);
-    const otherGradients = used(false);
-    const painted = [
-      ...found.shapes.flatMap((s) =>
-        s.tone ? [{ what: s.what, copper: s.copper, tone: s.tone }] : [],
-      ),
-      ...found.stops.map((s) => ({
-        what: `stop of ${s.gradient || "(no id)"}`,
-        copper:
-          copperGradients.has(s.gradient) && !otherGradients.has(s.gradient),
-        tone: s.tone,
-      })),
-    ];
-    expect(painted.length, `painted tones found ${where}`).toBeGreaterThan(0);
-
-    const copperTones: string[] = [];
-    for (const { what, copper, tone } of painted) {
-      const rgb = asRgb(tone, background);
-      const label = `${what} rgb(${rgb.join(",")}) ${where}`;
-      const isBackground = rgb.every((c, i) => c === background[i]);
-      const lch = oklch(rgb);
-      if (copper) {
-        // A seam in --background may sit on the copper plank too; everything else there is copper.
-        if (isBackground) continue;
-        copperTones.push(label);
+    let copperTones = 0;
+    for (const plank of planks) {
+      const label = `plank ${plank.index} (sprint ${plank.sprint ?? "none"}) fill ${plank.fill} ${where}`;
+      expect(plank.tone, `a plain colour for ${label}`).not.toBeNull();
+      if (!plank.tone) continue;
+      const rgb = composite(plank.tone, background).map(Math.round) as Rgb;
+      if (plank.copper) {
+        copperTones++;
+        const lch = oklch(rgb);
         expect
           .soft(hueDistance(lch.hue, accentLch.hue), `copper hue, ${label}`)
           .toBeLessThanOrEqual(3);
@@ -867,28 +733,15 @@ test("C7. Quiet, in tokens, in both schemes", async ({ page }) => {
           .toBeLessThanOrEqual(0.06);
         continue;
       }
-      if (isBackground) continue;
-      const ratio = contrast(rgb, background);
+      // Present against the ground, never invisible (the ceiling is B1.4's 1.5 x rule).
       expect
-        .soft(ratio, `contrast against --background, ${label}`)
+        .soft(
+          contrast(rgb, background),
+          `contrast against --background, ${label}`,
+        )
         .toBeGreaterThanOrEqual(1.15);
-      expect
-        .soft(ratio, `contrast against --background, ${label}`)
-        .toBeLessThanOrEqual(3.0);
-      // 8-bit rounding moves the hue of a near-gray by more than the window; skip those.
-      if (lch.chroma >= 0.005) {
-        expect
-          .soft(
-            hueDistance(lch.hue, bgLch.hue),
-            `hue within 10 degrees of --background, ${label}`,
-          )
-          .toBeLessThanOrEqual(10);
-      }
     }
-    expect(
-      copperTones.length,
-      `the copper plank has a copper tone ${where}`,
-    ).toBeGreaterThan(0);
+    expect(copperTones, `the copper plank has a copper tone ${where}`).toBe(1);
   }
 });
 
@@ -933,20 +786,22 @@ test("C8. It degrades to the same object: scripts off, reduced motion, and gone 
       expect.soft(state?.opacity, `opacity ${where}`).toBe("1");
       await expect(page.locator(HERO), `visible ${where}`).toBeVisible();
       await expect(page.locator(HULL), `hull visible ${where}`).toBeVisible();
-      if (g.box) {
-        const want = expectedBox(g.cw);
+      // The same hull at the same length as with every script and effect on (B1.6's formula), in a
+      // box that holds it. The old box's own size formula went with the old box.
+      expect(g.svg, `the hull's svg is present ${where}`).not.toBeNull();
+      if (g.box && g.svg) {
         expect
           .soft(
-            Math.abs(g.box.right - g.box.left - want.width),
-            `width ${where}`,
+            Math.abs(g.svg.right - g.svg.left - expectedHullLength(g.cw, g.vw)),
+            `hull length ${where}`,
           )
-          .toBeLessThanOrEqual(1);
+          .toBeLessThanOrEqual(3);
         expect
           .soft(
-            Math.abs(g.box.bottom - g.box.top - want.height),
-            `height ${where}`,
+            g.box.top <= g.svg.top + 1 && g.box.bottom >= g.svg.bottom - 1,
+            `the box holds the hull ${where}`,
           )
-          .toBeLessThanOrEqual(1);
+          .toBe(true);
       }
       await context.close();
     }
@@ -964,14 +819,19 @@ test("C8. It degrades to the same object: scripts off, reduced motion, and gone 
   });
   const weakPage = await weak.newPage();
   await weakPage.goto("/");
-  const weakBox = (await geometry(weakPage)).box;
-  expect(weakBox, "the box with Save-Data on a weak device").not.toBeNull();
+  const weakGeometry = await geometry(weakPage);
+  const weakSvg = weakGeometry.svg;
+  expect(weakSvg, "the hull with Save-Data on a weak device").not.toBeNull();
   expect
     .soft(
-      Math.abs((weakBox?.right ?? 0) - (weakBox?.left ?? 0) - 688),
-      "width with Save-Data",
+      Math.abs(
+        (weakSvg?.right ?? 0) -
+          (weakSvg?.left ?? 0) -
+          expectedHullLength(weakGeometry.cw, weakGeometry.vw),
+      ),
+      "hull length with Save-Data",
     )
-    .toBeLessThanOrEqual(1);
+    .toBeLessThanOrEqual(3);
   await weak.close();
 
   // Forced colors would repaint the tones in system colors, so the box is not rendered at all.

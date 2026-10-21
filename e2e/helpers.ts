@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { profile } from "../content/profile";
 
@@ -28,7 +30,11 @@ export const STEP_TOKENS = [
   "--step-lg",
   "--step-xl",
   "--step-2xl",
+  // The name's size on `/` (sprint 16, B1.2): 136 px at 1440, 64 px at 390.
+  "--step-display",
 ] as const;
+/** Tokens derived from the five (sprint 16): a replaced plank's bronze, and the ledger's rules. */
+export const DERIVED_TOKENS = ["--bronze", "--rule-strong"] as const;
 export const SCHEMES = ["light", "dark"] as const;
 
 export type Rgb = [number, number, number];
@@ -49,7 +55,10 @@ export async function rootTokens(page: Page, names: readonly string[]) {
  * of a probe that uses `var(--token)`, and its sRGB channels through a canvas, so oklch(), hsl()
  * and the rest all work.
  */
-export async function resolveColors(page: Page) {
+export async function resolveColors(
+  page: Page,
+  names: readonly string[] = COLOR_TOKENS,
+) {
   return page.evaluate((names) => {
     const canvas = document.createElement("canvas");
     canvas.width = 1;
@@ -75,7 +84,7 @@ export async function resolveColors(page: Page) {
     }
     probe.remove();
     return out;
-  }, COLOR_TOKENS);
+  }, names);
 }
 
 /** `--background` as a computed background-color, in the scheme the page is in. */
@@ -206,3 +215,52 @@ export function contrast(a: Rgb, b: Rgb): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
 }
+
+// ---------------------------------------------------------------------------------------------
+// The build log's oracle (sprint 14, sprint 16): `N` is the number of valid retro files in the
+// checkout under test, counted with a few lines of this file's own (sprint 12's data rules, not the
+// reader), so nothing here is a literal that a merge can falsify.
+
+const SPRINT_DIR = join(process.cwd(), ".studio", "sprint");
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The folders whose `retro.json` the contract's data rules accept (a wrong one fails the build). */
+function validSprints(): number[] {
+  const found: number[] = [];
+  for (const folder of readdirSync(SPRINT_DIR)) {
+    const file = join(SPRINT_DIR, folder, "retro.json");
+    if (!/^\d+$/.test(folder) || !existsSync(file)) continue;
+    let retro: unknown;
+    try {
+      retro = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      continue;
+    }
+    if (!isRecord(retro)) continue;
+    const { sprint, goal } = retro;
+    const bare =
+      typeof goal === "string"
+        ? goal.replace(/^\s*roadmap item(?:\s+\d+)?\s*:\s*/i, "")
+        : "";
+    if (
+      typeof sprint === "number" &&
+      Number.isInteger(sprint) &&
+      sprint >= 1 &&
+      sprint === Number(folder) &&
+      bare.replaceAll("`", "").trim() !== ""
+    ) {
+      found.push(sprint);
+    }
+  }
+  return found;
+}
+
+export const VALID = validSprints();
+/** U+00A0, the no-break space of the data rules: the dot never starts a line. */
+const NBSP = "\u00a0";
+/** What the span says after the no-break space and the dot, for n entries. */
+const countWords = (n: number) => `${n} ${n === 1 ? "sprint" : "sprints"}`;
+export const lineSpan = (n: number) => `${NBSP}· ${countWords(n)}`;

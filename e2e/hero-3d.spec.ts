@@ -1,15 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { parseColor, type Rgb, resolvedBackground, SCHEMES } from "./helpers";
+import { readPlanks } from "./hull";
 import {
   type Bounds,
   bounds,
   decodePng,
   type Image,
   litMask,
-  loudestOutside,
   meanDifference,
-  medianColor,
+  medianAt,
   pixel,
   unmatched,
 } from "./pixels";
@@ -29,8 +29,11 @@ import {
 // (C10 to C15 and C17; C16 is process), standing on .studio/sprint/9/spike-probe.md. One test per
 // check, named by its number. Hooks the build has to give: `[data-hero] canvas` (the upgrade),
 // `data-hero-shear` on the box (the current shear, 3 decimals, gone with the canvas), and the
-// existing `[data-hero-hull]` / `[data-hero-copper]` in the SVG. How each check is read, and what
-// the build can rely on: .studio/sprint/10/probe-checks.md.
+// `[data-hero-hull]` / `[data-hero-plank]` / `[data-hero-copper]` in the SVG. How each check is
+// read, and what the build can rely on: .studio/sprint/10/probe-checks.md. Sprint 16 (B1.10) moved
+// C11's air numbers and C13's copper reading to the new hull, retired C13.4's loudness ceiling and
+// C11's air ceiling and centring, and added C12's draws per frame and C15's chunk size; the list is
+// .studio/sprint/16/specs-probe.md.
 //
 // These specs do not depend on whether the browser itself refuses `failIfMajorPerformanceCaveat:
 // true` (the sandbox's Chromium 141 does, CI's 156 grants it; C17 reports which). They strip the
@@ -47,7 +50,6 @@ const AXE_TAGS = [
   "best-practice",
 ];
 
-const COPPER = "[data-hero-copper]";
 /** The soft form of `expect.poll`, so one wrong reading doesn't hide the next. */
 const softly = expect.configure({ soft: true });
 
@@ -95,27 +97,19 @@ const shearOf = async (page: Page) => {
   return value === null ? Number.NaN : Number(value);
 };
 
-/** The hero's rect, from a page with scripts off, where `boundingBox()` would hang. */
-async function plainRects(page: Page) {
-  return page.evaluate(
-    ({ box, copper }) => {
-      const rect = (el: Element | null) => {
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return {
+/** The hero's box, from a page with scripts off, where `boundingBox()` would hang. */
+async function plainBox(page: Page) {
+  return page.evaluate((box) => {
+    const r = document.querySelector(box)?.getBoundingClientRect();
+    return r
+      ? {
           left: r.left + scrollX,
           top: r.top + scrollY,
           right: r.right + scrollX,
           bottom: r.bottom + scrollY,
-        };
-      };
-      return {
-        box: rect(document.querySelector(box)),
-        copper: rect(document.querySelector(copper)),
-      };
-    },
-    { box: BOX, copper: COPPER },
-  );
+        }
+      : null;
+  }, BOX);
 }
 
 async function ground(page: Page): Promise<Rgb> {
@@ -395,6 +389,10 @@ function air(pose: Pose) {
   };
 }
 
+// Never clipped: some air under the keel in every pose, and above the gunwale at the end of the
+// turn. The old box was the turn plus 4 px, so these were also capped at 7 px and the hull centred
+// at +0.24; the new box holds a ruler and a ruled band's worth of space (B1.10), so a cap and a
+// centring would be the box's design, not the turn's.
 function checkAir(set: Pose[], at: string) {
   for (const pose of set) {
     const a = air(pose);
@@ -408,17 +406,6 @@ function checkAir(set: Pose[], at: string) {
       expect
         .soft(a.top, `air above the gunwale at -0.24 at ${at}, px`)
         .toBeGreaterThanOrEqual(2);
-      expect
-        .soft(a.top, `air above the gunwale at -0.24 at ${at}, px`)
-        .toBeLessThanOrEqual(7);
-    }
-    if (pose.shear === 0.24) {
-      expect
-        .soft(
-          Math.abs(a.top - a.bottom),
-          `air above ${a.top} and below ${a.bottom} at +0.24 at ${at}`,
-        )
-        .toBeLessThanOrEqual(1.5);
     }
   }
 }
@@ -517,7 +504,7 @@ test("C11. The pose: shear follows the scroll, the silhouette keeps its length a
 
 // ---------------------------------------------------------------------------------------------
 
-test("C12. Nothing moves at rest: no draw for 2 s, one after a wheel", async ({
+test("C12. Nothing moves at rest: no draw for 2 s, one after a wheel, at most 4 draw calls in any frame", async ({
   browser,
 }) => {
   const run = await upRun(browser);
@@ -539,6 +526,36 @@ test("C12. Nothing moves at rest: no draw for 2 s, one after a wheel", async ({
     moved,
     `draw calls at rest ${rest} and 500 ms after one wheel ${moved} (a count that never changes is a dead canvas)`,
   ).not.toBe(rest);
+
+  // B1.10: a frame draws the hull in at most 4 calls, however it is built (deck, seams, planks).
+  await page.evaluate(() => {
+    const w = window as HarnessWindow & { __perFrame?: number[] };
+    w.__perFrame = [];
+    let last = w.__draws?.total ?? 0;
+    const sample = () => {
+      const now = w.__draws?.total ?? 0;
+      w.__perFrame?.push(now - last);
+      last = now;
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  for (const end = Date.now() + 800; Date.now() < end; ) {
+    await page.mouse.wheel(0, 40);
+    await sleep(30);
+  }
+  const perFrame = await page.evaluate(
+    () =>
+      (window as HarnessWindow & { __perFrame?: number[] }).__perFrame ?? [],
+  );
+  expect(
+    perFrame.some((n) => n > 0),
+    "some frame drew during the wheel (a count that never changes is a dead canvas)",
+  ).toBe(true);
+  expect(
+    Math.max(...perFrame),
+    `draw calls in the busiest frame over 0.8 s of wheel: ${perFrame.join(",")}`,
+  ).toBeLessThanOrEqual(4);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -561,14 +578,19 @@ test("C13. The same object: the canvas at scroll 0 matches the SVG, light and da
       const svgPage = await bare.newPage();
       await svgPage.goto("/");
       await svgPage.evaluate(() => document.fonts.ready);
-      const plain = await plainRects(svgPage);
+      const plainRect = await plainBox(svgPage);
+      // The copper plank's heart: points well inside its real shape, which is not its element's
+      // box when the plank is a clipped rect.
+      const heart = (await readPlanks(svgPage, { heart: true })).find(
+        (plank) => plank.copper,
+      )?.heart;
       expect(
-        plain.box && plain.copper,
-        `the SVG's box and copper plank ${where}`,
+        plainRect && heart && heart.length > 0,
+        `the SVG's box and a copper plank with a heart ${where}`,
       ).toBeTruthy();
-      if (!(plain.box && plain.copper)) continue;
+      if (!(plainRect && heart)) continue;
       const svgImage = decodePng(
-        await svgPage.screenshot({ clip: clipOf(plain.box) }),
+        await svgPage.screenshot({ clip: clipOf(plainRect) }),
       );
 
       const run = await upRun(browser, { width, scheme });
@@ -578,7 +600,7 @@ test("C13. The same object: the canvas at scroll 0 matches the SVG, light and da
         rect &&
           within(
             [rect.left, rect.top, rect.right, rect.bottom],
-            [plain.box.left, plain.box.top, plain.box.right, plain.box.bottom],
+            [plainRect.left, plainRect.top, plainRect.right, plainRect.bottom],
             0.5,
           ),
         `the box with the canvas is where the SVG's was ${where}`,
@@ -636,16 +658,13 @@ test("C13. The same object: the canvas at scroll 0 matches the SVG, light and da
           `mean absolute channel difference over pixels lit in both ${where}`,
         )
         .toBeLessThanOrEqual(8);
-      const origin = clipOf(plain.box);
-      const copper: Bounds = {
-        left: Math.round(plain.copper.left) - origin.x + 2,
-        top: Math.round(plain.copper.top) - origin.y + 2,
-        right: Math.round(plain.copper.right) - origin.x - 2,
-        bottom: Math.round(plain.copper.bottom) - origin.y - 2,
-      };
+      const origin = clipOf(plainRect);
+      const inBox = heart.map(
+        ([x, y]) => [x - origin.x, y - origin.y] as [number, number],
+      );
       const [fromSvg, fromCanvas] = [
-        medianColor(svgImage, copper),
-        medianColor(canvasImage, copper),
+        medianAt(svgImage, inBox),
+        medianAt(canvasImage, inBox),
       ];
       fromSvg.forEach((channel, i) => {
         expect
@@ -655,25 +674,6 @@ test("C13. The same object: the canvas at scroll 0 matches the SVG, light and da
           )
           .toBeLessThanOrEqual(6);
       });
-
-      // 4. Nothing but the copper plank is loud.
-      const loud = loudestOutside(
-        canvasImage,
-        background,
-        {
-          left: copper.left - 4,
-          top: copper.top - 4,
-          right: copper.right + 4,
-          bottom: copper.bottom + 4,
-        },
-        3.05,
-      );
-      expect
-        .soft(
-          loud.over,
-          `canvas pixels outside the copper plank's rect plus 2 px above 3.05 : 1 (loudest ${loud.worst.ratio.toFixed(2)} at ${loud.worst.x},${loud.worst.y}, rgb ${pixel(canvasImage, Math.max(0, loud.worst.x), Math.max(0, loud.worst.y)).join(",")}) ${where}`,
-        )
-        .toBe(0);
     }
   }
 });
@@ -851,7 +851,7 @@ test("C14. It falls back: reduced motion, Save-Data, a weak device, no context, 
 
 // ---------------------------------------------------------------------------------------------
 
-test("C15. Weight: at most 15,360 B after load, one chunk with the shaders, 2,048 B more than /_not-found at first load, the markup within 8192 B", async ({
+test("C15. Weight: at most 15,360 B after load, one chunk with the shaders of at most 12,288 B, 2,048 B more than /_not-found at first load, the markup within 8192 B", async ({
   browser,
 }) => {
   test.setTimeout(120_000);
@@ -881,6 +881,14 @@ test("C15. Weight: at most 15,360 B after load, one chunk with the shaders, 2,04
       "scripts after load containing createShader",
     )
     .toBe(1);
+  // B1.10: the hero chunk on its own, which now draws 22 planks.
+  const heroChunk = late.find((s) => s.hasShader);
+  expect
+    .soft(
+      heroChunk?.gz ?? Number.NaN,
+      `gzip bytes of the chunk with the shaders: ${listing(late)}`,
+    )
+    .toBeLessThanOrEqual(12_288);
   expect
     .soft(
       listing(list.filter((s) => !s.afterLoad && s.hasShader)),

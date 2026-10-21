@@ -230,9 +230,10 @@ test("app/ and components/ use the tokens: no color literal or palette utility",
     ],
   ];
   // The color tokens' own declarations in app/globals.css are the one place literals live; code
-  // that needs a color outside CSS takes it from lib/site.ts.
+  // that needs a color outside CSS takes it from lib/site.ts. `--bronze` (sprint 16) is the sixth:
+  // a replaced plank's metal, a hex in each scheme. `--rule-strong` mixes the others and has none.
   const declaration =
-    /--(?:background|foreground|muted|accent|rule)\s*:[^;]*;/g;
+    /--(?:background|foreground|muted|accent|rule|bronze)\s*:[^;]*;/g;
   const hits = [...sources("app"), ...sources("components")].flatMap(
     ({ file, code }) =>
       rules

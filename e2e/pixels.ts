@@ -1,5 +1,5 @@
 import { inflateSync } from "node:zlib";
-import { contrast, type Rgb } from "./helpers";
+import type { Rgb } from "./helpers";
 
 // Reading screenshots in Node, so a pixel check needs no image library (the repo has none and the
 // WebGL checks may read pixels from `page.screenshot` only: `readPixels` and `toDataURL` return
@@ -180,23 +180,18 @@ export function meanDifference(
   return pixels === 0 ? null : sum / (pixels * 3);
 }
 
-/** The median of each channel over a rectangle (right and bottom exclusive). */
-export function medianColor(image: Image, area: Bounds): Rgb {
+/** The median of each channel over the given pixels (x, y), skipping any outside the image. */
+export function medianAt(
+  image: Image,
+  points: readonly [number, number][],
+): Rgb {
   const channels: number[][] = [[], [], []];
-  for (
-    let y = Math.max(0, area.top);
-    y < Math.min(image.height, area.bottom);
-    y++
-  ) {
-    for (
-      let x = Math.max(0, area.left);
-      x < Math.min(image.width, area.right);
-      x++
-    ) {
-      pixel(image, x, y).forEach((v, c) => {
-        channels[c]?.push(v);
-      });
-    }
+  for (const [px, py] of points) {
+    const [x, y] = [Math.round(px), Math.round(py)];
+    if (x < 0 || y < 0 || x >= image.width || y >= image.height) continue;
+    pixel(image, x, y).forEach((v, c) => {
+      channels[c]?.push(v);
+    });
   }
   const median = (values: number[]) =>
     values.sort((p, q) => p - q)[Math.floor(values.length / 2)] ?? Number.NaN;
@@ -205,30 +200,4 @@ export function medianColor(image: Image, area: Bounds): Rgb {
     median(channels[1] ?? []),
     median(channels[2] ?? []),
   ];
-}
-
-/** The highest contrast against `ground` of any pixel outside `keepOut`, and how many pass `limit`. */
-export function loudestOutside(
-  image: Image,
-  ground: Rgb,
-  keepOut: Bounds,
-  limit: number,
-) {
-  let worst = { ratio: 0, x: -1, y: -1 };
-  let over = 0;
-  for (let y = 0; y < image.height; y++) {
-    for (let x = 0; x < image.width; x++) {
-      if (
-        x >= keepOut.left &&
-        x < keepOut.right &&
-        y >= keepOut.top &&
-        y < keepOut.bottom
-      )
-        continue;
-      const ratio = contrast(pixel(image, x, y), ground);
-      if (ratio > limit) over++;
-      if (ratio > worst.ratio) worst = { ratio, x, y };
-    }
-  }
-  return { worst, over };
 }
