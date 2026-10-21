@@ -1,0 +1,36 @@
+{
+  "sprint": 20,
+  "pr": 54,
+  "goal": "The site's drawn dots stay visible in high-contrast mode, and the stack list clips only sideways",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 22,
+  "agents": [
+    { "role": "qa-engineer", "model": "inherit", "tokens": 51949, "minutes": 3 },
+    { "role": "engineer", "model": "inherit", "tokens": 59393, "minutes": 4 }
+  ],
+  "lens": { "runs": 1, "tokens": 182295, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The first draft of the new high-contrast check would have passed on the old code too",
+      "evidence": "Probe's report: in forced colors Chromium paints the dot Canvas, opaque white, so 'not transparent' held on main; C8 compares with the page background instead"
+    },
+    {
+      "what": "Half of the goal, the build log's bullets in high-contrast mode, has no automated check",
+      "evidence": "Lens's nit on components/sprint-entry.tsx:75 (review on b24c2f6)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Briefs for a 'shows in forced colors' check say 'differs from the page background', not 'not transparent'",
+      "moves": "Checks that pass on main before the fix (one this sprint, caught by Probe)"
+    }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "C8 also asserts the Stack list still clips sideways (overflowX clip), Lens's nit" },
+    { "who": "Probe", "what": "A forced-colors check for the build log's What went wrong bullets in e2e/sprints.spec.ts, Lens's nit" },
+    { "who": "Owner", "what": "Approve or comment on the redesign canvas https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5" }
+  ]
+}

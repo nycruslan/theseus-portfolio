@@ -30,7 +30,7 @@ const HEIGHT = 900;
 /** The measurements below come from layout; one px either way is the contract's tolerance. */
 const TOLERANCE = 1;
 /** U+00A0, the no-break space of the data rules: the dot never starts a line. */
-const NBSP = " ";
+const NBSP = "\u00a0";
 
 type Scheme = (typeof SCHEMES)[number];
 

@@ -611,7 +611,7 @@ test.describe("C4. One entry's words", () => {
         expect.soft(meta, `${where} is left out`).toBeNull();
         continue;
       }
-      const text = squash((meta ?? "").replaceAll(" ", " "));
+      const text = squash((meta ?? "").replaceAll("\u00a0", " "));
       expect.soft(text, where).toBe(parts.join(" · "));
       expect
         .soft(text.startsWith("·"), `${where} starts with a dot`)
@@ -620,7 +620,7 @@ test.describe("C4. One entry's words", () => {
       expect
         .soft(
           [...(meta ?? "")].every(
-            (char, at, all) => char !== "·" || all[at - 1] === " ",
+            (char, at, all) => char !== "·" || all[at - 1] === "\u00a0",
           ),
           `${where}: a no-break space before every dot`,
         )
@@ -712,9 +712,6 @@ test.describe("C4. One entry's words", () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// C5. What went wrong, all of it
-
 test.describe("C4b. The goal carries no size tag", () => {
   test("C4.5 no goal on the page ends in a bare size tag, and sprint 15 still shows its words", async ({
     page,
@@ -738,6 +735,9 @@ test.describe("C4b. The goal carries no size tag", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// C5. What went wrong, all of it
 
 test.describe("C5. What went wrong, all of it", () => {
   test("C5.1 an h4 and a list exactly when there are items; up to three, in the file's order", async ({

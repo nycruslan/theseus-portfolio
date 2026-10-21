@@ -114,3 +114,16 @@ still hold:
   - A rule the reader and Probe's oracle both implement needs both changed in one sprint: brief them as
     the same rule, word for word, and the two copies agree first time.
   - A nit that only moves code in a spec is cheaper as a rider than as a second Lens run.
+
+## Sprint 20: the drawn dots survive forced colors (PR #54)
+
+- **Outcome:** the Stack's separator dots and the build log's bullets carry
+  `forced-colors:before:bg-[CanvasText]`, and the Stack list clips with `overflow-x-clip` instead of
+  `overflow-hidden`. Probe's C8 emulates forced colors at 390 and 1440 and was red on main first; the
+  spec riders (C4b's place, U+00A0 escapes) rode along. Probe and Forge in parallel worktrees again;
+  Lens ship on the first run with two coverage nits, left as Probe follow-ups. The redesign still waits
+  for the owner's comments on sprint 17's canvas.
+- **Lesson:**
+  - In forced colors Chromium repaints a background-only dot opaque Canvas, not transparent: a check
+    that it "shows" compares it with the page's background.
+  - A check named "clips only sideways" needs both halves asserted; Lens reads titles against bodies.

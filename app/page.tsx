@@ -105,12 +105,13 @@ export default function Home() {
           <Section id="stack" title="Stack">
             {/* Plain words on a wrapping line. The dot between tools is drawn, not typed, so no
             separator text ends up inside an item. Each item draws a dot in the gap before it, and
-            the list clips the one that falls left of a row's first item. */}
-            <ul className="flex flex-wrap gap-x-6 gap-y-1 overflow-hidden">
+            the list clips the one that falls left of a row's first item. Only x is clipped, so y stays
+            visible. In forced colors the browser drops background colours, hence the CanvasText dot. */}
+            <ul className="flex flex-wrap gap-x-6 gap-y-1 overflow-x-clip">
               {profile.stack.map((tool) => (
                 <li
                   key={tool}
-                  className="relative text-step-base before:absolute before:top-1/2 before:-left-[calc(0.75rem+1.5px)] before:-mt-[1.5px] before:size-[3px] before:rounded-full before:bg-muted before:content-['']"
+                  className="relative text-step-base before:absolute before:top-1/2 before:-left-[calc(0.75rem+1.5px)] before:-mt-[1.5px] before:size-[3px] before:rounded-full before:bg-muted forced-colors:before:bg-[CanvasText] before:content-['']"
                 >
                   {tool}
                 </li>
