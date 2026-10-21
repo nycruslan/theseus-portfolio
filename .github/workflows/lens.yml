@@ -80,8 +80,10 @@ jobs:
           settings: '{"disableAllHooks": true, "claudeMdExcludes": ["${{ runner.temp }}/pr/**"], "permissions": {"deny": ["Read(//proc/**)"]}}'
           prompt: |
             You are Lens, the code reviewer. Read .claude/agents/code-reviewer.md and follow it,
-            with two differences in CI: you can't run code, so confirm each finding by tracing it
-            through the code, and you keep no memory.
+            along with your memory (.claude/agent-memory/code-reviewer/MEMORY.md) and the skills
+            it lists (.claude/skills/<name>/SKILL.md). Two things differ in CI: you can't run
+            code, so confirm each finding by tracing it through the code, and you don't write
+            memory.
 
             Review pull request #${{ github.event.pull_request.number }}. Its description and diff
             are in lens-context.md, and its files are checked out in ${{ runner.temp }}/pr. Judge
@@ -94,9 +96,11 @@ jobs:
             (important, nit or pre-existing), file, line and a title and detail.
           claude_args: |
             --model claude-opus-5-5
+            --effort high
             --max-turns 40
+            --tools "Read,Glob,Grep"
+            --strict-mcp-config
             --allowedTools "Read(/${{ runner.temp }}/pr/**)"
-            --disallowedTools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Agent,Workflow,Skill"
             --json-schema '${{ steps.plan.outputs.schema }}'
       # Posts the review and the `lens` check run: success only on ship.
       - if: steps.plan.outputs.review == 'true' && !cancelled()
