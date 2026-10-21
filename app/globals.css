@@ -7,26 +7,46 @@
 
 /*
  * The faces' fallbacks (sprint 16): a system font resized to the web font's metrics, so the swap
- * from one to the other moves no line (layout shift 0, hero C4). The numbers are what next/font
- * computed from each file's own metrics against Arial and Times New Roman; they change only if a
- * font file does. The faces themselves are declared by next/font in app/layout.tsx and app/page.tsx.
+ * from one to the other moves no line (hero C4; the slow-phone shift budget is 0.01, review-iris
+ * finding 1). Each lists the metric-compatible stand-ins in turn, because Arial and Times New Roman
+ * match nothing on Linux or Android, and the stack would fall to the system's own serif and sans.
+ * size-adjust is each face's measured width against its stand-in (the same line of text, in the
+ * browser): Besley's name is set at 800, its headline at 700, and they run wider than its regular,
+ * so it has a face for each. Ascent and descent are the ones next/font computed from the files. All
+ * of it changes only if a font file does. The faces themselves are declared by next/font in
+ * app/layout.tsx and app/page.tsx.
  */
 @font-face {
   font-family: "Libre Franklin Fallback";
-  src: local("Arial");
+  src: local("Arial"), local("Liberation Sans"), local("Arimo");
   ascent-override: 94.14%;
   descent-override: 23.97%;
   line-gap-override: 0%;
-  size-adjust: 102.61%;
+  size-adjust: 104%;
 }
 
 @font-face {
   font-family: "Besley Fallback";
-  src: local("Times New Roman");
+  font-weight: 700;
+  src:
+    local("Times New Roman Bold"), local("Liberation Serif Bold"),
+    local("Tinos Bold");
   ascent-override: 101.05%;
   descent-override: 34.36%;
   line-gap-override: 0%;
-  size-adjust: 123.71%;
+  size-adjust: 126.3%;
+}
+
+@font-face {
+  font-family: "Besley Fallback";
+  font-weight: 800 900;
+  src:
+    local("Times New Roman Bold"), local("Liberation Serif Bold"),
+    local("Tinos Bold");
+  ascent-override: 101.05%;
+  descent-override: 34.36%;
+  line-gap-override: 0%;
+  size-adjust: 131%;
 }
 
 /*
@@ -233,17 +253,25 @@ body {
   text-wrap: balance;
 }
 
-/* A printed form's thick-and-thin rule: 3px, a 2px gap, then 1px, all of the ink. The thin one is
-   a background so the band keeps one box; it starts below the border, hence 2px. */
+/* A printed form's thick-and-thin rule: 3px, a 2px gap, then 1px, all of the ink. The thin one is a
+   border on a positioned pseudo-element, so forced colours keep it (a background would go) and the
+   band keeps one box; it starts below the thick border, hence 2px. */
 .band {
+  position: relative;
   display: grid;
   grid-template-columns: subgrid;
-  margin-top: clamp(20px, 2.4vw, 36px);
+  /* Clear of the name's descender (the g), which grows with the display size: 20px at 390, 38 at 1440. */
+  margin-top: calc(var(--step-display) * 0.25 + 4px);
   padding-top: 4px;
   border-top: 3px solid var(--foreground);
-  background:
-    linear-gradient(var(--foreground), var(--foreground)) 0 2px / 100% 1px
-    no-repeat;
+}
+
+.band::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 2px;
+  border-top: 1px solid var(--foreground);
 }
 
 /* One cell a row on a phone, ruled between; two cells under the headline from 640px; three in a
@@ -313,7 +341,9 @@ body {
 /*
  * The hero hull (components/hero.tsx): a static SVG at the foot of the title block, which a capable
  * device later covers with the same hull in WebGL (sprint 10). The box is full-bleed and exactly as
- * tall as the hull's SVG. The hull's length is min((cw - margin) x 1.048, 1460px) at every width
+ * tall as the hull's SVG. The SVG carries its own air above the bow, so the gap over the box is
+ * small: it is what keeps the keel planks on the first screen at 1024 x 768 (check 5) now that the
+ * band sits clear of the name's descender. The hull's length is min((cw - margin) x 1.048, 1460px) at every width
  * (388px at 390, 1037 at 1024, 1459 at 1440), with the bow on the right margin: 4% of the model's
  * length runs off the stern, so no plank is ever cut deeper than a sliver, and the newest plank is
  * always on screen. Contract: "B1 checks" 6; the measures are in
@@ -324,7 +354,7 @@ body {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  margin: clamp(8px, 1.4vw, 20px) calc(var(--margin) * -1) 0;
+  margin: clamp(8px, 0.8vw, 16px) calc(var(--margin) * -1) 0;
   overflow: clip;
   pointer-events: none;
 }
@@ -432,7 +462,11 @@ body {
   }
 }
 
-@supports not (color: color-mix(in oklab, currentcolor 10%, transparent)) {
+/* The test names the form the deck's tone takes, a calc() inside the mix's percentage: a browser that
+   parses color-mix() but not that would otherwise paint the deck black. */
+@supports not (
+    color: color-mix(in oklab, currentcolor calc(10% + 10%), transparent)
+  ) {
   .hero {
     display: none;
   }

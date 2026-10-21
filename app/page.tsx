@@ -71,7 +71,7 @@ export default function Home() {
             <div data-hero-band="" className="band">
               <p
                 data-hero-cell=""
-                className="cell font-display text-step-xl font-bold"
+                className="cell text-balance font-display text-step-xl font-bold"
               >
                 {profile.headline}
               </p>
@@ -145,14 +145,14 @@ export default function Home() {
 
           <Section id="education" title="Education">
             {/* Same shape as an Experience entry, so the two read as one family. */}
-            <ol className="flex flex-col gap-8">
+            <ol className="flex flex-col gap-6">
               {profile.education.map((entry) => (
                 <li key={`${entry.school}-${entry.period}`}>
                   <h3 className="text-balance text-step-lg font-medium">
                     {entry.school}
                   </h3>
                   <p className="text-step-sm text-muted">{entry.period}</p>
-                  <p className="mt-2 text-pretty text-step-base">
+                  <p className="mt-1 text-pretty text-step-base">
                     {entry.credential}
                   </p>
                 </li>
