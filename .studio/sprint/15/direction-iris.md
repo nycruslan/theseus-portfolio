@@ -119,14 +119,14 @@ from them. New, derived:
 
 - **Grid:** 12 columns from 1024 px, 6 from 640 px, 1 below that. Margins are
   `clamp(20px, 3.4vw, 48px)` and gutters `clamp(16px, 1.7vw, 24px)`. Everything else hangs from them.
-- **Section heads:** a printed form's **thick-and-thin rule** (3 px, a 1 px gap, then 1 px in ink),
+- **Section heads:** a printed form's **thick-and-thin rule** (3 px, a 2 px gap, then 1 px in ink, as the prototype draws it),
   full width, over every section head and over the hero's title band. It is the site's signature mark.
 - **Log rows** (Experience, ruslanshulga.com, Education): *when* (cols 1–2, muted, small) |
   *where* (cols 3–5, Besley 700) | *what* (cols 6–11: h3 and summary at most 40em). The columns are
   1 px `--rule-strong` rules, with a rule between entries. On phones the cells stack in the same order.
 - **No cards, no radii, no shadows** anywhere. Today's project card gives way to a log row; the plank
   idea moves into the hull itself.
-- **The hull:** full-bleed and **cropped at the stern** on every width, by a sliver. The bow sits on
+- **The hull:** full-bleed and **cropped at the stern** up to about 1441 px, by a sliver (above that the 1460 px cap shows the whole hull; owner decision 11 in the contract). The bow sits on
   the right margin, and the length is `min((100vw − margin) × 1.048, 1460px)` at every width: 388 px at
   390, 1037 at 1024, 1459 at 1440. That clips 25 of the hull's 624 units (4%) off the stern.
   - **Why so little (settled for the contract, Risks 1):** the newest plank must always be on screen,

@@ -62,7 +62,10 @@ On the prototype (Iris, Playwright Chromium; screenshots stay out of git, in the
 - **1024 × 768 (Atlas, from Lens's nit):** check 5 keeps the laptop size. On the prototype the keel
   lift sits below the fold there for sprints 26 and 35 (0.07 and 0.03 on screen), so B1 must raise the
   hull at that size; every other sprint is at least 0.82.
-- **Lens's other nits** went into the contract: hero C8 is rewritten, not unedited; N = 1 and N = 0 are
+- **Lens's second review (ship)** had four nits. The band's gap is now 2 px, as the prototype draws
+  it; check 1 counts the font families rather than URLs; and the wide-screen hull is decision 11. Iris's
+  memory line about her environment waits for the next build push, so this review stands.
+- **Lens's first-review nits** went into the contract: hero C8 is rewritten, not unedited; N = 1 and N = 0 are
   defined; sprints-entry C14.6 joins the owner's list of checks that would weaken. Iris's stale memory
   line was fixed, and the prototype's CSS was made biome-clean with pixel-identical screenshots.
 - **Scope (Quill):** the nav moves to B2, and the yaw and plank seating move to B5. In B1 they would
@@ -88,6 +91,8 @@ Merging accepts the contract's "Needs owner decision" (`contract.md`, last secti
 8. **The project cards become log rows** (`cards.spec` turns into row checks).
 9. **A higher markup cap** for the hero SVG, if compaction can't reach 8,192 B.
 10. **Quill's scope change:** the nav moves to B2, and the yaw and seating move to B5.
+11. **Above about 1441 px** the hull's 1460 px cap shows the whole hull, with its stern uncropped. Keep
+    it, or let the hull grow.
 
 Team copy for your approval: the nav labels, the legend ("Latest plank / Replaced / Original"), the
 bold emphasis and the footer pairing (direction §8).

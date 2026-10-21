@@ -26,6 +26,11 @@ sprint.
   `design/brief.md`, measured against the references in `design/calibration/`. Iris's direction
   comes first, in a PR of its own the owner approves (concept, key screens at 1440 and 390 px, a
   motion storyboard, budgets); then M sprints build it a section at a time, the hero first.
+  - Direction and contract: sprint 15, PR #47 (`.studio/sprint/15/direction-iris.md`, prototype in
+    `prototype/`, Quill's `contract.md`): "the log of the Theseus", a ruled ship's log with the hull of 22
+    planks, one replaced per sprint, copper the newest; Besley and Libre Franklin. Build B1-B5, the hero (B1, M)
+    first with Probe's checks 1-11 red first. Waits for the owner to accept it by merging #47 (11 decisions).
+    Follow-up: Iris's environment line in memory (Lens nit).
 
 - [x] Stack separators (S): a drawn middle dot between tools, so "LangChain Claude Agent SDK" parses as three tools and the row no longer reads as the Contact row without copper. Iris's recipe is item 2 in `.studio/sprint/6/review-iris.md` (CSS on the `li`, empty generated content, `bg-muted`, `overflow-hidden` on the `ul`); Forge verifies it in the browser before taking it. Facts and order unchanged. Sprint 11's pick (`.studio/sprint/11/pick-quill.md`). (Sprint 11, PR #36: a 3 px `before:` dot 13.5 px left of each tool, the leading one clipped by `overflow-hidden`; the existing suite covers it.)
   - Follow-ups (Lens nits): the dot vanishes in forced colors (add `forced-colors:before:bg-[CanvasText]`); `overflow-hidden` clips every side, so narrow it to the leading dots or comment why.

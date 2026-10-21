@@ -33,12 +33,12 @@ The oracle is C14's: `N` is the count of valid `retro.json` files, never a liter
 sprint `n` is `ORDER[(n-1) mod 22]`, the 22 values copied from dir §4 into the spec.
 
 1. **Faces.** `/` h1 computed `font-family` starts `Besley`, weight 800; body text on `/` and `/sprints`
-   starts `Libre Franklin`; `/sprints` still shows one family. No request URL contains `geist`. The page
-   fetches two woff2 files totalling at most 71,680 B and has two `rel=preload` links for them (prototype:
+   starts `Libre Franklin`; `/sprints` still shows one family. `document.fonts` holds no family but
+   those two (no Geist). The page fetches exactly two woff2 files, Besley's and Libre Franklin's, totalling at most 71,680 B and has two `rel=preload` links for them (prototype:
    36,592 + 29,292 B). Shown by: resource timing, computed style.
 2. **The name.** h1 text is `profile.name`; computed size 136 px +/-1 at 1440 and 64 px +/-1 at 390, from
    a new `--step-display` token; one line at 1440, two at 390 (height over line height).
-3. **The band.** Inside `main > header` after the h1, a full-width block with a 3 px rule, a 1 px gap,
+3. **The band.** Inside `main > header` after the h1, a full-width block with a 3 px rule, a 2 px gap (as the prototype's `.oxford` draws it),
    then a 1 px rule on top (prototype `.band`); three cells in order: `profile.headline`,
    `profile.location`, then `Build log` plus C14's unchanged span (`lineSpan(N)`). That line is one line
    at 320 and 390 and the link is at least 24 px tall, accent, underlined (C14.1 and C14.2 retargeted).
@@ -143,6 +143,9 @@ or `.claude/` (Probe edits `e2e/` in B1); the prototype imported into `app/` (it
    `reveal.spec`'s section list and the `invariants.spec` section check follow in B2 and B3.
 9. A higher markup cap for the hero SVG, if compaction cannot reach 8,192 B.
 10. Moving the nav to B2 and the yaw and seating to B5 (Quill's scope change from dir §6).
+11. Above about 1441 px the 1460 px cap stops the stern crop: at 1920 the whole hull shows, its stern
+    about 412 px from the left edge. Keep the cap (a whole hull on wide screens), or let the hull grow
+    to stay cropped. Check 6's crop clause holds at 390, 1024 and 1440 only. (Lens's nit, added by Atlas.)
 Needs decision (Iris), settled 2026-10-21 (dir §2, §4):
 - **Risks 1:** settled by the crop, not the order. The hull length is `min((100vw - margin) x 1.048,
   1460px)` at every width, which clips 25 of 624 units; ORDER puts the stern planks last. Check 6 now
