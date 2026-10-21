@@ -1,0 +1,31 @@
+{
+  "sprint": 19,
+  "pr": 53,
+  "goal": "The build log's goals read as copy: a trailing size tag no longer repeats the size line",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 12,
+  "agents": [
+    { "role": "qa-engineer", "model": "inherit", "tokens": 56258, "minutes": 2 },
+    { "role": "engineer", "model": "inherit", "tokens": 59314, "minutes": 1 }
+  ],
+  "lens": { "runs": 1, "tokens": 185270, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The new check landed under the wrong section heading in the build log's spec",
+      "evidence": "Lens's nit on e2e/sprints.spec.ts:718 (review on 5843231)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Worktree agents get node_modules (or a pnpm install step) when their worktree is created",
+      "moves": "Agent minutes spent on install before work (both agents again this sprint)"
+    }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "Move the C4b block above the C5 banner in e2e/sprints.spec.ts, as a rider" },
+    { "who": "Owner", "what": "Approve or comment on the redesign canvas https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5" }
+  ]
+}

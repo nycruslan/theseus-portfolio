@@ -101,3 +101,16 @@ still hold:
   - When the top item waits on the owner, take the next item that doesn't touch it rather than idle.
   - An S with a spec runs fastest as two parallel worktrees (spec and fix), integrated by cherry-pick
     and run together once before the review label.
+
+## Sprint 19: the build log's goals as copy (PR #53)
+
+- **Outcome:** a goal's trailing size tag ("(L)") no longer prints on `/sprints`, where the meta line
+  already gives the size; other parentheticals stay and a tag-only goal still throws. This amends sprint
+  12's presentation rule (`.crew/sprint/19/brief.md`). Probe (oracle, C4b, C12.7, red first) and Forge
+  (`lib/sprint-log.ts`, the layout comment rider) ran in parallel worktrees; integrated by cherry-pick
+  and run together green before the label. Lens ship on the first run with one placement nit, left as a
+  rider. The redesign still waits for the owner on sprint 17's canvas.
+- **Lesson:**
+  - A rule the reader and Probe's oracle both implement needs both changed in one sprint: brief them as
+    the same rule, word for word, and the two copies agree first time.
+  - A nit that only moves code in a spec is cheaper as a rider than as a second Lens run.
