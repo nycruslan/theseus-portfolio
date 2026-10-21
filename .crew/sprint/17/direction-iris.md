@@ -3,7 +3,8 @@
 **Canvas (the owner approves or comments there):** https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5
 Private until the owner shares it. 20 artboards in 8 rows, plus three notes at the top: the ask, the
 position, and the owner's four calls.
-The Studio shows the artboards from `design/`, as images listed in `design/frames.json`.
+Its artboards are public, though: the Studio shows them from `design/`, as images listed in
+`design/frames.json`. The canvas's link and comments stay private.
 
 ## The position
 

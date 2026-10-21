@@ -22,8 +22,8 @@ from the Design type, with the key screens at 1440 and 390 px, and read the owne
 (ArtifactComments) before you revise. Keep the canvas's link in the sprint folder, and its
 artboards as WebP images in the folder's `design/`, listed in order in `design/frames.json`
 (`{ "title", "frames": [{ "file", "title", "width", "height" }] }`); a revision replaces only the
-frames it changes. The canvas is private and can't be embedded, so that's how the Studio shows
-the design.
+frames it changes, and removes those of artboards it drops. The canvas is private and can't be
+embedded, so that's how the Studio shows the design.
 
 In a critique:
 - Start from the rubric's hard gates.
