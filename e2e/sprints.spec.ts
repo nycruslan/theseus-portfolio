@@ -62,7 +62,7 @@ type Scheme = (typeof SCHEMES)[number];
 
 type Expected = {
   sprint: number;
-  /** The goal as the page shows it: prefix removed, backticks dropped, first letter capitalised. */
+  /** The goal as the page shows it: prefix and trailing size tag removed, backticks dropped, first letter capitalised. */
   goal: string;
   size?: "S" | "M" | "L";
   pr?: number;
@@ -81,11 +81,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Contract, "Order and presentation": prefix off, backticks off, first letter capitalised. */
+/**
+ * Contract, "Order and presentation": prefix off, backticks off, a trailing size tag off (a final
+ * parenthetical holding only S, M or L, with the whitespace before it; any other parenthetical
+ * stays), first letter capitalised.
+ */
 function presentGoal(goal: string) {
-  const bare = noTicks(
-    goal.replace(/^\s*roadmap item(?:\s+\d+)?\s*:\s*/i, ""),
-  ).trim();
+  const bare = noTicks(goal.replace(/^\s*roadmap item(?:\s+\d+)?\s*:\s*/i, ""))
+    .trim()
+    .replace(/\s*\(\s*[SML]\s*\)$/i, "")
+    .trim();
   return bare.charAt(0).toUpperCase() + bare.slice(1);
 }
 
@@ -553,6 +558,12 @@ test.describe("C4. One entry's words", () => {
         11,
         "Stack separators: a drawn middle dot between the tools in the Stack section (Iris's sprint 6 item 2)",
       ],
+      // A parenthetical that says more than the size stays; a bare size tag goes.
+      [12, "Watch the team build: the build log's contract (L, contract step)"],
+      [
+        15,
+        "Redesign, direction step: the concept, key screens, motion storyboard and budgets, with the contract for the build",
+      ],
     ];
     for (const [n, goal] of anchors) {
       expect(entryOf(n)?.goal, `the oracle's goal for sprint ${n}`).toBe(goal);
@@ -703,6 +714,30 @@ test.describe("C4. One entry's words", () => {
 
 // ---------------------------------------------------------------------------------------------
 // C5. What went wrong, all of it
+
+test.describe("C4b. The goal carries no size tag", () => {
+  test("C4.5 no goal on the page ends in a bare size tag, and sprint 15 still shows its words", async ({
+    page,
+  }) => {
+    await open(page, 1280);
+    const dom = await readEntries(page);
+    expect(dom.length, "entries").toBe(VALID.length);
+    for (const found of dom) {
+      expect(
+        squash(found.goal),
+        `the goal of sprint ${found.number} does not end in (S), (M) or (L)`,
+      ).not.toMatch(/\(\s*[SML]\s*\)$/i);
+    }
+    const fifteen = dom.find((found) => found.number === 15);
+    expect(squash(fifteen?.goal ?? ""), "sprint 15's goal").toBe(
+      "Redesign, direction step: the concept, key screens, motion storyboard and budgets, with the contract for the build",
+    );
+    // The meta line already says the size in words.
+    expect(squash(fifteen?.meta ?? ""), "sprint 15's meta line").toContain(
+      "Large",
+    );
+  });
+});
 
 test.describe("C5. What went wrong, all of it", () => {
   test("C5.1 an h4 and a list exactly when there are items; up to three, in the file's order", async ({
@@ -2135,6 +2170,45 @@ test.describe("C12. The reader on bad data", () => {
       "a goal that is only the prefix is blank, so the reader throws",
     ).not.toBeNull();
     expect(message, "and names the file").toContain(retroPath(dir, "3"));
+  });
+
+  test("C12.7 a trailing size tag leaves the goal; any other parenthetical stays; a goal of only a tag throws", async () => {
+    const read = await loadReader();
+    const goals: [string, string][] = [
+      ["Goal (M)", "Goal"],
+      ["Goal (S)", "Goal"],
+      ["Goal (L)", "Goal"],
+      ["goal (l)", "Goal"],
+      ["Goal ( m )", "Goal"],
+      ["Goal   (S)  ", "Goal"],
+      ["Goal\t(M)", "Goal"],
+      ["Roadmap item 3: the thing (M)", "The thing"],
+      ["Goal (M, x)", "Goal (M, x)"],
+      ["Goal (L, contract step)", "Goal (L, contract step)"],
+      ["Goal (MS)", "Goal (MS)"],
+      ["Goal (XL)", "Goal (XL)"],
+      ["Goal (M) and more", "Goal (M) and more"],
+      ["Goal (a thing (M))", "Goal (a thing (M))"],
+      ["Goal (5 colors) (L)", "Goal (5 colors)"],
+    ];
+    const files = Object.fromEntries(
+      goals.map(([goal], i) => [String(i + 1), retro({ sprint: i + 1, goal })]),
+    );
+    const entries = read(folders(files)).sort((a, b) => a.sprint - b.sprint);
+    expect(
+      entries.map((e) => e.goal),
+      "goals as presented",
+    ).toEqual(goals.map(([, wanted]) => wanted));
+
+    for (const only of ["(L)", " (m) ", "Roadmap item 2: (S)"]) {
+      const dir = folders({ "3": retro({ sprint: 3, goal: only }) });
+      const message = thrown(() => read(dir));
+      expect(
+        message,
+        `a goal of only ${JSON.stringify(only)} is blank, so the reader throws`,
+      ).not.toBeNull();
+      expect(message, "and names the file").toContain(retroPath(dir, "3"));
+    }
   });
 
   test("C12.6 the default folder is .crew/sprint, and reads the same as the oracle", async () => {
