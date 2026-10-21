@@ -212,3 +212,17 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
   - A fix for a pattern (the `mx-1` dot) belongs in the brief for every new instance of the pattern, not only
     the one the finding named.
   - Capping the mutants at 10 kept the specs at 11 minutes (sprint 13: 44) and still caught every fault.
+
+## Sprint 15: the redesign's direction (PR #47)
+
+- **Outcome:** the L lane's direction step for the owner's redesign, no product code. Iris chose "the log of
+  the Theseus" (a ruled ship's log; the hull's 22 planks replaced one per sprint, copper the newest) over the
+  network concept, with a static prototype on the real facts, Besley and Libre Franklin (65.9 KB), a motion
+  storyboard and budgets. Quill's contract splits the build into B1-B5 and gives the hero 11 checks. Quill's
+  read caught the newest plank leaving a phone's view; Iris fixed it with one hull formula and a 75% bronze
+  cap. CI failed once on biome lint of the prototype. Lens ship twice, with nits folded into the notes. Waits
+  for the owner (`needs-owner`).
+- **Lesson:**
+  - biome lints the sprint folder too: run `pnpm exec biome ci` on any prototype before it is pushed.
+  - A contract writer reading a design for checks finds what the designer missed (the cropped plank); keep
+    that round before the review label, and have the designer measure every N the rule will see.

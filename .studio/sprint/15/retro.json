@@ -1,0 +1,69 @@
+{
+  "sprint": 15,
+  "pr": 47,
+  "goal": "Redesign, direction step: the concept, key screens, motion storyboard and budgets, with the contract for the build (L)",
+  "goalFrom": "roadmap",
+  "size": "L",
+  "outcome": "needs-owner: Lens ship, direction and contract wait for the owner to accept them by merging",
+  "fixRounds": 1,
+  "minutes": 42,
+  "agents": [
+    {
+      "role": "design-director",
+      "model": "inherit",
+      "tokens": 306172,
+      "minutes": 25
+    },
+    {
+      "role": "product-owner",
+      "model": "inherit",
+      "tokens": 156329,
+      "minutes": 6
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 1451421,
+    "important": 0,
+    "actedOn": 8,
+    "nits": 9
+  },
+  "wentWrong": [
+    {
+      "what": "The prototype's HTML failed CI's pnpm verify: biome lints every file in the repo, the sprint folder included, and treats warnings as failures",
+      "evidence": "check run 118969691227 on 73474f5: nine noImportantStyles and noDescendingSpecificity warnings in .studio/sprint/15/prototype/index.html"
+    },
+    {
+      "what": "The first phone hull (135vw) cropped the stern so deeply that the newest plank left the screen from sprint 17 on; at 1024 x 768 the keel lift still falls below the fold for sprints 26 and 35",
+      "evidence": "Quill's finding, Iris's measurements in direction-iris.md section 4 and contract.md check 5"
+    },
+    {
+      "what": "impeccable's concept roll wants a PRODUCT.md and the network, which Iris's subagent lacked; she wrote a stand-in in the scratchpad and recorded the workaround in her memory, which Lens flagged",
+      "evidence": "Lens's nit on .claude/agent-memory/design-director/MEMORY.md:37 (review on 850d519)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "biome.json ignores .studio/sprint/*/prototype/, or the sprint skill tells designers to run pnpm exec biome ci on any prototype before handing it over",
+      "moves": "CI failures from design artifacts (1 this sprint)"
+    },
+    {
+      "change": "Give the design-director a PRODUCT.md (or the impeccable skill a no-network mode) so the concept roll runs without workarounds",
+      "moves": "Environment workarounds written into role memory (1 this sprint)"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "Accept the direction and contract by merging PR #47, deciding its 11 'Needs owner decision' items"
+    },
+    {
+      "who": "Iris",
+      "what": "Move the impeccable/PRODUCT.md memory line (MEMORY.md:37) out of memory with the next build push (Lens's nit)"
+    },
+    {
+      "who": "Probe",
+      "what": "B1: write the hero checks 1-11 red first, starting with the spike and check 5 at 1024 x 768"
+    }
+  ]
+}
