@@ -18,7 +18,10 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 - [x] Share card for `/sprints`, and the placeholder guard re-armed. (Sprint 18, PR #52: `app/sprints/opengraph-image.tsx`, `e2e/sprints.spec.ts` C2.3, `e2e/content.spec.ts`.)
   - The layout's comment was fixed as a rider in sprint 19.
 - [x] The build log's goals as copy: a trailing size tag such as "(L)" no longer prints. (Sprint 19, PR #53: `lib/sprint-log.ts`, `e2e/sprints.spec.ts` C4b and C12.7.)
-  - Follow-up (Probe, as a rider): move the C4b block above the C5 banner in `e2e/sprints.spec.ts` (Lens's nit).
+  - The C4b block moved above the C5 banner as a rider in sprint 20.
+- [x] The drawn dots show in forced colors, and the Stack list clips only sideways; the build-log
+  specs' raw U+00A0 as escapes. (Sprint 20, PR #54: `app/page.tsx`, `components/sprint-entry.tsx`,
+  `e2e/profile-sections.spec.ts` C8.)
 
 ## Next (highest first)
 
@@ -38,10 +41,9 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
   teardown and a reduced-motion change mid-visit (`components/hero-gl.ts`); retina ticks at the bow
   tip (`.crew/sprint/10/review-iris.md` item 3); the font-swap CLS on `/`; C14's draw-count check
   under load (`e2e/hero-3d.spec.ts`).
-- [ ] Small follow-ups (S, as riders): the stack dot vanishes in forced colors
-  (`forced-colors:before:bg-[CanvasText]`) and `overflow-hidden` clips every side (Lens, sprint 11);
-  the build-log spec's raw U+00A0 as an escape (Probe); grouping the build log past about 30 entries
-  (Quill).
+- [ ] Small follow-ups (S, as riders): grouping the build log past about 30 entries (Quill); C8 also
+  asserting the Stack still clips sideways, and a forced-colors check for the build log's bullets
+  (Probe, Lens's nits on sprint 20).
 - [ ] Skip link decision (S): nothing focusable comes before the first project card, so the link
   can't save a Tab however `main` is cut. B2's navigation may answer it; otherwise keep it as
   convention and close this, or retarget it. Removing it would weaken `keyboard.spec.ts`, which is
