@@ -138,3 +138,15 @@ still hold:
   still waits for the owner's comments on sprint 17's canvas.
 - **Lesson:** a check added after the fix can't be red on main, so its brief names the mutant that must
   turn it red; that stands in for "red first".
+
+## The owner's review: busy sprints while the redesign waited (2026-10-21)
+
+- **Outcome:** with the redesign held for the owner's approval on sprint 17's canvas, sprints 18 to 21
+  ran within an hour on small fixes and on follow-ups of the sprint before, a merge starting each
+  next run. They used up the day's six sprints, so the owner's approval at 13:42 UTC waited for the
+  cap to reopen, and nothing a visitor would notice had shipped. The sprint skill now keeps
+  follow-ups and riders inside a sprint that touches the same code, and stands down when nothing
+  else stands on its own. Sprint 17's canvas frames are in `.crew/sprint/17/design/`, so the Studio
+  shows the design.
+- **Lesson:** time spent waiting for the owner is no reason to run a sprint; the day's sprints are
+  worth more when the owner answers.
