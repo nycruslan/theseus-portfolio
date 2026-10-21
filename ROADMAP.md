@@ -24,6 +24,9 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
   approves (the L lane); then Quill's contract and M sprints, the hero first.
   - Superseded: sprint 15's direction ("the log of the Theseus", #47) and sprint 16's B1 build
     (#49, closed), which came before the owner's interview.
+  - Direction on the canvas (sprint 17, PR #51): https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5,
+    with four calls for the owner. Next: read its comments; Iris revises; Quill's contract once the
+    owner approves there.
 
 - [ ] A share card for `/sprints` (S): the page sets its own `openGraph` and `twitter` metadata, which
   drops the inherited `opengraph-image`, so a shared link shows no image while it declares

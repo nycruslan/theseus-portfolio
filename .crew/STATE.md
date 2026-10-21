@@ -76,3 +76,16 @@ still hold:
 - **Lesson:** a direction the owner can only reach by opening a file in the repo isn't reviewed.
   Put it on a Design canvas, ask for their comments there, and build only once they approve (the
   sprint skill's L lane).
+
+## Sprint 17: the redesign's direction, on a Design canvas (PR #51)
+
+- **Outcome:** the L lane's direction step, done the owner's way: Iris published the direction on a
+  Design canvas (https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5), 20 artboards at 1440 and 390 with
+  the loft storyboard, rest state, motion stills and read view, real facts and real three.js renders of
+  the hull. It keeps the brief's "draw the hull, then rebuild it at sea": a registered loft, a white card
+  model with no sea, and one material per state. Four calls wait for the owner there. Lens ship on the
+  first run with four nits. No build starts until the owner approves on the canvas.
+- **Lesson:**
+  - A direction's memory lines stay "pending the owner" until the canvas is approved; Lens catches them
+    stated as settled.
+  - Render sources left for another role need a recipe that runs from a fresh checkout.
