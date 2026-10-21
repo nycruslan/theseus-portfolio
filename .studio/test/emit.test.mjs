@@ -454,25 +454,32 @@ test("masks secrets, stamps time and repository, and leaves no temp files", asyn
   assert.deepEqual(readdirSync(tmp), []);
 });
 
-test("masks an OAuth token's value but not an author's name", async () => {
+test("masks OAuth and authorization values, but not an author's name", async () => {
   await emit(
     [
       {
         hook_event_name: "PostToolUse",
         tool_name: "Bash",
-        tool_input: { command: "echo oauth-value-0123 by Theseus Team" },
+        tool_input: {
+          command:
+            "echo oauth-value-0123 header-value-4567 by Theseus Team; HTTP_AUTHORIZATION=inline-value-89 x",
+        },
         tool_use_id: "toolu_06",
       },
     ],
     {
       env: {
         CLAUDE_CODE_OAUTH_TOKEN: "oauth-value-0123",
+        HTTP_AUTHORIZATION: "header-value-4567",
         GIT_AUTHOR_NAME: "Theseus Team",
       },
     },
   );
   const [{ body }] = studio.received;
-  assert.equal(body.tool_input.command, "echo [redacted] by Theseus Team");
+  assert.equal(
+    body.tool_input.command,
+    "echo [redacted] [redacted] by Theseus Team; HTTP_AUTHORIZATION=[redacted] x",
+  );
 });
 
 // Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY is set, and cloud sessions reach the

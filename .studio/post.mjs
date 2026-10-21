@@ -16,10 +16,10 @@ const MAX_STRING_LENGTH = 4000;
 
 // The Studio is public, so mask anything that looks like a credential before it leaves: the values
 // of secret-named environment variables, values assigned to secret-named variables (.env files,
-// shell commands), then common key and token formats. AUTH leaves out AUTHOR, or a GIT_AUTHOR_NAME
-// would blank that name in every line the Studio shows.
+// shell commands), then common key and token formats. AUTH leaves out a whole AUTHOR part (but not
+// AUTHORIZATION), or a GIT_AUTHOR_NAME would blank that name in every line the Studio shows.
 const SECRET_NAMES =
-  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR)|DATABASE_URL|POSTGRES";
+  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR(?:_|$))|DATABASE_URL|POSTGRES";
 const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const SECRET_PATTERNS = [
   new RegExp(
