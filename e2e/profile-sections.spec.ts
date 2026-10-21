@@ -237,3 +237,63 @@ test("C6. They reflow: no overflow at 320 and 390 px, and the stack wraps at 390
     ).toBeLessThan(items);
   }
 });
+
+test("C8. Forced colors: the Stack's drawn dots still show, and the list clips only sideways", async ({
+  page,
+}) => {
+  // Windows High Contrast drops a background-only dot to the page colour, so it vanishes; and a
+  // list that clips on every side (overflow-hidden) would also cut off anything that grows past it.
+  await page.emulateMedia({ forcedColors: "active" });
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await expectSection(page, STACK, "Stack");
+    const seen = await page.evaluate((sel) => {
+      const list = document.querySelector(`${sel} ul`);
+      const items = [...document.querySelectorAll<HTMLElement>(`${sel} ul li`)];
+      // The dot left of a row's first item is clipped away on purpose, so only the others count:
+      // an item is first in its row when it sits lower than the one before it.
+      const followers = items.filter(
+        (li, at) =>
+          at > 0 &&
+          Math.abs(
+            li.getBoundingClientRect().top -
+              (items[at - 1]?.getBoundingClientRect().top ?? 0),
+          ) <= 2,
+      );
+      return {
+        overflowY: list ? getComputedStyle(list).overflowY : null,
+        page: getComputedStyle(document.body).backgroundColor,
+        dots: followers.map((li) => ({
+          text: (li.textContent ?? "").trim(),
+          background: getComputedStyle(li, "::before").backgroundColor,
+        })),
+      };
+    }, STACK);
+    const where = `${viewport.width} px`;
+    expect(
+      seen.dots.length,
+      `Stack items after a row's first at ${where}`,
+    ).toBeGreaterThan(0);
+    expect(
+      seen.dots.filter(
+        (dot) =>
+          dot.background === "transparent" ||
+          dot.background === "rgba(0, 0, 0, 0)",
+      ),
+      `dots with no colour in forced colors at ${where}`,
+    ).toEqual([]);
+    // Forced colors resets a background-only colour to Canvas, which is opaque but the page's own
+    // colour, so "not transparent" alone would pass for an invisible dot: it must also differ.
+    expect(
+      seen.dots.filter((dot) => dot.background === seen.page),
+      `dots the colour of the page in forced colors at ${where}`,
+    ).toEqual([]);
+    expect(seen.overflowY, `the Stack list's overflow-y at ${where}`).toBe(
+      "visible",
+    );
+  }
+});
