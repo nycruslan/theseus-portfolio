@@ -71,6 +71,7 @@ test("knows the owner's paths", () => {
     ".mcp.json",
     ".gitattributes",
     "app/.gitattributes",
+    "PRODUCT.md",
     "design/rubric.md",
     "design/calibration/home-7.png",
     "skills-lock.json",
