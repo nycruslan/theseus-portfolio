@@ -71,7 +71,8 @@ rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When th
     should name the outcome and let file lists be a guide, not a fence.
   - The skip link skips nothing while `main` wraps the whole page: an a11y feature can pass every check
     and still not serve its stated reason. Name the visitor's outcome as a check (Contact reachable in N Tabs).
-  - Production is unreachable from cloud sessions (proxy 403); C9-style comparisons use an origin/main build.
+  - Production was unreachable from cloud sessions (proxy 403) until 2026-10-20, when the environment
+    began allowing theseus-portfolio.vercel.app: compare against production itself now.
 
 ## Sprint 5: section reveal on scroll (PR #22)
 

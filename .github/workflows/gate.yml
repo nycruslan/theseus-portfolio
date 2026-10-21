@@ -28,9 +28,9 @@ permissions:
 # One run per head at a time, the same key for both events, never cancelled in progress: a newer
 # event for that head waits, replacing any run still pending. Each run reads the PR live and posts
 # nothing if the head moved, so the newest result on a head is always current. A relay whose job
-# was skipped (a review by anyone but the owner, such as Lens's) has nothing to judge, so it runs
-# in a group of its own: in the head's group it would replace a pending run that an owner's
-# approval queued, then skip, and leave gate red.
+# was skipped (a review by anyone but the owner, such as Lens's, or the owner's comment-only reply)
+# has nothing to judge, so it runs in a group of its own: in the head's group it would replace a
+# pending run that an owner's approval queued, then skip, and leave gate red.
 concurrency:
   group: >-
     gate-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}${{
