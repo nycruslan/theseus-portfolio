@@ -1,0 +1,34 @@
+{
+  "sprint": 17,
+  "pr": 51,
+  "goal": "The redesign's direction, drawn on a Design canvas for the owner to approve",
+  "goalFrom": "roadmap",
+  "size": "L",
+  "outcome": "merged: the direction notes are on main, and the build waits for the owner's approval on the canvas",
+  "fixRounds": 0,
+  "minutes": 45,
+  "agents": [{ "role": "design-director", "model": "inherit", "tokens": 451002, "minutes": 37 }],
+  "lens": { "runs": 1, "tokens": 450028, "important": 0, "actedOn": 0, "nits": 4 },
+  "wentWrong": [
+    {
+      "what": "The recipe for re-rendering the canvas's model images can't run in another checkout: a hardcoded path, a wrong folder name and a missing step",
+      "evidence": "Lens's nit on .crew/sprint/17/render/shoot.mjs (review on f6d4bc5)"
+    },
+    {
+      "what": "Iris's memory states two of the owner's open calls (the Approved column, superseding sprint 15) as settled",
+      "evidence": "Lens's nit on .claude/agent-memory/design-director/MEMORY.md:33 and :35"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "The design-director's brief says memory lines about an unapproved direction are marked 'pending the owner'",
+      "moves": "Memory lines Lens flags as stating open decisions (2 this sprint)"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "Approve or comment on the canvas https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5, with its four calls" },
+    { "who": "Iris", "what": "Revise on the owner's canvas comments; mark MEMORY.md lines 33 and 35 pending until the owner answers; state the CLS budget as 0 including the font swap" },
+    { "who": "Pixel", "what": "Before reusing .crew/sprint/17/render/, fix shoot.mjs's path, URL and recipe (Lens's nits); spike the 30 fps phone budget before the 3D sprint" },
+    { "who": "Quill", "what": "Once the owner approves on the canvas: the contract, split into M sprints, the hero first" }
+  ]
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>render</title>
+<style>
+@font-face { font-family: "Sofia Sans"; src: url(../fonts/sofia.woff2) format("woff2"); font-weight: 1 1000; }
+@font-face { font-family: "Sofia Sans Extra Condensed"; src: url(../fonts/f1.woff2) format("woff2"); font-weight: 1 1000; }
+html, body { margin: 0; padding: 0; overflow: hidden; }
+#stage { position: relative; }
+#stage svg, #stage canvas, #labels { position: absolute; inset: 0; }
+#labels { pointer-events: none; z-index: 2; }
+.lab { position: absolute; font: 600 11px/1 "Sofia Sans"; transform: translate(-50%, -50%); font-feature-settings: "tnum"; white-space: nowrap; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage"><svg id="drawing" xmlns="http://www.w3.org/2000/svg"></svg><div id="labels"></div></div>
+<script type="module" src="./scene.mjs"></script>
+</body>
+</html>
