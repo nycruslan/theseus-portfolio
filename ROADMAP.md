@@ -16,7 +16,9 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 - [x] Stack separators. (Sprint 11, PR #36.)
 - [x] Watch the team build: `/sprints` (sprint 13, PR #39) and the home page's build-log line (sprint 14, PR #43), on sprint 12's contract. (`e2e/sprints.spec.ts`, `e2e/sprints-entry.spec.ts`.)
 - [x] Share card for `/sprints`, and the placeholder guard re-armed. (Sprint 18, PR #52: `app/sprints/opengraph-image.tsx`, `e2e/sprints.spec.ts` C2.3, `e2e/content.spec.ts`.)
-  - Follow-up (Forge, as a rider): `app/layout.tsx`'s comment still says every route inherits the root image; a page that sets its own `openGraph` doesn't (Lens's nit).
+  - The layout's comment was fixed as a rider in sprint 19.
+- [x] The build log's goals as copy: a trailing size tag such as "(L)" no longer prints. (Sprint 19, PR #53: `lib/sprint-log.ts`, `e2e/sprints.spec.ts` C4b and C12.7.)
+  - Follow-up (Probe, as a rider): move the C4b block above the C5 banner in `e2e/sprints.spec.ts` (Lens's nit).
 
 ## Next (highest first)
 
@@ -32,9 +34,6 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 
 - [ ] A not-found page in the site's style (S, after B1 sets the type): today Next's default 404
   ignores the tokens and fonts, has two titles and no way home. Fits with the redesign's B-sprints.
-- [ ] The build log's goals as copy (S): entries print internal shorthand, such as size tags that
-  repeat the size line ("(L)"), contract numbers and file paths. Strip a trailing size tag in
-  `lib/sprint-log.ts`, and write future `goal` fields for visitors (the sprint skill's Close).
 - [ ] Leftovers to check once B1 replaces the hull, and drop if it settles them: `mountHull`'s
   teardown and a reduced-motion change mid-visit (`components/hero-gl.ts`); retina ticks at the bow
   tip (`.crew/sprint/10/review-iris.md` item 3); the font-swap CLS on `/`; C14's draw-count check
