@@ -52,7 +52,7 @@ next-env.d.ts
 .crew/sprint/**/*.jpeg
 .crew/sprint/**/*.webp
 # except a canvas's frames, which the Studio shows (the sprint skill's L lane)
-!.crew/sprint/*/design/*
+!.crew/sprint/*/design/*.webp
 
 # parallel agents work in their own worktrees
 .claude/worktrees/

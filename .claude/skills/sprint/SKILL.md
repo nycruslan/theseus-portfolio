@@ -39,8 +39,9 @@ never make a sprint of their own: they ride along with the next sprint that touc
 With nothing else left, stand down, so the day's sprints are still there when the owner answers.
 Keep the sprint's artifacts in `.crew/sprint/<n>/`, and hand people paths rather than retellings.
 Screenshots never go in git, apart from a canvas's frames (the L lane): keep them in your
-scratchpad (or `.crew/screenshots/`, which git ignores) and say in the PR what each one shows. Look up what you need yourself, from the
-version-matched docs in `node_modules/next/dist/docs/` and context7.
+scratchpad (or `.crew/screenshots/`, which git ignores) and say in the PR what each one shows.
+Look up what you need yourself, from the version-matched docs in `node_modules/next/dist/docs/`
+and context7.
 
 **Size it first**, and run only the lane it needs, the owner's goal as any other. When you're
 unsure, take the smaller lane.
@@ -57,8 +58,9 @@ unsure, take the smaller lane.
   and you send the owner one push notification with its link. The owner answers in the canvas's
   comments, so read them first whenever you take up the item: Iris revises on comments, and the
   build starts only once the owner approves there. Keep the canvas link and the approving comment
-  in the sprint folder, beside the frames Iris keeps in its `design/` for the Studio. Quill's `contract.md` then splits the work into S and M pull requests, and
-  you run those lanes. When two approaches compete and the call matters, run the `decide` skill.
+  in the sprint folder, beside the frames Iris keeps in its `design/` for the Studio. Quill's
+  `contract.md` then splits the work into S and M pull requests, and you run those lanes. When two
+  approaches compete and the call matters, run the `decide` skill.
 
 The builder is Forge, or Pixel only for 3D, shaders and motion.
 
