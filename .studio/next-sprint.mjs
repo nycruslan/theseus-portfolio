@@ -163,7 +163,7 @@ function gateWaits(repo, head) {
     .sort((a, b) => b.id - a.id);
   return (
     gate?.status === "completed" &&
-    (gate.conclusion !== "success" || gate.external_id === OWNER_APPROVED)
+    (gate.conclusion === "failure" || gate.external_id === OWNER_APPROVED)
   );
 }
 

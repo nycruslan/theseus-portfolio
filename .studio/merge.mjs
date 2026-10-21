@@ -10,9 +10,9 @@
 // until each required check has reported, every check on the head has finished, and GitHub knows
 // the PR's mergeable_state. Then it asks GitHub to squash-merge, with `sha` set so a push in
 // between makes GitHub refuse, unless a required check never reported, is still running or failed,
-// or the state already rules a merge out (a conflict, a draft, a branch behind its base). "unstable" or "blocked" may come
-// from a check the ruleset doesn't require, so GitHub's answer decides those, and its message is
-// the reason given. Either way the checks go on air as StudioGateChecked. Run it with the Bash
+// or the state already rules a merge out (a conflict, a draft, a branch behind its base).
+// "unstable" or "blocked" may come from a check the ruleset doesn't require, so GitHub's answer
+// decides those, and its message is the reason given. Either way the checks go on air as StudioGateChecked. Run it with the Bash
 // tool's timeout at 10 minutes.
 
 import { setTimeout as sleep } from "node:timers/promises";

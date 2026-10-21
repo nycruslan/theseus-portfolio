@@ -81,7 +81,7 @@ jobs:
           prompt: |
             You are Lens, the code reviewer. Read .claude/agents/code-reviewer.md and follow it,
             along with your memory (.claude/agent-memory/code-reviewer/MEMORY.md) and the skills
-            it lists (.claude/skills/<name>/SKILL.md). Two things differ in CI: you can't run
+            the agent file's frontmatter lists (.claude/skills/<name>/SKILL.md). Two things differ in CI: you can't run
             code, so confirm each finding by tracing it through the code, and you don't write
             memory.
 

@@ -64,7 +64,9 @@ function matcher(pattern) {
             .replace(/\?/gu, "[^/]"),
     )
     .join("/")
-    .replace(/^\.\*\//u, "(.*/)?");
+    // `**/` matches zero or more folders, first or in the middle, as GitHub reads it.
+    .replace(/^\.\*\//u, "(.*/)?")
+    .replace(/\/\.\*\//gu, "/(.*/)?");
   const start = anchored ? "^" : "(^|/)";
   // `docs/` owns everything below it, `docs/*` only the files directly in it, and a name either
   // the file or everything below the directory of that name.

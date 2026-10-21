@@ -31,6 +31,7 @@ test("reads CODEOWNERS: the last match wins, and a line without an owner gives a
       "**/logs @b",
       "*.lock @c # inline",
       "notes/* @d",
+      "/src/**/gen/ @e",
     ].join("\n"),
   );
   assert.ok(owned("docs/x.md") && owned("Docs/x.md"));
@@ -42,6 +43,8 @@ test("reads CODEOWNERS: the last match wins, and a line without an owner gives a
       !owned("notes/deep/a.md") &&
       !owned("app/notes/a.md"),
   );
+  assert.ok(owned("src/gen/a.ts") && owned("src/x/y/gen/a.ts"));
+  assert.ok(!owned("src/general/a.ts") && !owned("lib/src/gen/a.ts"));
   assert.ok(!owned("README.md"));
 });
 
@@ -63,6 +66,7 @@ test("knows the owner's paths", () => {
     "components/.claude/skills/x/SKILL.md",
     ".studio/sprint/16/.claude/skills/x/SKILL.md",
     ".claude/agent-memory/engineer/.claude/skills/x/SKILL.md",
+    ".claude/agent-memory/.claude/skills/x/SKILL.md",
     ".claude/agent-memory/engineer/CLAUDE.md",
     ".mcp.json",
     ".gitattributes",

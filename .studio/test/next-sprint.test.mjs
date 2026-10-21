@@ -329,9 +329,10 @@ test("a ready PR that gate leaves to the owner waits for them, held or approved,
   // Passed only on that approval: merge.mjs leaves it to the owner.
   const released = waits([gate("success", { external_id: "owner-approved" })]);
   assert.equal(released.open[0].waitsForOwner, true);
-  // Passed on its own, still running, or another app's: the team's to finish.
+  // Passed on its own, still running, cancelled, or another app's: the team's to finish.
   for (const runs of [
     [gate("success")],
+    [gate("cancelled")],
     [{ ...gate(null), status: "in_progress" }],
     [gate("failure", { app: { slug: "someone" } })],
   ]) {
@@ -452,8 +453,9 @@ test("fails closed when main's sprint folders can't be read for another reason t
   assert.match(stderr, /Bad Gateway.*Don't start a sprint blind/);
 });
 
-// Five sprints merged today, and older or foreign merges that don't count toward the cap.
-const today = [
+// Five sprints merged today, and older or foreign merges that don't count toward the cap. Built per
+// test, so their times are as old as the test says however long the suite has run.
+const today = () => [
   ...[1, 3, 5, 8, 20].map((hours, i) => merged(30 + i, hours)),
   merged(40, 25),
   merged(41, 2, { base: "team/v5" }),
@@ -464,14 +466,16 @@ const today = [
 ];
 
 test("under the daily cap, the next sprint starts", () => {
-  const { code, state } = preflight(github({ closed: today }));
+  const { code, state } = preflight(github({ closed: today() }));
   assert.equal(code, 0);
   assert.deepEqual(state.daily, { merged: 5, cap: 6 });
   assert.equal(state.action.do, "start");
 });
 
 test("at the daily cap, the run stands down until a day's merges age out", () => {
-  const { state } = preflight(github({ closed: [...today, merged(46, 0.5)] }));
+  const { state } = preflight(
+    github({ closed: [...today(), merged(46, 0.5)] }),
+  );
   assert.deepEqual(state.daily, { merged: 6, cap: 6 });
   assert.equal(state.action.do, "stand down");
   assert.match(
@@ -485,7 +489,7 @@ test("at the daily cap, the run stands down until a day's merges age out", () =>
 });
 
 test("THESEUS_DAILY_SPRINTS sets the cap", () => {
-  const { state } = preflight(github({ closed: today }), {
+  const { state } = preflight(github({ closed: today() }), {
     THESEUS_DAILY_SPRINTS: "5",
   });
   assert.deepEqual(state.daily, { merged: 5, cap: 5 });
@@ -497,7 +501,7 @@ test("starts nothing beside a waiting PR once the day's cap is reached", () => {
   const { state } = preflight(
     github({
       pulls: [pr(12, "sprint/2-dark-mode", ["needs-owner"])],
-      closed: today,
+      closed: today(),
     }),
     { THESEUS_DAILY_SPRINTS: "5" },
   );
@@ -526,7 +530,7 @@ test("leaves an open sprint PR that changed in the last 45 minutes to the run wo
 
 test("an open sprint PR is continued even at the daily cap: finishing work isn't starting it", () => {
   const { state } = preflight(
-    github({ closed: today, pulls: [pr(50, "sprint/50-finish")] }),
+    github({ closed: today(), pulls: [pr(50, "sprint/50-finish")] }),
     { THESEUS_DAILY_SPRINTS: "2" },
   );
   assert.deepEqual(state.daily, { merged: 5, cap: 2 });
@@ -536,7 +540,7 @@ test("an open sprint PR is continued even at the daily cap: finishing work isn't
 
 test("an invalid THESEUS_DAILY_SPRINTS means the default cap of 6", () => {
   for (const value of ["0", "-3", "2.5", "three", "", " "]) {
-    const { state } = preflight(github({ closed: today }), {
+    const { state } = preflight(github({ closed: today() }), {
       THESEUS_DAILY_SPRINTS: value,
     });
     assert.equal(state.daily.cap, 6, `for ${JSON.stringify(value)}`);
