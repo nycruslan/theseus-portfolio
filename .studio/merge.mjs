@@ -9,8 +9,8 @@
 // it can't read, or that require no check, are a NO-GO. It polls every 15 s, for up to 8 minutes,
 // until each required check has reported, every check on the head has finished, and GitHub knows
 // the PR's mergeable_state. Then it asks GitHub to squash-merge, with `sha` set so a push in
-// between makes GitHub refuse, unless a required check never reported or the state already rules
-// a merge out (a conflict, a draft, a branch behind its base). "unstable" or "blocked" may come
+// between makes GitHub refuse, unless a required check never reported, is still running or failed,
+// or the state already rules a merge out (a conflict, a draft, a branch behind its base). "unstable" or "blocked" may come
 // from a check the ruleset doesn't require, so GitHub's answer decides those, and its message is
 // the reason given. Either way the checks go on air as StudioGateChecked. Run it with the Bash
 // tool's timeout at 10 minutes.
@@ -112,11 +112,18 @@ function refusal() {
   if (missing.length) {
     return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${lensHint(missing)}`;
   }
-  const failed = failing();
+  const failed = requiredWhere(({ state }) => state === "nogo");
   if (failed.length) {
     return `${failed.join(", ")} didn't pass on ${head.slice(0, 7)}`;
   }
-  const owners = releasedByOwner();
+  // Out of time with a required check still running: the owner's bypass would merge without it.
+  const running = requiredWhere(({ state }) => state === "pending");
+  if (running.length) {
+    return `${running.join(", ")} still running on ${head.slice(0, 7)}: run node .studio/merge.mjs ${number} again`;
+  }
+  // A session acts as the owner, so it could have posted the approval gate.mjs released a check
+  // on: the owner merges such a PR.
+  const owners = requiredWhere(({ released }) => released);
   if (owners.length) {
     return `${owners.join(", ")} passed on the owner's approval, so the owner merges it`;
   }
@@ -144,45 +151,27 @@ function requiredChecks(base) {
     .flatMap(({ parameters }) => parameters.required_status_checks);
 }
 
+// Whether a check on the head is the run, or status, a required check names: its context, from
+// the app the rules name. A commit status doesn't say which app posted it, so it counts only for a
+// rule that names none; otherwise anyone who can post a status could stand in for an app's check.
+function answers({ context, integration_id: app }, check) {
+  return check.who === context && (!app || check.app === app);
+}
+
 // The names of the required checks with no run from the right app, or status, on the head yet.
-// A commit status doesn't say which app posted it, so it counts by its context alone.
 function unreported() {
   const missing = required.filter(
-    ({ context, integration_id: app }) =>
-      !checks.some(
-        (check) =>
-          check.who === context &&
-          (!app || check.app === undefined || check.app === app),
-      ),
+    (rule) => !checks.some((check) => answers(rule, check)),
   );
   return [...new Set(missing.map(({ context }) => context))];
 }
 
-// The required checks whose run from the right app, or status, didn't pass on the head.
-function failing() {
-  const failed = required.filter(({ context, integration_id: app }) =>
-    checks.some(
-      (check) =>
-        check.who === context &&
-        (!app || check.app === undefined || check.app === app) &&
-        check.state === "nogo",
-    ),
+// The names of the required checks whose run, or status, on the head is in the state `is` tests.
+function requiredWhere(is) {
+  const found = required.filter((rule) =>
+    checks.some((check) => answers(rule, check) && is(check)),
   );
-  return [...new Set(failed.map(({ context }) => context))];
-}
-
-// The required checks that passed only because the owner approved the head (gate.mjs). A session
-// acts as the owner, so it could have posted that approval itself: the owner merges such a PR.
-// Only a check run carries the mark, so unlike unreported() and failing() a commit status (no app)
-// never counts here.
-function releasedByOwner() {
-  const released = required.filter(({ context, integration_id: app }) =>
-    checks.some(
-      (check) =>
-        check.who === context && (!app || check.app === app) && check.released,
-    ),
-  );
-  return [...new Set(released.map(({ context }) => context))];
+  return [...new Set(found.map(({ context }) => context))];
 }
 
 // The latest run of each check from each app on the commit (an older one may be a superseded,

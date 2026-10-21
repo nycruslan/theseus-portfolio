@@ -47,7 +47,9 @@ function openPr(table, { args = ARGS, env = {} } = {}) {
       GH_LOG: log.file,
       GH_STATE: tempDir(),
       THESEUS_OPEN_PR_POLL_MS: "10",
-      THESEUS_OPEN_PR_WAIT_MS: "300",
+      // Each fake gh call is a Node process, slow on a busy machine, and a passing run returns as
+      // soon as GitHub answers: only the tests of running out of time set a short budget.
+      THESEUS_OPEN_PR_WAIT_MS: "10000",
       ...env,
     },
   });
@@ -91,7 +93,9 @@ test("keeps a PR that's already open, with the new title and body, and opens not
 });
 
 test("opens the PR itself, under the owner's login, when the app's PR doesn't come", () => {
-  const { code, stdout, sent } = openPr(github());
+  const { code, stdout, sent } = openPr(github(), {
+    env: { THESEUS_OPEN_PR_WAIT_MS: "300" },
+  });
   assert.equal(code, 0);
   assert.match(
     stdout,
@@ -135,7 +139,9 @@ test("fails with GitHub's word when it can't open one at all", () => {
     $error: 422,
     message: "No commits between main and sprint/3-dots",
   };
-  const { code, stderr } = openPr(table);
+  const { code, stderr } = openPr(table, {
+    env: { THESEUS_OPEN_PR_WAIT_MS: "300" },
+  });
   assert.equal(code, 1);
   assert.match(stderr, /Couldn't open a PR from sprint\/3-dots: .*No commits/);
 });

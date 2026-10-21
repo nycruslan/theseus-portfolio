@@ -84,7 +84,9 @@ function merge(table, { env = {}, args = ["12"] } = {}) {
       GH_LOG: log.file,
       GH_STATE: tempDir(),
       THESEUS_MERGE_POLL_MS: "10",
-      THESEUS_MERGE_WAIT_MS: "2000",
+      // Each fake gh call is a Node process, slow on a busy machine, and a passing run returns as
+      // soon as the checks settle: only the tests of running out of time set a short budget.
+      THESEUS_MERGE_WAIT_MS: "10000",
       ...env,
     },
   });
@@ -176,6 +178,19 @@ test("refuses without asking GitHub when a required check failed: the owner's by
   }
 });
 
+test("refuses without asking GitHub when time runs out with a required check still running", () => {
+  const { code, stderr, merges } = merge(
+    github({ checks: [done("check"), done("gate"), RUNNING] }),
+    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  );
+  assert.equal(code, 1);
+  assert.equal(merges.length, 0);
+  assert.match(
+    stderr,
+    /NO-GO for PR #12: lens still running on 4ead4ea: run node \.studio\/merge\.mjs 12 again\./,
+  );
+});
+
 test("leaves a PR that gate passed on the owner's approval to the owner", () => {
   // A session acts as the owner, so it could have posted that approval itself.
   const released = { ...done("gate"), external_id: "owner-approved" };
@@ -207,6 +222,28 @@ test("counts a required check only from the app the rules name", () => {
   assert.match(stderr, /lens never reported on 4ead4ea/);
   const both = merge(github({ checks: [...GREEN, impostor] }));
   assert.equal(both.code, 0);
+  // Anyone who can post a commit status could name it lens: it stands in for no app's check.
+  const status = merge(
+    github({
+      checks: [done("check"), done("gate")],
+      statuses: [{ context: "lens", state: "success" }],
+    }),
+    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  );
+  assert.equal(status.code, 1);
+  assert.equal(status.merges.length, 0);
+  assert.match(status.stderr, /lens never reported on 4ead4ea/);
+  // A rule that names no app takes a status.
+  const open = rules("check", "preview");
+  open[1].parameters.required_status_checks[1] = { context: "preview" };
+  const preview = merge(
+    github({
+      required: open,
+      checks: [done("check")],
+      statuses: [{ context: "preview", state: "success" }],
+    }),
+  );
+  assert.equal(preview.code, 0);
 });
 
 test("waits for the checks the base branch's rules require, not a fixed list", () => {
@@ -278,6 +315,7 @@ test("doesn't ask when GitHub says no or can't yet tell: a conflict, a draft, a 
   for (const state of ["dirty", "draft", "behind", "unknown"]) {
     const { code, merges, stderr } = merge(
       github({ pulls: pr({ mergeable_state: state }) }),
+      { env: { THESEUS_MERGE_WAIT_MS: "300" } },
     );
     assert.equal(code, 1, state);
     assert.equal(merges.length, 0, state);

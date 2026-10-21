@@ -11,7 +11,7 @@ const pr = (draft, state = "open") => ({
   html_url: `https://github.com/${REPO}/pull/7`,
 });
 
-function ready(table, args = ["7"]) {
+function ready(table, { args = ["7"], wait = "10000" } = {}) {
   const log = ghLog();
   const result = runHook("ready-pr.mjs", "", {
     cwd: repo,
@@ -25,7 +25,9 @@ function ready(table, args = ["7"]) {
       GH_LOG: log.file,
       GH_STATE: tempDir(),
       THESEUS_READY_PR_POLL_MS: "10",
-      THESEUS_READY_PR_WAIT_MS: "300",
+      // Each fake gh call is a Node process, slow on a busy machine, and a passing run returns as
+      // soon as GitHub answers: only the tests of running out of time set a short budget.
+      THESEUS_READY_PR_WAIT_MS: wait,
     },
   });
   const dispatches = log
@@ -55,7 +57,7 @@ test("leaves a PR that's already ready alone", () => {
 });
 
 test("says so when the PR stays a draft, or GitHub won't start the workflow", () => {
-  const stuck = ready({ [`${R}/pulls/7`]: pr(true) });
+  const stuck = ready({ [`${R}/pulls/7`]: pr(true) }, { wait: "300" });
   assert.equal(stuck.code, 1);
   assert.match(
     stuck.stderr,
@@ -86,7 +88,7 @@ test("refuses a PR that isn't open", () => {
 
 test("says how to call it", () => {
   for (const args of [[], ["seven"], ["7", "8"]]) {
-    const { code, stderr } = ready({}, args);
+    const { code, stderr } = ready({}, { args });
     assert.equal(code, 2, args.join(" "));
     assert.match(stderr, /^Usage: node \.studio\/ready-pr\.mjs <number>/);
   }
