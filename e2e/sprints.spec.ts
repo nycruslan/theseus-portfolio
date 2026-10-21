@@ -1590,6 +1590,43 @@ test.describe("C9. Accessibility", () => {
     );
     expect(small, "links smaller than 24 x 24 px").toEqual([]);
   });
+
+  test("C9.5 forced colors: each What-went-wrong bullet's dot still shows, at 390 and 1440", async ({
+    page,
+  }) => {
+    // Windows High Contrast resets a background-only dot to Canvas, the page's own colour, so it
+    // vanishes: the dot must differ from the page, not only be opaque.
+    await page.emulateMedia({ forcedColors: "active" });
+    for (const width of [390, 1440]) {
+      await open(page, width);
+      const seen = await page.evaluate(() => ({
+        page: getComputedStyle(document.body).backgroundColor,
+        dots: [
+          ...document.querySelectorAll("main section ol > li ul > li"),
+        ].map((li) => ({
+          text: (li.textContent ?? "").trim().slice(0, 24),
+          background: getComputedStyle(li, "::before").backgroundColor,
+        })),
+      }));
+      const where = `${width} px`;
+      expect(
+        seen.dots.length,
+        `What-went-wrong bullets at ${where}`,
+      ).toBeGreaterThan(0);
+      expect(
+        seen.dots.filter(
+          (dot) =>
+            dot.background === "transparent" ||
+            dot.background === "rgba(0, 0, 0, 0)",
+        ),
+        `bullets with no dot colour in forced colors at ${where}`,
+      ).toEqual([]);
+      expect(
+        seen.dots.filter((dot) => dot.background === seen.page),
+        `bullets whose dot is the colour of the page in forced colors at ${where}`,
+      ).toEqual([]);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
