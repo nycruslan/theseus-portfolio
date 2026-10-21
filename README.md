@@ -13,8 +13,18 @@ a cloud routine. Every step streams live to the Studio.
 
 ## How it works
 
+Three parts, each in its own place:
+- **The portfolio**, the product: [`app/`](app), [`components/`](components), [`lib/`](lib),
+  [`content/`](content), [`e2e/`](e2e) and [`design/`](design).
+- **The crew**, the agent team: its roles and skills in [`.claude/`](.claude), its scripts, notes
+  and sprint records in [`.crew/`](.crew), and its checks in [`.github/`](.github).
+- **The Studio**, the live view of the crew:
+  [nycruslan/theseus-studio](https://github.com/nycruslan/theseus-studio), a separate app.
+
 | Piece | Where |
 |---|---|
+| Who the site is for and what it must prove | [`PRODUCT.md`](PRODUCT.md) |
+| The owner's direction, and the research behind it | [`design/brief.md`](design/brief.md), [`design/research/`](design/research) |
 | The team's roles | [`.claude/agents/`](.claude/agents) |
 | How the team works | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |

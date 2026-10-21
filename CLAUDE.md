@@ -2,9 +2,17 @@
 
 # Team
 
-An AI agent team rebuilds this portfolio, sprint by sprint, while visitors watch. A sprint starts
-with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships one pull
-request, sized S, M or L, and only the roles that lane needs take part (see the sprint skill).
+An AI agent team, the crew, rebuilds this portfolio, sprint by sprint, while visitors watch. A
+sprint starts with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships
+one pull request, sized S, M or L, and only the roles that lane needs take part (see the sprint
+skill).
+
+Three parts, each in its own place:
+- **The portfolio**, the product: `app/`, `components/`, `lib/`, `content/`, `e2e/`, `design/`.
+- **The crew**, the agent team: its roles and skills in `.claude/`, its scripts, notes and sprint
+  records in `.crew/`, and its checks in `.github/`.
+- **The Studio**, the live view of the crew, a separate app in nycruslan/theseus-studio. The crew's
+  hooks stream to it; the crew doesn't work on it.
 
 - **Roles** (`.claude/agents/`): Quill owns the roadmap and, on large work, what "done" means; Iris
   taste; Forge the code, and Pixel 3D and motion; Lens code review; Probe whether it works.
@@ -17,8 +25,9 @@ request, sized S, M or L, and only the roles that lane needs take part (see the 
   - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
     It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
   - `.crew/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
-  - `design/brief.md`: the owner's direction for the site; `design/rubric.md`: the design bar,
-    calibrated by the owner's examples in `design/calibration/`.
+  - `PRODUCT.md`: who the site is for and what it must prove, confirmed by the owner;
+    `design/brief.md`: the owner's direction; `design/rubric.md`: the design bar, calibrated by the
+    owner's examples in `design/calibration/`.
 
   Production is https://theseus-portfolio.vercel.app.
 - **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`: what it learned about
@@ -58,7 +67,7 @@ The team's own setup is the owner's too:
 - `.claude/`, apart from agent memory;
 - the `.crew/` scripts (including `install.sh` and `merge.mjs`) and their tests;
 - `.github/` and `.githooks/`;
-- `design/brief.md`, `design/rubric.md` and `design/calibration/`;
+- `PRODUCT.md`, `design/brief.md`, `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;
 - the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,
   `renovate.json`, `playwright.config.*`, `.gitignore` and `.npmrc`, and the `scripts` in
