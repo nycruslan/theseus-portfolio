@@ -1,0 +1,31 @@
+{
+  "sprint": 18,
+  "pr": 52,
+  "goal": "A share card for the build log, so a shared link shows the site's image",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 20,
+  "agents": [
+    { "role": "qa-engineer", "model": "inherit", "tokens": 42976, "minutes": 2 },
+    { "role": "engineer", "model": "inherit", "tokens": 58241, "minutes": 3 }
+  ],
+  "lens": { "runs": 1, "tokens": 143773, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The layout's comment still says every page inherits the share image, which is how the bug went unnoticed",
+      "evidence": "Lens's nit on app/layout.tsx:16 (review on 83baffe)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Worktree agents get node_modules (or a pnpm install step) when their worktree is created",
+      "moves": "Agent minutes spent on install before work (both agents this sprint)"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "Fix app/layout.tsx's comment on the inherited share image, as a rider" },
+    { "who": "Owner", "what": "Approve or comment on the redesign canvas https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5" }
+  ]
+}

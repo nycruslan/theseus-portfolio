@@ -89,3 +89,15 @@ still hold:
   - A direction's memory lines stay "pending the owner" until the canvas is approved; Lens catches them
     stated as settled.
   - Render sources left for another role need a recipe that runs from a fresh checkout.
+
+## Sprint 18: a share card for the build log (PR #52)
+
+- **Outcome:** `/sprints` serves the site's share image again (`app/sprints/opengraph-image.tsx`
+  re-exports the root's), with Probe's C2.3 checking one `og:image` and one `twitter:image`, each a
+  real PNG, and the placeholder guard in `e2e/content.spec.ts` re-armed as a rider. The redesign
+  waited: the canvas had no owner comments yet. Probe and Forge ran in parallel worktrees on disjoint
+  files; Lens ship on the first run with one nit (the layout's comment), left as a rider.
+- **Lesson:**
+  - When the top item waits on the owner, take the next item that doesn't touch it rather than idle.
+  - An S with a spec runs fastest as two parallel worktrees (spec and fix), integrated by cherry-pick
+    and run together once before the review label.

@@ -15,6 +15,8 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 - [x] The 3D hero: a static SVG half-model (sprint 8, PR #31) and its WebGL upgrade (sprint 10, PR #35), on the contracts of sprints 7 and 9. (`e2e/hero.spec.ts`, `e2e/hero-3d.spec.ts`.)
 - [x] Stack separators. (Sprint 11, PR #36.)
 - [x] Watch the team build: `/sprints` (sprint 13, PR #39) and the home page's build-log line (sprint 14, PR #43), on sprint 12's contract. (`e2e/sprints.spec.ts`, `e2e/sprints-entry.spec.ts`.)
+- [x] Share card for `/sprints`, and the placeholder guard re-armed. (Sprint 18, PR #52: `app/sprints/opengraph-image.tsx`, `e2e/sprints.spec.ts` C2.3, `e2e/content.spec.ts`.)
+  - Follow-up (Forge, as a rider): `app/layout.tsx`'s comment still says every route inherits the root image; a page that sets its own `openGraph` doesn't (Lens's nit).
 
 ## Next (highest first)
 
@@ -28,13 +30,6 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
     with four calls for the owner. Next: read its comments; Iris revises; Quill's contract once the
     owner approves there.
 
-- [ ] A share card for `/sprints` (S): the page sets its own `openGraph` and `twitter` metadata, which
-  drops the inherited `opengraph-image`, so a shared link shows no image while it declares
-  `summary_large_image`. Give the route an `opengraph-image` (the root's, or its own) and check
-  `og:image` beside the page's other metadata checks.
-- [ ] Re-arm the placeholder guard (S, Probe only): `e2e/content.spec.ts`'s `test.fixme` becomes
-  `test` again; content has had no `TODO(owner)` since the 2026 facts landed. A tightening; run
-  scope.mjs's weakening rules on it first. Fits as a rider in any sprint that has Probe.
 - [ ] A not-found page in the site's style (S, after B1 sets the type): today Next's default 404
   ignores the tokens and fonts, has two titles and no way home. Fits with the redesign's B-sprints.
 - [ ] The build log's goals as copy (S): entries print internal shorthand, such as size tags that

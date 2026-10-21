@@ -45,10 +45,9 @@ async function renderedFacts(page: Page) {
   ].join("\n");
 }
 
-// fixme until the owner's content lands: the seed profile still renders the stand-ins it marks
-// TODO(owner) ("Company name", "What you built, owned and improved."), so this fails today by
-// design. The PR that brings in the owner's interview answers turns it back into `test`.
-test.fixme("no value the owner marked TODO(owner) renders", async ({
+// content/ has carried no TODO(owner) marker since the owner's 2026 facts landed, so this holds
+// again and guards the next stand-in: a value marked TODO(owner) must not reach the page.
+test("no value the owner marked TODO(owner) renders", async ({
   page,
 }, testInfo) => {
   const placeholders = markedPlaceholders(
