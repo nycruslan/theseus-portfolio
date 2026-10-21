@@ -72,7 +72,7 @@ export function SprintItem({ entry }: { entry: SprintEntry }) {
             {items.map(({ text, nth }) => (
               <li
                 key={`${nth}-${text}`}
-                className="relative text-pretty break-words text-step-base before:absolute before:-left-3 before:top-[calc(0.5lh-1.5px)] before:size-[3px] before:rounded-full before:bg-muted before:content-['']"
+                className="relative text-pretty break-words text-step-base before:absolute before:-left-3 before:top-[calc(0.5lh-1.5px)] before:size-[3px] before:rounded-full before:bg-muted forced-colors:before:bg-[CanvasText] before:content-['']"
               >
                 {text}
               </li>
