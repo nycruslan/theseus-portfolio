@@ -218,6 +218,10 @@ same force. Nothing was loosened except where the contract says (the formula's +
 |---|---|---|
 | C3, `touchesHeader` 180 to 184, asserted at 422 to 425 | no animation on the header, inside it or above it | **narrowed**: animations whose target is inside `[data-hero]` (the aria-hidden hull box) no longer count. Since owner decision 6 the box is inside `main > header`, and hero-3d C10.4's one 200 ms opacity fade on its canvas tripped C3 in 5 to 7 runs in 10. Every other clause stands: the h1, the band, the bio and the links still may not animate, and the h1 and its ancestors stay at opacity 1 with no transform. The swap is C10.4's to police (exactly one animation in the box, a CSS transition on opacity, at most 200 ms). Proved on mutants: a 60 s opacity animation on the h1, and on `[data-hero-band]`, both fail C3 at 1440 on load; one on `[data-hero] canvas` passes C3 by design. |
 
+### hero-b1.spec.ts, B1.3 (added after Lens's round 1)
+
+B1.3 now also runs at 768 and, below 1024, asserts the headline cell spans the band's full width (left and right within 1 px of the band's), and at every width that no cell overflows (`scrollWidth - clientWidth` is 0 for each). Nothing retired. Proved on one mutant: without `.cell:nth-child(1) { grid-column: 1 / -1 }` it fails at 768 on both clauses.
+
 ### Shared files (mine, no `expect`s): `helpers.ts` (`STEP_TOKENS` gains `--step-display`; `VALID`,
 `lineSpan` moved out of `sprints-entry.spec.ts`; `resolveColors` takes token names), `pixels.ts`
 (`loudestOutside` and `medianColor` removed with C13.4, `medianAt` added), `webgl.ts` (the spacer),

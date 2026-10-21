@@ -303,7 +303,7 @@ test("B1.3 The band: a thick-and-thin rule over three cells in order, the home l
   const SPAN = lineSpan(N);
   for (const scheme of SCHEMES) {
     await page.emulateMedia({ colorScheme: scheme });
-    for (const width of [390, 1024, 1440]) {
+    for (const width of [390, 768, 1024, 1440]) {
       await open(page, width);
       const where = `at ${width} (${scheme})`;
       const found = await page.evaluate(() => {
@@ -330,6 +330,7 @@ test("B1.3 The band: a thick-and-thin rule over three cells in order, the home l
           band: rect(band),
           cells: cells.map((cell) => ({
             text: cell.textContent ?? "",
+            overflow: cell.scrollWidth - cell.clientWidth,
             ...rect(cell),
           })),
           cw: document.documentElement.clientWidth,
@@ -362,6 +363,29 @@ test("B1.3 The band: a thick-and-thin rule over three cells in order, the home l
       // Full width: the content box of the page, margin to margin.
       expect(found.band, `the band's box ${where}`).not.toBeNull();
       if (!found.band) continue;
+      // Below 1024 the headline has the whole row (at 768 it once sat in one of six subgrid
+      // columns and broke a word a line), and no cell spills out of its box.
+      const headline = found.cells[0];
+      if (width < 1024 && headline && "left" in headline) {
+        expect
+          .soft(
+            Math.abs((headline.left ?? 0) - found.band.left),
+            `headline cell left against the band's ${where}`,
+          )
+          .toBeLessThanOrEqual(1);
+        expect
+          .soft(
+            Math.abs((headline.right ?? 0) - found.band.right),
+            `headline cell right against the band's ${where}`,
+          )
+          .toBeLessThanOrEqual(1);
+      }
+      expect
+        .soft(
+          found.cells.map((cell) => cell.overflow),
+          `overflow (scrollWidth - clientWidth) of each cell ${where}`,
+        )
+        .toEqual([0, 0, 0]);
       const margin = Math.min(48, Math.max(20, 0.034 * found.vw));
       expect
         .soft(Math.abs(found.band.left - margin), `band left ${where}`)
