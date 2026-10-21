@@ -22,8 +22,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
     each builds there (as `pnpm verify` does), so run it in your own worktree.
   - The change behaves as intended in a real browser. Use the next-dev-loop skill, and run
     agent-browser with `--session <name>` so agents don't share one.
-- Start your own dev or production server on a free port (not 3000, the owner's), note its PID,
-  and stop it with `kill <pid>`, or `kill $!` in the same command. Never stop processes by name or
-  port: other people's servers run on this machine.
+- Start your own dev or production server on a free port (not 3000, the owner's), with node
+  itself, as in `node node_modules/next/dist/bin/next start --port <n> &`: then `$!` is the server,
+  while a `pnpm exec` wrapper can die and leave it running. Note its PID and stop it with
+  `kill <pid>` when you're done, even where a skill says to leave it up. Never stop processes by
+  name or port: other people's servers run on this machine.
 - Never weaken or delete a test to get green. Report the failure instead.
 - When something breaks, find the root cause before changing code.

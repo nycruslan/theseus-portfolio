@@ -5,7 +5,7 @@ A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 Each time a sprint merges, a Claude Code session wakes up in this repository as **Atlas**, the team
 lead, and starts the next one, up to six a day. It sizes the next roadmap item (or the owner's
 goal, when they press "Start a sprint" in the Studio), briefs one builder (with tests written first
-for anything bigger than a one-line change), and opens a pull request. GitHub then decides: CI
+for anything bigger than a small change), and opens a pull request. GitHub then decides: CI
 must pass, a gate run from `main` must agree the PR stays out of the owner's files, and Lens, the
 code reviewer, must say ship from a fresh review in GitHub Actions. If something needs the owner,
 the PR waits. It all runs through GitHub's REST API, so the team works the same on a laptop and as
@@ -133,7 +133,7 @@ holds for the owner's own `gh` login.
      once. Give both to the Studio as server-side secrets, never to the browser: its owner-only
      "Start a sprint" button POSTs `{"text": "<goal>"}` to that URL, with the headers from the
      trigger's sample curl.
-   - The cap (optional): set `THESEUS_DAILY_SPRINTS` in the `theseus-team` environment to change
+   - The cap (optional): set `THESEUS_DAILY_SPRINTS` in the team's environment to change
      the default of 6 sprints a day. A value that isn't a positive integer means 6.
 
 ## Local development

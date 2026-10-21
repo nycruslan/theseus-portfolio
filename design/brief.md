@@ -26,13 +26,10 @@ AI platforms. It has two audiences, and both must win:
 
 ## The concept
 
-Iris proposes it; the owner decides. Candidates to weigh, not a decision:
-1. **The ship of Theseus.** The hull the hero already shows becomes the site's world: each plank is a
-   sprint, the ship assembles as you scroll, and the copper plank is the latest. One idea ties the
-   3D, the site's name and the build log together.
-2. **The platform as a living system.** The owner's multi-agent orchestration and retrieval work
-   shown as an explorable network, each node a real capability with its numbers.
-3. Iris's own concept, if it's stronger.
+**The log of the Theseus**, decided when the owner merged sprint 15 (#47): a ruled ship's log, the
+hull's 22 planks replaced one per sprint, copper the newest. Iris's direction and prototype are in
+`.studio/sprint/15/` (`direction-iris.md`, `prototype/`), and Quill's contract splits the build into
+B1-B5. A new concept is the owner's call, in a PR of its own.
 
 ## Craft rules
 

@@ -4,203 +4,42 @@ The running progress log, so the next sprint starts with what the team already k
 rediscovering it. Atlas adds one entry per sprint, newest at the bottom. When this file passes about
 150 lines, fold the oldest entries into a short summary at the top.
 
-## Sprint 0 — seed created by humans
+## Sprints 0-13, folded
 
-- **Outcome:** shipped.
-- **What:** a minimal, static portfolio page rendered from `content/profile.ts`, plus the team setup
-  (`/sprint` skill, `engineer` subagent, event hooks).
-- **Lesson:** start from a deliberately simple base so every improvement is visible.
+What they shipped is in `ROADMAP.md`'s Done list and each sprint's `retro.json`. The lessons that
+still hold:
 
-## Sprint 1 — design tokens (PR #9, left open for the owner)
-
-- **Outcome:** built and verified, but not merged. Five colour tokens ("new copper on old bronze") and
-  five fluid `clamp()` type steps are in `app/globals.css` and used across the page. Tailwind now
-  scans only `app/` and `components/`, which halves the CSS (19.9 KB to 10.3 KB). Lens and Probe
-  both said ship twice, and CI is green on `9461555`. Iris's advisory verdict is changes, 6.8/10,
-  on owner-only items: the placeholder gate and the 7.0 bar. The PR is open with `needs-owner`,
-  because the cloud proxy refuses the `theseus/*` verdict statuses, so `merge.mjs` can't see a
-  verdict (see `.studio/sprint/1/decisions.md` items 5 to 7).
-- **Lesson:** from a cloud routine, no sprint can merge until verdicts can reach GitHub. Check
-  that the status post works at the first reviewer's stop, not at merge time. Also: try a "small"
-  design fix in the browser before dispatching it. Lens-2 showed the proposed no-break-space fix
-  made things worse (`review-lens-2.md`).
-
-## Routine run, 2026-10-13 (no new sprint)
-
-- **Outcome:** stood down. PR #9 is still open with `needs-owner` and no owner reply, and nothing
-  about the cloud proxy changed, so a sprint 2 would also end unmergeable, on top of unmerged
-  tokens that dark mode (item 2) builds on.
-- **Lesson:** before starting a sprint, list open PRs (`gh api repos/<owner>/<repo>/pulls`) and
-  read any `needs-owner` one. This run nearly re-ran sprint 1 because `.studio/sprint/` is absent
-  on `main` until a sprint merges.
-
-## Sprint 2: dark mode (PR #12, left open for the owner)
-
-- **Outcome:** built and verified, but not merged. The theme switches in CSS only:
-  - `color-scheme: light dark` and a theme-color per scheme.
-  - The dark accent is copper `#eb8a64` (7.45:1), and the dark rule is verdigris `#2d4543`.
-  - Light is pixel-identical to main.
-
-  Lens and Probe said ship on `2a33b48`, with no fix rounds, and CI is green. Iris's verdict is changes, 6.8/10, only on the placeholder gate and the 7.0 bar, so the PR waits with `needs-owner`. Verdict comments now reach GitHub from the cloud (the sprint 1 blocker is gone).
-- **Lesson:**
-  - Writing the checks first caught a contract bullet that couldn't pass before anyone built anything. Next's flight scripts carry `prefers-color-scheme` (`probe-checks.md`).
-  - Until the owner settles the rubric's placeholder gate, every visual sprint will stop at `needs-owner`. Pick non-visual items, or settle the rubric first.
-
-## Sprint 3: project cards (PR #16)
-
-- **Outcome:** each project is a "plank" in `components/project-card.tsx`: a `--rule` frame (full-bleed rules
-  on phones, a full frame from md), an ink title with a copper underline, a muted aria-hidden arrow, the whole
-  card is the link, and a 2 px copper focus ring. Lens, Probe and Iris (advisory, 7.3/10, the first sprint over
-  7.0) said ship on 57999ec with no fix rounds. Probe's C10 test added a `test.skip(`, which scope.mjs
-  rejects, so a spec-only fix (a10d633) went to a fresh Lens and a fresh Probe, and both said ship.
-- **Lesson:**
-  - A builder who measures in the browser catches what a direction misses (the 1 px border, the seam over
-    the focus ring).
-  - Run scope.mjs's weakening rules on a new spec before review. Any added `test.skip(`, even a
-    conditional one, needs the owner.
-
-## Sprint 4: accessibility pass (PR #17)
-
-- **Outcome:** a CSS-only "Skip to content" link (first Tab stop, `components/skip-link.tsx`), `main#main`
-  with `tabIndex={-1}`, one shared 2 px `--accent` `:focus-visible` ring in `@layer base`, the card arrow
-  turns copper on keyboard focus, the card link uses `outline-none` (Tailwind's `outline-hidden` paints a
-  second ring in forced colors), and Contact links are `inline-block` (24 px targets). Lens, Probe and Iris
-  (advisory, 7.5/10) said ship on 863efa2, no fix rounds; at rest the page is pixel-identical to main.
-- **Lesson:**
-  - Writing checks first caught a contract file-scope that made a check unbuildable (C8). Contracts
-    should name the outcome and let file lists be a guide, not a fence.
-  - The skip link skips nothing while `main` wraps the whole page: an a11y feature can pass every check
-    and still not serve its stated reason. Name the visitor's outcome as a check (Contact reachable in N Tabs).
-  - Production was unreachable from cloud sessions (proxy 403) until 2026-10-20, when the environment
-    began allowing theseus-portfolio.vercel.app: compare against production itself now.
-
-## Sprint 5: section reveal on scroll (PR #22)
-
-- **Outcome:** each section's h2 rises 16 px into place over the first 64 px of the section's entry,
-  CSS only (`view-timeline` on the section, gated by `@supports (animation-timeline: view())` and
-  `prefers-reduced-motion: no-preference`, `backwards` fill, `will-change: contents` on the h2 to keep
-  rest pixel-identical). Nothing fades and nothing clickable moves. Lens ship on 0ae070e after two fix
-  rounds; CI green; Iris's 7.2 changes was on the previous head. `keyboard.spec` `settled()` now waits
-  only for clock animations plus two frames.
-- **Lesson:**
-  - A scroll-driven animation is one frame stale after a jump scroll: never move click targets with it.
-  - A fade tied to scroll leaves sections mid-fade at load in some window heights, which fails axe
-    contrast. The suite's fixed viewports miss such bands; sweep heights for motion work.
-  - Helpers that await every animation hang on view-timeline animations; filter to `document.timeline`.
-
-## Sprint 6: education and stack (PR #27)
-
-- **Outcome:** Stack and Education sections in `app/page.tsx` on `Section` (so they inherit the
-  heading rise): Stack a `flex-wrap` list of plain words, Education shaped like an Experience entry,
-  facts verbatim. Lens ship on a7195be and on b7e0576 (Iris's cheap advice, one fix round), CI and
-  gate green, Iris ship 7.3 (advisory). Chosen over the 3D hero, which is L and needs an owner contract.
-- **Lesson:**
-  - Specs that hard-code the page's section list (`reveal.spec.ts` C2) break on any new section;
-    a contract that adds a section should name that line as an expected edit.
-  - agent-browser isn't on PATH in cloud sessions; builders and Iris fell back to Playwright scripts.
-
-## Sprint 7: 3D hero contract (PR #28)
-
-- **Outcome:** the L lane's first step, no product code. Iris's direction (`direction-iris.md`): a
-  shipwright's lift half-model, seven planks with one copper plank, hung after the header, moving only
-  on scroll, an inline SVG every visitor gets and WebGL as an idle-loaded upgrade. Quill's contract
-  (`contract.md`) splits it into Part A (static SVG, C1–C9) and Part B (WebGL, C10–C16) and binds it to
-  the existing specs with none edited. Lens said changes three times (two fix rounds), each time on
-  new findings, mostly in Part B; Atlas cut scope so Part B's checks are a draft. PR #28 waits for the
-  owner (`needs-owner`), with `lens` red.
-- **Lesson:**
-  - Reading the existing specs before the contract found that the color scan bans `oklch(`/`oklab(`
-    calls and hex-looking SVG ids, and that `reveal.spec` C2's section list makes the hero a `div`:
-    each would have failed a correct build.
-  - LCP on this page is body text (the bio, or the first Experience summary at 1440), not the h1.
-  - Checks written for code nobody has spiked (Part B's WebGL in a software-rendering CI browser) keep
-    failing review: contract only what a spike or the current page can ground, and draft the rest.
-
-## Sprint 8: the hero half-model, Part A (PR #31)
-
-- **Outcome:** a static, server-rendered inline SVG lift half-model after the header: seven lifts, a dark
-  deck strip, staggered butts and one copper plank on the third lift. The geometry comes from
-  `lib/half-model.ts` at build time and the tones are `color-mix` of the tokens. It adds no client JS
-  (first-load JS for `/` is unchanged), and a `div.@container` around `main` gives it the page's width
-  without `100vw`. Probe's C1–C9 failed first and caught 29 mutants. Lens said ship twice (55f86c3,
-  75d4653), and Iris said ship at 7.8. One fix round took Iris's dark copper (92% mix) and an
-  `@supports` guard that tests the `calc()` form.
-- **Lesson:**
-  - A contract that the owner accepted with checks grounded in the current page built in one pass:
-    the cost of sprint 7's three Lens rounds paid off here.
-  - Advice taken after Lens's ship costs a full re-review. Batch cheap advisory items unless one is a
-    real risk; the colour guard was, since it could draw a black hull.
-  - The cloud browser can't show classic scrollbars or other engines, so size against the container,
-    not the viewport, even at breakpoints.
-
-## Sprint 9: the hero's Part B contract (PR #32)
-
-- **Outcome:** the L lane's contract step for the WebGL upgrade, no product code. Probe's spike
-  (`spike-probe.md`): the headless Chromium draws WebGL in SwiftShader, refuses
-  `failIfMajorPerformanceCaveat`, and init scripts can strip the flag and count draws; a hand-written
-  renderer of the real hull was 2.7 KB gzip, pixel-identical across runs, within 1 px of the SVG, CLS 0.
-  Quill rewrote C10–C16 on those numbers and added C17 (the harness holds on a blank page); Iris chose
-  the centred 138 px box. Lens ship on the first run (two wording nits, applied). PR #32 waits for the
-  owner (`needs-owner`).
-- **Lesson:**
-  - Spiking before the contract worked: sprint 7's draft took three Lens rounds, the measured rewrite one.
-  - The cloud sandbox's Chromium (141) isn't CI's (156), so browser-sensitive checks get their first real
-    run in CI; a check that tests the harness alone (C17) makes that readout cheap.
-  - Read pixels from screenshots: `readPixels`/`toDataURL` return zeros outside the drawing frame.
-
-## Sprint 10: the hero's Part B, the WebGL upgrade (PR #35)
-
-- **Outcome:** the WebGL hull built on #32's contract: a first-load gate (no shader code) idle-loads a
-  3.6 KB gzip hand-written renderer of the same `lib/half-model.ts` hull, which turns ±0.24 with scroll,
-  draws only on a pose change, freezes after three slow frames and falls back to the SVG on context loss;
-  the box is 138 px under `@container (width >= 48rem)`; print keeps the SVG. Probe's specs failed first,
-  CI green on Chromium 156 on the first build push, Lens ship after one fix round, Iris ship 7.8. Left
-  with `needs-owner`: CI's 156 grants the caveat flag the spike saw 141 refuse, so C17/C14 now use the
-  harness's own refusal (`contract-change.md`), and a frozen canvas returns to the SVG on resize.
-- **Lesson:**
-  - Pushing the specs alone first (C17 as the readout) caught the failed premise before any product code
-    depended on it; keep that step for browser-sensitive work.
-  - Settle the PR body and labels before the `review` label: Lens reads the body at the start of its run.
-
-## Sprint 11: Stack separators (PR #36)
-
-- **Outcome:** with the roadmap exhausted, Quill groomed a new Next list and picked Iris's sprint 6 dot
-  (S). Forge drew a 3 px `before:` dot in `bg-muted`, centred in the 24 px gap, the row's leading dot
-  clipped by `overflow-hidden` on the `ul`; `innerText` and the suite unchanged. Lens said changes once
-  (Forge had also loosened `gap-y-1` to `gap-y-2`, copying a recipe written before item 1 shipped),
-  then ship on 4bee361 with two nits left as follow-ups (forced colors, the all-sides clip).
-- **Lesson:**
-  - A recipe from an old review is a diff against an old baseline: brief builders to apply only its
-    named change onto main's current classes, not to paste its className.
-
-## Sprint 12: the build log's contract (PR #37)
-
-- **Outcome:** the L lane's contract step for "Watch the team build", no product code. Iris prototyped a
-  `/sprints` log on a build fed by all eleven real retros and chose a route of its own, reached by a
-  copper "Build log · N sprints" line under the bio; Quill's contract (C1–C15) splits the build into PR A
-  (reader and route, M) and PR B (the home line, S), fails the build on a malformed retro, and derives
-  "Owner's call" from `needs-owner` in `outcome`. Lens ship on the first run, with seven nits; six went
-  into the contract as a notes-only push. PR #37 waits for the owner (`needs-owner`).
-- **Lesson:**
-  - The retros were written as notes, not as copy: `outcome` is set before the merge (false for sprints
-    1–2). Before publishing any team file, check which of its fields stay true after the merge.
-  - A prototype fed by the real data settled two calls (show every item; no status word) that a written
-    direction would have guessed.
-
-## Sprint 13: the build log's route (PR #39)
-
-- **Outcome:** PR A of the build log, on the contract the owner accepted by merging #37. Probe pushed
-  `e2e/sprints.spec.ts` (C1–C12, plus the C13.1 scan) first. It was red on CI, and 49 mutants against a
-  reference build showed it catches each fault the contract names. Forge then built `lib/sprint-log.ts`,
-  `/sprints` (static) and its metadata in one pass, with the full suite green. Lens said ship on the first
-  run (two nits). Iris said ship at 7.7, with one cheap finding left for PR B: the PR link's focus ring
-  runs into the meta dot.
-- **Lesson:**
-  - A contract measured on real data plus specs proven against a reference build gave a five-minute
-    build with no fix round. The cost moved to the specs (44 minutes), so cap the mutants.
-  - Under `cacheComponents`, a sync `node:fs` read in a Server Component prerenders. `readdirSync(dir)` on
-    a runtime path needs `/* turbopackIgnore: true */` on the argument, or Turbopack traces the whole
-    project.
+- **Contracts.** Ground every check in a spike or the current page: sprint 7's unspiked WebGL draft
+  took three Lens rounds, sprint 9's measured rewrite one, and sprint 13's contract on real data built
+  in five minutes. Name the visitor's outcome, and treat file lists as a guide, not a fence. Read the
+  existing specs first: the color scan bans `oklch(`/`oklab(` calls and hex-looking SVG ids, and a
+  spec that hard-codes the page's sections breaks on any new one, so the contract names that edit.
+- **Specs.** Writing them first catches checks nobody can build. Push them alone first on
+  browser-sensitive work, with a check of the harness itself as the readout. Run scope.mjs's
+  weakening rules on a new spec before review: any added `test.skip(` needs the owner. Prove specs
+  against a reference build with mutants, capped at about 10 (sprint 13's 49 took 44 minutes).
+- **Building.** A builder who measures in the browser catches what a direction misses; try a "small"
+  design fix there before dispatching it. A recipe from an old review is a diff against an old
+  baseline: apply only its named change onto main's current classes.
+- **Review.** Settle the PR body and labels before the `review` label, since Lens reads the body
+  first. Advice taken after Lens's ship costs a full re-review, so batch cheap advice unless it's a
+  real risk.
+- **The browser.** A scroll-driven animation is a frame stale after a jump scroll, so never move
+  click targets with it. A fade tied to scroll can leave text mid-fade at load and fail axe contrast:
+  sweep window heights for motion work. Helpers that await every animation hang on view-timeline
+  ones; filter to `document.timeline`. Read WebGL pixels from screenshots (`readPixels` and
+  `toDataURL` return zeros outside the drawing frame). Size against the container, not the viewport.
+  Next's flight scripts carry `prefers-color-scheme`, so a text scan of the HTML sees it.
+- **Next.js.** Under `cacheComponents`, a sync `node:fs` read in a Server Component prerenders, and
+  `readdirSync` on a runtime path needs `/* turbopackIgnore: true */` on its argument, or Turbopack
+  traces the whole project. On today's page, LCP is body text (the bio, or the first Experience
+  summary at 1440), not the h1.
+- **Publishing team files.** Retros were written as notes, not copy (`outcome` is set before the
+  merge): before publishing a field, check it stays true after the merge. A prototype fed by real
+  data settles calls a written direction would guess.
+- **The environment.** Production (https://theseus-portfolio.vercel.app) is reachable from cloud
+  sessions since 2026-10-20: compare against it. Check the cloud browser's Chromium against CI's
+  before trusting a browser-sensitive readout.
 
 ## Sprint 14: the build log's way in (PR #43)
 
