@@ -131,7 +131,7 @@ export const seamDepth = (k: number) =>
   SHEER_LOW + (k * (HEIGHT - SHEER_LOW)) / LIFTS;
 
 // Where each lift's planks butt, as shares of the length: staggered, as a shipwright lays them.
-// The third lift's pair is the copper plank, a little aft of midships.
+// Each lift's planks are its butts plus one, deck first: 3, 4, 3, 4, 3, 3, 2 (lib/hull-planks.ts).
 export const BUTTS = [
   [0.27, 0.7],
   [0.14, 0.5, 0.86],
@@ -141,4 +141,3 @@ export const BUTTS = [
   [0.26, 0.58],
   [0.45],
 ];
-export const COPPER_LIFT = 2; // the third, counted from the deck
