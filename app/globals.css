@@ -285,6 +285,10 @@ body {
 }
 
 @media (width >= 640px) {
+  .cell:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
   .cell:nth-child(2) {
     grid-column: 1 / 4;
   }
@@ -404,7 +408,7 @@ body {
 /*
  * The tones (lib/hull-planks.ts says which plank is which). An original plank is the page's muted
  * text colour thinned into the ground; a replaced one is --bronze mixed into that, by the share
- * its own --m carries (75% for the sprint behind the newest, down to 30% for the oldest); the
+ * its own --m carries (up to 75%, falling to 30% for the oldest; lib/hull-planks.ts has the rule); the
  * newest is copper. On the dark ground the full accent is the brightest thing in the box, so the
  * plank sits one notch back toward the hull, as sprint 8's rule has it (hero C7 holds it within
  * 0.06 of the accent's lightness). A plank's tone is its own fill, a plain colour; the light on it
