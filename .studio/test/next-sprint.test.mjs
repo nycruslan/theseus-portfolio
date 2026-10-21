@@ -17,6 +17,7 @@ const pr = (number, branch, labels = [], from = {}) => ({
     repo: { full_name: from.repo ?? REPO },
   },
   labels: labels.map((name) => ({ name })),
+  draft: from.draft ?? false,
   html_url: `https://github.com/${REPO}/pull/${number}`,
   updated_at:
     from.updatedAt ?? new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
@@ -43,10 +44,10 @@ function github({
   branches = [{ name: "main" }],
   commits = {},
   events = {},
-  reviews = {},
   closed = [],
   conflicts = [],
   comments = {},
+  gates = {},
 } = {}) {
   // The fake gh takes the first route that matches, so each PR's own events come before the rest,
   // and the closed PRs before the open ones.
@@ -60,14 +61,14 @@ function github({
       `${R}/issues/${n}/events`,
       list,
     ]),
-    ...Object.entries(reviews).map(([n, list]) => [
-      `${R}/pulls/${n}/reviews`,
-      list,
-    ]),
     ...conflicts.map((n) => [`${R}/pulls/${n}`, { mergeable_state: "dirty" }]),
     ...Object.entries(comments).map(([n, list]) => [
       `${R}/issues/${n}/comments`,
       list,
+    ]),
+    ...Object.entries(gates).map(([sha, runs]) => [
+      `${R}/commits/${sha}/check-runs`,
+      { check_runs: runs },
     ]),
   ]);
   Object.assign(table, {
@@ -77,9 +78,9 @@ function github({
     [`${R}/branches`]: branches,
     [`${R}/issues/*/events`]: [],
     [`${R}/issues/*/comments`]: [],
-    [`${R}/pulls/*/reviews`]: [],
     [`${R}/pulls/*`]: { mergeable_state: "clean" },
     [`${R}/commits/*`]: { commit: { committer: { date: minutesAgo(120) } } },
+    [`${R}/commits/*/check-runs`]: { check_runs: [] },
     user: { login: "nycruslan" },
   });
   return table;
@@ -136,10 +137,10 @@ test("an open sprint PR is continued, not started again", () => {
     }),
   );
   assert.deepEqual(
-    state.open.map(({ number, branch, needsOwner }) => [
+    state.open.map(({ number, branch, waitsForOwner }) => [
       number,
       branch,
-      needsOwner,
+      waitsForOwner,
     ]),
     [[9, "sprint/1-design-tokens", false]],
   );
@@ -282,27 +283,66 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
       },
     }),
   );
-  assert.equal(state.open[0].needsOwner, true);
+  assert.equal(state.open[0].waitsForOwner, true);
   assert.equal(state.action.do, "start");
   assert.equal(state.action.waiting, 9);
 });
 
-test("a held PR waits for the owner even once they approved its head: they merge it", () => {
-  const approval = {
-    user: { login: "nycruslan" },
-    state: "APPROVED",
-    commit_id: "9".padStart(40, "0"),
-  };
-  const { state } = preflight(
-    github({
-      pulls: [pr(9, "sprint/1-design-tokens")],
-      events: { 9: [{ event: "labeled", label: { name: "needs-owner" } }] },
-      reviews: { 9: [approval] },
-    }),
-  );
-  assert.equal(state.open[0].needsOwner, true);
-  assert.equal(state.action.do, "start");
-  assert.equal(state.action.waiting, 9);
+test("a draft is still being built, whatever its labels: it's continued, or left to the run on it", () => {
+  const draft = (updatedAt) =>
+    pr(12, "sprint/2-direction", ["needs-owner"], { draft: true, updatedAt });
+  const quiet = preflight(github({ pulls: [draft()] })).state;
+  assert.equal(quiet.open[0].draft, true);
+  assert.equal(quiet.open[0].waitsForOwner, false);
+  assert.equal(quiet.action.do, "continue");
+  assert.equal(quiet.action.pr, 12);
+  assert.deepEqual([quiet.remind, quiet.update], [[], []]);
+  const active = preflight(github({ pulls: [draft(minutesAgo(10))] })).state;
+  assert.equal(active.action.do, "stand down");
+  assert.equal(active.action.pr, 12);
+  assert.match(active.action.say, /another run is most likely still working/);
+});
+
+test("a ready PR that gate leaves to the owner waits for them, held or approved, labelled or not", () => {
+  const head = "12".padStart(40, "0");
+  const app = { slug: "theseus-checks" };
+  const gate = (conclusion, extra = {}) => ({
+    id: 2,
+    name: "gate",
+    status: "completed",
+    conclusion,
+    app,
+    ...extra,
+  });
+  const waits = (runs) =>
+    preflight(
+      github({
+        pulls: [pr(12, "sprint/2-retire-specs")],
+        gates: { [head]: runs },
+      }),
+    ).state;
+  // Held for the owner's approval: a weakened test, an owner path, package.json's scripts.
+  const held = waits([gate("success", { id: 1 }), gate("failure")]);
+  assert.equal(held.open[0].waitsForOwner, true);
+  assert.equal(held.action.do, "start");
+  assert.equal(held.action.waiting, 12);
+  // Passed only on that approval: merge.mjs leaves it to the owner.
+  const released = waits([gate("success", { external_id: "owner-approved" })]);
+  assert.equal(released.open[0].waitsForOwner, true);
+  // Passed on its own, still running, or another app's: the team's to finish.
+  for (const runs of [
+    [gate("success")],
+    [{ ...gate(null), status: "in_progress" }],
+    [gate("failure", { app: { slug: "someone" } })],
+  ]) {
+    const state = waits(runs);
+    assert.equal(state.open[0].waitsForOwner, false);
+    assert.equal(state.action.do, "continue");
+    assert.match(
+      state.action.say,
+      /mark it ready with node \.studio\/ready-pr\.mjs 12 if it's still a draft, then node \.studio\/merge\.mjs 12\./,
+    );
+  }
 });
 
 test("reminds the owner about a PR a day past its last commit and the team's last comment", () => {
@@ -561,8 +601,9 @@ test("an open PR's own branch is its PR's to judge, so its commit isn't read", (
   );
   assert.deepEqual(state.unopened, []);
   assert.equal(state.action.do, "continue");
+  // Its gate is read (`commits/<sha>/check-runs`), its commit isn't.
   assert.ok(
-    !calls.some((args) => args.some((arg) => arg.includes("/commits/"))),
+    !calls.some((args) => args.some((arg) => /\/commits\/[^/]+$/.test(arg))),
   );
 });
 

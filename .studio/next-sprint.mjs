@@ -8,9 +8,13 @@
 //   owner's connection (tested 2026-10-17). So the rules hold through gate, Lens, merge.mjs and
 //   the guard, not through a separate account.
 // - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
-//   whether it waits for the owner: it carries needs-owner now or ever did. It waits until the
-//   owner merges or closes it, approved or not, since merge.mjs leaves a PR the owner's approval
-//   released to the owner.
+//   whether it waits for the owner: it was marked ready for review, and it carries needs-owner now
+//   or ever did, or `gate` holds its head for the owner's approval (an owner path, package.json's
+//   scripts, a weakened test) or passed it only on that approval. It waits until the owner merges
+//   or closes it, approved or not, since merge.mjs leaves a PR the owner's approval released to the
+//   owner. A draft is still being built, whatever its labels: #47 was labelled when it opened, and
+//   had it been taken for waiting, the heartbeat would have started a sprint beside it, and no run
+//   would have finished it had its own died.
 // - highest: the highest sprint number among the folders under .studio/sprint/ on main, the names
 //   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
 //   sprint/<n>-…). next is one past the highest of them.
@@ -42,7 +46,7 @@
 // It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
 // fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
 
-import { carriedNeedsOwner } from "./gate.mjs";
+import { carriedNeedsOwner, OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
@@ -88,7 +92,11 @@ function preflight(repo) {
         branch: pr.head.ref,
         head: pr.head.sha,
         updatedAt: pr.updated_at,
-        needsOwner: carriedNeedsOwner({ repo, number: pr.number, labels }),
+        draft: pr.draft === true,
+        waitsForOwner:
+          pr.draft !== true &&
+          (carriedNeedsOwner({ repo, number: pr.number, labels }) ||
+            gateWaits(repo, pr.head.sha)),
         url: pr.html_url,
       };
     });
@@ -142,6 +150,21 @@ function freshBranches(repo, branches, open, closed) {
       ({ committedAt }) => Date.now() - Date.parse(committedAt) < ACTIVE_MS,
     )
     .sort((a, b) => Date.parse(b.committedAt) - Date.parse(a.committedAt));
+}
+
+// Whether the checks app's latest `gate` on the head leaves it to the owner: held for their
+// approval, or passed only on it.
+function gateWaits(repo, head) {
+  const [gate] = list(
+    `repos/${repo}/commits/${head}/check-runs?check_name=gate&per_page=100`,
+    { key: "check_runs" },
+  )
+    .filter(({ app }) => `${app?.slug}[bot]` === CHECKS_APP)
+    .sort((a, b) => b.id - a.id);
+  return (
+    gate?.status === "completed" &&
+    (gate.conclusion !== "success" || gate.external_id === OWNER_APPROVED)
+  );
 }
 
 // The team's own sprint PRs, as GitHub lists them.
@@ -200,7 +223,7 @@ function sprintFolders(repo, base) {
 function ownerQueue(repo, open) {
   const remind = [];
   const update = [];
-  for (const pr of open.filter(({ needsOwner }) => needsOwner)) {
+  for (const pr of open.filter(({ waitsForOwner }) => waitsForOwner)) {
     const comments = list(
       `repos/${repo}/issues/${pr.number}/comments?per_page=100`,
     ).filter(
@@ -255,7 +278,7 @@ function action(open, unopened, next, daily) {
       say: `No sprint is open. Start sprint ${next} on a branch named sprint/${next}-<slug>.`,
     };
   }
-  const current = open.find(({ needsOwner }) => !needsOwner);
+  const current = open.find(({ waitsForOwner }) => !waitsForOwner);
   const others = (shown) => {
     const rest = open.filter((one) => one !== shown);
     return rest.length
@@ -296,7 +319,7 @@ function action(open, unopened, next, daily) {
   return {
     do: "continue",
     pr: current.number,
-    say: `PR #${current.number} (${current.branch}) is open${others(current)}. Continue it rather than starting a new sprint: run what's missing, then node .studio/merge.mjs ${current.number}.`,
+    say: `PR #${current.number} (${current.branch}) is open${others(current)}. Continue it rather than starting a new sprint: run what's missing, mark it ready with node .studio/ready-pr.mjs ${current.number} if it's still a draft, then node .studio/merge.mjs ${current.number}.`,
   };
 }
 
