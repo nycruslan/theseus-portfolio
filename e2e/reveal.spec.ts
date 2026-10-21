@@ -177,10 +177,15 @@ async function read(page: Page): Promise<Snap> {
           target: target ? label(target) : "(none)",
           section: sectionEl ? idOf(sectionEl) : null,
           inMain: Boolean(target && main?.contains(target)),
+          // The hull's box sits inside the header since sprint 16 and is decorative and
+          // aria-hidden: its canvas swap (one 200 ms opacity fade) is hero-3d C10.4's to police,
+          // so animations inside `[data-hero]` are not the header's. Everything else of the
+          // header, the name, the band, the bio and the links, still may not animate.
           touchesHeader: Boolean(
             target &&
               header &&
-              (header.contains(target) || target.contains(header)),
+              ((header.contains(target) && !target.closest("[data-hero]")) ||
+                target.contains(header)),
           ),
           targetNotAtRest: target ? restProblems(target).length > 0 : false,
           extraProps: [

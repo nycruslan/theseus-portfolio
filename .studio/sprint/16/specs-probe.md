@@ -212,6 +212,12 @@ same force. Nothing was loosened except where the contract says (the formula's +
 | C14.4 359 to 362, 364 to 367 | the line inside the header; one line at 320, 390, 1440; the hull's top above the fold at 390 x 844 | kept (one line read from the cell's own boxes) |
 | C14.4 368 to 375 | the hull's top within 43 px (+3) of where it was before the line, and 16 px below it | **retired** (they measure the old layout) |
 
+### reveal.spec.ts (added after Pixel's canvas, at Atlas's call)
+
+| Where (old) | What | Fate |
+|---|---|---|
+| C3, `touchesHeader` 180 to 184, asserted at 422 to 425 | no animation on the header, inside it or above it | **narrowed**: animations whose target is inside `[data-hero]` (the aria-hidden hull box) no longer count. Since owner decision 6 the box is inside `main > header`, and hero-3d C10.4's one 200 ms opacity fade on its canvas tripped C3 in 5 to 7 runs in 10. Every other clause stands: the h1, the band, the bio and the links still may not animate, and the h1 and its ancestors stay at opacity 1 with no transform. The swap is C10.4's to police (exactly one animation in the box, a CSS transition on opacity, at most 200 ms). Proved on mutants: a 60 s opacity animation on the h1, and on `[data-hero-band]`, both fail C3 at 1440 on load; one on `[data-hero] canvas` passes C3 by design. |
+
 ### Shared files (mine, no `expect`s): `helpers.ts` (`STEP_TOKENS` gains `--step-display`; `VALID`,
 `lineSpan` moved out of `sprints-entry.spec.ts`; `resolveColors` takes token names), `pixels.ts`
 (`loudestOutside` and `medianColor` removed with C13.4, `medianAt` added), `webgl.ts` (the spacer),
