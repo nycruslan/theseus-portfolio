@@ -454,6 +454,27 @@ test("masks secrets, stamps time and repository, and leaves no temp files", asyn
   assert.deepEqual(readdirSync(tmp), []);
 });
 
+test("masks an OAuth token's value but not an author's name", async () => {
+  await emit(
+    [
+      {
+        hook_event_name: "PostToolUse",
+        tool_name: "Bash",
+        tool_input: { command: "echo oauth-value-0123 by Theseus Team" },
+        tool_use_id: "toolu_06",
+      },
+    ],
+    {
+      env: {
+        CLAUDE_CODE_OAUTH_TOKEN: "oauth-value-0123",
+        GIT_AUTHOR_NAME: "Theseus Team",
+      },
+    },
+  );
+  const [{ body }] = studio.received;
+  assert.equal(body.tool_input.command, "echo [redacted] by Theseus Team");
+});
+
 // Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY is set, and cloud sessions reach the
 // internet only through their proxy, so settings.json sets it for every hook. Older Node versions
 // don't know it, and the test is skipped there.

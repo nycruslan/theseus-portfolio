@@ -16,9 +16,10 @@ const MAX_STRING_LENGTH = 4000;
 
 // The Studio is public, so mask anything that looks like a credential before it leaves: the values
 // of secret-named environment variables, values assigned to secret-named variables (.env files,
-// shell commands), then common key and token formats.
+// shell commands), then common key and token formats. AUTH leaves out AUTHOR, or a GIT_AUTHOR_NAME
+// would blank that name in every line the Studio shows.
 const SECRET_NAMES =
-  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH|DATABASE_URL|POSTGRES";
+  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR)|DATABASE_URL|POSTGRES";
 const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const SECRET_PATTERNS = [
   new RegExp(
@@ -72,7 +73,7 @@ if (process.argv[1] === SELF) {
 async function deliver(file) {
   const { payload, transcript } = JSON.parse(readFileSync(file, "utf8"));
   rmSync(file);
-  payload.repo = repoOf(payload.cwd);
+  payload.repo = repoName(payload.cwd);
   // The event goes first, so a slow or broken transcript can't cost it.
   await post(payload);
   if (!transcript) return;
@@ -104,7 +105,7 @@ async function post(payload) {
 }
 
 // The repository's name tells portfolio and Studio sprints apart, whatever the checkout is called.
-function repoOf(cwd) {
+function repoName(cwd) {
   try {
     const remote = execFileSync("git", ["remote", "get-url", "origin"], {
       cwd,
