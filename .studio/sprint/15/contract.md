@@ -43,19 +43,25 @@ sprint `n` is `ORDER[(n-1) mod 22]`, the 22 values copied from dir §4 into the 
    `profile.location`, then `Build log` plus C14's unchanged span (`lineSpan(N)`). That line is one line
    at 320 and 390 and the link is at least 24 px tall, accent, underlined (C14.1 and C14.2 retargeted).
 4. **The planks.** 22 `[data-hero-plank]`; exactly `min(N, 22)` carry `data-sprint`, numbers distinct.
-   `[data-hero-copper]` is the plank of the highest sprint and sits where ORDER says. It paints within
+   `[data-hero-copper]` is the plank of the highest sprint and sits where ORDER says (dir §4:
+   `5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0`). It paints within
    hero C7's existing copper tolerances in both schemes. Unreplaced planks paint
-   `color-mix(muted 46%, ground)` in light and 30% in dark. Replaced planks lighten toward the original
-   with age, strictly (dir §2 formula). The copper plank has the highest contrast against the ground of
-   all 22, by a margin Probe reads off the prototype first (a prototype that fails this is Iris's to fix,
-   not a reason to loosen the check). For `N > 22` the reader gives each plank the newest sprint that
-   replaced it; a page-less test feeds it fixtures, as `sprints.spec` C12 does.
-5. **The newest plank can be seen.** At scroll 0 the copper plank lies inside the viewport horizontally,
-   and at least 70% of it vertically, at 390 x 844 and at 1440 x 900. This fails today's ORDER at sprint
-   17 (see Risks): Iris fixes the order, not the check.
+   `color-mix(muted 46%, ground)` in light and 30% in dark. Replaced plank n paints
+   `color-mix(--bronze M%, original)` with `M = round(75 - 45 x age)`, where age is `(N - n)/(N - 1)`. So M
+   never exceeds 75 and falls strictly with age (72 down to 30 at N = 14). The copper plank's contrast
+   against the ground is at least **1.5x** that of every other plank, in the hero, in both schemes
+   (Iris measured on the prototype, at the 75% cap: light 6.06 vs 3.98 = 1.52, dark 6.36 vs 3.77 = 1.69;
+   the stage in B3 is 1.64 light and 1.66 dark). For `N > 22` the reader gives each plank the newest sprint
+   that replaced it; a page-less test feeds it fixtures, as `sprints.spec` C12 does.
+5. **The newest plank can be seen.** At scroll 0, at 390 x 844 and at 1440 x 900, at least **75%** of the
+   copper plank's painted area lies inside the viewport. Probe samples points inside the plank's shape,
+   as Iris did. With the hull length `min((100vw - margin) x 1.048, 1460px)` (dir §2), Iris measured
+   every N from 15 to 36 on the prototype: 100% except N = 21 (plank 0.0, 85%) and N = 22 (plank 1.0,
+   82%); 99% at 1440 for N = 35. Probe also feeds this check N = 22 by fixtures, the worst case.
 6. **The hull's footprint.** Bow within 1 px of the header's right content edge; stern clipped by the
-   viewport (`left < 0`) at 390, 1024 and 1440; length `min(118vw, 1460)` +/-3 from 1024 and 135vw below;
-   `scrollWidth - clientWidth` is 0 at 320, 390 and 1440. At least half of the hull is inside the first
+   viewport (`left < 0`, by about 18 px at 390 and 25 of 624 units in all) at 390, 1024 and 1440; length
+   `min((cw - margin) x 1.048, 1460)` +/-3 at every width (388 at 390, 1037 at 1024, 1459 at 1440), with
+   `margin = clamp(20px, 3.4vw, 48px)` and `cw` the viewport's `clientWidth`; `scrollWidth - clientWidth` is 0 at 320, 390 and 1440. At least half of the hull is inside the first
    viewport at 390 x 844, 1024 x 768 and 1440 x 900 (kept from hero C2).
 7. **Order on the page.** At 390 the hull's top is above the bio's top and the bio's top is above 844.
    At 1024 and 1440 the bio starts at column 7 (left edge +/-2 px of the 12-column grid) and its bottom is
@@ -99,12 +105,14 @@ or `.claude/` (Probe edits `e2e/` in B1); the prototype imported into `app/` (it
 
 ## Risks
 
-- **The newest plank can fall off a phone.** At 390 the stern is cropped by about 185 of the hull's 624
-  units. ORDER sends sprint 15 to 1.0 (x 0 to 87) and sprint 17 to 0.0 (the stern original), both inside
-  the crop by my reading of the prototype's rects. Check 5 would fail on sprint 17. Iris's call: reorder,
-  or crop less on phones.
-- **Bronze rivals copper.** `--bronze` is `#7a6250` on `#e6f3f1`; at 95% mix the sprint just before the
-  newest is nearly as loud as the copper (Probe measures). Iris may cap the mix (for example at 70%).
+- **The newest plank on a phone: settled, watch the worst case.** The crop is now a sliver (25 of 624
+  units, 18 px at 390), and Iris's ORDER puts the two stern planks (0.0, 1.0) last, at sprints 21 and 22.
+  Her measure is at least 82% of any plank visible. The thin margin is N = 22 (82%, against check 5's 75%),
+  so Probe feeds that case by fixtures. The cost is a shallower, smaller hull on phones (about 90 px tall,
+  dir §2), which Iris accepted; the owner sees it in the 390 screenshots.
+- **Bronze versus copper: settled by the 75% cap.** `M = 75 - 45 x age` keeps the copper at 1.5x the
+  contrast of any other plank (Iris's figures, check 4). The risk left is that Probe's reading of the
+  build differs from her reading of the prototype; a miss is a build defect, not a loosened check.
 - **The hero SVG is longer than 8,192 B** by inspection (7 gradients, 22 rects, 7 clip paths), against
   Iris's 3 KB gzip budget. Compact it first; a higher cap is decision 9.
 - **B1 is a big M**: type, layout, SVG and a renderer change. Probe's spike (renderer at 1460 px, DPR cap,
@@ -126,4 +134,9 @@ or `.claude/` (Probe edits `e2e/` in B1); the prototype imported into `app/` (it
    `reveal.spec`'s section list and the `invariants.spec` section check follow in B2 and B3.
 9. A higher markup cap for the hero SVG, if compaction cannot reach 8,192 B.
 10. Moving the nav to B2 and the yaw and seating to B5 (Quill's scope change from dir §6).
-Needs decision (Iris): ORDER or the phone crop (Risks 1); a cap on the bronze mix (Risks 2).
+Needs decision (Iris), settled 2026-10-21 (dir §2, §4):
+- **Risks 1:** settled by the crop, not the order. The hull length is `min((100vw - margin) x 1.048,
+  1460px)` at every width, which clips 25 of 624 units; ORDER puts the stern planks last. Check 6 now
+  carries that formula.
+- **Risks 2:** settled by capping the bronze mix at 75% (`M = 75 - 45 x age`), which keeps the copper at
+  1.5x or more (check 4).
