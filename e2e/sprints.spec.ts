@@ -463,6 +463,37 @@ test.describe("C2. Metadata", () => {
       .filter((rule) => "/sprints".startsWith(rule));
     expect(disallowed, "robots.txt rules that cover /sprints").toEqual([]);
   });
+
+  test("C2.3 one og:image and one twitter:image, each served as image/png", async ({
+    page,
+    request,
+  }) => {
+    const response = await page.goto(SPRINTS);
+    expect(response?.status(), `status of ${SPRINTS}`).toBe(200);
+    // A page that sets its own openGraph or twitter replaces the layout's whole, and takes the
+    // inherited image with it; /sprints once shared a card with the large-image type and no image.
+    const images = await page.evaluate(() => {
+      const content = (css: string) =>
+        [...document.querySelectorAll<HTMLMetaElement>(css)].map(
+          (meta) => meta.content,
+        );
+      return {
+        og: content('meta[property="og:image"]'),
+        twitter: content('meta[name="twitter:image"]'),
+      };
+    });
+    expect(images.og, "og:image").toHaveLength(1);
+    expect(images.twitter, "twitter:image").toHaveLength(1);
+    // The tags name the production host; the same paths are served here.
+    for (const [name, urls] of Object.entries(images)) {
+      const url = urls[0] ?? "";
+      const image = await request.get(new URL(url).pathname);
+      expect(image.status(), `status of the ${name} image`).toBe(200);
+      expect(image.headers()["content-type"], `${name} image type`).toBe(
+        "image/png",
+      );
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
