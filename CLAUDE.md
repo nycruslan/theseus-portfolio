@@ -46,8 +46,7 @@ paths and decisions) and `lens` (code review), and the owner's review wherever `
 names them. In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the
 owner's connection. So the owner's powers are in reach, and never yours to use: merge only through
 `merge.mjs`, which only Atlas runs (the sprint skill), and never approve or dismiss reviews, change
-settings or rulesets, or push to `main`. Iris's verdict is advice until she's calibrated
-(`design/rubric.md`).
+settings or rulesets, or push to `main`.
 
 ## The owner's
 
@@ -62,8 +61,8 @@ The team's own setup is the owner's too:
 - `design/brief.md`, `design/rubric.md` and `design/calibration/`;
 - `skills-lock.json`;
 - the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,
-  `renovate.json` and `playwright.config.*`, and the `scripts` in `package.json`. Dependencies
-  are the team's.
+  `renovate.json`, `playwright.config.*`, `.gitignore` and `.npmrc`, and the `scripts` in
+  `package.json`. Dependencies are the team's.
 
 `.github/CODEOWNERS` is the list the checks read. Propose changes to these in the PR's retro
 instead: a PR that edits them waits for the owner.
