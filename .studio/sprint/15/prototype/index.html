@@ -56,7 +56,7 @@ ol, ul { list-style: none; }
 /* The page is a ruled form: a 12-column grid with the log's columns drawn as rules. */
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gut); padding-inline: var(--m); }
 @media (max-width: 1023px) { .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (max-width: 639px) { .grid { grid-template-columns: minmax(0, 1fr); } .grid > * { grid-column: 1 / -1 !important; } }
+@media (max-width: 639px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .display { font-family: "Besley", Georgia, serif; font-weight: 800; letter-spacing: -0.02em; }
 /* A printed form's thick-and-thin rule over every section head. */
 .oxford { border-top: 3px solid var(--fg); padding-top: 4px; background: linear-gradient(var(--fg), var(--fg)) 0 2px / 100% 1px no-repeat; }
@@ -77,13 +77,14 @@ ol, ul { list-style: none; }
 .cell.headline { grid-column: 1 / 7; font-family: "Besley", Georgia, serif; font-weight: 700; font-size: var(--step-xl); line-height: 1.2; text-wrap: balance; }
 .cell.where { grid-column: 7 / 10; }
 .cell.log { grid-column: 10 / 13; }
-.cell .muted, .muted { color: var(--muted); }
+.muted { color: var(--muted); }
 .dot { margin-inline: 0.25rem; }
 @media (max-width: 1023px) { .cell.headline { grid-column: 1 / -1; } .cell.where { grid-column: 1 / 4; border-left: 0; padding-left: 0; margin-left: 0; } .cell.log { grid-column: 4 / 7; } .band .cells { row-gap: 0; } .cell.where, .cell.log { border-top: 1px solid var(--rule-strong); } }
-@media (max-width: 639px) { .cell { padding: 10px 0 12px; } .cell.log { border-left: 0 !important; padding-left: 0 !important; margin-left: 0 !important; } }
+@media (max-width: 639px) { .cell { padding: 10px 0 12px; } .cell.where, .cell.log { grid-column: 1 / -1; } .cell.log { border-left: 0; padding-left: 0; margin-left: 0; } .foot { grid-column: 1 / -1; } }
 .bio { grid-column: 7 / 13; order: 4; margin-top: clamp(24px, 3vw, 44px); font-size: var(--step-lg); line-height: 1.45; text-wrap: pretty; max-width: 36em; }
 @media (max-width: 1023px) { .bio { grid-column: 1 / -1; } }
 
+.hull { --ground: var(--bg); --h-muted: var(--muted); --old-mix: 46%; --copper: var(--accent); --chalk: var(--fg); }
 /* The hull: the object with weight. Cropped at the stern on every screen: you stand beside it. */
 .hull-wrap { --hw: min(calc((100vw - var(--m)) * 1.048), 1460px); grid-column: 1 / -1; order: 5; position: relative; margin-inline: calc(var(--m) * -1); margin-top: clamp(12px, 2vw, 28px); height: calc(var(--hw) * 146 / 632 + 34px); overflow: clip; }
 @media (max-width: 1023px) { .hull-wrap { order: 0; margin-top: 8px; } }
@@ -93,7 +94,6 @@ ol, ul { list-style: none; }
 .stations span::before { content: ""; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: var(--rule-strong); }
 .stations span:first-child { translate: 0 0; } .stations span:last-child { translate: -100% 0; }
 
-.hull { --ground: var(--bg); --h-muted: var(--muted); --old-mix: 46%; --copper: var(--accent); --chalk: var(--fg); }
 @media (prefers-color-scheme: dark) { .hull { --old-mix: 30%; --copper: color-mix(in oklab, var(--accent) 92%, var(--bg)); } }
 .hull .deck { fill: color-mix(in oklab, var(--h-muted) calc(var(--old-mix) - 14%), var(--ground)); }
 .hull .plank { --base: color-mix(in oklab, var(--h-muted) var(--old-mix), var(--ground)); fill: color-mix(in oklab, var(--chalk) calc(var(--hot, 0) * 70%), var(--base)); }
@@ -141,7 +141,7 @@ main > section { margin-top: clamp(72px, 9vw, 140px); }
 .ship-text .desc { margin-top: 16px; font-size: var(--step-lg); line-height: 1.45; }
 .sprints { margin-top: 28px; border-top: 1px solid var(--s-fg); }
 .sprints li { border-bottom: 1px solid var(--s-rule); }
-.row-link { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; color: var(--s-fg) !important; text-decoration: none; font-size: var(--step-sm); line-height: 1.45; }
+.sprints .row-link { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; color: var(--s-fg); text-decoration: none; font-size: var(--step-sm); line-height: 1.45; }
 .row-link .no { font-weight: 600; }
 .row-link .pr { color: var(--s-muted); }
 .row-link:hover .goal, .row-link:focus-visible .goal { text-decoration: underline; text-decoration-color: var(--s-accent); }
@@ -171,9 +171,9 @@ main > section { margin-top: clamp(72px, 9vw, 140px); }
 
 /* Contact: the sign-off. */
 .contact-links { grid-column: 1 / -1; margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px clamp(28px, 4vw, 64px); }
-.contact-links a { font-family: "Besley", Georgia, serif; font-weight: 800; font-size: clamp(1.625rem, 1.1rem + 3.4vw, 4.5rem); line-height: 1.1; overflow-wrap: anywhere; letter-spacing: -0.02em; text-decoration-thickness: 2px; text-underline-offset: 0.12em; display: inline-block; }
+.contact-link { font-family: "Besley", Georgia, serif; font-weight: 800; font-size: clamp(1.625rem, 1.1rem + 3.4vw, 4.5rem); line-height: 1.1; overflow-wrap: anywhere; letter-spacing: -0.02em; text-decoration-thickness: 2px; text-underline-offset: 0.12em; display: inline-block; }
 footer { margin-top: clamp(72px, 8vw, 120px); padding-block: 20px 40px; border-top: 1px solid var(--rule-strong); color: var(--muted); font-size: var(--step-sm); }
-footer p { grid-column: 1 / 9; }
+.foot { grid-column: 1 / 9; }
 
 .ship:has(li[data-sprint="1"]:is(:hover,:focus-within)) .hull-stage [data-sprint="1"],
 .ship:has(li[data-sprint="2"]:is(:hover,:focus-within)) .hull-stage [data-sprint="2"],
@@ -323,13 +323,13 @@ footer p { grid-column: 1 / 9; }
     <div class="grid">
       <div class="head oxford"><h2 id="h-contact" class="display">Contact</h2></div>
       <ul class="contact-links">
-        <li><a href="https://github.com/nycruslan">GitHub</a></li>
-        <li><a href="https://www.linkedin.com/in/nycruslan/">LinkedIn</a></li>
-        <li><a href="https://ruslanshulga.com">ruslanshulga.com</a></li>
+        <li><a class="contact-link" href="https://github.com/nycruslan">GitHub</a></li>
+        <li><a class="contact-link" href="https://www.linkedin.com/in/nycruslan/">LinkedIn</a></li>
+        <li><a class="contact-link" href="https://ruslanshulga.com">ruslanshulga.com</a></li>
       </ul>
     </div>
   </section>
 </main>
-<footer><div class="grid"><p>Ruslan Shulga <span class="dot">·</span> New York, NY</p></div></footer>
+<footer><div class="grid"><p class="foot">Ruslan Shulga <span class="dot">·</span> New York, NY</p></div></footer>
 </body>
 </html>

@@ -18,7 +18,7 @@ shippable sprint at a time. Every fact in `content/` stays word for word.
 | # | Size | Builds | What I changed, and why |
 |---|---|---|---|
 | B1 | M, Probe's spike first | The hero (checks below): Libre Franklin as the body face, Besley on the `/` h1 only, derived tokens, title band, 22-plank SVG from `readSprintLog()` and the ORDER table, canvas parity at rest on the new hull. | Besley stays off `/sprints` until B2, so `sprints.spec` C7.1 ("one font") stands. The nav moves to B2 (below). The 3/4-bow yaw and the plank seating move to B5: both are unspiked camera work and they would break hero C4/C12 at rest. The canvas keeps today's +/-0.24 shear turn. |
-| B2 | M | Ledger: rule, log rows (Experience, ruslanshulga.com, Education), Stack register, Contact, footer, `/sprints` in the ledger style, Besley everywhere it belongs, the nav. | Takes the nav from B1: four new links change the Tab order that `keyboard.spec` and sprints-entry C14.5 pin, which is a Probe-sized edit of its own. |
+| B2 | M | Ledger: rule, log rows (Experience, ruslanshulga.com, Education), Stack register, Contact, footer, `/sprints` in the ledger style, Besley everywhere it belongs, the nav. | Takes the nav from B1. Four new links change the order sprints-entry C14.5 pins (skip link, home link, first project), and a nav "Build log" breaks C14.6's one-link-to-`/sprints`-in-the-header rule; `keyboard.spec` derives its order from the DOM and pins nothing. Both are owner decision 7. |
 | B3 | M | Static ship scene: dark band, Theseus row, sprint rows, SVG stage with `:has()` highlight. | As Iris. Replaces project cards (see "Owner decisions" 8). |
 | B4 | spike, then M | Sticky 3D stage, camera frames A to C. | As Iris; Probe's spike before its contract (sprint 9's lesson). |
 | B5 | M | h2 "sets", plank seating, hero yaw, view transition to `/sprints`. | Grew from S: it now holds the hero motion. |
@@ -47,14 +47,20 @@ sprint `n` is `ORDER[(n-1) mod 22]`, the 22 values copied from dir §4 into the 
    `5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0`). It paints within
    hero C7's existing copper tolerances in both schemes. Unreplaced planks paint
    `color-mix(muted 46%, ground)` in light and 30% in dark. Replaced plank n paints
-   `color-mix(--bronze M%, original)` with `M = round(75 - 45 x age)`, where age is `(N - n)/(N - 1)`. So M
+   `color-mix(--bronze M%, original)` with `M = round(75 - 45 x age)`, where age is `(N - n)/(N - 1)` for `N >= 2`. At `N = 1` only the copper plank
+   is replaced and age is never computed; at `N = 0` all 22 planks are original and `[data-hero-copper]` is
+   absent (neither occurs in the repo, but a page-less fixture test covers both). So M
    never exceeds 75 and falls strictly with age (72 down to 30 at N = 14). The copper plank's contrast
    against the ground is at least **1.5x** that of every other plank, in the hero, in both schemes
    (Iris measured on the prototype, at the 75% cap: light 6.06 vs 3.98 = 1.52, dark 6.36 vs 3.77 = 1.69;
    the stage in B3 is 1.64 light and 1.66 dark). For `N > 22` the reader gives each plank the newest sprint
    that replaced it; a page-less test feeds it fixtures, as `sprints.spec` C12 does.
 5. **The newest plank can be seen.** At scroll 0, at 390 x 844 and at 1440 x 900, at least **75%** of the
-   copper plank's painted area lies inside the viewport. Probe samples points inside the plank's shape,
+   copper plank's painted area lies inside the viewport. 1024 x 768 is checked too. Iris measured it on the
+   prototype for N = 15 to 36: every sprint is at least 0.82 except the keel lift, sprint 26 (plank 6.0) at
+   0.07 and sprint 35 (plank 6.1) at 0.03, because at that height the keel sits below the fold (horizontal
+   share at least 0.71). The prototype misses there; B1 must raise the hull at 1024 x 768 (for example by
+   tightening the space above it, Iris's proposal) so the build passes. The check is not loosened. Probe samples points inside the plank's shape,
    as Iris did. With the hull length `min((100vw - margin) x 1.048, 1460px)` (dir §2), Iris measured
    every N from 15 to 36 on the prototype: 100% except N = 21 (plank 0.0, 85%) and N = 22 (plank 1.0,
    82%); 99% at 1440 for N = 35. Probe also feeds this check N = 22 by fixtures, the worst case.
@@ -84,9 +90,11 @@ sprint `n` is `ORDER[(n-1) mod 22]`, the 22 values copied from dir §4 into the 
 
 - **Stands unedited:** `keyboard.spec`, `reveal.spec`, `profile-sections.spec`, `content.spec`,
   `smoke.spec`, `sprints.spec` (C1 to C12), sprints-entry C14.2 (retargeted selector aside), C14.5, C14.6,
-  C15; hero C5, C8 (sizes aside), C9; hero-3d C12, C14, C17.
+  C15 (all of them stand in B1 and are the ones B2 and B3 touch); hero C5, C9; hero-3d C12, C14, C17.
 - **Rewritten, every assertion kept (Probe; Lens counts `expect(`):** hero C1 (placement: inside the
-  header, not between header and section), C3 and C2 (new footprint, checks 6 and 7), C4 (same rules,
+  header, not between header and section), C8 (its size checks at `hero.spec.ts:937-949` and the
+  Save-Data width of 688 at line 971 retargeted to check 6's formula; the scripts-off, reduced-motion and
+  forced-colors clauses stand), C3 and C2 (new footprint, checks 6 and 7), C4 (same rules,
   header markup), C7 (copper found through ORDER, not "third lift"); hero-3d C11 (shear and extents kept,
   air numbers re-measured), C13, C15; sprints-entry C14.1, C14.3 (the line is in the band, before the bio),
   C14.4 (gaps go; 1 line at 320, 390 and 1440 stays).
@@ -95,7 +103,8 @@ sprint `n` is `ORDER[(n-1) mod 22]`, the 22 values copied from dir §4 into the 
   within 10 degrees of the ground" and its copper-width share 0.2 to 0.4; hero-3d C13.4 (nothing outside
   copper above 3.05 : 1); the 8,192 B markup cap (C6, C15.3); `invariants.spec`'s literal scan, which
   would flag `--bronze` (allow its declaration, as for the five tokens), and `STEP_TOKENS` gaining
-  `--step-display`.
+  `--step-display`. Later, in B2 and B3: sprints-entry C14.6 (exactly one `/sprints` link on `/`, in
+  `main > header`), which the nav's "Build log" and the ship scene's rows would break, and C14.5's Tab list.
 
 ## Out of scope for B1 (and this PR)
 

@@ -59,6 +59,12 @@ On the prototype (Iris, Playwright Chromium; screenshots stay out of git, in the
   formula at every width, and it clips 25 of 624 units.
 - **Bronze cap (Iris):** capped at 75% because, at a 95% mix, the second-newest plank was nearly as
   loud as the copper.
+- **1024 × 768 (Atlas, from Lens's nit):** check 5 keeps the laptop size. On the prototype the keel
+  lift sits below the fold there for sprints 26 and 35 (0.07 and 0.03 on screen), so B1 must raise the
+  hull at that size; every other sprint is at least 0.82.
+- **Lens's other nits** went into the contract: hero C8 is rewritten, not unedited; N = 1 and N = 0 are
+  defined; sprints-entry C14.6 joins the owner's list of checks that would weaken. Iris's stale memory
+  line was fixed, and the prototype's CSS was made biome-clean with pixel-identical screenshots.
 - **Scope (Quill):** the nav moves to B2, and the yaw and plank seating move to B5. In B1 they would
   break pinned Tab-order and rest-pose checks, and neither has been spiked yet.
 
