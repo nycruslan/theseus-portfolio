@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { Hero } from "@/components/hero";
 import { ProjectCard } from "@/components/project-card";
 import { Section } from "@/components/section";
@@ -7,6 +8,16 @@ import { profile } from "@/content/profile";
 import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
 import { readSprintLog } from "@/lib/sprint-log";
+
+// The display face, on the name and the headline only (sprint 16, B1). It lives here, not in the
+// root layout, so it is preloaded on this route alone: /sprints never shows it. Named and used as
+// app/layout.tsx does the text face: by name in app/globals.css, which holds the fallback too.
+const _besley = localFont({
+  src: "./fonts/besley-700-900-latin.woff2",
+  weight: "700 900",
+  adjustFontFallback: false,
+  declarations: [{ prop: "font-family", value: "Besley" }],
+});
 
 // This page's own address, for search engines and link previews (see app/layout.tsx).
 export const metadata: Metadata = {
@@ -27,13 +38,14 @@ const person = {
 };
 
 export default function Home() {
-  // Read when the site is built, like the log page itself, so the count and the page agree.
-  const sprintCount = readSprintLog().length;
+  // Read when the site is built, like the log page itself, so the count, the hull and the page agree.
+  const sprints = readSprintLog().map((entry) => entry.sprint);
+  const sprintCount = sprints.length;
 
   return (
     <>
       <SkipLink />
-      {/* A size container, so the hero can go full-bleed in units of the page's own width (the
+      {/* A size container, so the header can go full-bleed in units of the page's own width (the
         viewport less any scrollbar). Not on body or html: containment there stops the body's
         background from reaching the canvas. */}
       <div className="@container">
@@ -50,37 +62,50 @@ export default function Home() {
               __html: JSON.stringify(person).replace(/</g, "\\u003c"),
             }}
           />
-          <header className="flex flex-col gap-4">
-            <h1 className="text-step-2xl font-semibold tracking-tight">
+          {/* The title block, on the page's 12-column grid (app/globals.css, "The title block"):
+            the name, a ruled band of three cells, the bio from column 7, and the hull. */}
+          <header className="masthead">
+            <h1 className="font-display text-step-display font-extrabold">
               {profile.name}
             </h1>
-            <p className="text-step-xl">{profile.headline}</p>
-            <p className="text-step-base text-muted">{profile.location}</p>
-            <p className="text-step-lg">{profile.bio}</p>
-            {sprintCount > 0 ? (
-              <p className="text-step-base">
-                {/* Same classes as the Contact links. */}
-                <a
-                  href="/sprints"
-                  className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
-                >
-                  Build log
-                </a>
-                {/* Starts with a no-break space, so the dot never begins a line. The dot has its own
-                margin so the link's focus ring (4px out) clears it; textContent stays " · N sprints". */}
-                <span className="text-muted">
-                  {"\u00a0"}
-                  <span className="mx-1">·</span>
-                  {` ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
-                </span>
+            <div data-hero-band="" className="band">
+              <p
+                data-hero-cell=""
+                className="cell font-display text-step-xl font-bold"
+              >
+                {profile.headline}
               </p>
-            ) : null}
+              <p data-hero-cell="" className="cell text-step-base text-muted">
+                {profile.location}
+              </p>
+              {sprintCount > 0 ? (
+                <p data-hero-cell="" className="cell text-step-base">
+                  {/* Same classes as the Contact links. */}
+                  <a
+                    href="/sprints"
+                    className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
+                  >
+                    Build log
+                  </a>
+                  {/* Starts with a no-break space, so the dot never begins a line. The dot has its own
+                  margin so the link's focus ring (4px out) clears it; textContent stays " · N sprints". */}
+                  <span className="text-muted">
+                    {"\u00a0"}
+                    <span className="mx-1">·</span>
+                    {` ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <p className="bio text-step-lg">{profile.bio}</p>
+            <Hero sprints={sprints} />
           </header>
 
-          <Hero />
-
           <Section id="experience" title="Experience">
-            <ol className="flex flex-col gap-8">
+            {/* The title block above ends past the first screen, so this section starts below the fold
+              at 1440 x 900, where reveal.spec's C1 needs all of it inside one window. Libre Franklin
+              sets wider than Geist did, so the entries sit 32 px closer (gap-6, mt-1) than before. */}
+            <ol className="flex flex-col gap-6">
               {profile.experience.map((role) => (
                 <li key={`${role.company}-${role.period}`}>
                   {/* A no-break space keeps "· Company" together, so the dot never ends a line. */}
@@ -88,7 +113,7 @@ export default function Home() {
                     {role.title} ·&nbsp;{role.company}
                   </h3>
                   <p className="text-step-sm text-muted">{role.period}</p>
-                  <p className="mt-2 text-step-base">{role.summary}</p>
+                  <p className="mt-1 text-step-base">{role.summary}</p>
                 </li>
               ))}
             </ol>

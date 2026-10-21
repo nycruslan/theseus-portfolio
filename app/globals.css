@@ -6,6 +6,30 @@
 @source "../components";
 
 /*
+ * The faces' fallbacks (sprint 16): a system font resized to the web font's metrics, so the swap
+ * from one to the other moves no line (layout shift 0, hero C4). The numbers are what next/font
+ * computed from each file's own metrics against Arial and Times New Roman; they change only if a
+ * font file does. The faces themselves are declared by next/font in app/layout.tsx and app/page.tsx.
+ */
+@font-face {
+  font-family: "Libre Franklin Fallback";
+  src: local("Arial");
+  ascent-override: 94.14%;
+  descent-override: 23.97%;
+  line-gap-override: 0%;
+  size-adjust: 102.61%;
+}
+
+@font-face {
+  font-family: "Besley Fallback";
+  src: local("Times New Roman");
+  ascent-override: 101.05%;
+  descent-override: 34.36%;
+  line-gap-override: 0%;
+  size-adjust: 123.71%;
+}
+
+/*
  * Design tokens. Mood: weathered bronze gone to sea-glass verdigris, with the links as the one
  * freshly fitted part, bright copper. Hex values are used so computed styles come back as rgb();
  * the oklch intent is kept beside each one. Direction: .studio/sprint/1/direction.md.
@@ -16,6 +40,15 @@
   --muted: #455e5a; /* oklch(46% 0.03 185) secondary text */
   --accent: #944126; /* oklch(48% 0.12 38) copper, links only */
   --rule: #c5d5d2; /* oklch(86% 0.018 185) decorative, never text */
+
+  /* Derived from the five (sprint 16): the ledger's ruling, and the metal a replaced plank of the
+     hull has aged to. Direction: .studio/sprint/15/direction-iris.md, section 2. */
+  --rule-strong: color-mix(in oklab, var(--muted) 38%, var(--background));
+  --bronze: #7a6250; /* oklch(51.5% 0.041 59) bronze, light ground */
+
+  /* The page's grid: margins and gutters, which the title block and the hull hang from. */
+  --margin: clamp(20px, 3.4vw, 48px);
+  --gutter: clamp(16px, 1.7vw, 24px);
 
   /* Both schemes are supported, so native scrollbars and form controls follow the system. It sits
      here, not in the dark block, so that block stays the five color tokens. */
@@ -28,6 +61,8 @@
   --step-lg: clamp(1.2rem, 1.1143rem + 0.4286vw, 1.5rem);
   --step-xl: clamp(1.44rem, 1.28rem + 0.8vw, 2rem);
   --step-2xl: clamp(3rem, 2.5rem + 2.5vw, 4.75rem);
+  /* The name on `/`: 136px at 1440 and 64px at 390. Past the craft floor's 6rem on purpose. */
+  --step-display: clamp(3.5rem, 2.33rem + 6.86vw, 8.5rem);
 }
 
 @theme inline {
@@ -48,8 +83,14 @@
   --text-step-xl--line-height: 1.2;
   --text-step-2xl: var(--step-2xl);
   --text-step-2xl--line-height: 1;
+  --text-step-display: var(--step-display);
+  --text-step-display--line-height: 0.92;
+  --text-step-display--letter-spacing: -0.02em;
 
-  --font-sans: var(--font-geist-sans);
+  /* Libre Franklin everywhere; Besley only where a class asks (app/page.tsx loads it). */
+  --font-sans:
+    "Libre Franklin", "Libre Franklin Fallback", system-ui, sans-serif;
+  --font-display: "Besley", "Besley Fallback", Georgia, serif;
 }
 
 /* The hull at night: the same verdigris ground, with the copper pulled toward hue 42 so it reads as
@@ -62,6 +103,8 @@
     --muted: #96a9a6; /* oklch(72% 0.022 185) secondary text */
     --accent: #eb8a64; /* oklch(73% 0.13 42) copper, links only */
     --rule: #2d4543; /* oklch(37% 0.03 189) deep verdigris, never text */
+    --rule-strong: color-mix(in oklab, var(--muted) 34%, var(--background));
+    --bronze: #a07d5c; /* oklch(61.5% 0.064 65) bronze, dark ground */
   }
 }
 
@@ -154,62 +197,149 @@ body {
 }
 
 /*
- * The hero half-model (components/hero.tsx, sprint 8): a static SVG between the header and the
- * first section, which a capable device later covers with the same hull in WebGL (sprint 10).
- * Contracts: .studio/sprint/7/contract.md, C1 to C9, and .studio/sprint/9/contract.md (the box, C10
- * to C17).
- *
- * The box. It is the hull's turn plus 4 px each side: at rest the hull is centred with 4 + 6 s px
- * of air, and the scroll's turn lifts the gunwale 5.7 s px into the top air (s is the hull's length
- * over 624). Below 768 px it is full-bleed, 8 + 130 s px tall; from 768 it hangs 32 px past the
- * column on both sides, as the project cards do: 688 x 138. Widths come from the page wrapper's
- * container units (app/page.tsx), which are the viewport minus any scrollbar, so a classic scrollbar
- * never makes it overhang the page the way 100vw would, nor moves the breakpoint.
+ * The title block (app/page.tsx, sprint 16, B1): the name, a ruled band of three cells, the bio from
+ * column 7, and under them the hull. It is a grid of 12 columns from 1024px, 6 from 640px and one
+ * below, with the page's margins and gutters, and it is full-bleed: the rest of the page stays in
+ * its column. The width is the page's own (100cqw: the viewport less any scrollbar, off the size
+ * container in app/page.tsx), so a classic scrollbar never makes it overhang.
+ * Contract: .studio/sprint/15/contract.md, "B1 checks" 2, 3, 6 and 7.
+ */
+.masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--gutter);
+  width: 100cqw;
+  margin-inline: calc(50% - 50cqw);
+  padding-inline: var(--margin);
+}
+
+@media (width >= 640px) {
+  .masthead {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 1024px) {
+  .masthead {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+.masthead > * {
+  grid-column: 1 / -1;
+}
+
+.masthead h1 {
+  text-wrap: balance;
+}
+
+/* A printed form's thick-and-thin rule: 3px, a 2px gap, then 1px, all of the ink. The thin one is
+   a background so the band keeps one box; it starts below the border, hence 2px. */
+.band {
+  display: grid;
+  grid-template-columns: subgrid;
+  margin-top: clamp(20px, 2.4vw, 36px);
+  padding-top: 4px;
+  border-top: 3px solid var(--foreground);
+  background:
+    linear-gradient(var(--foreground), var(--foreground)) 0 2px / 100% 1px
+    no-repeat;
+}
+
+/* One cell a row on a phone, ruled between; two cells under the headline from 640px; three in a
+   row from 1024px, each after the first drawn off from the one before by a rule in the gutter. */
+.cell {
+  padding-block: 10px 12px;
+}
+
+.cell + .cell {
+  border-top: 1px solid var(--rule-strong);
+}
+
+@media (width >= 640px) {
+  .cell:nth-child(2) {
+    grid-column: 1 / 4;
+  }
+
+  .cell:nth-child(3) {
+    grid-column: 4 / 7;
+    padding-left: var(--gutter);
+    margin-left: calc(var(--gutter) * -1);
+    border-left: 1px solid var(--rule-strong);
+  }
+}
+
+@media (width >= 1024px) {
+  .cell {
+    padding-block: 14px 16px;
+  }
+
+  .cell + .cell {
+    border-top: 0;
+    padding-left: var(--gutter);
+    margin-left: calc(var(--gutter) * -1);
+    border-left: 1px solid var(--rule-strong);
+  }
+
+  .cell:nth-child(1) {
+    grid-column: 1 / 7;
+  }
+
+  .cell:nth-child(2) {
+    grid-column: 7 / 10;
+  }
+
+  .cell:nth-child(3) {
+    grid-column: 10 / 13;
+  }
+}
+
+/* The bio comes after the hull on a phone (the object first, in the first viewport) and before it
+   from 1024px, in columns 7 to 12. */
+.bio {
+  margin-top: clamp(24px, 3vw, 44px);
+  max-width: 36em;
+  text-wrap: pretty;
+  order: 1;
+}
+
+@media (width >= 1024px) {
+  .bio {
+    grid-column: 7 / -1;
+    order: 0;
+  }
+}
+
+/*
+ * The hero hull (components/hero.tsx): a static SVG at the foot of the title block, which a capable
+ * device later covers with the same hull in WebGL (sprint 10). The box is full-bleed and exactly as
+ * tall as the hull's SVG. The hull's length is min((cw - margin) x 1.048, 1460px) at every width
+ * (388px at 390, 1037 at 1024, 1459 at 1440), with the bow on the right margin: 4% of the model's
+ * length runs off the stern, so no plank is ever cut deeper than a sliver, and the newest plank is
+ * always on screen. Contract: "B1 checks" 6; the measures are in
+ * .studio/sprint/15/direction-iris.md, section 2.
  */
 .hero {
-  /*
-   * The hull's length. The bow tip sits on the header's right edge: 24 px in from the viewport
-   * below 672, then the column's edge. It is 1.12 x the viewport up to 390 (on a phone a whole hull
-   * reads as a boat icon; cropped, it is an object you stand next to), then grows evenly to the
-   * column's 624 px at 768, so nothing steps at the breakpoint.
-   */
-  --hero-length: min(112cqw, 436.8px + (100cqw - 390px) * 0.495238, 624px);
+  --hero-length: min((100cqw - var(--margin)) * 1.048, 1460px);
   position: relative;
   display: flex;
-  align-items: center;
-  /* The bow is placed from the right; on phones the stern runs off the left edge, cropped. */
   justify-content: flex-end;
-  width: 100cqw;
-  height: calc(8px + var(--hero-length) * 130 / 624);
-  margin-inline: calc(50% - 50cqw);
+  margin: clamp(8px, 1.4vw, 20px) calc(var(--margin) * -1) 0;
   overflow: clip;
   pointer-events: none;
 }
 
 /* The model: its height follows the viewBox. */
-.hero-model {
+.hero > svg {
   display: block;
   flex: none;
   width: var(--hero-length);
   height: auto;
-  margin-right: max(24px, 50cqw - 312px);
+  margin-right: var(--margin);
 }
 
-@container (width >= 48rem) {
-  .hero {
-    width: 688px;
-    height: 138px;
-    margin-inline: -32px;
-  }
-
-  .hero-model {
-    width: 624px;
-    margin-right: 32px;
-  }
-}
-
-/* The WebGL hull (components/hero-gl.ts) covers the whole box, so the turn has room above the
-   SVG's rest pose, and fades in over it: the only motion the swap makes. */
+/* The WebGL hull (components/hero-gl.ts) covers the whole box and fades in over the SVG: the only
+   motion the swap makes. */
 .hero canvas {
   position: absolute;
   inset: 0;
@@ -242,63 +372,56 @@ body {
 }
 
 /*
- * The tones. Each place on the hull carries how lit it is (--l, 0 to 1, from the model's light in
- * lib/half-model.ts), and here that becomes a share of --muted in --background: lightness only, so
- * the hue stays the page's. Lit means paler on the light ground and brighter on the dark one, so
- * the light comes from the same side in both schemes. The ranges keep every tone between 1.2 and
- * 2.8 : 1 against the ground: present, but quieter than the muted text.
+ * The tones (lib/hull-planks.ts says which plank is which). An original plank is the page's muted
+ * text colour thinned into the ground; a replaced one is --bronze mixed into that, by the share
+ * its own --m carries (75% for the sprint behind the newest, down to 30% for the oldest); the
+ * newest is copper. On the dark ground the full accent is the brightest thing in the box, so the
+ * plank sits one notch back toward the hull, as sprint 8's rule has it (hero C7 holds it within
+ * 0.06 of the accent's lightness). A plank's tone is its own fill, a plain colour; the light on it
+ * is a separate shape laid over (the gradient rect of each lift).
  */
 .hero {
-  --hero-shade: 52%;
-  --hero-span: -40%;
+  --old: 46%;
+  --copper: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
   .hero {
-    --hero-shade: 18%;
-    --hero-span: 36%;
+    --old: 30%;
+    --copper: color-mix(in oklab, var(--accent) 92%, var(--background));
   }
 }
 
-.hero stop {
-  stop-color: color-mix(
+.hero [data-hero-plank] {
+  fill: color-mix(
     in oklab,
-    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
-    var(--background)
+    var(--bronze) var(--m, 0%),
+    color-mix(in oklab, var(--muted) var(--old), var(--background))
   );
 }
 
+.hero [data-hero-copper] {
+  fill: var(--copper);
+}
+
+/* The deck: what the view from above shows of the top, a shade under an original plank. */
 .hero-deck {
   fill: color-mix(
     in oklab,
-    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
+    var(--muted) calc(var(--old) - 14%),
     var(--background)
   );
 }
 
-/* The one freshly fitted plank: the page's copper, as its links are. */
-.hero-copper {
-  fill: var(--accent);
-}
-
-/* On the dark ground the full accent is the brightest thing in the box, so the plank sits one notch
-   back toward the hull: still copper (C7 keeps it within 0.06 lightness of the accent). */
-@media (prefers-color-scheme: dark) {
-  .hero-copper {
-    fill: color-mix(in oklab, var(--accent) 92%, var(--background));
-  }
-}
-
-/* Seams: a 1 px hairline of the ground between lifts and at each butt, at any size. */
-.hero-model path {
+/* Seams: a 1px hairline of the ground at any size, round each lift (its <use>, which also lays the
+   light over the planks) and at each butt (the stroke of the plank's own rect, which the lift's clip
+   cuts to the lift). */
+.hero use,
+.hero [data-hero-plank] {
   stroke: var(--background);
   stroke-width: 1px;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
-}
-
-.hero-butts {
-  fill: none;
 }
 
 /* Forced colors would flatten every tone to one system color: a silhouette with no planks. The
@@ -309,11 +432,7 @@ body {
   }
 }
 
-/* The guard tests the form the tones use, a calc() inside the mix's percentage: a browser that
-   parses color-mix() but not that would otherwise draw every stop black. */
-@supports not (
-    color: color-mix(in oklab, currentcolor calc(10% + 10%), transparent)
-  ) {
+@supports not (color: color-mix(in oklab, currentcolor 10%, transparent)) {
   .hero {
     display: none;
   }

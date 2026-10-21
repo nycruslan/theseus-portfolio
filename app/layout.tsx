@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import { profile } from "@/content/profile";
 import { openGraph, title } from "@/lib/metadata";
 import { DARK, LIGHT, SITE_URL } from "@/lib/site";
@@ -8,9 +8,16 @@ import "./globals.css";
 // The whole site is static content; fail the build if anything makes it render per request.
 export const ensureStatic = "navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// The text face, on every route (sprint 16). next/font self-hosts the file from app/fonts (its
+// licence beside it), preloads it, and writes the @font-face for the latin subset, which is the
+// whole of what the owner's words use. The family is named here and used by name in app/globals.css,
+// with its metric-fitted fallback, so the constant itself is never read. The fallback is written
+// there too: next/font would name it after the constant, and the constant can't hold a space.
+const _libreFranklin = localFont({
+  src: "./fonts/libre-franklin-400-700-latin.woff2",
+  weight: "400 700",
+  adjustFontFallback: false,
+  declarations: [{ prop: "font-family", value: "Libre Franklin" }],
 });
 
 // Every route gets these. The social image comes from app/opengraph-image.tsx and the icon from
@@ -37,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
