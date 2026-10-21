@@ -18,15 +18,12 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 
 ## Next (highest first)
 
-- [ ] Redesign (L, the owner's goal, 2026-10-20): an impressive portfolio on the direction in
-  `design/brief.md`, measured against the references in `design/calibration/`. Iris's direction
-  comes first, in a PR of its own the owner approves (concept, key screens at 1440 and 390 px, a
-  motion storyboard, budgets); then M sprints build it a section at a time, the hero first.
-  - Direction and contract: sprint 15, PR #47 (`.crew/sprint/15/direction-iris.md`, prototype in
-    `prototype/`, Quill's `contract.md`): "the log of the Theseus", a ruled ship's log with the hull of 22
-    planks, one replaced per sprint, copper the newest; Besley and Libre Franklin. Build B1-B5, the hero (B1, M)
-    first with Probe's checks 1-11 red first. Waits for the owner to accept it by merging #47 (11 decisions).
-    Follow-up: Iris's environment line in memory (Lens nit).
+- [ ] Redesign (L, the owner's goal, 2026-10-21): the site in `PRODUCT.md` and `design/brief.md`,
+  on the research in `design/research/2027-redesign.md`. One experience: the portfolio shows the
+  crew at work, from the Studio's data. Iris's direction comes first, on a Design canvas the owner
+  approves (the L lane); then Quill's contract and M sprints, the hero first.
+  - Superseded: sprint 15's direction ("the log of the Theseus", #47) and sprint 16's B1 build
+    (#49, closed), which came before the owner's interview.
 
 - [ ] A share card for `/sprints` (S): the page sets its own `openGraph` and `twitter` metadata, which
   drops the inherited `opengraph-image`, so a shared link shows no image while it declares

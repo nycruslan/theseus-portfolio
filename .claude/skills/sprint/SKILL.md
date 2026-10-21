@@ -49,10 +49,13 @@ unsure, take the smaller lane.
   Playwright tests in `e2e/`, one per numbered check. The builder makes them pass. Then CI and
   Lens. For visual work, Iris reviews the running site, and you post her report on the PR as
   advice.
-- **L: ambiguous or cross-cutting.** Quill writes `contract.md` in a PR of its own, labelled
-  `needs-owner`; the owner accepts it by merging that PR. Iris gives direction when it brings new
-  visual language. When two approaches compete and the call matters, run the `decide` skill. Then
-  split the work into S and M pull requests and run those lanes.
+- **L: ambiguous or cross-cutting.** New visual language starts on a Design canvas the owner
+  reviews: Iris publishes her direction there (publish her files yourself if her session can't),
+  and you send the owner one push notification with its link. The owner answers in the canvas's
+  comments, so read them first whenever you take up the item: Iris revises on comments, and the
+  build starts only once the owner approves there. Keep the canvas link and the approving comment
+  in the sprint folder. Quill's `contract.md` then splits the work into S and M pull requests, and
+  you run those lanes. When two approaches compete and the call matters, run the `decide` skill.
 
 The builder is Forge, or Pixel only for 3D, shaders and motion.
 
@@ -79,8 +82,10 @@ only on interaction-heavy work.
 
 **The owner's decisions.** `gate` holds a PR that touches an owner path, changes `package.json`'s
 scripts, weakens a test or ever carried `needs-owner`, until the owner approves its head. Escalate
-scope to Quill and taste to Iris; owner facts, taste calls on large work and anything risky go to
-the owner, under "Needs owner decision" in the PR, with the `needs-owner` label. Once the head is
+scope to Quill and taste to Iris. Taste calls on large work go to the owner on the canvas (the L
+lane); owner facts and anything risky go to the owner under "Needs owner decision" in the PR, with
+the `needs-owner` label. Ask the owner as rarely as the work allows: batch what needs them, such as
+the tests an approved redesign retires, into one PR. Once the head is
 final and every required check but `gate` passed on it, mark the PR ready (Ship) and tell the
 owner with a push notification: its link and what it needs. The team's checks app opens the
 team's PRs, so the owner approves the head and merges it. `merge.mjs` refuses a PR that `gate`
