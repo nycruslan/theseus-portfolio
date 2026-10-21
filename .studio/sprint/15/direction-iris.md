@@ -88,7 +88,7 @@ from them. New, derived:
 | Token | Light | Dark | Role |
 |---|---|---|---|
 | `--rule-strong` | `color-mix(in oklab, muted 38%, bg)` | `muted 34%` | the ledger's ruling (decorative, never text) |
-| `--bronze` | `#7a6250` | `#a07d5c` | the patina's middle: a replaced plank's tone is `color-mix(bronze M%, original)` with M = 100 − 70 × age |
+| `--bronze` | `#7a6250` | `#a07d5c` | the patina's middle: a replaced plank's tone is `color-mix(bronze M%, original)` with M = 75 − 45 × age (capped at 75%, section 2) |
 | stage tokens | ground `#0f2220` (today's ink), text `#e1eae9`, muted `#96a9a6`, copper `#eb8a64`, rule `#2d4543` | ground `#0f1e1c` | the night scheme used as a region: the ship scene is the one dark band in light mode |
 
 - **Copper's role** is "the newest part": links, and the latest plank. On a dark ground, filled copper
@@ -98,7 +98,22 @@ from them. New, derived:
 - **The patina formula**, which Quill can check:
   - The original planks are `color-mix(in oklab, muted 46%, ground)` in light and `30%` in dark.
   - The latest plank is copper.
-  - Sprint n of latest L takes age `(L − n)/(L − 1)`.
+  - Sprint n of latest L takes age `(L − n)/(L − 1)`, and its mix is `M = 75 − 45 × age` percent (round
+    to whole). That runs from 72% just behind the newest down to 30% for sprint 1, so it's strictly
+    decreasing and the oldest step stays clear of the original tone (contrast 2.69 against 2.12).
+  - **The cap (settled for the contract, Risks 2):** the mix never exceeds 75%, so the copper stays the
+    loudest plank by at least **1.5×** its contrast against the ground. Measured in the prototype at the
+    cap, copper against a 75% bronze:
+
+    | Context | Copper | 75% bronze | Ratio |
+    |---|---|---|---|
+    | Hero, light (the binding case) | 6.06 | 3.98 | 1.52 |
+    | Stage, light | 5.69 | 3.46 | 1.64 |
+    | Hero, dark | 6.36 | 3.77 | 1.69 |
+    | Stage, dark | 5.91 | 3.55 | 1.66 |
+
+    The old formula put the newest-but-one plank at about 95% (4.75 against 6.06, only 1.28×). Today
+    (N = 14) the loudest replaced plank is 72%.
 
 ### Layout: a ruled form, not cards
 
@@ -111,9 +126,18 @@ from them. New, derived:
   1 px `--rule-strong` rules, with a rule between entries. On phones the cells stack in the same order.
 - **No cards, no radii, no shadows** anywhere. Today's project card gives way to a log row; the plank
   idea moves into the hull itself.
-- **The hull:** full-bleed and **cropped at the stern** on every width. The bow sits on the right
-  margin, and the length is `min(118vw, 1460px)` on desktop and 135vw below 1024 px: you stand beside
-  it rather than look at an icon. On desktop, the station ruler (0 to 10) runs under it.
+- **The hull:** full-bleed and **cropped at the stern** on every width, by a sliver. The bow sits on
+  the right margin, and the length is `min((100vw − margin) × 1.048, 1460px)` at every width: 388 px at
+  390, 1037 at 1024, 1459 at 1440. That clips 25 of the hull's 624 units (4%) off the stern.
+  - **Why so little (settled for the contract, Risks 1):** the newest plank must always be on screen,
+    and the cycle makes each of the 22 planks the newest once every 22 sprints. So no order can avoid a
+    cropped plank; only the crop can. The first draft's 135vw on phones hid 4 planks entirely and cut
+    7 more.
+  - At 1.048, every plank keeps at least **82%** of its area on screen at 390 × 844 and 1440 × 900. The
+    worst is plank 1.0 (82% of its area, 71% of its width); next is 0.0 (85%).
+  - On phones this gives up the deep crop I wanted ("stand beside it"), and the hull is 90 px tall
+    instead of 122. I accept that: the newest plank staying visible is the concept's truth.
+  - On desktop, the station ruler (0 to 10) runs under it.
 
 ## 3. Key screens (prototype)
 
@@ -133,7 +157,7 @@ Screenshots are in `.studio/screenshots/sprint-15/` (git-ignored), taken in Play
 | File | What it shows |
 |---|---|
 | `proto-1440-light-fold.png`, `proto-1440-dark-fold.png` | The hero at 1440 × 900: the name at 136 px, the ruled title band (headline · city · Build log), the bio in cols 7–12, and the hull full-bleed, cropped at the stern and running off the bottom edge, with plank 14 copper. |
-| `proto-390-light-fold.png`, `proto-390-dark-fold.png` | The hero at 390 × 844: the name on two lines, the band stacked, then the hull (moved above the bio on phones so the object is in the first viewport), the stations, and the bio starting above the fold. |
+| `proto-390-light-fold.png`, `proto-390-dark-fold.png` | The hero at 390 × 844: the name on two lines, the band stacked, then the hull (placed above the bio on phones, nearly whole, its stern clipped by 18 px), the stations, and the whole bio inside the first viewport. |
 | `proto-1440-*-experience.png`, `proto-390-*-experience.png` | The ledger: thick-and-thin rule, when / where / what, company in Besley, and the five quantities in the JPMorgan summary in bold (needs the owner's approval, section 8). |
 | `proto-1440-*-ship-hover6.png` | The ship scene at 1440, scrolled into the sprint list, with row 6 hovered: plank 6 lit in chalk, plank 14 in copper, every replaced plank numbered, and the legend. |
 | `proto-390-*-ship-hover6.png` | The same on a phone: the stage stuck at the top, the list scrolling under it. On the phone the plank numbers are too small in this still; the 3D build has to fix that (S3). |
@@ -185,11 +209,21 @@ bands of window heights.
 **The shipwright's order.** It's fixed and lives in `lib/`. Sprint n replaces `ORDER[(n − 1) mod 22]`,
 written as `lift.plank`, with lift 0 at the deck:
 
-`5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.0 4.1 0.0 3.1 5.0 1.2 2.2 3.3`
+`5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0`
 
 The order is scattered, as real repairs are. Sprint 14 lands on today's copper spot, the third lift
 amidships, so the hero's composition doesn't change at the switch. From sprint 23 the cycle replaces
 its own oldest replacements, and that is the paradox, shown.
+
+Sprints 15 to 22 take the eight planks still original. Six of them are wholly on screen; the two
+stern planks that the crop touches (0.0 and 1.0) come last, at sprints 21 and 22.
+
+**Verified for every n from 15 to 36:** I built the prototype with the newest sprint set to n and
+measured the copper plank at scroll 0, sampling points inside its real shape.
+- At 390 × 844 and 1440 × 900, its area on screen is 1.00 for every n except sprint 21 (0.85) and
+  sprint 22 (0.82). Sprint 35's plank keeps 0.99 at 1440.
+- Its vertical extent on screen is at least 0.97 for every n.
+- No replaced plank goes above a 74% mix.
 
 ## 5. Budgets
 
@@ -234,9 +268,12 @@ Specs that each step will touch, and that the contract should name as expected e
    unchanged).
 4. The hull has 22 plank shapes, and exactly N (from `readSprintLog()`, capped at 22) carry a sprint
    number. The plank of the highest sprint is copper (the accent, or its 92% mix in dark). Planks with
-   no sprint use the original tone.
+   no sprint use the original tone. Replaced planks follow `M = 75 − 45 × age`. The copper's contrast
+   with the ground is at least 1.5× every other plank's, in the hero and the stage, in both schemes.
 5. The hull's bow lies within 1 px of the right content edge, and its stern is clipped by the viewport
-   at 1440 and at 390. No horizontal scroll at 320 or 390.
+   at 1440 and at 390, the length being `min((100vw − margin) × 1.048, 1460px)`. The copper plank keeps
+   at least 75% of its area on screen at scroll 0 at 390 × 844 and at 1440 × 900. No horizontal scroll
+   at 320 or 390.
 6. At 390 the hull comes before the bio in visual order. At 1024 and up, the bio sits in cols 7–12
    above the hull.
 7. LCP is the h1 at 1440 and the bio at 390, never the canvas or SVG. CLS after load is 0.
@@ -284,7 +321,7 @@ already shows them.
 3. **The dark band in light mode** for the ship scene. Without it, the hull reads weaker on the pale
    ground and the page has no change of pace.
 4. **The latest plank moves** each sprint, following the fixed order. So the hero changes after every
-   merge (sprint 15's plank is lift 1, plank 0). The alternative is to pin the copper amidships and
+   merge (sprint 15's plank is lift 1, plank 2). The alternative is to pin the copper amidships and
    move the others, which is less true to the idea.
 5. **Bold numbers** in the JPMorgan summary (section 8).
 6. **Hull above the bio on phones,** so the object is in the first viewport. The bio still starts
