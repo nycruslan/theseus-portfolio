@@ -11,7 +11,10 @@ import { join } from "node:path";
 export interface SprintEntry {
   /** The retro's `sprint`: a positive integer equal to its folder's number. */
   sprint: number;
-  /** The goal as the page shows it: process prefix and backticks removed, first letter capitalised. */
+  /**
+   * The goal as the page shows it: process prefix, backticks and a trailing size tag removed, first
+   * letter capitalised. The size has its own field.
+   */
   goal: string;
   size?: "S" | "M" | "L";
   /** A positive integer: the pull request's number. */
@@ -38,11 +41,14 @@ function withoutBackticks(text: string): string {
   return text.replaceAll("`", "");
 }
 
-// "Roadmap item 4:" names the process, not the goal.
+// "Roadmap item 4:" names the process, not the goal. A final "(L)" repeats the size the entry already
+// shows; any other parenthetical, such as "(L, contract step)", says more and stays.
 function presentGoal(goal: string): string {
   const text = withoutBackticks(
     goal.replace(/^\s*roadmap item(\s+\d+)?\s*:\s*/i, ""),
-  ).trim();
+  )
+    .trim()
+    .replace(/\s*\(\s*[SML]\s*\)$/i, "");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 

@@ -13,8 +13,10 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// Every route gets these. The social image comes from app/opengraph-image.tsx and the icon from
-// app/icon.svg; Next adds their tags itself. A canonical URL and og:url belong to one page each, so
+// Every route gets these, unless it sets its own `openGraph` or `twitter`: those replace the objects
+// below whole, and with them the social image from app/opengraph-image.tsx, so such a route needs an
+// opengraph-image of its own (app/sprints/opengraph-image.tsx). The icon comes from app/icon.svg; Next
+// adds the image and icon tags itself. A canonical URL and og:url belong to one page each, so
 // they're set by the page (app/page.tsx), never here: here they would make every route, a 404
 // included, claim to be the home page.
 export const metadata: Metadata = {
