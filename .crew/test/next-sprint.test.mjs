@@ -225,7 +225,7 @@ test("keeps working beside one PR that waits for the owner, stands down at two, 
   assert.equal(held.action.pr, 12);
   assert.match(
     held.action.say,
-    /PR #12 \(sprint\/2-dark-mode\) waits for the owner \(needs-owner\) \(also open: #13\)\. Don't start a new sprint/,
+    /PR #12 \(sprint\/2-dark-mode\) waits for the owner \(also open: #13\)\. Don't start a new sprint/,
   );
   assert.equal(held.next, 4);
   const { state } = preflight(

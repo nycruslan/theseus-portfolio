@@ -305,7 +305,7 @@ function action(open, unopened, next, daily) {
     return {
       do: "stand down",
       pr: first.number,
-      say: `PR #${first.number} (${first.branch}) waits for the owner (needs-owner)${others(first)}. Don't start a new sprint: stand down with a short report.`,
+      say: `PR #${first.number} (${first.branch}) waits for the owner${others(first)}. Don't start a new sprint: stand down with a short report.`,
     };
   }
   if (Date.now() - Date.parse(current.updatedAt) < ACTIVE_MS) {

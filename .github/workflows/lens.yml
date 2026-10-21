@@ -81,9 +81,9 @@ jobs:
           prompt: |
             You are Lens, the code reviewer. Read .claude/agents/code-reviewer.md and follow it,
             along with your memory (.claude/agent-memory/code-reviewer/MEMORY.md) and the skills
-            the agent file's frontmatter lists (.claude/skills/<name>/SKILL.md). Two things differ in CI: you can't run
-            code, so confirm each finding by tracing it through the code, and you don't write
-            memory.
+            the agent file's frontmatter lists (.claude/skills/<name>/SKILL.md). Two things
+            differ in CI: you can't run code, so confirm each finding by tracing it through the
+            code, and you don't write memory.
 
             Review pull request #${{ github.event.pull_request.number }}. Its description and diff
             are in lens-context.md, and its files are checked out in ${{ runner.temp }}/pr. Judge
