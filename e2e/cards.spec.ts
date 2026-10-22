@@ -3,22 +3,25 @@ import { profile } from "../content/profile";
 import {
   horizontalOverflow,
   PROJECTS,
+  projectLinkLabel,
   resolveColors,
   SCHEMES,
-  withLink,
 } from "./helpers";
 
-// What stays true of the project cards (sprint 3) whatever their look: one per project, saying
-// what the profile says and nothing more, the whole card is the link when the project has one, and
-// they're drawn in tokens, hold still under reduced motion and reflow on a phone. Their focus ring
-// and Tab order are in keyboard.spec.ts. A card is a list item of the Projects section.
+// What stays true of the projects (sprint 3) whatever their look: one row per project, saying
+// what the profile says and nothing more, one link when the project has one, and drawn in tokens,
+// holding still under reduced motion and reflowing on a phone. Their focus ring and Tab order are
+// in keyboard.spec.ts. A row is a list item of the Projects section. Since sprint 23 the rows are
+// a schedule's rows with one small link labelled from the owner's links (.crew/sprint/23/
+// contract.md, data rules): "the whole of a linked card is its link" retired with the cards
+// (batch D), and B2.9 holds the link to 24 x 24 px (invariants.spec.ts).
 
 const cardsOf = (page: Page) => page.locator(`${PROJECTS} li`);
 const normalize = (text: string) => text.replace(/\s+/g, " ").trim();
 const escapeRegExp = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-test("one card per project: its name and description, and a link only when it has an href", async ({
+test("one row per project: its name, its description and its link's label, and a link only when it has an href", async ({
   page,
 }) => {
   await page.goto("/");
@@ -31,10 +34,11 @@ test("one card per project: its name and description, and a link only when it ha
     await expect(card.locator("h3"), `card ${index} title`).toHaveText(
       project.name,
     );
+    const label = project.href ? projectLinkLabel(project.href) : "";
     expect(
       normalize(await card.innerText()),
-      `visible text of the ${project.name} card`,
-    ).toBe(normalize(`${project.name} ${project.description}`));
+      `visible text of the ${project.name} row, ending with its link's label`,
+    ).toBe(normalize(`${project.name} ${project.description} ${label}`));
 
     // Whatever says "this is a link" is decoration: an aria-hidden icon, never text put in with
     // CSS `content`, which would join the link's name.
@@ -64,58 +68,6 @@ test("one card per project: its name and description, and a link only when it ha
       ).toHaveAccessibleName(new RegExp(escapeRegExp(project.name)));
     } else {
       await expect(links, `links in the ${project.name} card`).toHaveCount(0);
-    }
-  }
-});
-
-test("the whole of a linked card is its link", async ({ page }) => {
-  for (const viewport of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    await page.setViewportSize(viewport);
-    for (const project of withLink) {
-      const href = project.href ?? "";
-      await page.goto("/");
-      const card = cardsOf(page).nth(profile.projects.indexOf(project));
-      await card.scrollIntoViewIfNeeded();
-      // A 3 x 3 grid of points, 8 px in from the card's edges, must all hit the link.
-      const result = await card.evaluate((li) => {
-        const link = li.querySelector("a");
-        const rect = li.getBoundingClientRect();
-        const xs = [rect.left + 8, rect.left + rect.width / 2, rect.right - 8];
-        const ys = [rect.top + 8, rect.top + rect.height / 2, rect.bottom - 8];
-        const points = xs.flatMap((x) =>
-          ys.map((y): [number, number] => [x, y]),
-        );
-        const misses = points.flatMap(([x, y]) => {
-          const hit = document.elementFromPoint(x, y);
-          return link && hit?.closest("a") === link
-            ? []
-            : [
-                `(${Math.round(x)}, ${Math.round(y)}) hit <${hit?.tagName.toLowerCase()}>`,
-              ];
-        });
-        return { misses, height: rect.height, corner: points.at(-1) };
-      });
-      const where = `${project.name} card at ${viewport.width} px`;
-      expect(
-        result.misses,
-        `points in the ${where} that miss the link`,
-      ).toEqual([]);
-      expect(result.height, `${where}: height`).toBeGreaterThanOrEqual(44);
-
-      // A real click in the bottom-right corner follows the link (the destination is stubbed).
-      await page.route(href, (route) =>
-        route.fulfill({
-          contentType: "text/html",
-          body: "<title>stub</title>",
-        }),
-      );
-      const [x = 0, y = 0] = result.corner ?? [];
-      await page.mouse.click(x, y);
-      await page.waitForURL(new URL(href, page.url()).href, { timeout: 5_000 });
-      await page.unroute(href);
     }
   }
 });
