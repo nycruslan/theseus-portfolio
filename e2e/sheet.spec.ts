@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Response, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { DARK, LIGHT } from "../lib/site";
 import {
@@ -987,8 +987,10 @@ test("B1.10 one type family: Sofia Sans and its Extra Condensed name, two self-h
     .soft(imports.sort(), "next/font/google imports in app/")
     .toEqual(["Sofia_Sans", "Sofia_Sans_Extra_Condensed"]);
 
+  // Bodies are read on / only: the listener comes off before /sprints, where a font served from
+  // Chrome's memory cache has no body over CDP and an unawaited read would reject.
   const fonts: Promise<{ url: string; bytes: number }>[] = [];
-  page.on("response", (response) => {
+  const onResponse = (response: Response) => {
     if (new URL(response.url()).pathname.endsWith(".woff2")) {
       fonts.push(
         response
@@ -996,9 +998,11 @@ test("B1.10 one type family: Sofia Sans and its Extra Condensed name, two self-h
           .then((body) => ({ url: response.url(), bytes: body.length })),
       );
     }
-  });
+  };
+  page.on("response", onResponse);
   await open(page, 1440);
   await page.evaluate(() => new Promise((done) => setTimeout(done, 500)));
+  page.off("response", onResponse);
   const files = await Promise.all(fonts);
   expect
     .soft(
