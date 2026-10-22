@@ -15,7 +15,8 @@ name: lens
 #
 # Cost: a review runs when Atlas adds the `review` label, on a new base, and on pushes while the
 # label is on, unless the push only touches notes and Lens's last ship still stands (lens.mjs).
-# Opus 5.5, as Lens is locally, capped at 40 turns and 30 minutes, on the owner's subscription.
+# Opus 5.5, as Lens is locally, capped at 40 turns and 30 minutes, on the owner's subscription; its
+# effort follows the size of the change (medium, high or xhigh: lens.mjs's effortFor).
 #
 # Third-party actions are pinned to full commit SHAs, with the release in a trailing comment,
 # because they run with the app key and the Claude token: a moved tag can't change what runs.
@@ -96,7 +97,7 @@ jobs:
             (important, nit or pre-existing), file, line and a title and detail.
           claude_args: |
             --model claude-opus-5-5
-            --effort high
+            --effort ${{ steps.plan.outputs.effort }}
             --max-turns 40
             --tools "Read,Glob,Grep"
             --strict-mcp-config

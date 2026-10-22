@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { CREW } from "./kit.mjs";
@@ -73,6 +73,11 @@ test("the watchdog decides a stop in sync and hears the rest in the background",
 test("denies the obvious, whatever the mode", () => {
   for (const rule of [
     "Bash(gh pr merge *)",
+    // Sessions act as the owner, whose powers the REST API reaches too: merging (merge.mjs does
+    // that, in its own process), approving and dismissing reviews.
+    "Bash(gh api *pulls/*/merge*)",
+    "Bash(gh api *pulls/*/reviews*APPROVE*)",
+    "Bash(gh api *pulls/*/reviews/*/dismissals*)",
     "Bash(gh auth *)",
     "Bash(gh api *rulesets*)",
     "Bash(gh api *actions/secrets*)",
@@ -81,16 +86,46 @@ test("denies the obvious, whatever the mode", () => {
     "Bash(git push --force*)",
     "Bash(git push * -f*)",
     "mcp__github",
-    "Agent(model:*fable*)",
   ]) {
     assert.ok(settings.permissions.deny.includes(rule), rule);
   }
   // REST through gh api is how the team works with GitHub, and routines run unattended.
-  for (const rule of ["Bash(gh api *)", "Bash(node .crew/next-sprint.mjs)"]) {
+  for (const rule of [
+    "Bash(gh api *)",
+    "Bash(node .crew/next-sprint.mjs)",
+    "Bash(node .crew/next-sprint.mjs *)",
+  ]) {
     assert.ok(settings.permissions.allow.includes(rule), rule);
   }
 });
 
 test("hooks reach the network through the cloud's proxy: Node's fetch needs NODE_USE_ENV_PROXY", () => {
   assert.equal(settings.env.NODE_USE_ENV_PROXY, "1");
+});
+
+// Opus 5.5 defaults to medium effort, so every role names its model and effort. The lead and Iris
+// run on Fable, where judgment and taste matter most; the rest on Opus (owner's call, 2026-10-22).
+test("every role and the lead run on a strong model at a stated effort", () => {
+  const agents = join(CREW, "..", ".claude", "agents");
+  const front = (file) =>
+    Object.fromEntries(
+      readFileSync(file, "utf8")
+        .split("---")[1]
+        .split("\n")
+        .map((line) => line.match(/^(model|effort):\s*(\S+)/))
+        .filter(Boolean)
+        .map(([, key, value]) => [key, value]),
+    );
+  const roles = readdirSync(agents).filter((name) => name.endsWith(".md"));
+  assert.ok(roles.length >= 6);
+  for (const role of roles) {
+    const { model, effort } = front(join(agents, role));
+    assert.ok(["opus", "fable"].includes(model), `${role}: ${model}`);
+    assert.ok(["high", "xhigh", "max"].includes(effort), `${role}: ${effort}`);
+  }
+  assert.equal(front(join(agents, "design-director.md")).model, "fable");
+  const lead = front(
+    join(CREW, "..", ".claude", "skills", "sprint", "SKILL.md"),
+  );
+  assert.deepEqual(lead, { model: "fable", effort: "high" });
 });

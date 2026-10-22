@@ -15,17 +15,19 @@ const SELF = fileURLToPath(import.meta.url);
 const MAX_STRING_LENGTH = 4000;
 
 // The Studio is public, so mask anything that looks like a credential before it leaves: the values
-// of secret-named environment variables, values assigned to secret-named variables (.env files,
-// shell commands), then common key and token formats. AUTH leaves out a whole AUTHOR part (but not
-// AUTHORIZATION), or a GIT_AUTHOR_NAME would blank that name in every line the Studio shows.
+// of secret-named environment variables, values given to secret-named names in any case (`API_KEY=`,
+// `password=`, `--token=`, `"secret": "…"`), then common key and token formats. AUTH leaves out a
+// whole AUTHOR word (but not AUTHORIZATION), or a GIT_AUTHOR_NAME or a commit's --author would blank
+// that name in every line the Studio shows.
 const SECRET_NAMES =
-  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR(?:_|$))|DATABASE_URL|POSTGRES";
+  "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR(?:[^A-Z0-9]|$))|DATABASE_URL|POSTGRES";
 const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const SECRET_PATTERNS = [
   new RegExp(
-    `(?<=\\b[A-Z0-9_]*(?:${SECRET_NAMES})[A-Z0-9_]*=["']?)[^\\s"']+`,
-    "g",
+    `(?<=\\b[A-Z0-9_]*(?:${SECRET_NAMES})[A-Z0-9_]*=["']?)[^\\s"';&|]+`,
+    "gi",
   ),
+  new RegExp(`(?<="[\\w-]*(?:${SECRET_NAMES})[\\w-]*"\\s*:\\s*")[^"]+`, "gi"),
   /\b(?:sk|pk|rk)(?:-|_live_|_test_)[\w-]{16,}/g,
   /\bgh[pousr]_\w{20,}/g,
   /\bgithub_pat_\w{20,}/g,

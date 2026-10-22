@@ -20,7 +20,7 @@ const pr = (number, branch, labels = [], from = {}) => ({
   draft: from.draft ?? false,
   html_url: `https://github.com/${REPO}/pull/${number}`,
   updated_at:
-    from.updatedAt ?? new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
+    from.updatedAt ?? new Date(Date.now() - 3 * 60 * 60_000).toISOString(),
 });
 const folder = (name) => ({ name, type: "dir" });
 // A sprint PR merged into main `hours` ago, as REST lists the closed PRs.
@@ -79,7 +79,7 @@ function github({
     [`${R}/issues/*/events`]: [],
     [`${R}/issues/*/comments`]: [],
     [`${R}/pulls/*`]: { mergeable_state: "clean" },
-    [`${R}/commits/*`]: { commit: { committer: { date: minutesAgo(120) } } },
+    [`${R}/commits/*`]: { commit: { committer: { date: minutesAgo(180) } } },
     [`${R}/commits/*/check-runs`]: { check_runs: [] },
     user: { login: "nycruslan" },
   });
@@ -101,6 +101,16 @@ function preflight(table, env = {}) {
     state: result.stdout.trim() ? JSON.parse(result.stdout) : null,
     calls: log.calls(),
   };
+}
+
+// The pre-flight of a run the owner gave a goal.
+function runWithGoal(table, env = {}) {
+  const result = runHook("next-sprint.mjs", "", {
+    cwd: repo,
+    args: ["--owner-goal"],
+    env: { GH_ROUTES: routes(table), ...env },
+  });
+  return { ...result, state: JSON.parse(result.stdout) };
 }
 
 test("with nothing open, the next sprint is one past the highest anywhere", () => {
@@ -509,7 +519,7 @@ test("starts nothing beside a waiting PR once the day's cap is reached", () => {
   assert.match(state.action.say, /the daily cap \(5\)/);
 });
 
-test("leaves an open sprint PR that changed in the last 45 minutes to the run working on it", () => {
+test("leaves an open sprint PR that changed in the last two hours to the run working on it", () => {
   const busy = preflight(
     github({
       pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
@@ -520,7 +530,7 @@ test("leaves an open sprint PR that changed in the last 45 minutes to the run wo
   assert.match(busy.action.say, /changed 10 min ago/);
   const quiet = preflight(
     github({
-      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(50) })],
+      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(130) })],
     }),
   ).state;
   assert.equal(quiet.action.do, "continue");
@@ -534,6 +544,32 @@ test("an open sprint PR is continued even at the daily cap: finishing work isn't
   assert.deepEqual(state.daily, { merged: 5, cap: 2 });
   assert.equal(state.action.do, "continue");
   assert.equal(state.action.pr, 50);
+});
+
+test("the owner's goal starts a sprint at the daily cap, which only holds the crew's own chain", () => {
+  const capped = github({ closed: [...today(), merged(46, 0.5)] });
+  assert.equal(preflight(capped).state.action.do, "stand down");
+  const { state } = runWithGoal(capped);
+  assert.deepEqual(state.daily, { merged: 6, cap: 6 });
+  assert.equal(state.action.do, "start");
+  assert.equal(state.action.sprint, state.next);
+});
+
+test("the owner's goal starts beside a waiting PR at the cap, but never on a live run's work", () => {
+  const waiting = github({
+    pulls: [pr(12, "sprint/2-dark-mode", ["needs-owner"])],
+    closed: today(),
+  });
+  const beside = runWithGoal(waiting, { THESEUS_DAILY_SPRINTS: "5" }).state;
+  assert.equal(beside.action.do, "start");
+  assert.equal(beside.action.waiting, 12);
+  const live = runWithGoal(
+    github({
+      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
+    }),
+  ).state;
+  assert.equal(live.action.do, "stand down");
+  assert.equal(live.action.pr, 9);
 });
 
 test("an invalid THESEUS_DAILY_SPRINTS means the default cap of 6", () => {
@@ -556,7 +592,7 @@ test("reads today's merges from one page of the closed PRs, most recently update
   assert.ok(!closed[0].includes("--paginate"));
 });
 
-test("stands down while a sprint branch with no PR yet was committed to in the last 45 minutes", () => {
+test("stands down while a sprint branch with no PR yet was committed to in the last two hours", () => {
   // 2026-10-17: sprint 8 pushed its branch at once and opened its PR an hour later; the heartbeat
   // in between saw no open PR and started sprint 9 on the same work.
   const fresh = "8".repeat(40);
@@ -580,12 +616,12 @@ test("stands down while a sprint branch with no PR yet was committed to in the l
   assert.equal(state.next, 9);
 });
 
-test("a sprint branch with no PR, quiet for more than 45 minutes, holds nothing up", () => {
+test("a sprint branch with no PR, quiet for more than two hours, holds nothing up", () => {
   const stale = "7".repeat(40);
   const { state } = preflight(
     github({
       branches: [branch("main"), branch("sprint/8-abandoned", stale)],
-      commits: { [stale]: minutesAgo(50) },
+      commits: { [stale]: minutesAgo(130) },
     }),
   );
   assert.deepEqual(state.unopened, []);
