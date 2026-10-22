@@ -63,6 +63,11 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
 
 ## Needs owner decision
 
+0. **Lens can't judge this PR at its turn cap.** Both runs on 5914a41 ended with no verdict: 44 turns,
+   then 55 on the re-run, against `--max-turns 40` in `.github/workflows/lens.yml`. The diff is 53
+   files, +5,504 and −5,125 lines. Raising the cap is your path. The retro proposes scaling it with
+   the change's size, as the effort already scales (for example 40, 80 and 120). Once it's raised,
+   re-run the `lens` job on the head and the crew takes it from there.
 1. **Approve the retired checks.** B1 can't replace the page without them. They're in three batches:
    - **(A)** All 7 tests in `hero-3d.spec.ts`, and `hero.spec.ts` C1, C2, C3, C7 and C8. These
      describe the old WebGL and SVG hull, which is gone. Hero C6's byte budget for the drawing rises
