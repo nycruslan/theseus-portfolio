@@ -291,8 +291,20 @@ html {
   }
 }
 
-/* Forced colors keep the drawing as line art: every line in the system's text color, every plank
-   on the system's ground. */
+/* A legend swatch: the plank's fill in a 1 px ink frame. Its fill is a background, which print
+   drops unless told otherwise, and the legend would then name two identical boxes. */
+.swatch {
+  display: inline-block;
+  width: 28px;
+  height: 12px;
+  border: 1px solid var(--foreground);
+  print-color-adjust: exact;
+}
+
+/* Forced colors keep the drawing as line art: every line in the system's text color, a seated
+   plank on the system's ground and an original one in its secondary grey, which differs from both
+   ground and text in every theme. The legend's swatches say the same: forced colors would turn
+   both to Canvas, so they keep their own fills (.crew/sprint/23/notes-iris.md, section 9). */
 @media (forced-colors: active) {
   .plan {
     forced-color-adjust: none;
@@ -302,24 +314,30 @@ html {
     stroke: CanvasText;
   }
 
-  .plan .plank-seated,
-  .plan .plank-original {
+  .plan .plank-seated {
     fill: Canvas;
+  }
+
+  .plan .plank-original {
+    fill: GrayText;
   }
 
   .plan-view > span {
     color: CanvasText;
   }
-}
 
-/* A legend swatch: the plank's fill in a 1 px ink frame. Its fill is a background, which print
-   drops unless told otherwise, and the legend would then name two identical boxes. */
-.swatch {
-  display: inline-block;
-  width: 28px;
-  height: 12px;
-  border: 1px solid var(--foreground);
-  print-color-adjust: exact;
+  .swatch {
+    forced-color-adjust: none;
+    border-color: CanvasText;
+  }
+
+  .swatch.bg-card {
+    background: Canvas;
+  }
+
+  .swatch.bg-card-old {
+    background: GrayText;
+  }
 }
 
 /*
@@ -395,12 +413,20 @@ html {
     grid-column: 2 / -1;
   }
 
-  /* The head is the visible label here; assistive tech already has it from the column. */
+  /* The head is the visible label here; assistive tech already has it from the column, so where
+     the browser knows the alt-text form the generated text gets an empty name. One that doesn't
+     keeps the plain form, and the label still shows. */
   .rev td[data-label]::before {
-    content: attr(data-label) / "";
+    content: attr(data-label);
     display: block;
     color: var(--muted);
     font-weight: 600;
+  }
+
+  @supports (content: "" / "") {
+    .rev td[data-label]::before {
+      content: attr(data-label) / "";
+    }
   }
 
   /* Under 384 px the four signatures go two by two beside the number. Last in this
@@ -1016,5 +1042,60 @@ html {
 
   .lost {
     padding: 40px 0 72px;
+  }
+}
+
+/*
+ * Print, on every route (.crew/sprint/23/notes-iris.md, section 8): ink on white paper in either
+ * scheme. The light tokens on white, graphite darkened so nothing secondary falls under 7:1. After
+ * the dark block and as specific, so it wins there too. The controls nobody can press on paper go;
+ * /read's address stays, so the printout says where it came from; an entry keeps together.
+ */
+@page {
+  margin: 16mm 18mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #111c22;
+    --muted: #3d4549;
+    --accent: #9e441d;
+    --rule: #bfcac7;
+    --pencil: #878d91;
+    --card: #fbfaf7;
+    --card-old: #d9e0dc;
+  }
+
+  .entry,
+  .read-entry,
+  .da,
+  .ship {
+    break-inside: avoid;
+  }
+
+  .sched h2,
+  .read h2 {
+    break-after: avoid;
+  }
+
+  .da-gateway {
+    print-color-adjust: exact;
+  }
+
+  .strip-back,
+  .strip-print {
+    display: none;
+  }
+
+  .strip-url {
+    display: block;
+    justify-self: start;
+  }
+
+  .page {
+    max-width: none;
+    margin: 0;
   }
 }
