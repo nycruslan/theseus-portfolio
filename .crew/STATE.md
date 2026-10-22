@@ -18,7 +18,12 @@ makes stale, and keep the file under about 100 lines.
   file states. Lens's effort in CI follows the size of the change.
 - **The pre-flight:**
   - The owner's goal isn't held by the daily cap.
-  - A PR or branch that changed in the last two hours is left to the run still on it.
+  - A PR or branch a run worked on in the last two hours is left to the run still on it. A commit
+    counts, and so does marking the PR ready or labelling it `review`. Lens's reviews and the
+    owner's comments don't, since they aren't a run.
+- **One run, one sprint.** After #62 merged, the owner's "Merged" in the finished run's session
+  had it start sprint 23 while the merge's own run did the same. That left two PRs for one sprint
+  (#66, #67), and the two crews spent the five-hour usage limit together.
 
 ## Lessons that hold
 
