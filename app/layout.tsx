@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Sofia_Sans } from "next/font/google";
 import { profile } from "@/content/profile";
 import { openGraph, title } from "@/lib/metadata";
 import { DARK, LIGHT, SITE_URL } from "@/lib/site";
@@ -8,9 +8,15 @@ import "./globals.css";
 // The whole site is static content; fail the build if anything makes it render per request.
 export const ensureStatic = "navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The name's condensed
+// width is the home page's alone (app/page.tsx). `optional`: the face is used only if it is there
+// for the first paint, so it never swaps in later and shifts the page; the fallback next/font
+// sizes to its metrics holds the lines meanwhile. No `fallback` list: under Turbopack one replaces
+// that sized fallback instead of following it (app/globals.css adds the generic family).
+const sofiaSans = Sofia_Sans({
   subsets: ["latin"],
+  display: "optional",
+  variable: "--font-sofia",
 });
 
 // Every route gets these, unless it sets its own `openGraph` or `twitter`: those replace the objects
@@ -39,7 +45,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${sofiaSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );

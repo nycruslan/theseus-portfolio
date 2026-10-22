@@ -14,17 +14,17 @@ export const REPO_URL = "https://github.com/nycruslan/theseus-portfolio";
  * tokens and icon.svg match these in both schemes, so change them together.
  */
 export const LIGHT = {
-  background: "#e6f3f1",
-  foreground: "#0f2220",
-  muted: "#455e5a",
-  accent: "#944126",
-  rule: "#c5d5d2",
+  background: "#eaf1ee",
+  foreground: "#111c22",
+  muted: "#555c61",
+  accent: "#9e441d",
+  rule: "#bfcac7",
 } as const;
 
 export const DARK = {
-  background: "#091413",
-  foreground: "#e1eae9",
-  muted: "#96a9a6",
-  accent: "#eb8a64",
-  rule: "#2d4543",
+  background: "#10191c",
+  foreground: "#e2eae9",
+  muted: "#a3adb1",
+  accent: "#ee8f63",
+  rule: "#323d40",
 } as const;

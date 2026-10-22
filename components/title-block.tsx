@@ -1,0 +1,42 @@
+import { profile } from "@/content/profile";
+import { splitBio } from "@/lib/bio";
+
+const LINK =
+  "text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
+
+// The sheet's title block (notes-iris.md, section 7): the owner's name as the largest text on the
+// page, his role and place, the bio's first two sentences and his links. It is main's header, the
+// first thing a screen reader meets in main and the page's largest paint (B1.9).
+export function TitleBlock({ className = "" }: { className?: string }) {
+  return (
+    <header
+      className={`flex flex-col border-t-2 border-foreground px-4 pt-3.5 pb-6 lg:border-r lg:border-b lg:px-7 lg:pt-[18px] lg:pb-4 ${className}`}
+    >
+      <h1 className="font-cond text-step-3xl leading-[0.9] font-bold tracking-[-0.01em] lg:leading-[0.86]">
+        {profile.name}
+      </h1>
+      <div className="mt-2.5 flex flex-wrap items-baseline justify-between gap-x-4 border-t border-foreground pt-1.5 lg:mt-3.5 lg:pt-2">
+        <p className="text-step-lg leading-[1.2] font-[650]">
+          {profile.headline}
+        </p>
+        <p className="text-step-sm text-muted">{profile.location}</p>
+      </div>
+      <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5">
+        {splitBio(profile.bio).lead}
+      </p>
+      {/* Pushed to the block's foot beside the revisions. No id: #contact is the Contact section. */}
+      <p className="mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:gap-x-[22px] lg:pt-2">
+        <span className="text-muted">Contact</span>
+        {profile.links.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            className={`inline-flex min-h-11 items-center lg:min-h-0 ${LINK}`}
+          >
+            {link.label}
+          </a>
+        ))}
+      </p>
+    </header>
+  );
+}
