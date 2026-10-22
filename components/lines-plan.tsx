@@ -55,6 +55,7 @@ function Drawing({ plan, id }: { plan: Plan; id: string }) {
         </g>
         <path className="ln-section" d={lines.sections} />
         <path className="ln-deck" d={lines.deck} />
+        <path className="ln-leader" d={lines.leaders} />
         <path className="ln-outline" d={lines.outline} />
       </svg>
       {plan.lettering.map((letter) => (

@@ -82,30 +82,43 @@ function bandAt(plank: Plank, x: number): Point | null {
 
 const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
 
-/**
- * Where a plank's number sits: in the middle of its depth, halfway along the stretch where the
- * plank is nearly a whole lift deep. For most planks that is mid-length; for one the stem, stern or
- * keel cuts, it is the middle of what's left, so the number stays on the plank's body and clear of
- * its neighbours' numbers at 768 px.
- */
-function numberAt(plank: Plank): Point | null {
-  const xs = Array.from(
-    { length: 49 },
-    (_, i) => plank.x0 + ((plank.x1 - plank.x0) * i) / 48,
-  );
-  const depth = (x: number) => {
+/** A plank's depth at 49 stations along it, stern to bow. */
+function depths(plank: Plank) {
+  return Array.from({ length: 49 }, (_, i) => {
+    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
     const band = bandAt(plank, x);
-    return band ? band[1] - band[0] : 0;
-  };
-  const deepest = Math.max(...xs.map(depth));
-  const deep = xs.filter(
-    (x) => depth(x) >= 0.9 * Math.min(deepest, LIFT_DEPTH),
-  );
+    return { x, depth: band ? band[1] - band[0] : 0 };
+  });
+}
+
+/** The first and last x where a plank is at least `depth` deep, or null where it never is. */
+function stretch(stations: ReturnType<typeof depths>, depth: number) {
+  const deep = stations.filter((station) => station.depth >= depth);
   const [first, last] = [deep[0], deep.at(-1)];
-  if (first === undefined || last === undefined) return null;
-  const x = (first + last) / 2;
-  const band = bandAt(plank, x);
-  return band ? [x, (band[0] + band[1]) / 2] : null;
+  return first && last ? ([first.x, last.x] as Point) : null;
+}
+
+/**
+ * The plank's body, where its number goes: where it is nearly a whole lift deep, or nearly as deep
+ * as it ever gets, for one the stem, stern or keel cuts.
+ */
+function plankBody(stations: ReturnType<typeof depths>) {
+  const deepest = Math.max(...stations.map((station) => station.depth));
+  return stretch(stations, 0.9 * Math.min(deepest, LIFT_DEPTH));
+}
+
+/**
+ * A plank is led out when it is not two thirds of a lift deep (about its number's height) for
+ * this long: no place on it holds the number clear of the outline and the butts at any width, so
+ * the number is set aft of the hull with a leader to the plank (.crew/sprint/22/review-iris.md,
+ * Changes 1). Only 5.0, the stern wedge of lift 5, is today.
+ */
+const LEAD_OUT_UNDER = 24;
+const NUMBER_DEPTH = (2 / 3) * LIFT_DEPTH;
+
+function ledOut(stations: ReturnType<typeof depths>) {
+  const room = stretch(stations, NUMBER_DEPTH);
+  return !room || room[1] - room[0] < LEAD_OUT_UNDER;
 }
 
 // --- Path strings ---------------------------------------------------------------------------
@@ -206,6 +219,8 @@ type Lines = {
   sections: string;
   /** The half-breadth plan's deck line and transom: ink, 1.4. */
   deck: string;
+  /** Leaders from a number set outside the hull to its plank: graphite, 0.75. */
+  leaders: string;
   /** The hull's outline and the midship section: ink, 1.6. */
   outline: string;
 };
@@ -274,6 +289,7 @@ function draw(layout: Layout, seats: ReadonlyMap<string, number>): LinesPlan {
     centrelines: "",
     sections: "",
     deck: "",
+    leaders: "",
     outline: "",
   };
 
@@ -301,13 +317,25 @@ function draw(layout: Layout, seats: ReadonlyMap<string, number>): LinesPlan {
   lines.outline += hull;
 
   // Each plank is its lift's box between two butts, cut by the outline; the seated ones carry
-  // their sprint's number.
+  // their sprint's number, in the middle of the plank's body. A plank whose body is too short for
+  // it has its number set aft of the hull, at its lift's mid-depth, with a leader to the plank.
   const planks = PLANKS.map((plank): PlankShape => {
     const [x0, y0] = P(plank.x0, plank.yTop);
     const [x1, y1] = P(plank.x1, plank.yBot);
     const sprint = seats.get(plank.id);
-    const at = layout.numbers && sprint !== undefined ? numberAt(plank) : null;
-    if (at) letter(String(sprint), P(...at), "middle", "plank");
+    if (layout.numbers && sprint !== undefined) {
+      const stations = depths(plank);
+      const at = plankBody(stations);
+      const band = at && bandAt(plank, (at[0] + at[1]) / 2);
+      if (ledOut(stations)) {
+        const yMid = (plank.yTop + plank.yBot) / 2;
+        letter(String(sprint), P(plank.x0 - 22, yMid), "end", "plank");
+        lines.leaders += `M${pt(P(plank.x0 - 20, yMid))}H${X(plank.x1 - 2)}`;
+      } else if (at && band) {
+        const mid: Point = [(at[0] + at[1]) / 2, (band[0] + band[1]) / 2];
+        letter(String(sprint), P(...mid), "middle", "plank");
+      }
+    }
     return {
       id: plank.id,
       d: `M${num(x0)} ${num(y0)}H${num(x1)}V${num(y1)}H${num(x0)}Z`,

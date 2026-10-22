@@ -29,7 +29,9 @@
 
   /* Type: one family, two widths (notes-iris.md, section 2). Each fluid step is linear from 390 to
      1440 px. Six sizes are all the sheet uses, so the small one serves the drawing's lettering, the
-     table and the secondary lines alike. 2xl is the section head, 3xl the name. */
+     table and the secondary lines alike; xs is the plank numbers' below 1024 px, where a lift is too
+     shallow for sm. 2xl is the section head, 3xl the name. */
+  --step-xs: 0.6875rem;
   --step-sm: 0.8125rem;
   --step-base: clamp(1rem, 0.9768rem + 0.0952vw, 1.0625rem);
   --step-lg: clamp(1.125rem, 1.0554rem + 0.2857vw, 1.3125rem);
@@ -79,7 +81,7 @@
     --accent: #ee8f63;
     --rule: #323d40;
     --pencil: #6a7377;
-    --card: #4b5659;
+    --card: #58646a;
     --card-old: #222d31;
   }
 }
@@ -194,6 +196,11 @@ html {
   stroke-width: 1.4px;
 }
 
+.ln-leader {
+  stroke: var(--muted);
+  stroke-width: 0.75px;
+}
+
 .ln-outline {
   stroke: var(--foreground);
   stroke-width: 1.6px;
@@ -222,6 +229,14 @@ html {
   line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* From 768 to 1023 px a lift is 10 to 14 px deep: the plank numbers drop to 11 px to fit it. The
+   child selector outranks the rule above. */
+@media (width < 64rem) {
+  .plan-view > .plan-plank {
+    font-size: var(--step-xs);
+  }
 }
 
 .plan-caption,
@@ -339,7 +354,7 @@ html {
 
   .rev tbody tr {
     display: grid;
-    grid-template-columns: 2.25rem repeat(auto-fill, minmax(4rem, 1fr));
+    grid-template-columns: 2.25rem repeat(4, minmax(0, 1fr));
     gap: 4px 12px;
     padding: 8px 0;
     border-bottom: 1px solid var(--rule);
@@ -364,5 +379,17 @@ html {
     display: block;
     color: var(--muted);
     font-weight: 600;
+  }
+
+  /* Under 384 px the four signatures go two by two beside the number. Last in this
+     block, so it overrides the rules above it. */
+  @media (width < 24rem) {
+    .rev tbody tr {
+      grid-template-columns: 2.25rem repeat(2, minmax(0, 1fr));
+    }
+
+    .rev tbody th {
+      grid-row: span 3;
+    }
   }
 }
