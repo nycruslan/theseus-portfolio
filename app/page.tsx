@@ -1,12 +1,29 @@
 import type { Metadata } from "next";
-import { Hero } from "@/components/hero";
+import { Sofia_Sans_Extra_Condensed } from "next/font/google";
+import { Bar } from "@/components/bar";
+import { LinesPlan } from "@/components/lines-plan";
 import { ProjectCard } from "@/components/project-card";
+import { Revisions } from "@/components/revisions";
 import { Section } from "@/components/section";
 import { SkipLink } from "@/components/skip-link";
+import { TitleBlock } from "@/components/title-block";
 import { profile } from "@/content/profile";
+import { splitBio } from "@/lib/bio";
+import { PLANKS, seatPlanks } from "@/lib/lines-plan";
 import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
 import { readSprintLog } from "@/lib/sprint-log";
+
+// The sheet's display face: the name, the wordmark and the Revisions head. Called here, not in the
+// layout, so only this page preloads it and /sprints stays one family (contract, B1.10). `optional`
+// draws with the face only if it is there for the first paint, so it never swaps in later and moves
+// the page (B1.8); the fallback next/font fits to its metrics holds the same lines meanwhile (see
+// app/layout.tsx on why there is no `fallback` list).
+const sofiaCondensed = Sofia_Sans_Extra_Condensed({
+  subsets: ["latin"],
+  display: "optional",
+  variable: "--font-sofia-cond",
+});
 
 // This page's own address, for search engines and link previews (see app/layout.tsx).
 export const metadata: Metadata = {
@@ -27,59 +44,47 @@ const person = {
 };
 
 export default function Home() {
-  // Read when the site is built, like the log page itself, so the count and the page agree.
-  const sprintCount = readSprintLog().length;
+  // Read when the site is built, like the log page itself, so the sheet and the Log agree. Newest
+  // first; the planks are seated oldest first.
+  const entries = readSprintLog();
+  const seats = seatPlanks(entries.map((entry) => entry.sprint).reverse());
+  const replaced = Math.min(entries.length, PLANKS.length);
 
   return (
     <>
       <SkipLink />
-      {/* A size container, so the hero can go full-bleed in units of the page's own width (the
-        viewport less any scrollbar). Not on body or html: containment there stops the body's
-        background from reaching the canvas. */}
-      <div className="@container">
-        {/* tabIndex -1: focusable by the skip link, never a Tab stop of its own. */}
-        <main
-          id="main"
-          tabIndex={-1}
-          className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 py-24"
-        >
-          <script
-            type="application/ld+json"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(person).replace(/</g, "\\u003c"),
-            }}
-          />
-          <header className="flex flex-col gap-4">
-            <h1 className="text-step-2xl font-semibold tracking-tight">
-              {profile.name}
-            </h1>
-            <p className="text-step-xl">{profile.headline}</p>
-            <p className="text-step-base text-muted">{profile.location}</p>
-            <p className="text-step-lg">{profile.bio}</p>
-            {sprintCount > 0 ? (
-              <p className="text-step-base">
-                {/* Same classes as the Contact links. */}
-                <a
-                  href="/sprints"
-                  className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
-                >
-                  Build log
-                </a>
-                {/* Starts with a no-break space, so the dot never begins a line. The dot has its own
-                margin so the link's focus ring (4px out) clears it; textContent stays " · N sprints". */}
-                <span className="text-muted">
-                  {"\u00a0"}
-                  <span className="mx-1">·</span>
-                  {` ${sprintCount} ${sprintCount === 1 ? "sprint" : "sprints"}`}
-                </span>
-              </p>
-            ) : null}
-          </header>
+      <Bar className={sofiaCondensed.variable} />
+      {/* The sheet (.crew/sprint/22/contract.md): the drawing, then the title block and the revision
+        block side by side from 1024 px inside a frame 16 px in, stacked below it with the title
+        block first. The title block leads in the DOM at every width, so the name is read first. The
+        facts follow below the sheet. tabIndex -1: the skip link's landing spot, never a Tab stop. */}
+      <main
+        id="main"
+        tabIndex={-1}
+        className={`grid grid-cols-1 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)] lg:px-4 ${sofiaCondensed.variable}`}
+      >
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has to be the script's raw text (React would escape it as HTML), and escaping "<" keeps the data from closing the tag.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(person).replace(/</g, "\\u003c"),
+          }}
+        />
+        <LinesPlan
+          seats={seats}
+          className="lg:col-span-2 lg:border-x lg:border-foreground"
+        />
+        <TitleBlock className="lg:col-start-2 lg:row-start-2" />
+        <Revisions
+          entries={entries}
+          caption={splitBio(profile.bio).rest}
+          planks={PLANKS.length}
+          replaced={replaced}
+          className="lg:col-start-1 lg:row-start-2"
+        />
 
-          <Hero />
-
-          <Section id="experience" title="Experience">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-16 px-6 pt-10 pb-24 lg:col-span-2 lg:pt-14">
+          <Section id="work" title="Work">
             <ol className="flex flex-col gap-8">
               {profile.experience.map((role) => (
                 <li key={`${role.company}-${role.period}`}>
@@ -120,7 +125,7 @@ export default function Home() {
           </Section>
 
           <Section id="education" title="Education">
-            {/* Same shape as an Experience entry, so the two read as one family. */}
+            {/* Same shape as a Work entry, so the two read as one family. */}
             <ol className="flex flex-col gap-8">
               {profile.education.map((entry) => (
                 <li key={`${entry.school}-${entry.period}`}>
@@ -144,7 +149,7 @@ export default function Home() {
                   minimum), not the shorter glyph box an inline link reports. */}
                   <a
                     href={link.href}
-                    className="inline-block text-step-base text-accent underline underline-offset-4 hover:text-foreground"
+                    className="inline-block text-step-base text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2"
                   >
                     {link.label}
                   </a>
@@ -152,8 +157,8 @@ export default function Home() {
               ))}
             </ul>
           </Section>
-        </main>
-      </div>
+        </div>
+      </main>
     </>
   );
 }

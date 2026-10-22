@@ -46,6 +46,8 @@ makes stale, and keep the file under about 100 lines.
     run together once before the review label.
   - A recipe from an old review is a diff against an old baseline: apply only its named change.
 - **Review.**
+  - Lens's turns scale with what a change adds (#63: 40, 60 or 100). A page replacement (sprint
+    22: 53 files, about 10.6k lines) took 49 at the top lane, so split work that would outgrow it.
   - Settle the PR body and labels before the `review` label, since Lens reads the body first.
   - Advice taken after Lens's ship costs a full re-review, so batch it unless it's a real risk; a
     nit that only moves code rides along with the next sprint.

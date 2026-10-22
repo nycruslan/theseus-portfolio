@@ -13,7 +13,6 @@ export function GET() {
         height: "100%",
         display: "flex",
         background: LIGHT.background,
-        borderRadius: 7,
       }}
     >
       <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">

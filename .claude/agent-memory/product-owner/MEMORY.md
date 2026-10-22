@@ -8,3 +8,6 @@
 - Test a data-driven object against the viewport's crop: an order that puts the newest plank last can hide it on a phone (sprint 15).
 - Retro fields turn public when the PR merges, and `outcome` is written before that: a feature that publishes team-written text is an owner decision, and `outcome` is never shown as status (sprint 12).
 - An "axe pass" contract targets what axe can't see (keyboard order, the skip link, forced colors), since axe was already clean (sprint 4).
+- A redesign's first sprint leaves out controls and links whose targets don't exist yet: a control that changes nothing, or a link into a 404, costs the visitor (sprint 22, `.crew/sprint/22/contract.md`).
+- Fixed Tab bounds in specs (`keyboard.spec.ts`'s `tabUntil` of 12) cap how many links a new header can add, so count the stops in the contract (sprint 22).
+- Retros hold no dates, so anything dated needs the sprint skill (an owner path) or GitHub (sprint 22).

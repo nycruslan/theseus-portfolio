@@ -26,8 +26,9 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title, description },
 };
 
+// Ink, underlined: on the sheet copper means live this minute, and nothing in the log is (sprint 22).
 const LINK_CLASSES =
-  "inline-block text-accent underline underline-offset-4 hover:text-foreground";
+  "inline-block text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
 
 export default function Sprints() {
   // Read at build time (the route is static): the deployed site never touches .crew.

@@ -8,8 +8,10 @@ type ProjectCardProps = {
 // by exactly its own padding (24 px on phones, 32 px from md), so the text keeps the column's left
 // edge and the arrow ends on its right edge. From md the frame has side rules too, so the inline
 // padding gives back their 1 px to keep that edge exact. Planks share a seam: each after the first
-// pulls up 1 px, so a hovered or focused plank is lifted (z-10, no movement) to paint its copper
-// over that seam.
+// pulls up 1 px, so a hovered or focused plank is lifted (z-[1], no movement) to paint its ink over
+// that seam. One step clears its neighbours, which have no z-index, and stays under the sticky
+// bar's z-10: a tie would let the later plank paint over the bar and take its clicks (sprint 22).
+// Ink, not copper: on the sheet copper means live this minute (sprint 22).
 const plank =
   "relative -mx-6 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 border-y border-rule px-6 py-5 not-first:-mt-px md:-mx-8 md:border md:px-[calc(--spacing(8)-1px)] md:py-8";
 
@@ -26,9 +28,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
     );
   }
 
+  // Below md the plank can run the viewport's full width, where a ring 2 px out loses its sides
+  // off screen, so there the ring is drawn just inside the plank's edge.
   return (
     <li
-      className={`group ${plank} hover:z-10 hover:border-accent has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:z-10 has-[a:focus-visible]:outline-accent`}
+      className={`group ${plank} hover:z-[1] hover:border-foreground has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 max-md:has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:z-[1] has-[a:focus-visible]:outline-foreground`}
     >
       <h3 className="text-balance text-step-lg font-medium">
         {/* The link's ::after covers the whole card (the li is its containing block), so a thumb
@@ -37,14 +41,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
             `hidden`, which Tailwind turns into a second ring there. */}
         <a
           href={project.href}
-          className="text-foreground underline decoration-accent decoration-1 underline-offset-4 after:absolute after:inset-0 focus-visible:outline-none"
+          className="text-foreground underline decoration-1 underline-offset-[3px] group-hover:decoration-2 after:absolute after:inset-0 focus-visible:outline-none"
         >
           {project.name}
         </a>
       </h3>
       {/* One line box of the title's step, so the arrow centres on the title's first line even
-          when a long name wraps. It turns copper for keyboard focus as it does for hover. */}
-      <span className="flex h-[1lh] items-center text-step-lg text-muted group-hover:text-accent group-has-[a:focus-visible]:text-accent">
+          when a long name wraps. It turns from graphite to ink for keyboard focus as for hover. */}
+      <span className="flex h-[1lh] items-center text-step-lg text-muted group-hover:text-foreground group-has-[a:focus-visible]:text-foreground">
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"

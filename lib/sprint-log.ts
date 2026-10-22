@@ -23,6 +23,15 @@ export interface SprintEntry {
   ownersCall: boolean;
   /** The first three things that went wrong, as the team wrote them. Never evidence. */
   wentWrong: string[];
+  /**
+   * Who drew the revision, by the crew's names: the builders (Forge, Pixel) when either took part,
+   * otherwise the designers (Iris, Quill); none when neither did. Always in that order.
+   */
+  drawn: string[];
+  /** Lens reviewed it. */
+  checked: boolean;
+  /** Probe tested it. */
+  tested: boolean;
 }
 
 const MAX_WENT_WRONG = 3;
@@ -71,6 +80,46 @@ function wentWrongOf(retro: Record<string, unknown>): string[] {
   return texts.slice(0, MAX_WENT_WRONG);
 }
 
+// The crew's roles (.claude/agents/) by the names the revision block shows. A Map, so a role like
+// "constructor" finds nothing rather than an object's own property.
+const CREW = new Map([
+  ["engineer", "Forge"],
+  ["creative-engineer", "Pixel"],
+  ["design-director", "Iris"],
+  ["product-owner", "Quill"],
+  ["qa-engineer", "Probe"],
+]);
+
+/** The names of the roles in the retro's `agents`; anything that isn't `{ role: string }` is skipped. */
+function crewOf(retro: Record<string, unknown>): string[] {
+  if (!Array.isArray(retro.agents)) return [];
+  return retro.agents.flatMap((agent: unknown) => {
+    const name =
+      isRecord(agent) && typeof agent.role === "string"
+        ? CREW.get(agent.role)
+        : undefined;
+    return name ? [name] : [];
+  });
+}
+
+// The revision block's columns (.crew/sprint/22/contract.md, "Data rules"). A missing or malformed
+// field reads as nobody, never as an error: these cells are the record's footnotes, not its facts.
+function drawnBy(crew: readonly string[]): string[] {
+  const present = (names: string[]) =>
+    names.filter((name) => crew.includes(name));
+  const builders = present(["Forge", "Pixel"]);
+  return builders.length > 0 ? builders : present(["Iris", "Quill"]);
+}
+
+// `lens.runs` is the current shape; sprints 1 to 4 recorded `lens_important_findings` instead.
+function checkedByLens(retro: Record<string, unknown>): boolean {
+  const { lens } = retro;
+  return (
+    (isRecord(lens) && isPositiveInteger(lens.runs)) ||
+    typeof retro.lens_important_findings === "number"
+  );
+}
+
 function parseRetro(file: string, folder: string): SprintEntry | undefined {
   let source: string;
   try {
@@ -103,6 +152,7 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
   }
 
   const { size, pr, outcome } = retro;
+  const crew = crewOf(retro);
   return {
     sprint,
     goal: presentGoal(goal),
@@ -110,6 +160,9 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
     pr: isPositiveInteger(pr) ? pr : undefined,
     ownersCall: typeof outcome === "string" && /\bneeds-owner\b/i.test(outcome),
     wentWrong: wentWrongOf(retro),
+    drawn: drawnBy(crew),
+    checked: checkedByLens(retro),
+    tested: crew.includes("Probe"),
   };
 }
 

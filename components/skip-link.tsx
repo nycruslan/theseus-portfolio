@@ -1,13 +1,14 @@
 // The first stop for a keyboard visitor: a plain fragment link, so it works with JavaScript off.
-// It is visually hidden until focused, then pinned to the top left over the empty top padding (its
-// text on the column's 24 px edge on phones), in the card links' look: ink, copper underline, on
-// the page's own ground. The ring comes from the shared :focus-visible rule in app/globals.css. It
-// lives in the page, not the root layout, so a route without a main (the 404) renders none.
+// It is visually hidden until focused (its frame too, or the hidden box would be 2 px wide), then
+// pinned 16 px in from the top left, over the bar, as a boxed label on the sheet: ink on film inside
+// a 1 px ink frame. The ring comes from the shared
+// :focus-visible rule in app/globals.css. It lives in the page, not the root layout, so a route
+// without a main (the 404) renders none.
 export function SkipLink() {
   return (
     <a
       href="#main"
-      className="sr-only text-step-base text-foreground underline decoration-accent decoration-1 underline-offset-4 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-20 focus:bg-background focus:px-4 focus:py-2"
+      className="sr-only bg-background text-step-base font-semibold text-foreground focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-20 focus:border focus:border-foreground focus:px-4 focus:py-2"
     >
       Skip to content
     </a>

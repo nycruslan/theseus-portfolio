@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theseus, Work, 1440</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400..800&amp;family=Sofia+Sans+Extra+Condensed:wght@500..800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#111c22;text-underline-offset:3px;text-decoration-thickness:1px}a:hover{color:#111c22;text-decoration-thickness:2px}
+.sheet{position:relative;background:#eaf1ee;color:#111c22;font-family:"Sofia Sans",system-ui,sans-serif;font-size:17px;line-height:1.55}
+.cond{font-family:"Sofia Sans Extra Condensed","Sofia Sans",sans-serif}
+.nav{height:56px;display:flex;align-items:center;gap:40px;padding:0 40px;border-bottom:1px solid #111c22;box-sizing:border-box;background:#eaf1ee}
+.mark{font-family:"Sofia Sans Extra Condensed",sans-serif;font-weight:700;font-size:28px;line-height:1;text-decoration:none}
+.links{display:flex;gap:28px;font-size:16px;font-weight:600}
+.links a{text-decoration:none;padding:6px 0;border-bottom:2px solid transparent}
+.links a[aria-current]{border-bottom-color:#111c22}
+.seg{display:flex;border:1px solid #111c22}
+.seg button{font:600 14px/1 "Sofia Sans",sans-serif;padding:0 12px;height:32px;background:transparent;color:#111c22;border:0;border-left:1px solid #111c22}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:#111c22;color:#eaf1ee}
+.sec{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;padding:28px 56px 40px;border-top:2px solid #111c22}
+.sec h2{grid-column:1 / span 3;margin:0;font-family:"Sofia Sans Extra Condensed",sans-serif;font-size:72px;font-weight:700;line-height:0.9}
+.list{grid-column:4 / span 9;margin:0;padding:0;list-style:none}
+.entry{display:grid;grid-template-columns:168px minmax(0,1fr);column-gap:24px;padding:18px 0 22px;border-bottom:1px solid #bfcac7}
+.entry:first-child{padding-top:6px}
+.when{font-size:14px;color:#555c61;font-feature-settings:"tnum" 1;padding-top:10px}
+.co{margin:0;font-family:"Sofia Sans Extra Condensed",sans-serif;font-size:36px;font-weight:700;line-height:1.05}
+.role{margin:2px 0 8px;font-size:17px;font-weight:650;line-height:1.35}
+.sum{margin:0;max-width:66ch}
+.box{border:1px solid #111c22;background:#fbfaf7;padding:8px 12px;font-family:"Sofia Sans Extra Condensed",sans-serif;font-size:20px;font-weight:600;line-height:1.1}
+.stack{display:flex;flex-wrap:wrap;gap:6px 0;font-size:18px;margin-left:-27px}
+.stack li{display:flex;align-items:center}
+.stack li::before{content:"";width:3px;height:3px;background:#555c61;margin:0 12px}
+</style>
+</helmet>
+<div class="sheet" style="width: 1440px">
+<header class="nav">
+<a class="mark" href="#">Theseus</a>
+<nav aria-label="Main" class="links"><a href="#work" aria-current="page">Work</a><a href="#crew">Crew</a><a href="#log">Log</a><a href="#contact">Contact</a></nav>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 24px">
+<a href="#read" style="font-weight: 600; font-size: 16px">Read as page</a>
+<div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Calm</button><button type="button" aria-pressed="false">Off</button></div>
+</div>
+</header>
+
+<div style="height: 40px"></div>
+
+<section class="sec" aria-labelledby="work-h">
+<h2 id="work-h">Work</h2>
+<ol class="list">
+<li class="entry">
+<p class="when">Sep 2021 — Present</p>
+<div>
+<h3 class="co">JPMorgan Chase &amp; Co.</h3>
+<p class="role">Vice President, Senior Software Engineer Lead – AI Platforms &amp; Systems</p>
+<p class="sum">Built the multi-agent workflows several thousand employees use firm-wide, on LangGraph with the Claude Agent SDK and OpenAI Agents SDK, and cut manual processing on the flagship workflow by about 55%. Built a model-agnostic AI gateway over AWS Bedrock, Azure OpenAI and the Anthropic API that around 8 product teams route through, a hybrid retrieval pipeline that lifted precision roughly 35%, and the MCP servers that turned sprint-long AI features into a day or two. Lead a team of 7 across AI research, backend and platform.</p>
+<figure style="margin: 22px 0 0; padding: 16px 0 0; border-top: 1px dashed #878d91; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 0">
+<div class="box">Around 8 product teams</div>
+<svg aria-hidden="true" width="56" height="12" viewBox="0 0 56 12"><path d="M2 6H52M46 1L52 6L46 11" fill="none" stroke="#111c22" stroke-width="1.2"/></svg>
+<div class="box" style="background: #111c22; color: #eaf1ee; border-color: #111c22">Model-agnostic AI gateway</div>
+<svg aria-hidden="true" width="56" height="84" viewBox="0 0 56 84"><path d="M2 42H20M20 10V74M20 10H52M20 42H52M20 74H52M46 5L52 10L46 15M46 37L52 42L46 47M46 69L52 74L46 79" fill="none" stroke="#111c22" stroke-width="1.2"/></svg>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div class="box" style="font-size: 18px; padding: 4px 12px">AWS Bedrock</div>
+<div class="box" style="font-size: 18px; padding: 4px 12px">Azure OpenAI</div>
+<div class="box" style="font-size: 18px; padding: 4px 12px">Anthropic API</div>
+</div>
+</div>
+<figcaption style="font-size: 13px; color: #555c61">Detail A. Drawn from the summary's own words: the gateway, who routes through it, and what it sits over.</figcaption>
+</figure>
+</div>
+</li>
+<li class="entry">
+<p class="when">Apr 2020 — Sep 2021</p>
+<div>
+<h3 class="co">Earth Designs</h3>
+<p class="role">Full Stack Web Developer</p>
+<p class="sum">Ran the React and Next.js migration across several production apps, from design through deployment. Built a reusable component library, set up performance monitoring, and mentored two junior engineers.</p>
+</div>
+</li>
+<li class="entry">
+<p class="when">Jan 2018 — Apr 2020</p>
+<div>
+<h3 class="co">PPS Capital</h3>
+<p class="role">Information Technology Manager</p>
+<p class="sum">Ran IT operations and infrastructure strategy company-wide, and led internal web apps for analytics and reporting. Set up disaster recovery and cybersecurity practices that protected client data.</p>
+</div>
+</li>
+<li class="entry" style="border-bottom: 0">
+<p class="when">Feb 2016 — Jan 2018</p>
+<div>
+<h3 class="co">Earth Designs</h3>
+<p class="role">Technology Manager</p>
+<p class="sum">Led API-driven web platforms and microservices, worked closely with the CEO on tech strategy, and set up the team's documentation and onboarding.</p>
+</div>
+</li>
+</ol>
+</section>
+
+<section class="sec" aria-labelledby="proj-h">
+<h2 id="proj-h">Projects</h2>
+<ul class="list">
+<li class="entry">
+<p class="when"><a href="https://github.com/nycruslan/theseus-portfolio">GitHub</a></p>
+<div><h3 class="co">Theseus</h3><p class="sum" style="margin-top: 6px">This portfolio. An autonomous team of AI agents keeps rebuilding it, sprint by sprint, in public.</p></div>
+</li>
+<li class="entry" style="border-bottom: 0">
+<p class="when"><a href="https://ruslanshulga.com">ruslanshulga.com</a></p>
+<div><h3 class="co">ruslanshulga.com</h3><p class="sum" style="margin-top: 6px">My main portfolio and a working demo: a portfolio assistant on Claude Haiku over a streaming API, a WebGL shader hero, and Astro with React islands on Vercel.</p></div>
+</li>
+</ul>
+</section>
+
+<section class="sec" aria-labelledby="stack-h">
+<h2 id="stack-h">Stack</h2>
+<div style="grid-column: 4 / span 9; overflow: hidden; padding-top: 8px"><ul class="list stack">
+<li>Python</li><li>TypeScript</li><li>LangGraph</li><li>LangChain</li><li>Claude Agent SDK</li><li>OpenAI Agents SDK</li><li>MCP</li><li>Pinecone</li><li>Weaviate</li><li>pgvector</li><li>AWS Bedrock</li><li>Azure OpenAI</li><li>React</li><li>Next.js</li><li>Astro</li><li>Node.js</li><li>Docker</li><li>Kubernetes</li>
+</ul></div>
+</section>
+
+<section class="sec" aria-labelledby="edu-h">
+<h2 id="edu-h">Education</h2>
+<ul class="list">
+<li class="entry"><p class="when">Jun 2020 — Dec 2020</p><div><h3 class="co" style="font-size: 30px">Harvard University</h3><p class="role" style="font-weight: 500; margin-bottom: 0">Certificate in Computer Science (CS50)</p></div></li>
+<li class="entry" style="border-bottom: 0"><p class="when">Sep 2010 — Jul 2015</p><div><h3 class="co" style="font-size: 30px">Kyiv National Economic University</h3><p class="role" style="font-weight: 500; margin-bottom: 0">Bachelor's and Master's, International Economics</p></div></li>
+</ul>
+</section>
+
+<section class="sec" aria-labelledby="contact-h" style="padding-bottom: 64px">
+<h2 id="contact-h">Contact</h2>
+<p class="list cond" style="display: flex; gap: 48px; font-size: 52px; font-weight: 700; line-height: 1.1; padding-top: 6px"><a href="https://github.com/nycruslan">GitHub</a><a href="https://www.linkedin.com/in/nycruslan/">LinkedIn</a><a href="https://ruslanshulga.com">ruslanshulga.com</a></p>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2060}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

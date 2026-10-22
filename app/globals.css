@@ -6,28 +6,38 @@
 @source "../components";
 
 /*
- * Design tokens. Mood: weathered bronze gone to sea-glass verdigris, with the links as the one
- * freshly fitted part, bright copper. Hex values are used so computed styles come back as rgb();
- * the oklch intent is kept beside each one. Direction: .crew/sprint/1/direction.md.
+ * Design tokens: a drawing sheet. Ink on drafting film, graphite for what is secondary, pencil for
+ * construction, and copper kept for what is live this minute, which in B1 is nothing. The direction
+ * the owner approved on sprint 17's canvas: .crew/sprint/17/direction-iris.md, with the values in
+ * .crew/sprint/22/notes-iris.md, section 1. Hex values, so computed styles come back as rgb().
  */
 :root {
-  --background: #e6f3f1; /* oklch(95.5% 0.014 185) pale sea-glass */
-  --foreground: #0f2220; /* oklch(23.5% 0.025 185) tinted ink */
-  --muted: #455e5a; /* oklch(46% 0.03 185) secondary text */
-  --accent: #944126; /* oklch(48% 0.12 38) copper, links only */
-  --rule: #c5d5d2; /* oklch(86% 0.018 185) decorative, never text */
+  --background: #eaf1ee; /* film: the ground */
+  --foreground: #111c22; /* ink: text, links, outlines, seams, rules that structure */
+  --muted: #555c61; /* graphite: secondary text, base lines */
+  --accent: #9e441d; /* copper: live now only, and nothing is live yet */
+  --rule: #bfcac7; /* row hairlines and selection, never text */
+
+  /* Lines and fills only, never text. */
+  --pencil: #878d91; /* construction lines */
+  --card: #fbfaf7; /* a seated plank: one per merged sprint */
+  --card-old: #d9e0dc; /* an original plank, not replaced yet */
 
   /* Both schemes are supported, so native scrollbars and form controls follow the system. It sits
-     here, not in the dark block, so that block stays the five color tokens. */
+     here, not in the dark block, so that block stays the color tokens. */
   color-scheme: light dark;
 
-  /* Fluid type: a modular scale of 1.2 at 320px opening to 1.333 at 1440px, base 16px to 18px.
-     Each clamp() is linear between those two widths. 2xl is an off-scale display step. */
-  --step-sm: clamp(0.8333rem, 0.8304rem + 0.0149vw, 0.8438rem);
-  --step-base: clamp(1rem, 0.9643rem + 0.1786vw, 1.125rem);
-  --step-lg: clamp(1.2rem, 1.1143rem + 0.4286vw, 1.5rem);
-  --step-xl: clamp(1.44rem, 1.28rem + 0.8vw, 2rem);
-  --step-2xl: clamp(3rem, 2.5rem + 2.5vw, 4.75rem);
+  /* Type: one family, two widths (notes-iris.md, section 2). Each fluid step is linear from 390 to
+     1440 px. Six sizes are all the sheet uses, so the small one serves the drawing's lettering, the
+     table and the secondary lines alike; xs is the plank numbers' below 1024 px, where a lift is too
+     shallow for sm. 2xl is the section head, 3xl the name. */
+  --step-xs: 0.6875rem;
+  --step-sm: 0.8125rem;
+  --step-base: clamp(1rem, 0.9768rem + 0.0952vw, 1.0625rem);
+  --step-lg: clamp(1.125rem, 1.0554rem + 0.2857vw, 1.3125rem);
+  --step-xl: clamp(1.5rem, 1.3607rem + 0.5714vw, 1.875rem);
+  --step-2xl: clamp(3.25rem, 2.7857rem + 1.9048vw, 4.5rem);
+  --step-3xl: clamp(3.75rem, 2.7286rem + 4.1905vw, 6.5rem);
 }
 
 @theme inline {
@@ -36,32 +46,43 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-rule: var(--rule);
+  --color-card: var(--card);
+  --color-card-old: var(--card-old);
 
   /* Each step carries its own leading, so the large name doesn't inherit the body's. */
   --text-step-sm: var(--step-sm);
   --text-step-sm--line-height: 1.5;
   --text-step-base: var(--step-base);
-  --text-step-base--line-height: 1.6;
+  --text-step-base--line-height: 1.55;
   --text-step-lg: var(--step-lg);
-  --text-step-lg--line-height: 1.45;
+  --text-step-lg--line-height: 1.35;
   --text-step-xl: var(--step-xl);
   --text-step-xl--line-height: 1.2;
   --text-step-2xl: var(--step-2xl);
-  --text-step-2xl--line-height: 1;
+  --text-step-2xl--line-height: 0.95;
+  --text-step-3xl: var(--step-3xl);
+  --text-step-3xl--line-height: 0.9;
 
-  --font-sans: var(--font-geist-sans);
+  /* next/font's variables hold the face and its fallback, Arial sized to the face's metrics so a
+     page that paints before the font keeps its lines. A device without Arial needs a generic
+     family after them, or it falls to its default serif. */
+  --font-sans: var(--font-sofia), sans-serif;
+  --font-cond: var(--font-sofia-cond), sans-serif;
 }
 
-/* The hull at night: the same verdigris ground, with the copper pulled toward hue 42 so it reads as
-   metal, not apricot, and a deeper verdigris rule so selection shows. The address-bar colors in
-   app/layout.tsx repeat both backgrounds. Direction: .crew/sprint/2/direction.md. */
+/* Night watch: the same sheet under one cool lamp. The address-bar colors in app/layout.tsx repeat
+   both backgrounds. A seated plank stays the brightest thing in the drawing but dark enough for its
+   ink number to read on it (4.5:1 and more, contract B1.4). */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #091413; /* oklch(18% 0.016 190) green-black hull */
-    --foreground: #e1eae9; /* oklch(93% 0.01 185) tinted, not white */
-    --muted: #96a9a6; /* oklch(72% 0.022 185) secondary text */
-    --accent: #eb8a64; /* oklch(73% 0.13 42) copper, links only */
-    --rule: #2d4543; /* oklch(37% 0.03 189) deep verdigris, never text */
+    --background: #10191c;
+    --foreground: #e2eae9;
+    --muted: #a3adb1;
+    --accent: #ee8f63;
+    --rule: #323d40;
+    --pencil: #6a7377;
+    --card: #58646a;
+    --card-old: #222d31;
   }
 }
 
@@ -71,12 +92,24 @@ body {
   font-size: var(--step-base);
 }
 
-/* One focus ring for everything focusable: the cards' 2 px copper, set off the text. It sits in
-   @layer base on purpose: an unlayered rule outranks every Tailwind utility, so the card link's
-   own `focus-visible:outline-none` would lose and the card would draw two rings. */
+/* The bar sticks to the top (components/bar.tsx), so a fragment link or a focused link scrolls in
+   below it rather than under it. */
+html {
+  scroll-padding-top: 52px;
+}
+
+@media (width >= 64rem) {
+  html {
+    scroll-padding-top: 56px;
+  }
+}
+
+/* One focus ring for everything focusable: 2 px of ink, set off the text. It sits in @layer base on
+   purpose: an unlayered rule outranks every Tailwind utility, so the card link's own
+   `focus-visible:outline-none` would lose and the card would draw two rings. */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--foreground);
     outline-offset: 2px;
   }
 
@@ -94,227 +127,269 @@ body {
 }
 
 /*
- * Section reveal: as each section below the header scrolls in, its heading surfaces, a short rise
- * into place, then sits exactly where it sat before. Sprint 5: .crew/sprint/5/.
- *
- * It is a scroll-driven animation, so it follows the section's own position (no JavaScript, works
- * with scripts off), and it is gated twice: browsers without view timelines and visitors who ask
- * for reduced motion get no animation at all, which is the page as it was. Nothing outside this
- * gate may fade or move a section, or those visitors would find it hidden.
- *
- * Nothing fades. A section whose top edge loads just inside the viewport stays wherever its range
- * left it until the visitor scrolls, and on ordinary windows (1440 x ~760, phones ~390 x ~770)
- * that is Projects: a fade there failed contrast at load, at any range length.
+ * The lines plan (components/lines-plan.tsx, lib/lines-plan.ts). Two drawings, one per width: the
+ * three views from 768 px, the profile and half-breadth plan below. The whole drawing is inert:
+ * nothing in it can be hit, so a tap or a hover goes to the page behind it.
  */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    /* Only a start state: the end is the heading's own style, so at rest nothing is overridden. */
-    @keyframes section-rise {
-      from {
-        translate: 0 16px;
-      }
-    }
-
-    /* The sections only, never the header: the owner's name is on screen at the first paint. One
-       timeline per section, named so its heading follows the section rather than its own, shorter
-       box. */
-    main > section {
-      view-timeline: --section block;
-    }
-
-    /* Only the heading moves; nothing that can be clicked or focused does. A timeline's value
-       updates on the next frame after a scroll, so straight after a jump (a script's
-       scrollIntoView, a fragment link) a section still sits at its start state for one frame.
-       Had the whole section risen, anything that measured a card in that frame and then clicked
-       it would land 16 px off, below the card. */
-    main > section > h2 {
-      /* `backwards` holds the start state while a section waits below the fold. With no forwards
-         fill, the animation leaves no style behind once its range ends. */
-      animation: section-rise cubic-bezier(0.33, 1, 0.68, 1) backwards;
-      /* After the shorthand, which resets it. */
-      animation-timeline: --section;
-      /* A fixed 64 px of scroll from the moment the section's top edge enters, not a share of its
-         height: a share made the short Contact section snap in over 22 px while a tall one
-         dragged. Two things bound it from above. Tabbing to the first Contact link scrolls only
-         until the link is in view, which leaves Contact about 70 px into its entry, and its
-         heading must be at rest by then. And the last section must finish before the page runs
-         out (main's bottom padding alone is 96 px; a page too short to scroll shows every
-         section whole). */
-      animation-range: entry 0% entry 64px;
-      /* A scroll-driven animation stays current for as long as the page can scroll back, so
-         Chrome would keep the heading on a composited layer forever and, since a moving layer
-         may overlap whatever paints after it, lift the cards below onto layers too: at rest the
-         card arrow rasterises differently (10 pixels at 1440), and where the system uses
-         subpixel text antialiasing the text can lose it. This hint keeps the heading painted
-         with the page, so at rest it is the same pixels as without the reveal; the rise then
-         paints on the main thread, which costs nothing measurable here. */
-      will-change: contents;
-    }
-  }
-}
-
-/*
- * The hero half-model (components/hero.tsx, sprint 8): a static SVG between the header and the
- * first section, which a capable device later covers with the same hull in WebGL (sprint 10).
- * Contracts: .crew/sprint/7/contract.md, C1 to C9, and .crew/sprint/9/contract.md (the box, C10
- * to C17).
- *
- * The box. It is the hull's turn plus 4 px each side: at rest the hull is centred with 4 + 6 s px
- * of air, and the scroll's turn lifts the gunwale 5.7 s px into the top air (s is the hull's length
- * over 624). Below 768 px it is full-bleed, 8 + 130 s px tall; from 768 it hangs 32 px past the
- * column on both sides, as the project cards do: 688 x 138. Widths come from the page wrapper's
- * container units (app/page.tsx), which are the viewport minus any scrollbar, so a classic scrollbar
- * never makes it overhang the page the way 100vw would, nor moves the breakpoint.
- */
-.hero {
-  /*
-   * The hull's length. The bow tip sits on the header's right edge: 24 px in from the viewport
-   * below 672, then the column's edge. It is 1.12 x the viewport up to 390 (on a phone a whole hull
-   * reads as a boat icon; cropped, it is an object you stand next to), then grows evenly to the
-   * column's 624 px at 768, so nothing steps at the breakpoint.
-   */
-  --hero-length: min(112cqw, 436.8px + (100cqw - 390px) * 0.495238, 624px);
+.plan {
   position: relative;
-  display: flex;
-  align-items: center;
-  /* The bow is placed from the right; on phones the stern runs off the left edge, cropped. */
-  justify-content: flex-end;
-  width: 100cqw;
-  height: calc(8px + var(--hero-length) * 130 / 624);
-  margin-inline: calc(50% - 50cqw);
-  overflow: clip;
   pointer-events: none;
 }
 
-/* The model: its height follows the viewBox. */
-.hero-model {
-  display: block;
-  flex: none;
-  width: var(--hero-length);
-  height: auto;
-  margin-right: max(24px, 50cqw - 312px);
+.plan-view {
+  position: relative;
 }
 
-@container (width >= 48rem) {
-  .hero {
-    width: 688px;
-    height: 138px;
-    margin-inline: -32px;
-  }
-
-  .hero-model {
-    width: 624px;
-    margin-right: 32px;
-  }
-}
-
-/* The WebGL hull (components/hero-gl.ts) covers the whole box, so the turn has room above the
-   SVG's rest pose, and fades in over it: the only motion the swap makes. */
-.hero canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transition: opacity 200ms ease-out;
-}
-
-@starting-style {
-  .hero canvas {
-    opacity: 0;
-  }
-}
-
-/* Once the canvas has faded in, the SVG under it hides, so a turned pose never shows the rest pose
-   behind it. */
-.hero-covered {
-  visibility: hidden;
-}
-
-/* Paper gets the vector SVG at rest, not a screen bitmap at whatever pose the reader scrolled to. */
-@media print {
-  .hero canvas {
+@media (width < 48rem) {
+  .plan-wide {
     display: none;
   }
+}
 
-  .hero-covered {
-    visibility: visible;
+@media (width >= 48rem) {
+  .plan-narrow {
+    display: none;
   }
 }
 
-/*
- * The tones. Each place on the hull carries how lit it is (--l, 0 to 1, from the model's light in
- * lib/half-model.ts), and here that becomes a share of --muted in --background: lightness only, so
- * the hue stays the page's. Lit means paler on the light ground and brighter on the dark one, so
- * the light comes from the same side in both schemes. The ranges keep every tone between 1.2 and
- * 2.8 : 1 against the ground: present, but quieter than the muted text.
- */
-.hero {
-  --hero-shade: 52%;
-  --hero-span: -40%;
-}
-
-@media (prefers-color-scheme: dark) {
-  .hero {
-    --hero-shade: 18%;
-    --hero-span: 36%;
-  }
-}
-
-.hero stop {
-  stop-color: color-mix(
-    in oklab,
-    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
-    var(--background)
-  );
-}
-
-.hero-deck {
-  fill: color-mix(
-    in oklab,
-    var(--muted) calc(var(--hero-shade) + var(--hero-span) * var(--l)),
-    var(--background)
-  );
-}
-
-/* The one freshly fitted plank: the page's copper, as its links are. */
-.hero-copper {
-  fill: var(--accent);
-}
-
-/* On the dark ground the full accent is the brightest thing in the box, so the plank sits one notch
-   back toward the hull: still copper (C7 keeps it within 0.06 lightness of the accent). */
-@media (prefers-color-scheme: dark) {
-  .hero-copper {
-    fill: color-mix(in oklab, var(--accent) 92%, var(--background));
-  }
-}
-
-/* Seams: a 1 px hairline of the ground between lifts and at each butt, at any size. */
-.hero-model path {
-  stroke: var(--background);
-  stroke-width: 1px;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.hero-butts {
+.plan svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
   fill: none;
 }
 
-/* Forced colors would flatten every tone to one system color: a silhouette with no planks. The
-   model is decoration, so it steps aside, and so does it where color-mix() can't draw it. */
-@media (forced-colors: active) {
-  .hero {
+/* Line weights hold at every width: a drawing's pen doesn't thicken with the paper. */
+.plan path {
+  vector-effect: non-scaling-stroke;
+}
+
+.ln-construction {
+  stroke: var(--pencil);
+  stroke-width: 0.6px;
+}
+
+.ln-waterline {
+  stroke: var(--pencil);
+  stroke-width: 0.5px;
+}
+
+.ln-base {
+  stroke: var(--muted);
+  stroke-width: 0.75px;
+}
+
+.ln-centreline {
+  stroke: var(--muted);
+  stroke-width: 0.75px;
+  stroke-dasharray: 14 3 2 3;
+}
+
+.ln-section {
+  stroke: var(--foreground);
+  stroke-width: 0.9px;
+}
+
+.ln-deck {
+  stroke: var(--foreground);
+  stroke-width: 1.4px;
+}
+
+.ln-leader {
+  stroke: var(--muted);
+  stroke-width: 0.75px;
+}
+
+.ln-outline {
+  stroke: var(--foreground);
+  stroke-width: 1.6px;
+  stroke-linejoin: round;
+}
+
+.plank-seated,
+.plank-original {
+  stroke: var(--foreground);
+  stroke-width: 0.9px;
+}
+
+.plank-seated {
+  fill: var(--card);
+}
+
+.plank-original {
+  fill: var(--card-old);
+}
+
+/* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
+   a point in the drawing; the text centres on it vertically. */
+.plan-view > span {
+  position: absolute;
+  font-size: var(--step-sm);
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* From 768 to 1023 px a lift is 10 to 14 px deep: the plank numbers drop to 11 px to fit it. The
+   child selector outranks the rule above. */
+@media (width < 64rem) {
+  .plan-view > .plan-plank {
+    font-size: var(--step-xs);
+  }
+}
+
+.plan-caption,
+.plan-plank {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.plan-figure {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.plan-start {
+  translate: 0 -50%;
+}
+
+.plan-middle {
+  translate: -50% -50%;
+}
+
+.plan-end {
+  translate: -100% -50%;
+}
+
+/* The body plan's station numbers sit close together; below 1024 px they would touch. */
+@media (width < 64rem) {
+  .plan-wide-only {
     display: none;
   }
 }
 
-/* The guard tests the form the tones use, a calc() inside the mix's percentage: a browser that
-   parses color-mix() but not that would otherwise draw every stop black. */
-@supports not (
-    color: color-mix(in oklab, currentcolor calc(10% + 10%), transparent)
-  ) {
-  .hero {
-    display: none;
+/* Forced colors keep the drawing as line art: every line in the system's text color, every plank
+   on the system's ground. */
+@media (forced-colors: active) {
+  .plan {
+    forced-color-adjust: none;
+  }
+
+  .plan path {
+    stroke: CanvasText;
+  }
+
+  .plan .plank-seated,
+  .plan .plank-original {
+    fill: Canvas;
+  }
+
+  .plan-view > span {
+    color: CanvasText;
+  }
+}
+
+/* A legend swatch: the plank's fill in a 1 px ink frame. Its fill is a background, which print
+   drops unless told otherwise, and the legend would then name two identical boxes. */
+.swatch {
+  display: inline-block;
+  width: 28px;
+  height: 12px;
+  border: 1px solid var(--foreground);
+  print-color-adjust: exact;
+}
+
+/*
+ * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
+ * folds: the number on the left, the description beside it, and the four signatures under it, each
+ * with its column's head above it. The heads row is then read by assistive tech only.
+ */
+.rev {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step-sm);
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.rev th,
+.rev td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rev :is(th, td):last-child {
+  padding-right: 0;
+}
+
+.rev thead th {
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-bottom-color: var(--foreground);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.rev tbody th {
+  font-weight: 700;
+}
+
+@media (width < 40rem) {
+  .rev,
+  .rev tbody {
+    display: block;
+  }
+
+  .rev thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rev tbody tr {
+    display: grid;
+    grid-template-columns: 2.25rem repeat(4, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .rev tbody :is(th, td) {
+    padding: 0;
+    border: 0;
+  }
+
+  .rev tbody th {
+    grid-row: span 2;
+  }
+
+  .rev tbody td:not([data-label]) {
+    grid-column: 2 / -1;
+  }
+
+  /* The head is the visible label here; assistive tech already has it from the column. */
+  .rev td[data-label]::before {
+    content: attr(data-label) / "";
+    display: block;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Under 384 px the four signatures go two by two beside the number. Last in this
+     block, so it overrides the rules above it. */
+  @media (width < 24rem) {
+    .rev tbody tr {
+      grid-template-columns: 2.25rem repeat(2, minmax(0, 1fr));
+    }
+
+    .rev tbody th {
+      grid-row: span 3;
+    }
   }
 }

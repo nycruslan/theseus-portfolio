@@ -1,22 +1,17 @@
-// The hero's lift half-model (.crew/sprint/7/direction-iris.md): one small parametric hull rather
-// than a drawing, so the lines stay fair and both renderers build the same object from the same
-// numbers. lib/half-model-svg.ts draws the SVG from it once, on the server, at build time;
-// components/hero-gl.ts builds the WebGL mesh from it in the browser (sprint 10). So this file holds
-// the hull's shape and nothing only the SVG needs. The bundler keeps a module's top-level work
-// whole, so when the path builders lived here they put 0.8 KB gzip of dead code in that chunk.
+// The hull (.crew/sprint/7/direction-iris.md): one small parametric shape rather than a drawing, so
+// the lines stay fair and every view of it comes from the same numbers. The sheet's lines plan
+// (lib/lines-plan.ts, sprint 22) draws its profile, half-breadth plan and body plan from it, on the
+// server at build time; B3's 3D model is meant to build from it too. So this file holds the hull's
+// shape and nothing only one drawing needs.
 //
-// Units are the SVG's own: the hull is LENGTH long, stern at x = 0, bow at x = LENGTH, y down. The
-// model is a solid on a backboard (the page): z is how far the hull stands out of the board. The
-// rest pose looks at it from about 13 degrees above, an oblique projection that moves a point down
-// the page by SHEAR x z, so the board plane itself never moves.
+// Units: the hull is LENGTH long, stern at x = 0, bow at x = LENGTH, y down from the bow tip. z is
+// the half-breadth, how far the side stands out from the centreline.
 
 export const LENGTH = 624;
 export const HEIGHT = 118;
 
-/** The rest pose's shear: the SVG's, and where the WebGL turn starts. */
-export const SHEAR = 0.24;
 const BEAM = 70; // the greatest half-breadth, at the deck: a narrow yacht, as Herreshoff's were
-export const LIFTS = 7;
+const LIFTS = 7;
 const SHEER_LOW = 13; // the sheer's lowest point, a little aft of midships
 const SHEER_LOW_AT = 0.4;
 
@@ -116,7 +111,7 @@ function waterplane(x: number) {
   return 1 - 0.55 * ((widest - t) / widest) ** 2;
 }
 
-/** How far the hull stands out of the board at (x, y): full at the deck, nothing at the profile. */
+/** The half-breadth at (x, y): the deck's full breadth at the sheer, nothing at the profile. */
 export function halfBreadth(x: number, y: number) {
   const top = sheer(x);
   const depth = profile(x) - top;
@@ -126,12 +121,11 @@ export function halfBreadth(x: number, y: number) {
   return BEAM * waterplane(x) * (1 - u * u);
 }
 
-/** The board depth of each lift's top: the sheer cuts the first, the keel the last. */
+/** The depth of each lift's top: the sheer cuts the first, the keel the last. */
 export const seamDepth = (k: number) =>
   SHEER_LOW + (k * (HEIGHT - SHEER_LOW)) / LIFTS;
 
 // Where each lift's planks butt, as shares of the length: staggered, as a shipwright lays them.
-// The third lift's pair is the copper plank, a little aft of midships.
 export const BUTTS = [
   [0.27, 0.7],
   [0.14, 0.5, 0.86],
@@ -141,4 +135,3 @@ export const BUTTS = [
   [0.26, 0.58],
   [0.45],
 ];
-export const COPPER_LIFT = 2; // the third, counted from the deck

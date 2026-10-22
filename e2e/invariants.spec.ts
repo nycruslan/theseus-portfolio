@@ -230,9 +230,10 @@ test("app/ and components/ use the tokens: no color literal or palette utility",
     ],
   ];
   // The color tokens' own declarations in app/globals.css are the one place literals live; code
-  // that needs a color outside CSS takes it from lib/site.ts.
+  // that needs a color outside CSS takes it from lib/site.ts. Sprint 22 adds the line and fill
+  // tokens --pencil, --card and --card-old.
   const declaration =
-    /--(?:background|foreground|muted|accent|rule)\s*:[^;]*;/g;
+    /--(?:background|foreground|muted|accent|rule|pencil|card|card-old)\s*:[^;]*;/g;
   const hits = [...sources("app"), ...sources("components")].flatMap(
     ({ file, code }) =>
       rules

@@ -23,11 +23,13 @@ export const COLOR_TOKENS = [
 ] as const;
 /** The type scale's steps, as custom properties on :root. */
 export const STEP_TOKENS = [
+  "--step-xs",
   "--step-sm",
   "--step-base",
   "--step-lg",
   "--step-xl",
   "--step-2xl",
+  "--step-3xl",
 ] as const;
 export const SCHEMES = ["light", "dark"] as const;
 
@@ -205,4 +207,47 @@ export function composite([r, g, b, a]: Rgba, bg: Rgb): Rgb {
 export function contrast(a: Rgb, b: Rgb): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+}
+
+/**
+ * An init script: defines `window.__rgba(color)`, any CSS color as the browser paints it, as
+ * [r, g, b, a] with a from 0 to 1, read through a canvas so oklch(), color-mix() and the rest
+ * compare by value. "none", "transparent" and an unparsable value give null.
+ */
+export function installRgba() {
+  let ctx: CanvasRenderingContext2D | null = null;
+  const cache = new Map<string, number[] | null>();
+  (window as Window & { __rgba?: (c: string) => number[] | null }).__rgba = (
+    color: string,
+  ) => {
+    const known = cache.get(color);
+    if (known !== undefined) return known;
+    let out: number[] | null = null;
+    if (color && color !== "none" && !color.startsWith("url(")) {
+      if (!ctx) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        ctx = canvas.getContext("2d", { willReadFrequently: true });
+      }
+      if (ctx) {
+        // Two different fallbacks: a value the canvas can't parse leaves each in place.
+        const read = (fallback: string) => {
+          if (!ctx) return [];
+          ctx.clearRect(0, 0, 1, 1);
+          ctx.fillStyle = fallback;
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, 1, 1);
+          return [...ctx.getImageData(0, 0, 1, 1).data];
+        };
+        const [a, b] = [read("#010203"), read("#fdfcfb")];
+        if (a.join() === b.join()) {
+          const [r = 0, g = 0, bl = 0, al = 0] = a;
+          out = al === 0 ? null : [r, g, bl, al / 255];
+        }
+      }
+    }
+    cache.set(color, out);
+    return out;
+  };
 }
