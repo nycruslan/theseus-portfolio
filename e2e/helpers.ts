@@ -10,8 +10,28 @@ export const PROJECTS = 'section[aria-labelledby="projects"]';
 export const STACK = 'section[aria-labelledby="stack"]';
 export const EDUCATION = 'section[aria-labelledby="education"]';
 
-/** The projects that have a link, so their card is one. */
+/** The projects that have a link. */
 export const withLink = profile.projects.filter((project) => project.href);
+
+/**
+ * A project link's label (.crew/sprint/23/contract.md, data rules): the label of the
+ * `profile.links` entry whose URL has the same host as the project's href; if none matches, that
+ * host without "www.".
+ */
+export function projectLinkLabel(href: string) {
+  const host = new URL(href).host;
+  const entry = profile.links.find((link) => new URL(link.href).host === host);
+  return entry ? entry.label : host.replace(/^www\./, "");
+}
+
+/** The routes a visitor reads the owner on, and a mistyped address (sprint 23, B2.9). */
+export const ROUTES = ["/", "/read", "/no-such-page"] as const;
+/** The status each of ROUTES answers with. */
+export const STATUS: Record<(typeof ROUTES)[number], number> = {
+  "/": 200,
+  "/read": 200,
+  "/no-such-page": 404,
+};
 
 /** The design system's color roles, as custom properties on :root. */
 export const COLOR_TOKENS = [
@@ -30,6 +50,9 @@ export const STEP_TOKENS = [
   "--step-xl",
   "--step-2xl",
   "--step-3xl",
+  // Sprint 23 (.crew/sprint/23/notes-iris.md): the entries' company and school, and the facts' heads.
+  "--step-entry",
+  "--step-display",
 ] as const;
 export const SCHEMES = ["light", "dark"] as const;
 
@@ -250,4 +273,70 @@ export function installRgba() {
     cache.set(color, out);
     return out;
   };
+}
+
+type LcpEntry = {
+  time: number;
+  url: string;
+  inHeader: boolean;
+  inPlan: boolean;
+  tag: string;
+  text: string;
+  size: number;
+};
+
+/** Loads `url` at 4x CPU slowdown and returns the last largest-contentful-paint candidate. */
+export async function measureLcp(page: Page, url: string) {
+  await page.addInitScript(() => {
+    const win = window as Window & { __lcp?: LcpEntry[] };
+    win.__lcp = [];
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const lcp = entry as PerformanceEntry & {
+          element: Element | null;
+          url: string;
+          size: number;
+        };
+        const el = lcp.element;
+        win.__lcp?.push({
+          time: lcp.startTime,
+          url: lcp.url,
+          inHeader: Boolean(el?.closest("main > header")),
+          inPlan: Boolean(el?.closest("[data-plan]")),
+          tag: el?.tagName.toLowerCase() ?? "(removed)",
+          text: (el?.textContent ?? "").trim().slice(0, 40),
+          size: lcp.size,
+        });
+      }
+    }).observe({ type: "largest-contentful-paint", buffered: true });
+  });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  await page.goto(url);
+  // Let late candidates arrive; the last one is the page's LCP.
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 1500)));
+  const entries = await page.evaluate(
+    () => (window as Window & { __lcp?: LcpEntry[] }).__lcp ?? [],
+  );
+  return entries.at(-1) ?? null;
+}
+
+/**
+ * Sets a layout-shift counter going before the page's own scripts, so nothing is missed: read it
+ * as `window.__cls`.
+ */
+export async function watchLayoutShift(page: Page) {
+  await page.addInitScript(() => {
+    const win = window as Window & { __cls?: number };
+    win.__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & {
+          value: number;
+          hadRecentInput: boolean;
+        };
+        if (!shift.hadRecentInput) win.__cls = (win.__cls ?? 0) + shift.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
 }

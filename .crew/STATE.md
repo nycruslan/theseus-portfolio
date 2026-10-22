@@ -24,6 +24,9 @@ makes stale, and keep the file under about 100 lines.
 - **One run, one sprint.** After #62 merged, the owner's "Merged" in the finished run's session
   had it start sprint 23 while the merge's own run did the same. That left two PRs for one sprint
   (#66, #67), and the two crews spent the five-hour usage limit together.
+- **A resumed sprint starts the build at once.** Sprint 23's first run ended after the briefs, and
+  the next run began the notes, the checks and the build in parallel from the contract, with
+  Probe's commits cherry-picked in as they landed: four hours lost to the gap, none to the overlap.
 
 ## Lessons that hold
 
@@ -36,6 +39,10 @@ makes stale, and keep the file under about 100 lines.
   - A contract writer reading a design for checks finds what the designer missed (sprint 15's
     cropped plank). Keep that read before the build.
   - A rule two places implement (the page and Probe's oracle) is briefed to both word for word.
+- **The revision block grows a row per sprint,** and B1.1 wants the title block's contact links in
+  the first viewport at 1440 × 900. Sprint 23's two-line goal failed it by 10 px; a one-line goal
+  (under about 80 characters) leaves 7 px, and the next row takes them. Keep the retro's goal to one
+  line, and settle the block's height before sprint 24 merges (ROADMAP.md).
 - **Specs.**
   - Writing them first catches checks nobody can build. On browser-sensitive work, push them alone
     first, with a check of the harness itself as the readout.

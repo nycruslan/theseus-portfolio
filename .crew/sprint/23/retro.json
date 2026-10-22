@@ -1,0 +1,49 @@
+{
+  "sprint": 23,
+  "pr": 67,
+  "goal": "The facts read as a schedule, Read as page opens /read, and the 404 is styled",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner: open, waiting for the owner. Lens ship on a740a64 in one run with two nits, CI check green and 141 e2e tests passed; gate waits for the owner to approve the retired check (batch D). Iris ship 8.5/10 with her early-look changes in the build",
+  "fixRounds": 0,
+  "minutes": 98,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 0, "minutes": 7 },
+    { "role": "design-director", "model": "fable", "tokens": 372083, "minutes": 36 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 295092, "minutes": 29 },
+    { "role": "engineer", "model": "opus", "tokens": 466212, "minutes": 36 }
+  ],
+  "lens": { "runs": 1, "tokens": 3247894, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The sprint's first run ended after the briefs, and the build waited four hours for the next one",
+      "evidence": "The branch's commits stop at a56ac99 (16:38 UTC) and resume at 9bc9f02 (21:33 UTC); no notes, checks or code came from the first run"
+    },
+    {
+      "what": "The contract placed the LCP element on /read in the title block, but the frame's layout makes the JPMorgan summary the largest first-screen text at every size",
+      "evidence": "Forge's measurement on the build: the summary at 94k to 104k px² against the bio's 53k to 63k. Amended in .crew/sprint/23/decisions.md item 7 and e2e/read.spec.ts (cfcef9e)"
+    },
+    {
+      "what": "CI's check timed out once before the build landed, because installing Chromium's system libraries took 13 of the job's 15 minutes",
+      "evidence": "Actions run 39858564812 on 899c558: playwright install-deps ran 21:37 to 21:50, and the job was cancelled at 21:51 during pnpm test:e2e"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Give the CI job a longer timeout, or cache the browser's system libraries as the browsers are cached",
+      "moves": "A check cancelled by the 15-minute timeout when apt is slow (once this sprint)"
+    },
+    {
+      "change": "Let the next run resume a sprint whose briefs are written by starting the build roles at once, as this run did, with the checks cherry-picked in when they land",
+      "moves": "The four hours between the briefs and the build this sprint"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "Approve batch D on PR #67 (the retired cards check), then merge it" },
+    { "who": "Quill and Iris", "what": "The revision block grows a row per sprint. With this retro as a one-line row, the title block's contact links end 7 px above the 900 px fold at 1440; the next merged sprint's row puts them below it and B1.1 goes red. Decide, before sprint 24 merges, how the block holds its height (a cap on the rows shown, or the owner's call on B1.1)" },
+    { "who": "Atlas", "what": "An S sprint that upgrades Next from 16.4.0, which Next's own build notice marks as carrying a known security advisory" },
+    { "who": "Forge", "what": "The 404 paints in the fallback face on a first visit: the prerendered 404 sends no font preload" },
+    { "who": "Iris", "what": "With the next sprint touching the facts: the dark scheme's Detail A boxes, the project link's gap below 1024, the figcaption's gap at 390; the social card's typeface stays a vendored-TTF follow-up" },
+    { "who": "Quill", "what": "B4's fifth bar link (Crew) won't fit the phone row at 16 px; the B4 contract re-lays the phone bar" }
+  ]
+}

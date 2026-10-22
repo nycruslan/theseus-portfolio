@@ -2,26 +2,42 @@ import {
   type Lettering,
   linesPlans,
   type LinesPlan as Plan,
+  pagePlan,
 } from "@/lib/lines-plan";
 
 // The hull's lines plan, the drawing at the top of the sheet (.crew/sprint/22/contract.md, B1.4):
 // server-rendered SVG with every plank the crew has replaced filled and numbered. It is decoration
 // with no script: hidden from assistive tech (the revision block holds the same record as text),
-// never hit or focused (app/globals.css, "The lines plan"), and static. Two drawings, one shown per
-// width: the three views from 768 px, the profile and half-breadth plan below it.
+// never hit or focused (app/globals.css, "The lines plan"), and static. On the sheet, two drawings,
+// one shown per width: the three views from 768 px, the profile and half-breadth plan below it.
+// On /read's narrow column, the profile and half-breadth plan alone, numbered from 768 px.
 export function LinesPlan({
   seats,
+  view = "sheet",
   className = "",
 }: {
   seats: ReadonlyMap<string, number>;
+  view?: "sheet" | "page";
   className?: string;
 }) {
-  const { wide, narrow } = linesPlans(seats);
   return (
     <div data-plan="" aria-hidden="true" className={`plan ${className}`}>
+      {view === "page" ? (
+        <Drawing plan={pagePlan(seats)} id="plan-page" />
+      ) : (
+        <SheetDrawings seats={seats} />
+      )}
+    </div>
+  );
+}
+
+function SheetDrawings({ seats }: { seats: ReadonlyMap<string, number> }) {
+  const { wide, narrow } = linesPlans(seats);
+  return (
+    <>
       <Drawing plan={wide} id="plan-wide" />
       <Drawing plan={narrow} id="plan-narrow" />
-    </div>
+    </>
   );
 }
 

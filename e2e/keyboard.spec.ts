@@ -13,8 +13,10 @@ import {
 
 // What stays true for a keyboard visitor (sprint 4): a skip link comes first and lands on main,
 // Tab visits every link in DOM order, each stop can be seen and shows one clear ring in a token
-// color, and a card shows keyboard focus the way it shows hover. The skip link is
-// `a[href="#main"]`.
+// color, and a project link shows keyboard focus the way it shows hover. The skip link is
+// `a[href="#main"]`. Sprint 23 (.crew/sprint/23/contract.md): projects are rows with one small link,
+// so the hover is the link's (B2.9 disposition); B2.3 pins Contact's first link as the 12th stop;
+// B2.9 holds the forced-colours ring on /read and the 404.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -309,7 +311,7 @@ test("Tab visits every link in DOM order, each seen with one clear ring, in both
   }
 });
 
-test("a card shows keyboard focus as it shows hover, and both differ from rest", async ({
+test("a project link shows keyboard focus as it shows hover, and both differ from rest", async ({
   page,
 }) => {
   for (const scheme of SCHEMES) {
@@ -329,6 +331,7 @@ test("a card shows keyboard focus as it shows hover, and both differ from rest",
             return [
               style.color,
               style.textDecorationColor,
+              style.textDecorationThickness,
               style.borderColor,
               style.backgroundColor,
               style.outlineStyle,
@@ -337,7 +340,7 @@ test("a card shows keyboard focus as it shows hover, and both differ from rest",
           };
           return { colors: `${paint(li)} | ${paint(li.querySelector("a"))}` };
         });
-      const where = `${project.name} card (${scheme})`;
+      const where = `${project.name} row (${scheme})`;
 
       await page.goto("/");
       await page.mouse.move(0, 0);
@@ -350,7 +353,7 @@ test("a card shows keyboard focus as it shows hover, and both differ from rest",
       await settled(page);
       const focused = await look();
       await page.keyboard.press("Tab");
-      await card.hover();
+      await page.locator(cardLink(index)).hover();
       await settled(page);
       const hovered = await look();
 
@@ -419,4 +422,105 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   });
   expect(contact.style, "Contact link outline style").not.toBe("none");
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
+});
+
+test("B2.3 on /, Contact's first link is the 12th Tab stop: skip, the 4 bar links, the 3 title-block links, the Log link, the project links, then it", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const expected = [
+    "#main",
+    "#work",
+    "/sprints",
+    "#contact",
+    "/read",
+    ...profile.links.map((link) => link.href),
+    "/sprints",
+    ...withLink.map((project) => project.href ?? ""),
+    profile.links[0]?.href ?? "",
+  ];
+  // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
+  expect(expected, "the stops up to Contact's first link").toHaveLength(12);
+  const stops: string[] = [];
+  for (let press = 0; press < expected.length; press++) {
+    await page.keyboard.press("Tab");
+    stops.push(
+      await page.evaluate(
+        () =>
+          document.activeElement?.getAttribute("href") ??
+          `<${document.activeElement?.tagName.toLowerCase()}>`,
+      ),
+    );
+  }
+  expect(stops, "the first 12 Tab stops on /").toEqual(expected);
+  expect(
+    await page.evaluate(
+      (sel) => document.activeElement?.matches(sel) ?? false,
+      `${CONTACT} li:first-child a`,
+    ),
+    "the 12th stop is Contact's first link",
+  ).toBe(true);
+});
+
+test("B2.9 in forced colours, every focused link or button on /read and the 404 shows exactly one ring", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  for (const [route, status] of [
+    ["/read", 200],
+    ["/no-such-page", 404],
+  ] as const) {
+    const response = await page.goto(route);
+    expect(response?.status(), `status of ${route}`).toBe(status);
+    expect(
+      await page.evaluate(() => matchMedia("(forced-colors: active)").matches),
+      "forced colors are on",
+    ).toBe(true);
+    const count = await page.locator("a[href], button").count();
+    expect(count, `links and buttons on ${route}`).toBeGreaterThan(0);
+    const problems: string[] = [];
+    let visited = 0;
+    for (let press = 0; press < count + 1; press++) {
+      await page.keyboard.press("Tab");
+      await settled(page);
+      const stop = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body || !el.matches("a, button")) {
+          return null;
+        }
+        const ancestors: Element[] = [];
+        for (
+          let a = el.parentElement;
+          a && a !== document.body;
+          a = a.parentElement
+        ) {
+          ancestors.push(a);
+        }
+        const rings = [el, ...el.querySelectorAll("*"), ...ancestors].filter(
+          (c) => {
+            const style = getComputedStyle(c);
+            return (
+              style.outlineStyle !== "none" &&
+              Number.parseFloat(style.outlineWidth) > 0
+            );
+          },
+        );
+        return {
+          name: el.getAttribute("href") ?? el.tagName.toLowerCase(),
+          rings: rings.map((c) => c.tagName.toLowerCase()),
+        };
+      });
+      if (!stop) break;
+      visited++;
+      if (stop.rings.length !== 1) {
+        problems.push(
+          `${stop.name}: ${stop.rings.length} rings (${stop.rings.join(", ")})`,
+        );
+      }
+    }
+    expect(visited, `Tab stops visited on ${route}`).toBeGreaterThan(0);
+    expect
+      .soft(problems, `focused stops without exactly one ring on ${route}`)
+      .toEqual([]);
+  }
 });

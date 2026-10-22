@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <title>Ruslan</title>
-  <!-- The owner's initial (content/profile.ts) in copper on the drafting-film ground, square-cornered
-       like the sheet, following the system's scheme. The colors repeat the tokens in app/globals.css
+  <!-- The owner's initial (content/profile.ts) in ink on the drafting-film ground, square-cornered
+       like the sheet, following the system's scheme. Ink, not copper: copper is for what is live
+       (.crew/sprint/23/notes-iris.md, section 10). The colors repeat the tokens in app/globals.css
        (an SVG file can't read them); change them together. -->
   <style>
     .ground { fill: #eaf1ee; }
-    .mark { stroke: #9e441d; }
+    .mark { stroke: #111c22; }
     @media (prefers-color-scheme: dark) {
       .ground { fill: #10191c; }
-      .mark { stroke: #ee8f63; }
+      .mark { stroke: #e2eae9; }
     }
   </style>
   <rect class="ground" width="32" height="32"/>

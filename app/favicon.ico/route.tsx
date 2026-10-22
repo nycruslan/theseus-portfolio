@@ -19,7 +19,7 @@ export function GET() {
         <path
           d="M11 25V7h6.5a5.5 5.5 0 0 1 0 11H11m6 0 5.5 7"
           fill="none"
-          stroke={LIGHT.accent}
+          stroke={LIGHT.foreground}
           strokeWidth="3.5"
           strokeLinejoin="round"
         />

@@ -15,13 +15,14 @@ import {
   contrast,
   hexToRgb,
   horizontalOverflow,
-  PROJECTS,
   type Rgb,
+  ROUTES,
   resolveColors,
   resolvedBackground,
   resolveSteps,
   rootTokens,
   SCHEMES,
+  STATUS,
   STEP_TOKENS,
   textStyles,
 } from "./helpers";
@@ -34,7 +35,8 @@ import {
 // project cards and the accessibility pass; the cards' own checks are in cards.spec.ts and the
 // keyboard's in keyboard.spec.ts. The one place exact colors appear is the check that
 // lib/site.ts, which feeds the meta tags, the social card and the icons, still agrees with the CSS
-// tokens: a consistency check, so a new palette changes both.
+// tokens: a consistency check, so a new palette changes both. Sprint 23 (B2.9) holds the page-wide
+// checks on /read and the 404 as on / (.crew/sprint/23/contract.md).
 
 type Scheme = (typeof SCHEMES)[number];
 type ColorToken = (typeof COLOR_TOKENS)[number];
@@ -76,22 +78,31 @@ for (const scheme of SCHEMES) {
   test.describe(`in the ${scheme} scheme`, () => {
     test.use({ colorScheme: scheme });
 
-    test("every text color and size comes from a token, and body text is at least 16 px", ({
+    test("B2.9 every text color and size comes from a token, and body text is at least 16 px, on /, /read and the 404", async ({
       page,
-    }) => textFromTokens(page, scheme));
+    }) => {
+      for (const route of ROUTES) await textFromTokens(page, scheme, route);
+    });
 
     test("text meets its contrast thresholds", ({ page }) =>
       meetsContrast(page, scheme));
 
-    test("axe finds no violation of any impact, with the strict tags, with or without the skip link showing", ({
+    test("B2.9 axe finds no violation of any impact, with the strict tags, with or without the skip link showing, on /, /read and the 404", async ({
       page,
-    }) => axeClean(page));
+    }) => {
+      test.setTimeout(90_000);
+      for (const route of ROUTES) await axeClean(page, route);
+    });
 
-    test("with JavaScript off, the first paint already has this scheme's background", ({
+    test("B2.9 with JavaScript off, the first paint already has this scheme's background, on /, /read and the 404", async ({
       browser,
       baseURL,
       page,
-    }) => paintsWithoutScript(browser, `${baseURL}/`, page, scheme));
+    }) => {
+      for (const route of ROUTES) {
+        await paintsWithoutScript(browser, `${baseURL}${route}`, page, scheme);
+      }
+    });
 
     test("the browser's address bar takes the page's background", ({ page }) =>
       themeColorIsBackground(page));
@@ -148,69 +159,122 @@ test("the type scale is fluid: no step shrinks from 320 to 1440 px, and the larg
 test.describe("on a 320 px wide phone", () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
-  test("nothing overflows horizontally", async ({ page }) => {
-    await page.goto("/");
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  test("B2.9 nothing overflows horizontally, on /, /read and the 404", async ({
+    page,
+  }) => {
+    for (const route of ROUTES) {
+      const response = await page.goto(route);
+      expect(response?.status(), `status of ${route}`).toBe(STATUS[route]);
+      expect
+        .soft(await horizontalOverflow(page), `overflow on ${route}`)
+        .toBeLessThanOrEqual(0);
+    }
   });
 });
 
-test("links outside the cards are targets of at least 24 x 24 px on a phone, the skip link included", async ({
+test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, the skip link and the project links included, on /, /read and the 404", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  // Focused, so the skip link shows; a card's target is the whole card (cards.spec.ts).
-  await page.keyboard.press("Tab");
-  const small = await page.evaluate(
-    (projects) =>
-      [...document.querySelectorAll("a")]
-        .filter((a) => !a.closest(`${projects} li`))
-        .flatMap((a) => {
-          const r = a.getBoundingClientRect();
+  for (const route of ROUTES) {
+    const response = await page.goto(route);
+    expect(response?.status(), `status of ${route}`).toBe(STATUS[route]);
+    // Focused, so the skip link shows. Since sprint 23 a project's target is its own link.
+    await page.keyboard.press("Tab");
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll("a, button")]
+        .filter((el) => el.getClientRects().length > 0)
+        .flatMap((el) => {
+          const r = el.getBoundingClientRect();
           return r.width >= 24 && r.height >= 24
             ? []
-            : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
+            : [
+                `${el.getAttribute("href") ?? `<${el.tagName.toLowerCase()}> ${el.textContent}`}: ${r.width} x ${r.height}`,
+              ];
         }),
-    PROJECTS,
-  );
-  expect(small, "links smaller than 24 x 24 px").toEqual([]);
+    );
+    expect
+      .soft(small, `links and buttons smaller than 24 x 24 px on ${route}`)
+      .toEqual([]);
+  }
 });
 
-test("one main, each section a region named by its heading, and no skipped heading level", async ({
+test("B2.9 one main, each section a region named by its heading, and no skipped heading level, on /, /read and the 404", async ({
   page,
 }) => {
-  await page.goto("/");
-  await expect(page.getByRole("main"), "main landmarks").toHaveCount(1);
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  expect((await page.title()).trim(), "document.title").not.toBe("");
-
-  const sections = page.locator("main section");
-  expect(await sections.count(), "sections in main").toBeGreaterThan(0);
-  for (const section of await sections.all()) {
-    // textContent, not innerText: CSS may upper-case the h2, and the accessible name isn't.
-    const heading = (
-      (await section.locator("h2").first().textContent()) ?? ""
-    ).trim();
-    await expect(section, `the ${heading} section`).toHaveRole("region");
-    await expect(section, `the ${heading} section`).toHaveAccessibleName(
-      heading,
+  for (const route of ROUTES) {
+    const response = await page.goto(route);
+    expect(response?.status(), `status of ${route}`).toBe(STATUS[route]);
+    await expect(
+      page.getByRole("main"),
+      `main landmarks on ${route}`,
+    ).toHaveCount(1);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    expect((await page.title()).trim(), `document.title on ${route}`).not.toBe(
+      "",
     );
-  }
 
-  await expect(page.locator("h1"), "h1 elements").toHaveCount(1);
-  const headings = await page.evaluate(() =>
-    [...document.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => ({
-      level: Number(h.tagName.slice(1)),
-      text: (h.textContent ?? "").trim().slice(0, 30),
-    })),
-  );
-  let previous = 0;
-  for (const { level, text } of headings) {
-    expect(
-      level - previous,
-      `h${level} "${text}" follows an h${previous}`,
-    ).toBeLessThanOrEqual(1);
-    previous = level;
+    const sections = page.locator("main section");
+    // The home page is made of sections; the other routes may have none.
+    if (route === "/") {
+      expect(await sections.count(), "sections in main").toBeGreaterThan(0);
+    }
+    for (const section of await sections.all()) {
+      // textContent, not innerText: CSS may upper-case the h2, and the accessible name isn't.
+      const heading = (
+        (await section.locator("h2").first().textContent()) ?? ""
+      ).trim();
+      await expect(section, `the ${heading} section on ${route}`).toHaveRole(
+        "region",
+      );
+      await expect(
+        section,
+        `the ${heading} section on ${route}`,
+      ).toHaveAccessibleName(heading);
+    }
+
+    await expect(page.locator("h1"), `h1 elements on ${route}`).toHaveCount(1);
+    const headings = await page.evaluate(() =>
+      [...document.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => ({
+        level: Number(h.tagName.slice(1)),
+        text: (h.textContent ?? "").trim().slice(0, 30),
+      })),
+    );
+    let previous = 0;
+    for (const { level, text } of headings) {
+      expect(
+        level - previous,
+        `h${level} "${text}" follows an h${previous} on ${route}`,
+      ).toBeLessThanOrEqual(1);
+      previous = level;
+    }
+  }
+});
+
+test("B2.9 nothing animates on /read or the 404: no animation at load, 2 s later, or after a scroll to the bottom and back", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  for (const route of ROUTES.filter((r) => r !== "/")) {
+    const response = await page.goto(route);
+    expect(response?.status(), `status of ${route}`).toBe(STATUS[route]);
+    const animations = () =>
+      page.evaluate(() => document.getAnimations().length);
+    expect.soft(await animations(), `animations at load on ${route}`).toBe(0);
+    await page.evaluate(() => new Promise((done) => setTimeout(done, 2000)));
+    expect.soft(await animations(), `animations 2 s later on ${route}`).toBe(0);
+    for (const to of ["bottom", "top"] as const) {
+      await page.evaluate((where) => {
+        scrollTo(
+          0,
+          where === "top" ? 0 : document.documentElement.scrollHeight,
+        );
+        return new Promise((done) => requestAnimationFrame(() => done(null)));
+      }, to);
+      expect
+        .soft(await animations(), `animations at the ${to} on ${route}`)
+        .toBe(0);
+    }
   }
 });
 
@@ -243,8 +307,11 @@ test("app/ and components/ use the tokens: no color literal or palette utility",
   expect(hits).toEqual([]);
 });
 
-async function textFromTokens(page: Page, scheme: Scheme) {
-  await page.goto("/");
+async function textFromTokens(page: Page, scheme: Scheme, route: string) {
+  const response = await page.goto(route);
+  expect(response?.status(), `status of ${route}`).toBe(
+    STATUS[route as keyof typeof STATUS],
+  );
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
     const { tokenColors, tokenSizes, texts } = await textStyles(page);
@@ -258,13 +325,16 @@ async function textFromTokens(page: Page, scheme: Scheme) {
         ({ element, color, fontSize }) => `${element}: ${color}, ${fontSize}`,
       );
     expect
-      .soft(off, `text not set in a token at ${width} px (${scheme})`)
+      .soft(
+        off,
+        `text not set in a token on ${route} at ${width} px (${scheme})`,
+      )
       .toEqual([]);
     const body = await page.evaluate(() =>
       Number.parseFloat(getComputedStyle(document.body).fontSize),
     );
     expect
-      .soft(body, `body font size at ${width} px`)
+      .soft(body, `body font size on ${route} at ${width} px`)
       .toBeGreaterThanOrEqual(16);
   }
   const body = await page.evaluate(() => {
@@ -273,10 +343,10 @@ async function textFromTokens(page: Page, scheme: Scheme) {
   });
   const colors = await resolveColors(page);
   expect
-    .soft(body.color, "body color is --foreground")
+    .soft(body.color, `body color is --foreground on ${route}`)
     .toBe(colors["--foreground"]?.computed);
   expect
-    .soft(body.background, "body background is --background")
+    .soft(body.background, `body background is --background on ${route}`)
     .toBe(await resolvedBackground(page));
 }
 
@@ -308,12 +378,12 @@ async function meetsContrast(page: Page, scheme: Scheme) {
     .toBeGreaterThanOrEqual(4.5);
 }
 
-async function axeClean(page: Page) {
+async function axeClean(page: Page, route: string) {
   for (const width of [390, 1440]) {
     for (const skipShowing of [false, true]) {
-      const where = `${width} px, ${skipShowing ? "skip link showing" : "nothing focused"}`;
+      const where = `${route}, ${width} px, ${skipShowing ? "skip link showing" : "nothing focused"}`;
       await page.setViewportSize({ width, height: 900 });
-      await page.goto("/");
+      await page.goto(route);
       if (skipShowing) await page.keyboard.press("Tab");
       const results = await new AxeBuilder({ page })
         .withTags(AXE_TAGS)
@@ -354,8 +424,8 @@ async function paintsWithoutScript(
     background: getComputedStyle(document.body).backgroundColor,
   }));
   await context.close();
-  expect(seen.scriptsRan, "page scripts ran").toBe("undefined");
-  expect(seen.background).toBe(expected);
+  expect.soft(seen.scriptsRan, `page scripts ran on ${url}`).toBe("undefined");
+  expect.soft(seen.background, `background on ${url}`).toBe(expected);
 }
 
 async function themeColorIsBackground(page: Page) {
@@ -393,7 +463,8 @@ async function paletteMatchesTokens(
       .toBe(hexToRgb(hex));
   }
   const icon = (await (await request.get("/icon.svg")).text()).toLowerCase();
-  for (const hex of [palette.background, palette.accent]) {
+  // Ink, not copper, since sprint 23: copper means live (.crew/sprint/23/, Atlas's ruling).
+  for (const hex of [palette.background, palette.foreground]) {
     expect.soft(icon, `icon.svg uses ${hex} (${scheme})`).toContain(hex);
   }
 }

@@ -22,6 +22,10 @@ import { bioParts, MERGED, ROWS } from "./retros";
 // a `<header>` with a `<nav>` before `main`, `section[aria-labelledby="revisions"]` with its h2
 // `#revisions` and a `<table>`, the facts' h2 ids `work` to `contact`. The legend is found by its
 // words ("seated", "original"), outside any svg.
+//
+// Sprint 23 (.crew/sprint/23/contract.md): B1.3's two tests are rewritten as B2.3 (the bar gains
+// Read as page, and stays above every fact and Detail A), B1.6 runs on /read and the 404 too, and
+// B2.9's two riders (forced-colours plank fills, the folded table's labels) are here.
 
 const REVISIONS = 'section[aria-labelledby="revisions"]';
 const SPRINTS_ENTRIES = "main section ol > li";
@@ -40,10 +44,16 @@ test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
 });
 
-async function open(page: Page, width: number, height = 900, url = "/") {
+async function open(
+  page: Page,
+  width: number,
+  height = 900,
+  url = "/",
+  status = 200,
+) {
   await page.setViewportSize({ width, height });
   const response = await page.goto(url);
-  expect(response?.status(), `status of ${url}`).toBe(200);
+  expect(response?.status(), `status of ${url}`).toBe(status);
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -275,7 +285,7 @@ test("B1.2 the title block is the owner's words, verbatim, and the bio's last pa
     .toBe(true);
 });
 
-test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24 px target that lands on its target", async ({
+test("B2.3 the labelled bar (B1.3): the wordmark, then Work, Log, Contact and Read as page, each a 24 px target inside the viewport at 320, 390 and 1440, Read as page right-most at 1440, each landing on its target", async ({
   page,
 }) => {
   const readBar = () =>
@@ -338,6 +348,21 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
               `<${el.tagName.toLowerCase()}> "${squashed(el).slice(0, 20)}"`,
           ),
         headerOverflow: header ? header.scrollWidth - header.clientWidth : -1,
+        rights: [...(header?.querySelectorAll("*") ?? [])]
+          .filter(
+            (el) =>
+              el.getClientRects().length > 0 &&
+              el.getAttribute("href") !== "#main" &&
+              [...el.childNodes].some(
+                (n) =>
+                  n.nodeType === Node.TEXT_NODE &&
+                  (n.textContent ?? "").trim() !== "",
+              ),
+          )
+          .map((el) => ({
+            text: squashed(el),
+            right: el.getBoundingClientRect().right,
+          })),
         targetsExist: ["work", "contact"].map((id) => ({
           id,
           exists: document.getElementById(id) !== null,
@@ -353,6 +378,7 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
     { tag: "a", text: "Work", href: "#work", inNav: true },
     { tag: "a", text: "Log", href: "/sprints", inNav: true },
     { tag: "a", text: "Contact", href: "#contact", inNav: true },
+    { tag: "a", text: "Read as page", href: "/read", inNav: true },
   ]);
   expect.soft(bar.wordmark, 'the wordmark "Theseus"').toBe(true);
   expect.soft(bar.wordmarkLinked, "the wordmark is a link").toBe(false);
@@ -363,24 +389,39 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
     { id: "work", exists: true },
     { id: "contact", exists: true },
   ]);
-  expect
-    .soft(
-      bar.targets.filter(
-        ({ width, height }) => width < 24 - 0.05 || height < 24 - 0.05,
-      ),
-      "bar links smaller than 24 x 24 px at 390",
-    )
-    .toEqual([]);
-
-  await open(page, 320);
-  const narrow = await readBar();
-  expect.soft(await horizontalOverflow(page), "page overflow at 320").toBe(0);
-  expect
-    .soft(narrow.headerOverflow, "the bar's own overflow at 320")
-    .toBeLessThanOrEqual(0);
-  expect
-    .soft(narrow.sticking, "bar elements past the viewport at 320")
-    .toEqual([]);
+  for (const width of [320, 390, 1440]) {
+    await open(page, width);
+    const at = await readBar();
+    expect
+      .soft(
+        at.targets.filter(
+          ({ width, height }) => width < 24 - 0.05 || height < 24 - 0.05,
+        ),
+        `bar links smaller than 24 x 24 px at ${width}`,
+      )
+      .toEqual([]);
+    expect
+      .soft(await horizontalOverflow(page), `page overflow at ${width}`)
+      .toBe(0);
+    expect
+      .soft(at.headerOverflow, `the bar's own overflow at ${width}`)
+      .toBeLessThanOrEqual(0);
+    expect
+      .soft(at.sticking, `bar elements past the viewport at ${width}`)
+      .toEqual([]);
+    if (width === 1440) {
+      const read = at.rights.find((r) => r.text === "Read as page");
+      expect.soft(read, "Read as page in the bar at 1440").toBeDefined();
+      expect
+        .soft(
+          at.rights
+            .filter((r) => r !== read && r.right > (read?.right ?? 0) + 0.5)
+            .map((r) => `"${r.text}" ends at ${r.right}`),
+          `bar items right of Read as page (ending at ${read?.right}) at 1440`,
+        )
+        .toEqual([]);
+    }
+  }
 
   // Following each link lands on its target, not under the bar.
   for (const width of [390, 1440]) {
@@ -406,45 +447,75 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
     await expect(page.locator("h1"), `after Log at ${width}`).toHaveText(
       "Build log",
     );
+    await open(page, width);
+    const read = page.locator("header nav a", { hasText: "Read as page" });
+    await expect(read, `Read as page in the bar at ${width}`).toHaveCount(1);
+    await read.click();
+    await page.waitForURL("**/read");
+    await expect(
+      page.locator("h1"),
+      `after Read as page at ${width}`,
+    ).toHaveText(profile.name);
   }
 });
 
-test("B1.3 the bar stays above a hovered card: at 1024, with a linked project card under the bar and hovered, Work, Log and Contact are hit and land on their targets", async ({
+test("B2.3 the bar stays above the facts (B1.3): at 1024, with each fact section or Detail A under the bar and hovered, the element at every bar link's centre is in the bar, and each link lands", async ({
   page,
   baseURL,
 }) => {
   // Lens on aa9fcd9 (.crew/sprint/22/fix-round-2.md): a hovered card lifted itself to the bar's own
-  // z-index and, later in the DOM, painted over the bar and took its clicks. Between md and about
-  // 1300 px the bar's links sit over the cards' column. Off-site requests are refused, so a click
-  // the card steals fails here instead of leaving the site.
+  // z-index and, later in the DOM, painted over the bar and took its clicks. Sprint 23 generalises
+  // it to every fact section and Detail A. Off-site requests are refused, so a click a fact
+  // steals fails here instead of leaving the site.
+  test.setTimeout(240_000);
   const origin = new URL(baseURL ?? "http://localhost").origin;
   await page.route(
     (url) => url.origin !== origin,
     (route) => route.abort(),
   );
-  const CARD = 'section[aria-labelledby="projects"] li:has(a[href])';
+  const TARGETS = [
+    ...["work", "projects", "stack", "education", "contact"].map((id) => ({
+      what: `the ${id} section`,
+      selector: `section[aria-labelledby="${id}"]`,
+    })),
+    {
+      what: "Detail A",
+      selector: 'section[aria-labelledby="work"] li figure',
+    },
+  ];
+  const LANDINGS: Record<string, string> = {
+    Work: "#work",
+    Log: "/sprints",
+    Contact: "#contact",
+    "Read as page": "/read",
+  };
 
-  /** Opens `/`, slides the first linked card up under the whole bar, its lower part still showing, and hovers that part. */
-  const hoverUnderTheBar = async () => {
+  /** Opens /, slides the target up under the whole bar as far as the page scrolls, and hovers it. */
+  const hoverUnderTheBar = async (selector: string) => {
     await open(page, 1024, 768);
-    const at = await page.evaluate((selector) => {
-      const card = document.querySelector(selector);
+    const at = await page.evaluate((target) => {
+      const el = document.querySelector(target);
       const bar = document.querySelector("header:has(nav)");
-      if (!card || !bar) return null;
+      if (!el || !bar) return null;
+      // Room below the page's end, so the last sections can scroll up under the bar too, as they
+      // would on a longer page. It changes no stacking: it is an empty block after everything.
+      const spacer = document.createElement("div");
+      spacer.style.height = "100vh";
+      document.body.append(spacer);
       // Twice: the bar has a top margin from lg, so it sticks only once the page has scrolled.
       for (let pass = 0; pass < 2; pass++) {
         window.scrollBy({
           top:
-            card.getBoundingClientRect().top -
+            el.getBoundingClientRect().top -
             (bar.getBoundingClientRect().top - 8),
           behavior: "instant",
         });
       }
       const b = bar.getBoundingClientRect();
-      const c = card.getBoundingClientRect();
+      const t = el.getBoundingClientRect();
       return {
         barBottom: b.bottom,
-        card: { top: c.top, bottom: c.bottom, left: c.left, right: c.right },
+        box: { top: t.top, bottom: t.bottom, left: t.left, right: t.right },
         links: [...bar.querySelectorAll("nav a")].map((a) => {
           const r = a.getBoundingClientRect();
           return {
@@ -454,87 +525,102 @@ test("B1.3 the bar stays above a hovered card: at 1024, with a linked project ca
           };
         }),
       };
-    }, CARD);
-    expect(at, "a linked project card and the bar").not.toBeNull();
-    if (!at) throw new Error("unreachable");
-    expect(
-      at.card.top < at.barBottom && at.card.bottom > at.barBottom + 24,
-      `the card (top ${at.card.top}, bottom ${at.card.bottom}) runs under the bar's bottom edge (${at.barBottom})`,
-    ).toBe(true);
-    // Otherwise the check has no card under the links and passes whatever the card's z-index.
-    expect(
-      at.links
-        .filter(
-          ({ x, y }) =>
-            x < at.card.left ||
-            x > at.card.right ||
-            y < at.card.top ||
-            y > at.card.bottom,
-        )
-        .map(({ text }) => text),
-      "bar links whose centre the card doesn't sit under",
-    ).toEqual([]);
-    const x = at.links[0]?.x ?? 0;
-    await page.mouse.move(
-      x,
-      (at.barBottom + Math.min(at.card.bottom, 768)) / 2,
+    }, selector);
+    if (!at) return null;
+    const under = at.links.filter(
+      ({ x, y }) =>
+        x >= at.box.left &&
+        x <= at.box.right &&
+        y >= at.box.top &&
+        y <= at.box.bottom,
     );
-    expect(
-      await page
-        .locator(CARD)
-        .first()
-        .evaluate((el) => el.matches(":hover")),
-      "the card is hovered",
-    ).toBe(true);
-    return at.links;
+    if (under.length > 0) {
+      const x = under[0]?.x ?? 0;
+      await page.mouse.move(
+        x,
+        (at.barBottom + Math.min(at.box.bottom, 768)) / 2,
+      );
+    }
+    const hovered = await page
+      .locator(selector)
+      .first()
+      .evaluate((el) => el.matches(":hover"));
+    return { ...at, under, hovered };
   };
 
-  const links = await hoverUnderTheBar();
-  const log = links.find(({ text }) => text === "Log");
-  expect(log, "the Log link").toBeDefined();
-  expect
-    .soft(
-      await page.evaluate(({ x, y }) => {
-        const hit = document.elementFromPoint(x, y);
-        const link = hit?.closest("a");
-        return hit?.closest("header nav")
-          ? "the bar's nav"
-          : `<${hit?.tagName.toLowerCase()}> in ${link ? `a link to ${link.getAttribute("href")}` : "no link"}`;
-      }, log ?? { x: 0, y: 0 }),
-      "the element at the Log link's centre while the card is hovered",
-    )
-    .toBe("the bar's nav");
-
-  for (const [text, id] of [
-    ["Work", "work"],
-    ["Log", null],
-    ["Contact", "contact"],
-  ] as const) {
-    const link = (await hoverUnderTheBar()).find((l) => l.text === text);
-    expect(link, `the ${text} link`).toBeDefined();
-    if (!link) continue;
-    // The pointer travels from the card up into the bar, as a visitor's does, then clicks.
-    await page.mouse.move(link.x, link.y, { steps: 4 });
-    await page.mouse.down();
-    await page.mouse.up();
-    if (id === null) {
-      await expect
-        .poll(() => page.url(), `the URL after ${text} over a hovered card`)
-        .toBe(`${origin}/sprints`);
+  for (const target of TARGETS) {
+    const at = await hoverUnderTheBar(target.selector);
+    expect(at, `${target.what} and the bar`).not.toBeNull();
+    if (!at) continue;
+    const reachable = at.box.top <= Math.max(...at.links.map((l) => l.y));
+    if (!reachable) {
+      // The page ends before this target can reach the bar, so it can never cover a link.
+      test.info().annotations.push({
+        type: "unreachable",
+        description: `${target.what}: its top stops at ${at.box.top}, below the bar's links`,
+      });
       continue;
     }
-    await expect
-      .poll(
-        () => new URL(page.url()).hash,
-        `the hash after ${text} over a hovered card`,
-      )
-      .toBe(`#${id}`);
-    await expect
-      .poll(
-        () => clearOfTheBar(page, id),
-        `#${id} in view after ${text} over a hovered card`,
-      )
-      .toBe("in view");
+    // Otherwise the check has nothing under the links and passes whatever the z-index. A section
+    // spans the page's width; Detail A sits in the entries' column, which may miss every link.
+    if (target.what === "Detail A" && at.under.length === 0) {
+      test.info().annotations.push({
+        type: "unreachable",
+        description: "Detail A: no bar link's centre is over it at 1024",
+      });
+    } else {
+      expect
+        .soft(
+          at.under.map((l) => l.text),
+          `bar links whose centre ${target.what} sits under`,
+        )
+        .not.toEqual([]);
+    }
+    expect.soft(at.hovered, `${target.what} is hovered`).toBe(true);
+    for (const link of at.links) {
+      expect
+        .soft(
+          await page.evaluate(({ x, y }) => {
+            const hit = document.elementFromPoint(x, y);
+            const a = hit?.closest("a");
+            return hit?.closest("header nav")
+              ? "the bar's nav"
+              : `<${hit?.tagName.toLowerCase()}> in ${a ? `a link to ${a.getAttribute("href")}` : "no link"}`;
+          }, link),
+          `the element at ${link.text}'s centre with ${target.what} hovered under the bar`,
+        )
+        .toBe("the bar's nav");
+    }
+
+    // Each link over the target lands: the pointer travels from the target up into the bar.
+    for (const { text } of at.under) {
+      const again = await hoverUnderTheBar(target.selector);
+      const link = again?.links.find((l) => l.text === text);
+      if (!link) continue;
+      await page.mouse.move(link.x, link.y, { steps: 4 });
+      await page.mouse.down();
+      await page.mouse.up();
+      const landing = LANDINGS[text] ?? "";
+      if (landing.startsWith("#")) {
+        const id = landing.slice(1);
+        await expect
+          .poll(
+            () => new URL(page.url()).hash,
+            `the hash after ${text} over ${target.what}`,
+          )
+          .toBe(landing);
+        await expect
+          .poll(
+            () => clearOfTheBar(page, id),
+            `#${id} in view after ${text} over ${target.what}`,
+          )
+          .toBe("in view");
+      } else {
+        await expect
+          .poll(() => page.url(), `the URL after ${text} over ${target.what}`)
+          .toBe(`${origin}${landing}`);
+      }
+    }
   }
 });
 
@@ -888,7 +974,12 @@ function accentPaint(page: Page, accent: Rgba) {
 }
 
 for (const scheme of SCHEMES) {
-  for (const route of ["/", "/sprints"]) {
+  for (const [route, status] of [
+    ["/", 200],
+    ["/sprints", 200],
+    ["/read", 200],
+    ["/no-such-page", 404],
+  ] as const) {
     test(`B1.6 nothing is copper: no --accent at rest, hovered or focused; links are ink and underlined; the ring is 2 px of ink, 2 px out (${route}, ${scheme})`, async ({
       page,
     }) => {
@@ -897,7 +988,7 @@ for (const scheme of SCHEMES) {
         colorScheme: scheme,
         reducedMotion: "no-preference",
       });
-      await open(page, 1440, 900, route);
+      await open(page, 1440, 900, route, status);
       const accent = await tokenRgba(page, "--accent");
       const ink = await tokenRgba(page, "--foreground");
       expect(accent, "--accent resolves").not.toBeNull();
@@ -967,7 +1058,7 @@ for (const scheme of SCHEMES) {
       await page.mouse.move(0, 0);
 
       // Tab through every stop: the ring, and no copper anywhere while it shows.
-      await open(page, 1440, 900, route);
+      await open(page, 1440, 900, route, status);
       const stops = await page.locator("a[href], button").count();
       const rings: string[] = [];
       for (let press = 0; press < stops + 1; press++) {
@@ -1396,4 +1487,149 @@ test("B1.11 the tokens carry the new palette: the five keep their names, three n
   expect
     .soft(sizes[768]?.step ?? 0, "--step-3xl at 768 is below 1440's")
     .toBeLessThan(sizes[1440]?.step ?? 0);
+});
+
+test("B2.9 riders: in forced colours an original plank and its swatch fill unlike a seated plank and its swatch, each unlike Canvas, on / and /read; and the folded revision table's labels show at 390", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  for (const route of ["/", "/read"]) {
+    await open(page, 1440, 900, route);
+    const seen = await page.evaluate(() => {
+      const canvas = getComputedStyle(document.body).backgroundColor;
+      const geometry = (plank: Element | null) =>
+        plank instanceof SVGGeometryElement
+          ? plank
+          : (plank?.querySelector(
+              "path, polygon, rect, polyline, ellipse, circle",
+            ) ?? null);
+      const plankPaint = (plank: Element | null) => {
+        const g = geometry(plank);
+        if (!g) return null;
+        const s = getComputedStyle(g);
+        return {
+          fill: s.fill,
+          edge:
+            s.stroke !== "none" && Number.parseFloat(s.strokeWidth) > 0
+              ? s.stroke
+              : null,
+        };
+      };
+      const legend = [...document.querySelectorAll("body *")]
+        .filter(
+          (el) =>
+            !el.closest("svg") &&
+            el.querySelectorAll("li").length > 0 &&
+            /\bseated\b/i.test(el.textContent ?? "") &&
+            /\boriginal\b/i.test(el.textContent ?? ""),
+        )
+        .at(-1);
+      const swatchPaint = (word: RegExp) => {
+        const li = [...(legend?.querySelectorAll("li") ?? [])].find((item) =>
+          word.test(item.textContent ?? ""),
+        );
+        const swatch = li?.querySelector('[aria-hidden="true"]') ?? null;
+        if (!swatch) return null;
+        const s = getComputedStyle(swatch);
+        return {
+          fill: s.backgroundColor,
+          edge:
+            s.borderTopStyle !== "none" &&
+            Number.parseFloat(s.borderTopWidth) > 0
+              ? s.borderTopColor
+              : null,
+        };
+      };
+      return {
+        active: matchMedia("(forced-colors: active)").matches,
+        canvas,
+        seatedPlank: plankPaint(
+          document.querySelector("[data-plan] [data-plank][data-sprint]"),
+        ),
+        originalPlank: plankPaint(
+          document.querySelector("[data-plan] [data-plank]:not([data-sprint])"),
+        ),
+        seatedSwatch: swatchPaint(/\bseated\b/i),
+        originalSwatch: swatchPaint(/\boriginal\b/i),
+      };
+    });
+    expect(seen.active, "forced colours are on").toBe(true);
+    expect
+      .soft(seen.seatedSwatch, `the seated swatch on ${route}`)
+      .not.toBeNull();
+    expect
+      .soft(seen.originalSwatch, `the original swatch on ${route}`)
+      .not.toBeNull();
+    expect.soft(seen.seatedPlank, `a seated plank on ${route}`).not.toBeNull();
+    expect
+      .soft(
+        seen.originalSwatch?.fill,
+        `the original swatch's fill vs the seated swatch's, on ${route}`,
+      )
+      .not.toBe(seen.seatedSwatch?.fill);
+    const shows = (paint: { fill: string; edge: string | null } | null) =>
+      paint !== null &&
+      (paint.fill !== seen.canvas ||
+        (paint.edge !== null && paint.edge !== seen.canvas));
+    for (const [what, paint] of [
+      ["the seated swatch", seen.seatedSwatch],
+      ["the original swatch", seen.originalSwatch],
+      ["a seated plank", seen.seatedPlank],
+      ...(seen.originalPlank
+        ? [["an original plank", seen.originalPlank] as const]
+        : []),
+    ] as const) {
+      expect
+        .soft(
+          shows(paint),
+          `${what} differs from Canvas in border or fill, on ${route}: ${JSON.stringify(paint)}`,
+        )
+        .toBe(true);
+    }
+    if (seen.originalPlank) {
+      expect
+        .soft(
+          seen.originalPlank.fill,
+          `an original plank's fill vs a seated plank's, on ${route}`,
+        )
+        .not.toBe(seen.seatedPlank?.fill);
+    } else {
+      // Every plank is seated once 22 sprints have merged: only the swatches are left to compare.
+      test.info().annotations.push({
+        type: "unchecked",
+        description: `${route}: no original plank to compare with a seated one`,
+      });
+    }
+  }
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The folded table: each signature cell still shows its column's head at 390.
+  await open(page, 390, 844);
+  const cells = await page.evaluate(
+    (revisions) =>
+      [...document.querySelectorAll(`${revisions} tbody td[data-label]`)].map(
+        (td) => {
+          const before = getComputedStyle(td, "::before");
+          return {
+            label: td.getAttribute("data-label") ?? "",
+            shown:
+              td.getClientRects().length > 0 &&
+              !["none", "normal"].includes(before.content) &&
+              before.display !== "none" &&
+              before.visibility !== "hidden",
+            content: before.content,
+          };
+        },
+      ),
+    REVISIONS,
+  );
+  expect(cells.length, "labelled cells in the revision table").toBeGreaterThan(
+    0,
+  );
+  expect
+    .soft(
+      cells.filter((c) => !c.shown).map((c) => `${c.label}: ${c.content}`),
+      "folded cells whose label doesn't show at 390",
+    )
+    .toEqual([]);
 });

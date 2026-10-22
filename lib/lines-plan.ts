@@ -203,6 +203,13 @@ const NARROW: Layout = {
   numbers: false,
 };
 
+/**
+ * /read's one drawing at every width: the narrow geometry, numbered. Its column is at most 760 px,
+ * so a lift stays 14 to 15 px deep from 768 px, room for an 11 px number; below 768 the numbers are
+ * hidden as on / (.crew/sprint/23/notes-iris.md, section 6).
+ */
+const PAGE: Layout = { ...NARROW, numbers: true };
+
 // --- The drawing ----------------------------------------------------------------------------
 
 /** The kinds of line, one path each, styled in app/globals.css ("The lines plan"). */
@@ -414,4 +421,9 @@ function drawBody(
 /** The two drawings the sheet carries, one shown per width (app/globals.css, "The lines plan"). */
 export function linesPlans(seats: ReadonlyMap<string, number>) {
   return { wide: draw(WIDE, seats), narrow: draw(NARROW, seats) };
+}
+
+/** The one drawing /read carries. */
+export function pagePlan(seats: ReadonlyMap<string, number>) {
+  return draw(PAGE, seats);
 }

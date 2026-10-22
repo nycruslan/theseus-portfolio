@@ -11,3 +11,6 @@
 - A redesign's first sprint leaves out controls and links whose targets don't exist yet: a control that changes nothing, or a link into a 404, costs the visitor (sprint 22, `.crew/sprint/22/contract.md`).
 - Fixed Tab bounds in specs (`keyboard.spec.ts`'s `tabUntil` of 12) cap how many links a new header can add, so count the stops in the contract (sprint 22).
 - Retros hold no dates, so anything dated needs the sprint skill (an owner path) or GitHub (sprint 22).
+- A budget no spec measures goes unenforced: B1's script-bytes budget had no check until B2.10, so give every budget a named check or mark it reported (`.crew/sprint/23/contract.md`).
+- Guards read source as well as pages: B1.10 wants each next/font import exactly once in `app/`, so a second route on the display face shares one declaration (`.crew/sprint/23/contract.md`).
+- Specs that select by structure (`section li`, its `h3`, one link) survive a card-to-row redesign when the contract states those hooks as data rules; only the tests about the old object retire (1 of 93 in `.crew/sprint/23/contract.md`).

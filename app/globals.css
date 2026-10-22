@@ -30,12 +30,16 @@
   /* Type: one family, two widths (notes-iris.md, section 2). Each fluid step is linear from 390 to
      1440 px. Six sizes are all the sheet uses, so the small one serves the drawing's lettering, the
      table and the secondary lines alike; xs is the plank numbers' below 1024 px, where a lift is too
-     shallow for sm. 2xl is the section head, 3xl the name. */
+     shallow for sm. 2xl is the section head, 3xl the name. Two more for the facts
+     (.crew/sprint/23/notes-iris.md): entry is a company's or project's name on / and a section head
+     on /read; display is the Contact section's links. */
   --step-xs: 0.6875rem;
   --step-sm: 0.8125rem;
   --step-base: clamp(1rem, 0.9768rem + 0.0952vw, 1.0625rem);
   --step-lg: clamp(1.125rem, 1.0554rem + 0.2857vw, 1.3125rem);
   --step-xl: clamp(1.5rem, 1.3607rem + 0.5714vw, 1.875rem);
+  --step-entry: clamp(1.875rem, 1.7357rem + 0.5714vw, 2.25rem);
+  --step-display: clamp(2.375rem, 2.05rem + 1.3333vw, 3.25rem);
   --step-2xl: clamp(3.25rem, 2.7857rem + 1.9048vw, 4.5rem);
   --step-3xl: clamp(3.75rem, 2.7286rem + 4.1905vw, 6.5rem);
 }
@@ -58,6 +62,10 @@
   --text-step-lg--line-height: 1.35;
   --text-step-xl: var(--step-xl);
   --text-step-xl--line-height: 1.2;
+  --text-step-entry: var(--step-entry);
+  --text-step-entry--line-height: 1.05;
+  --text-step-display: var(--step-display);
+  --text-step-display--line-height: 1.1;
   --text-step-2xl: var(--step-2xl);
   --text-step-2xl--line-height: 0.95;
   --text-step-3xl: var(--step-3xl);
@@ -269,24 +277,17 @@ html {
   }
 }
 
-/* Forced colors keep the drawing as line art: every line in the system's text color, every plank
-   on the system's ground. */
-@media (forced-colors: active) {
-  .plan {
-    forced-color-adjust: none;
-  }
+/* /read's one drawing (LinesPlan view="page"): its column holds a lift 14 to 15 px deep from 768 px,
+   room for an 11 px number, and too shallow below that, where the numbers and the one leader go
+   as on / (.crew/sprint/23/notes-iris.md, section 6). After the rules above, so it wins. */
+.plan-view.plan-page > .plan-plank {
+  font-size: var(--step-xs);
+}
 
-  .plan path {
-    stroke: CanvasText;
-  }
-
-  .plan .plank-seated,
-  .plan .plank-original {
-    fill: Canvas;
-  }
-
-  .plan-view > span {
-    color: CanvasText;
+@media (width < 48rem) {
+  .plan-page > .plan-plank,
+  .plan-page .ln-leader {
+    display: none;
   }
 }
 
@@ -298,6 +299,45 @@ html {
   height: 12px;
   border: 1px solid var(--foreground);
   print-color-adjust: exact;
+}
+
+/* Forced colors keep the drawing as line art: every line in the system's text color, a seated
+   plank on the system's ground and an original one in its secondary grey, which differs from both
+   ground and text in every theme. The legend's swatches say the same: forced colors would turn
+   both to Canvas, so they keep their own fills (.crew/sprint/23/notes-iris.md, section 9). */
+@media (forced-colors: active) {
+  .plan {
+    forced-color-adjust: none;
+  }
+
+  .plan path {
+    stroke: CanvasText;
+  }
+
+  .plan .plank-seated {
+    fill: Canvas;
+  }
+
+  .plan .plank-original {
+    fill: GrayText;
+  }
+
+  .plan-view > span {
+    color: CanvasText;
+  }
+
+  .swatch {
+    forced-color-adjust: none;
+    border-color: CanvasText;
+  }
+
+  .swatch.bg-card {
+    background: Canvas;
+  }
+
+  .swatch.bg-card-old {
+    background: GrayText;
+  }
 }
 
 /*
@@ -373,12 +413,20 @@ html {
     grid-column: 2 / -1;
   }
 
-  /* The head is the visible label here; assistive tech already has it from the column. */
+  /* The head is the visible label here; assistive tech already has it from the column, so where
+     the browser knows the alt-text form the generated text gets an empty name. One that doesn't
+     keeps the plain form, and the label still shows. */
   .rev td[data-label]::before {
-    content: attr(data-label) / "";
+    content: attr(data-label);
     display: block;
     color: var(--muted);
     font-weight: 600;
+  }
+
+  @supports (content: "" / "") {
+    .rev td[data-label]::before {
+      content: attr(data-label) / "";
+    }
   }
 
   /* Under 384 px the four signatures go two by two beside the number. Last in this
@@ -391,5 +439,665 @@ html {
     .rev tbody th {
       grid-row: span 3;
     }
+  }
+}
+
+/*
+ * The facts on / (components/facts.tsx): the record as a drawing's schedule
+ * (.crew/sprint/23/notes-iris.md, sections 2 and 3). Below 1024 px each head sits over its list and
+ * each entry stacks with its period first. From 1024 a section is a 12-column grid, the head in the
+ * first three columns and the list in the other nine, and an entry is two columns with the period
+ * on the left. The h3 leads every entry in the DOM; only the grid moves the period.
+ *
+ * The display face is named by next/font's own variable, which only the elements that carry the
+ * font's class define: --font-cond resolves on :root, where that variable doesn't exist yet, which
+ * is why @theme inlines it.
+ */
+.sched {
+  padding: 18px 16px 28px;
+  border-top: 2px solid var(--foreground);
+}
+
+.sched-contact {
+  padding-bottom: 40px;
+}
+
+.sched h2 {
+  margin-bottom: 6px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-2xl);
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 14px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.entry:first-child {
+  padding-top: 8px;
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+.entry h3 {
+  margin-top: 2px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.sched-education h3 {
+  font-size: var(--step-xl);
+}
+
+.entry-role {
+  margin: 2px 0 6px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.entry-credential {
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.entry-text {
+  max-width: 66ch;
+  line-height: 1.55;
+}
+
+.entry-desc {
+  margin-top: 6px;
+}
+
+/* The period: in the DOM after the h3 and the role, shown above them. */
+.when {
+  order: -1;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A project's one link: under its description on a phone, a 44 px target; the negative margin keeps
+   the rule 18 px under its text, as under every entry. */
+.when-link {
+  order: 0;
+  margin: 6px 0 -10px;
+}
+
+.when-link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--step-base);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.sched-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+/* inline-block, so the target is the whole line box. */
+.sched-links a {
+  display: inline-block;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* Hover thickens the underline and moves nothing, as everywhere on the sheet. */
+@media (hover: hover) {
+  .when-link a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .sched-links a:hover {
+    text-decoration-thickness: 3px;
+  }
+}
+
+@media (width >= 64rem) {
+  /* 24 px in from the frame, so each head's left edge is the wordmark's and the list ends under
+     Read as page. */
+  .sched {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 24px;
+    padding: 28px 24px 40px;
+  }
+
+  .sched-contact {
+    padding-bottom: 64px;
+  }
+
+  .sched h2 {
+    grid-column: 1 / span 3;
+    margin: 0;
+    line-height: 0.9;
+  }
+
+  .sched-body {
+    grid-column: 4 / span 9;
+  }
+
+  .sched-stack {
+    align-self: start;
+    padding-top: 8px;
+  }
+
+  /* 140 px holds "Sep 2021 — Present" and leaves the text 538 px at 1024. */
+  .entry {
+    grid-template-columns: 140px minmax(0, 1fr);
+    column-gap: 24px;
+    padding: 18px 0 22px;
+  }
+
+  .entry:first-child {
+    padding-top: 6px;
+  }
+
+  .entry > * {
+    grid-column: 2;
+  }
+
+  /* Its text top falls inside the h3's first line box (B2.1). */
+  .entry > .when {
+    grid-row: 1;
+    grid-column: 1;
+    order: 0;
+    margin: 0;
+    padding-top: 10px;
+  }
+
+  .entry h3 {
+    margin-top: 0;
+  }
+
+  .entry-role {
+    margin: 2px 0 8px;
+  }
+
+  .entry-credential {
+    margin-bottom: 0;
+  }
+
+  .when-link a {
+    min-height: 24px;
+    font-size: var(--step-sm);
+  }
+
+  .sched-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 48px;
+    padding-top: 6px;
+  }
+
+  .sched-links a {
+    line-height: 1.1;
+  }
+}
+
+@media (width >= 80rem) {
+  .entry {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+}
+
+/*
+ * Detail A (components/detail-a.tsx): the gateway drawn from the JPMorgan summary's own words, in
+ * ruled boxes like the planks, the gateway inverted as a seated plank is the lit thing on the night
+ * sheet (.crew/sprint/23/notes-iris.md, section 4). Laid out by the figure's own width: stacked with
+ * arrows down below 640 px, as work-390.webp draws it, and in one row with the fan from there.
+ */
+.da {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--pencil);
+  container-type: inline-size;
+  color: var(--foreground);
+}
+
+.da-draw {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.da-draw svg {
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2px;
+}
+
+.da-draw .da-right {
+  display: none;
+}
+
+.da-down {
+  margin-left: 20px;
+}
+
+.da-box {
+  padding: 6px 10px;
+  border: 1px solid var(--foreground);
+  background: var(--card);
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-lg);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.da-gateway {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* Three in a row at 288 px; the wrap is a net for a narrower column. */
+.da-over {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.da-small {
+  font-size: var(--step-base);
+}
+
+.da figcaption {
+  margin-top: 6px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+@container (width >= 40rem) {
+  .da-draw {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+
+  .da-draw .da-right {
+    display: block;
+  }
+
+  .da-draw .da-down {
+    display: none;
+  }
+
+  .da-box {
+    padding: 8px 12px;
+  }
+
+  .da-over {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .da-small {
+    padding: 4px 12px;
+  }
+
+  .da figcaption {
+    margin-top: 12px;
+  }
+}
+
+/* Forced colors keep every box's rule and text; the gateway's fill goes, so a second rule marks it. */
+@media (forced-colors: active) {
+  .da-gateway {
+    outline: 1px solid CanvasText;
+    outline-offset: 1px;
+  }
+}
+
+/*
+ * /read (app/read/page.tsx) and the not-found page (app/not-found.tsx): the record as one plain
+ * column (.crew/sprint/23/notes-iris.md, sections 6 and 7). `.page` sets the column's widths: 760 px
+ * at most and 16 px in on a phone; from 1024 px, 200 px in at 1440 as read-1440.webp draws it, left
+ * of centre on a wider screen. Nothing on it sticks, floats or moves: it is a document.
+ */
+.page {
+  max-width: 760px;
+  margin-inline: 16px;
+}
+
+.page a {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .page a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* A target a thumb can hit on a phone, a line of text from 1024 px. */
+.strip-back,
+.read-contact a,
+.lost-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* The strip: the way back, the page's address, and Print. Print's slot is there with or without
+   scripts and holds the button's size, so the row doesn't move when the button arrives. */
+.strip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 16px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--foreground);
+}
+
+/* In the DOM at every width, for the printout; on a phone's screen there is no room for it. */
+.strip-url {
+  display: none;
+  justify-self: center;
+  font-size: var(--step-sm);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-print {
+  display: flex;
+  justify-content: flex-end;
+  justify-self: end;
+  min-width: 72px;
+  min-height: 44px;
+}
+
+.print-button {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  font: 600 var(--step-base) / 1 var(--font-sans);
+  cursor: pointer;
+}
+
+/* Pressed, in ink: copper is for what is live. */
+@media (hover: hover) {
+  .print-button:hover {
+    background: var(--foreground);
+    color: var(--background);
+  }
+}
+
+.read {
+  padding-bottom: 48px;
+}
+
+.read h1 {
+  margin-top: 20px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-2xl);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+.read-role {
+  margin-top: 10px;
+  font-size: var(--step-lg);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.read-role span {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* The column is 760 px; running text stops at 66 characters. */
+.read-bio,
+.read-text {
+  max-width: 66ch;
+  line-height: 1.55;
+}
+
+.read-bio {
+  margin-top: 12px;
+}
+
+.read-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin-top: 6px;
+}
+
+.read h2 {
+  margin: 28px 0 8px;
+  padding-top: 12px;
+  border-top: 2px solid var(--foreground);
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.read-entry {
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.read-entry:last-child {
+  border-bottom: 0;
+}
+
+.read h3 {
+  font-size: var(--step-lg);
+  font-weight: 700;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+/* 24 px tall at every width, the least a target may be. */
+.read h3 a {
+  display: inline-block;
+  min-height: 24px;
+}
+
+.read-meta {
+  max-width: 66ch;
+  color: var(--muted);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.read-entry .read-text {
+  margin-top: 4px;
+}
+
+.ship-plan {
+  padding: 12px 8px 8px;
+  border: 1px solid var(--rule);
+  background: var(--background);
+}
+
+.ship figcaption {
+  margin-top: 8px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.ship-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 24px;
+}
+
+.ship figcaption a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* The not-found page: the column, one heading under a 2 px rule, one line and the ways back. The
+   heading is the text face at the entry step, a document's head, not the display face: the root
+   not-found sits in every route's tree, so a font it loads would be preloaded on /sprints too
+   (app/not-found.tsx). */
+.lost {
+  padding: 12px 0 48px;
+}
+
+.lost h1 {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 2px solid var(--foreground);
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.lost p {
+  max-width: 66ch;
+  margin-top: 12px;
+  line-height: 1.55;
+}
+
+.lost-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 22px;
+  margin-top: 10px;
+}
+
+@media (width >= 64rem) {
+  .page {
+    margin-left: max(56px, 50% - 520px);
+  }
+
+  .strip {
+    padding-top: 40px;
+  }
+
+  .strip-url {
+    display: block;
+  }
+
+  .strip-print {
+    min-height: 36px;
+  }
+
+  .print-button {
+    height: 36px;
+  }
+
+  .strip-back,
+  .read-contact a,
+  .lost-links a {
+    min-height: 24px;
+  }
+
+  .read {
+    padding-bottom: 72px;
+  }
+
+  .read h1 {
+    margin-top: 28px;
+  }
+
+  .read-contact {
+    gap: 0 22px;
+    margin-top: 10px;
+  }
+
+  .read h2 {
+    margin: 36px 0 10px;
+  }
+
+  .lost {
+    padding: 40px 0 72px;
+  }
+}
+
+/*
+ * Print, on every route (.crew/sprint/23/notes-iris.md, section 8): ink on white paper in either
+ * scheme. The light tokens on white, graphite darkened so nothing secondary falls under 7:1. After
+ * the dark block and as specific, so it wins there too. The controls nobody can press on paper go;
+ * /read's address stays, so the printout says where it came from; an entry keeps together.
+ */
+@page {
+  margin: 16mm 18mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #111c22;
+    --muted: #3d4549;
+    --accent: #9e441d;
+    --rule: #bfcac7;
+    --pencil: #878d91;
+    --card: #fbfaf7;
+    --card-old: #d9e0dc;
+  }
+
+  .entry,
+  .read-entry,
+  .da,
+  .ship {
+    break-inside: avoid;
+  }
+
+  .sched h2,
+  .read h2 {
+    break-after: avoid;
+  }
+
+  .da-gateway {
+    print-color-adjust: exact;
+  }
+
+  .strip-back,
+  .strip-print {
+    display: none;
+  }
+
+  .strip-url {
+    display: block;
+    justify-self: start;
+  }
+
+  .page {
+    max-width: none;
+    margin: 0;
   }
 }

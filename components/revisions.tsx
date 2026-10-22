@@ -1,3 +1,4 @@
+import { PlankCount, PlankLegend } from "@/components/plank-key";
 import type { SprintEntry } from "@/lib/sprint-log";
 
 const NONE = "—";
@@ -93,21 +94,8 @@ export function Revisions({
       </table>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-          <p className="tabular-nums">
-            {planks} planks: {replaced} replaced, {planks - replaced} original
-          </p>
-          {/* The drawing's two states, as its fills show them. The space between the items keeps
-          the list's text two words apart for anything that reads it whole. */}
-          <ul className="flex gap-x-4">
-            <li className="flex items-center gap-2">
-              <span aria-hidden="true" className="swatch bg-card" />
-              Seated by a sprint
-            </li>{" "}
-            <li className="flex items-center gap-2">
-              <span aria-hidden="true" className="swatch bg-card-old" />
-              Original
-            </li>
-          </ul>
+          <PlankCount planks={planks} replaced={replaced} />
+          <PlankLegend />
         </div>
         <a
           href="/sprints"
