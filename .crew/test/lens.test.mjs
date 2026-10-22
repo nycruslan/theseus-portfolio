@@ -83,6 +83,9 @@ test("the review's effort follows the lines changed outside the notes", () => {
     "high",
   );
   assert.equal(effortFor([change("components/hero.tsx", 601)]), "xhigh");
+  // GitHub's compare lists at most 300 files: a list that long may hide most of the change.
+  const many = Array.from({ length: 300 }, (_, i) => change(`app/${i}.tsx`, 0));
+  assert.equal(effortFor(many), "xhigh");
   // A long close-out doesn't buy a deeper review of a small change.
   assert.equal(
     effortFor([

@@ -90,7 +90,10 @@ When the build is done, each role that worked adds at most three memory lines, e
 sprint path, and corrects or deletes lines that proved wrong. Bring memory commits made in
 worktrees over with `git cherry-pick` and push them with the build: memory loads into the agents'
 prompts, so Lens reviews it. Then add the `review` label. Lens reviews the head in CI and posts its
-findings as a review, and the `lens` check passes only on ship. Every later push is reviewed again,
+findings as a review, and the `lens` check passes only on ship. Read the verdict from that check
+run on the head (`commits/<sha>/check-runs?check_name=lens`), whose summary carries the whole
+review: the reviews endpoint is closed to the team, since approving is the owner's alone. Every
+later push is reviewed again,
 except one that only touches notes. Send Important findings back to the same builder; after two
 fix rounds, cut scope (revert, or record a contract change) or stop. Nits ride along with the next
 sprint that touches that code. Weigh Iris's verdict, act on what's cheap, and post it on the PR as
