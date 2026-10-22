@@ -10,6 +10,7 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
 - Build notes from the canvas: `.crew/sprint/22/notes-iris.md` (Iris).
 - Decisions: `.crew/sprint/22/decisions.md` (Atlas).
 - Iris's review: `.crew/sprint/22/review-iris.md`.
+- Fix round 2, from Lens's review: `.crew/sprint/22/fix-round-2.md`.
 
 ## What a visitor sees
 
@@ -37,7 +38,9 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
 ## Results
 
 - `pnpm verify` passes.
-- `pnpm test:e2e`: 123 passed, 0 failed, on the head before the close-out. B1.4's leader branch was proven against a mutant whose leader ends outside its plank.
+- `pnpm test:e2e`: 124 passed, 0 failed, after fix round 2. B1.4's leader branch was proven
+  against a mutant whose leader ends outside its plank, and the new B1.3 check (the bar stays above
+  a hovered card) was red on the card as Lens found it and green on the fix.
 - The checks: B1.1 to B1.11 are in `e2e/sheet.spec.ts` and `e2e/plan.spec.ts`, with the oracle in
   `e2e/retros.ts`. They were written before the build, and all 17 tests were red on main.
 - The suite on main had 107 tests. Of these, 70 are kept unedited, 12 are rewritten with the same
@@ -60,14 +63,20 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
   - 11 px plank numbers below 1024;
   - the 320 px revision fold;
   - a lighter night card.
+- Lens reviewed aa9fcd9 once #63 gave it the turns a page replacement needs: `changes`, with one
+  Important finding and two nits, all taken in fix round 2:
+  - A hovered or focused project card shared the sticky bar's z-index and, coming later in the DOM,
+    painted over the bar and took the clicks meant for Work, Log and Contact. The card now lifts by
+    `z-[1]`, enough to clear its neighbours' seam and stay under the bar. Probe's new B1.3 check
+    pins it, and Forge's screenshots (`.crew/screenshots/sprint-22-fix-2/`, not in git) show the
+    hovered and the focused card under the bar at 1024, before and after.
+  - On phones the card's focus ring fell off both sides of the screen. Below 768 px it is now drawn
+    just inside the card, a closed box (`after-focus-390.png`).
+  - The notes that called Lens's turn cap a blocker are brought up to date.
+- `origin/main` is merged in (31c4a63), which brings the owner's #63 and #60 to the branch.
 
 ## Needs owner decision
 
-0. **Lens can't judge this PR at its turn cap.** Both runs on 5914a41 ended with no verdict: 44 turns,
-   then 55 on the re-run, against `--max-turns 40` in `.github/workflows/lens.yml`. The diff is 53
-   files, +5,504 and −5,125 lines. Raising the cap is your path. The retro proposes scaling it with
-   the change's size, as the effort already scales (for example 40, 80 and 120). Once it's raised,
-   re-run the `lens` job on the head and the crew takes it from there.
 1. **Approve the retired checks.** B1 can't replace the page without them. They're in three batches:
    - **(A)** All 7 tests in `hero-3d.spec.ts`, and `hero.spec.ts` C1, C2, C3, C7 and C8. These
      describe the old WebGL and SVG hull, which is gone. Hero C6's byte budget for the drawing rises
