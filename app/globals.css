@@ -30,12 +30,16 @@
   /* Type: one family, two widths (notes-iris.md, section 2). Each fluid step is linear from 390 to
      1440 px. Six sizes are all the sheet uses, so the small one serves the drawing's lettering, the
      table and the secondary lines alike; xs is the plank numbers' below 1024 px, where a lift is too
-     shallow for sm. 2xl is the section head, 3xl the name. */
+     shallow for sm. 2xl is the section head, 3xl the name. Two more for the facts
+     (.crew/sprint/23/notes-iris.md): entry is a company's or project's name on / and a section head
+     on /read; display is the Contact section's links. */
   --step-xs: 0.6875rem;
   --step-sm: 0.8125rem;
   --step-base: clamp(1rem, 0.9768rem + 0.0952vw, 1.0625rem);
   --step-lg: clamp(1.125rem, 1.0554rem + 0.2857vw, 1.3125rem);
   --step-xl: clamp(1.5rem, 1.3607rem + 0.5714vw, 1.875rem);
+  --step-entry: clamp(1.875rem, 1.7357rem + 0.5714vw, 2.25rem);
+  --step-display: clamp(2.375rem, 2.05rem + 1.3333vw, 3.25rem);
   --step-2xl: clamp(3.25rem, 2.7857rem + 1.9048vw, 4.5rem);
   --step-3xl: clamp(3.75rem, 2.7286rem + 4.1905vw, 6.5rem);
 }
@@ -58,6 +62,10 @@
   --text-step-lg--line-height: 1.35;
   --text-step-xl: var(--step-xl);
   --text-step-xl--line-height: 1.2;
+  --text-step-entry: var(--step-entry);
+  --text-step-entry--line-height: 1.05;
+  --text-step-display: var(--step-display);
+  --text-step-display--line-height: 1.1;
   --text-step-2xl: var(--step-2xl);
   --text-step-2xl--line-height: 0.95;
   --text-step-3xl: var(--step-3xl);
@@ -391,5 +399,339 @@ html {
     .rev tbody th {
       grid-row: span 3;
     }
+  }
+}
+
+/*
+ * The facts on / (components/facts.tsx): the record as a drawing's schedule
+ * (.crew/sprint/23/notes-iris.md, sections 2 and 3). Below 1024 px each head sits over its list and
+ * each entry stacks with its period first. From 1024 a section is a 12-column grid, the head in the
+ * first three columns and the list in the other nine, and an entry is two columns with the period
+ * on the left. The h3 leads every entry in the DOM; only the grid moves the period.
+ *
+ * The display face is named by next/font's own variable, which only the elements that carry the
+ * font's class define: --font-cond resolves on :root, where that variable doesn't exist yet, which
+ * is why @theme inlines it.
+ */
+.sched {
+  padding: 18px 16px 28px;
+  border-top: 2px solid var(--foreground);
+}
+
+.sched-contact {
+  padding-bottom: 40px;
+}
+
+.sched h2 {
+  margin-bottom: 6px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-2xl);
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 14px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.entry:first-child {
+  padding-top: 8px;
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+.entry h3 {
+  margin-top: 2px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.sched-education h3 {
+  font-size: var(--step-xl);
+}
+
+.entry-role {
+  margin: 2px 0 6px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.entry-credential {
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.entry-text {
+  line-height: 1.55;
+}
+
+.entry-desc {
+  margin-top: 6px;
+}
+
+/* The period: in the DOM after the h3 and the role, shown above them. */
+.when {
+  order: -1;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A project's one link: under its description on a phone, a 44 px target; the negative margin keeps
+   the rule 18 px under its text, as under every entry. */
+.when-link {
+  order: 0;
+  margin: 6px 0 -10px;
+}
+
+.when-link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--step-base);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.sched-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+/* inline-block, so the target is the whole line box. */
+.sched-links a {
+  display: inline-block;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* Hover thickens the underline and moves nothing, as everywhere on the sheet. */
+@media (hover: hover) {
+  .when-link a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .sched-links a:hover {
+    text-decoration-thickness: 3px;
+  }
+}
+
+@media (width >= 64rem) {
+  .sched {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 24px;
+    padding: 28px 56px 40px;
+  }
+
+  .sched-contact {
+    padding-bottom: 64px;
+  }
+
+  .sched h2 {
+    grid-column: 1 / span 3;
+    margin: 0;
+    line-height: 0.9;
+  }
+
+  .sched-body {
+    grid-column: 4 / span 9;
+  }
+
+  .sched-stack {
+    align-self: start;
+    padding-top: 8px;
+  }
+
+  /* 140 px holds "Sep 2021 — Present" and leaves the text 514 px at 1024. */
+  .entry {
+    grid-template-columns: 140px minmax(0, 1fr);
+    column-gap: 24px;
+    padding: 18px 0 22px;
+  }
+
+  .entry:first-child {
+    padding-top: 6px;
+  }
+
+  .entry > * {
+    grid-column: 2;
+  }
+
+  /* Its text top falls inside the h3's first line box (B2.1). */
+  .entry > .when {
+    grid-row: 1;
+    grid-column: 1;
+    order: 0;
+    margin: 0;
+    padding-top: 10px;
+  }
+
+  .entry h3 {
+    margin-top: 0;
+  }
+
+  .entry-role {
+    margin: 2px 0 8px;
+  }
+
+  .entry-credential {
+    margin-bottom: 0;
+  }
+
+  .entry-text {
+    max-width: 66ch;
+  }
+
+  .when-link a {
+    min-height: 24px;
+    font-size: var(--step-sm);
+  }
+
+  .sched-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 48px;
+    padding-top: 6px;
+  }
+
+  .sched-links a {
+    line-height: 1.1;
+  }
+}
+
+@media (width >= 80rem) {
+  .entry {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+}
+
+/*
+ * Detail A (components/detail-a.tsx): the gateway drawn from the JPMorgan summary's own words, in
+ * ruled boxes like the planks, the gateway inverted as a seated plank is the lit thing on the night
+ * sheet (.crew/sprint/23/notes-iris.md, section 4). Laid out by the figure's own width: stacked with
+ * arrows down below 640 px, as work-390.webp draws it, and in one row with the fan from there.
+ */
+.da {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--pencil);
+  container-type: inline-size;
+  color: var(--foreground);
+}
+
+.da-draw {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.da-draw svg {
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2px;
+}
+
+.da-draw .da-right {
+  display: none;
+}
+
+.da-down {
+  margin-left: 20px;
+}
+
+.da-box {
+  padding: 6px 10px;
+  border: 1px solid var(--foreground);
+  background: var(--card);
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-lg);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.da-gateway {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* Three in a row at 288 px; the wrap is a net for a narrower column. */
+.da-over {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.da-small {
+  font-size: var(--step-base);
+}
+
+.da figcaption {
+  margin-top: 6px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+@container (width >= 40rem) {
+  .da-draw {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+
+  .da-draw .da-right {
+    display: block;
+  }
+
+  .da-draw .da-down {
+    display: none;
+  }
+
+  .da-box {
+    padding: 8px 12px;
+  }
+
+  .da-over {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .da-small {
+    padding: 4px 12px;
+  }
+
+  .da figcaption {
+    margin-top: 12px;
+  }
+}
+
+/* Forced colors keep every box's rule and text; the gateway's fill goes, so a second rule marks it. */
+@media (forced-colors: active) {
+  .da-gateway {
+    outline: 1px solid CanvasText;
+    outline-offset: 1px;
   }
 }
