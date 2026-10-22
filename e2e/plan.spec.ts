@@ -7,10 +7,19 @@ import {
   test,
 } from "@playwright/test";
 import { BUTTS } from "../lib/half-model";
-import { composite, contrast, installRgba, type Rgb, SCHEMES } from "./helpers";
+import {
+  composite,
+  contrast,
+  installRgba,
+  measureLcp,
+  type Rgb,
+  SCHEMES,
+  watchLayoutShift,
+} from "./helpers";
 import { ORIGINAL, PLANK_IDS, REPLACED, SEATED } from "./retros";
 
 // Sprint 22, B1: the lines plan, the drawing at the top of the sheet (.crew/sprint/22/contract.md).
+// Sprint 23 adds B2.5, the same drawing at the foot of /read (.crew/sprint/23/contract.md).
 // B1.4, B1.8 and B1.9, one test per number, and hero.spec.ts's C6 and C9 rewritten onto the drawing
 // as the contract's disposition table says (C4 is folded into B1.8 and C5 into B1.9, with their
 // assertions). Hook: one `[data-plan]`, aria-hidden, holding inline SVG and the planks as
@@ -40,10 +49,10 @@ test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
 });
 
-async function open(page: Page, width: number, height = 900) {
+async function open(page: Page, width: number, height = 900, url = "/") {
   await page.setViewportSize({ width, height });
-  const response = await page.goto("/");
-  expect(response?.status(), "status of /").toBe(200);
+  const response = await page.goto(url);
+  expect(response?.status(), `status of ${url}`).toBe(200);
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -462,23 +471,6 @@ test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by th
     .toBe(true);
 });
 
-/** Sets the layout-shift counter going before the page's own scripts, so nothing is missed. */
-async function watchLayoutShift(page: Page) {
-  await page.addInitScript(() => {
-    const win = window as Window & { __cls?: number };
-    win.__cls = 0;
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & {
-          value: number;
-          hadRecentInput: boolean;
-        };
-        if (!shift.hadRecentInput) win.__cls = (win.__cls ?? 0) + shift.value;
-      }
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-}
-
 /** What the page shows, read in one go (it works with scripts off: page.evaluate only). */
 function sheet(page: Page) {
   return page.evaluate((selector) => {
@@ -752,52 +744,6 @@ test("B1.8 it needs no script and nothing moves: the same sheet without scripts,
   }
 });
 
-type LcpEntry = {
-  time: number;
-  url: string;
-  inHeader: boolean;
-  inPlan: boolean;
-  tag: string;
-  text: string;
-  size: number;
-};
-
-/** Loads `url` at 4x CPU slowdown and returns the last largest-contentful-paint candidate. */
-async function measureLcp(page: Page, url: string) {
-  await page.addInitScript(() => {
-    const win = window as Window & { __lcp?: LcpEntry[] };
-    win.__lcp = [];
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const lcp = entry as PerformanceEntry & {
-          element: Element | null;
-          url: string;
-          size: number;
-        };
-        const el = lcp.element;
-        win.__lcp?.push({
-          time: lcp.startTime,
-          url: lcp.url,
-          inHeader: Boolean(el?.closest("main > header")),
-          inPlan: Boolean(el?.closest("[data-plan]")),
-          tag: el?.tagName.toLowerCase() ?? "(removed)",
-          text: (el?.textContent ?? "").trim().slice(0, 40),
-          size: lcp.size,
-        });
-      }
-    }).observe({ type: "largest-contentful-paint", buffered: true });
-  });
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-  await page.goto(url);
-  // Let late candidates arrive; the last one is the page's LCP.
-  await wait(page, 1500);
-  const entries = await page.evaluate(
-    () => (window as Window & { __lcp?: LcpEntry[] }).__lcp ?? [],
-  );
-  return entries.at(-1) ?? null;
-}
-
 test("B1.9 LCP is text: in the title block, not in the drawing, no url, within 2,500 ms at 4x CPU (hero C5)", async ({
   page,
 }, testInfo: TestInfo) => {
@@ -985,4 +931,239 @@ test("C9. Hard gates: axe is clean, nothing in the drawing is hit or focused, no
     if (where) inside.push(where);
   }
   expect(inside, "Tab stops inside the drawing").toEqual([]);
+});
+
+/** The ship's count line, its legend's two states and its Log link, as the route shows them. */
+function shipWords(page: Page) {
+  return page.evaluate(() => {
+    const squashed = (el: Element | null) =>
+      (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+    // On /read the ship is what follows h2#ship; on / it is the whole page.
+    const h2 = document.getElementById("ship");
+    const after = (el: Element) =>
+      !h2 ||
+      Boolean(
+        h2.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    const outside = [...document.querySelectorAll("main *")].filter(
+      (el) => !el.closest("svg") && !el.closest("[data-plan]") && after(el),
+    );
+    const count = outside
+      .filter((el) =>
+        /\b\d+ planks: \d+ replaced, \d+ original\b/.test(squashed(el)),
+      )
+      .at(-1);
+    const legend = outside
+      .filter(
+        (el) =>
+          /\bseated\b/i.test(el.textContent ?? "") &&
+          /\boriginal\b/i.test(el.textContent ?? "") &&
+          el.querySelectorAll("li").length > 0,
+      )
+      .at(-1);
+    return {
+      count:
+        squashed(count ?? null).match(
+          /\d+ planks: \d+ replaced, \d+ original/,
+        )?.[0] ?? null,
+      legend: [...(legend?.querySelectorAll("li") ?? [])].map((li) =>
+        squashed(li),
+      ),
+      log: outside
+        .filter((el) => el.tagName === "A")
+        .map((a) => a.getAttribute("href")),
+      plan:
+        document.querySelector("[data-plan]") !== null &&
+        after(document.querySelector("[data-plan]") as Element),
+    };
+  });
+}
+
+test("B2.5 the ship on /read: one inert drawing from the same component, 22 planks seated as on /, inside the viewport, legible, at most 32,768 B, and /'s count line, legend and Log link", async ({
+  page,
+  browser,
+  request,
+}) => {
+  test.setTimeout(150_000);
+  const response = await request.get("/read");
+  expect(response.status(), "status of /read").toBe(200);
+  const html = await response.text();
+  const at = html.search(/data-plan(?:=|[\s>])/);
+  expect(at, "[data-plan] is in the HTML response of /read").toBeGreaterThan(
+    -1,
+  );
+  expect
+    .soft(html.slice(at), "inline SVG after [data-plan] in the HTML")
+    .toMatch(/<svg[\s>]/);
+  expect.soft(html.slice(at), "planks in the HTML").toContain('data-plank="');
+
+  // The same component as /: the same plank ids and the same plank -> sprint map.
+  await open(page, 1440);
+  const home = await readPlan(page);
+  const homeWords = await shipWords(page);
+  const map = (plan: Awaited<ReturnType<typeof readPlan>>) =>
+    Object.fromEntries((plan?.planks ?? []).map((p) => [p.id, p.sprint]));
+  expect(home, "the drawing on /").not.toBeNull();
+
+  const expectedIds = [...PLANK_IDS].sort();
+  for (const width of [320, 390, 1440]) {
+    await open(page, width, 900, "/read");
+    const where = `/read at ${width} px`;
+    const plan = await readPlan(page);
+    expect(plan, `${PLAN} on ${where}`).not.toBeNull();
+    if (!plan) continue;
+    expect.soft(plan.count, `${PLAN} elements on ${where}`).toBe(1);
+    expect.soft(plan.ariaHidden, `aria-hidden on ${where}`).toBe("true");
+    expect.soft(plan.svgs, `rendered svg on ${where}`).toBeGreaterThan(0);
+    expect.soft(plan.focusable, `focusable elements on ${where}`).toBe(0);
+    expect
+      .soft(plan.planks.map((p) => p.id).sort(), `rendered planks on ${where}`)
+      .toEqual(expectedIds);
+    expect
+      .soft(map(plan), `data-plank -> data-sprint on ${where}, vs /`)
+      .toEqual(map(home));
+    expect
+      .soft(
+        Object.fromEntries(
+          plan.planks.map((p) => [
+            p.id,
+            p.sprint === null ? undefined : Number(p.sprint),
+          ]),
+        ),
+        `each plank's data-sprint on ${where}, vs the retros`,
+      )
+      .toEqual(SEATED);
+    const outside = plan.planks.filter(
+      (p) =>
+        p.box.left < -0.5 ||
+        p.box.right > plan.cw + 0.5 ||
+        !p.svg ||
+        p.box.left < p.svg.left - 0.5 ||
+        p.box.right > p.svg.right + 0.5 ||
+        p.box.top < p.svg.top - 0.5 ||
+        p.box.bottom > p.svg.bottom + 0.5,
+    );
+    expect
+      .soft(
+        outside.map((p) => p.id),
+        `planks outside the viewport or cropped on ${where}`,
+      )
+      .toEqual([]);
+    expect
+      .soft(
+        plan.texts
+          .filter((t) => t.size < 11 - 0.01)
+          .map((t) => `"${t.text}": ${t.size.toFixed(2)} px`),
+        `lettering under 11 px on ${where}`,
+      )
+      .toEqual([]);
+    // Nothing in the drawing is hit at any plank's centre.
+    const hit = await page.evaluate((selector) => {
+      const plan = document.querySelector(selector);
+      return [...(plan?.querySelectorAll("[data-plank]") ?? [])]
+        .filter((p) => p.getClientRects().length > 0)
+        .flatMap((p) => {
+          p.scrollIntoView({ block: "center" });
+          const r = p.getBoundingClientRect();
+          const el = document.elementFromPoint(
+            r.left + r.width / 2,
+            r.top + r.height / 2,
+          );
+          return el && plan?.contains(el) ? [p.getAttribute("data-plank")] : [];
+        });
+    }, PLAN);
+    expect.soft(hit, `planks hit by elementFromPoint on ${where}`).toEqual([]);
+  }
+
+  // A number on a plank is at least 4.5:1 on its fill, in both schemes.
+  for (const scheme of SCHEMES) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await open(page, 1440, 900, "/read");
+    const plan = await readPlan(page);
+    const ground = rgbOf((await tokens(page)).background);
+    for (const number of (plan?.texts ?? []).filter(
+      (t) => t.on !== null && /^\d+$/.test(t.text),
+    )) {
+      const fill = plan?.planks.find((p) => p.id === number.on)?.fill ?? null;
+      const under = over(fill, ground);
+      const text = number.color
+        ? [
+            number.color[0] ?? 0,
+            number.color[1] ?? 0,
+            number.color[2] ?? 0,
+            (number.color[3] ?? 1) * number.opacity,
+          ]
+        : null;
+      expect
+        .soft(
+          fill && text ? contrast(over(text, under), under) : 0,
+          `number ${number.text} on plank ${number.on} on /read (${scheme})`,
+        )
+        .toBeGreaterThanOrEqual(4.5);
+    }
+  }
+  await page.emulateMedia({ colorScheme: "light" });
+
+  // Its weight, and no Tab stop inside it.
+  await open(page, 1440, 900, "/read");
+  const bytes = await page.evaluate(
+    (selector) =>
+      new TextEncoder().encode(
+        document.querySelector(selector)?.outerHTML ?? "",
+      ).length,
+    PLAN,
+  );
+  expect.soft(bytes, `${PLAN} outerHTML on /read, in bytes`).toBeGreaterThan(0);
+  expect
+    .soft(bytes, `${PLAN} outerHTML on /read, in bytes`)
+    .toBeLessThanOrEqual(32_768);
+  const stops = (await page.locator("a[href], button").count()) + 1;
+  const inside: string[] = [];
+  for (let i = 0; i < stops; i++) {
+    await page.keyboard.press("Tab");
+    const where = await page.evaluate((plan) => {
+      const el = document.activeElement;
+      return el?.closest(plan) ? el.tagName.toLowerCase() : null;
+    }, PLAN);
+    if (where) inside.push(where);
+  }
+  expect.soft(inside, "Tab stops inside the drawing on /read").toEqual([]);
+
+  // The count line, the legend and the Log link: /'s words.
+  const words = await shipWords(page);
+  expect.soft(words.plan, "the drawing follows h2#ship").toBe(true);
+  expect(homeWords.count, "the count line on /").not.toBeNull();
+  expect
+    .soft(words.count, "the count line on /read, as / shows it")
+    .toBe(homeWords.count);
+  expect.soft(homeWords.legend, "the legend's states on /").toHaveLength(2);
+  expect
+    .soft(words.legend, "the legend on /read, as / shows it")
+    .toEqual(homeWords.legend);
+  expect.soft(words.log, "links in the ship on /read").toContain("/sprints");
+
+  // The same drawing with scripts off.
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 1440, height: 900 },
+  });
+  const bare = await context.newPage();
+  await bare.goto("/read");
+  const off = await bare.evaluate((selector) => {
+    const plan = document.querySelector(selector);
+    return {
+      ariaHidden: plan?.getAttribute("aria-hidden") ?? null,
+      planks: Object.fromEntries(
+        [...(plan?.querySelectorAll("[data-plank]") ?? [])]
+          .filter((p) => p.getClientRects().length > 0)
+          .map((p) => [
+            p.getAttribute("data-plank"),
+            p.getAttribute("data-sprint"),
+          ]),
+      ),
+    };
+  }, PLAN);
+  await context.close();
+  expect.soft(off.ariaHidden, "aria-hidden without scripts").toBe("true");
+  expect.soft(off.planks, "planks without scripts, vs /").toEqual(map(home));
 });
