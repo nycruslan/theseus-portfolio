@@ -82,3 +82,10 @@ and why, decisions you need and from whom, and what you couldn't verify. Then at
 lines in `.claude/agent-memory/engineer/MEMORY.md`, each citing `.crew/sprint/23/`, correcting any
 line that proved wrong. Commit on `sprint/23-the-facts` in this checkout, in small commits (Probe's
 and Iris's commits are already on it; don't push, Atlas pushes).
+
+## Interfaces written down
+
+- **Detail A's rule** (Probe's B2.2 unit check loads it at run time): `lib/detail-a.ts` exports
+  `detailA(summary: string): string[] | null`. It returns the five labels exactly as the contract
+  writes them, in that order, when each occurs in the summary as written or with its first letter
+  lower-cased; otherwise `null`, and the page draws no figure.
