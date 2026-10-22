@@ -34,6 +34,10 @@ makes stale, and keep the file under about 100 lines.
   - A contract writer reading a design for checks finds what the designer missed (sprint 15's
     cropped plank). Keep that read before the build.
   - A rule two places implement (the page and Probe's oracle) is briefed to both word for word.
+- **The revision block grows a row per sprint,** and B1.1 wants the title block's contact links in
+  the first viewport at 1440 × 900. Sprint 23's two-line goal failed it by 10 px; a one-line goal
+  (under about 80 characters) leaves 7 px, and the next row takes them. Keep the retro's goal to one
+  line, and settle the block's height before sprint 24 merges (ROADMAP.md).
 - **Specs.**
   - Writing them first catches checks nobody can build. On browser-sensitive work, push them alone
     first, with a check of the harness itself as the readout.

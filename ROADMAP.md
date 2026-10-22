@@ -30,7 +30,11 @@ page, and B3, the signature moment.
     owner, who approves the one retired check (batch D, the cards' whole-surface link) on the PR.
     Its B2.10 is amended for `/read` (`.crew/sprint/23/decisions.md`, item 7).
 - [ ] Next upgrade (S): Next's own build notice marks 16.4.0 as carrying a known security advisory.
-  One sprint, after B2 merges, before B3's spike.
+  One sprint, after B2 merges, before B3's spike. **It can't merge until the revision block's
+  height is settled:** the block grows a row per sprint, and at 1440 × 900 the title block's
+  contact links (B1.1) end 7 px above the fold with sprint 23's one-line row; one more row puts
+  them below it. Quill and Iris decide how the block holds its height (a cap on the rows shown,
+  with the rest in the Log, or the owner's call on B1.1), in that sprint's contract.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
   phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
   a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
