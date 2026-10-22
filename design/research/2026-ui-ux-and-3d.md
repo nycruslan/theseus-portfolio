@@ -55,7 +55,7 @@ Iris to weigh and, if she agrees, for the owner to approve. It is never a change
   
   A strong dolly zoom causes "a sensation of disorientation and discomfort" ([Wikipedia](https://en.wikipedia.org/wiki/Dolly_zoom)), so keep it subtle, and keep the title block still as the stationary frame of reference ([HIG](https://developer.apple.com/design/human-interface-guidelines/motion)).
 - **Timing:** once per visit; the direction budgets 2.4 s with an exponential ease-out, and Kowalski exempts marketing sites from his 300 ms rule ([source](https://emilkowal.ski/ui/you-dont-need-animations)). **[proposal]** Test 1.2–1.8 s in the B3 spike. Any wheel, key or pointer input jumps to the end state. Never bind the camera to scroll (see E).
-- **Calm** and reduced motion open settled, as the direction says: no camera travel, no z-motion ([HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility)). **Off** never downloads WebGL; it shows the SVG and a static AVIF render.
+- **Calm** and reduced motion open settled, as the direction says: no camera travel, no z-motion ([HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility)). **Off** never downloads WebGL; it shows the 2D sheet with the planks drawn, as the direction says. **[proposal]** A static AVIF render of the hull, if it never outpaints the name as LCP.
 - **White-card look without textures** [judgement unless linked]:
   - warm-white standard or Lambert node material, roughness ≈ 1; a hemisphere light plus one soft directional; no real-time shadow maps (PCFSoftShadowMap is gone in [r186](https://github.com/mrdoob/three.js/releases/tag/r186));
   - AO baked into vertex colours offline, or faked in TSL from normals and plank edges;
@@ -122,7 +122,7 @@ Patterns shared by current agent UIs: grouped, iconised activity ([GitHub](https
 | drei | **10.7.9** stable (GLSL/WebGL). The **11.0.0-alpha.7** WebGPU port is unfinished: BlurPass and BakeShadows are still "todo" ([release](https://github.com/pmndrs/drei/releases/tag/v11.0.0-alpha.7)). |
 | React / Next.js / GSAP | 19.3.1 / 16.4.2 / 3.15.0 (npm registry, checked 2026-10-21) |
 | WebGPU reach | 87.8% global ([caniuse](https://caniuse.com/webgpu)). Chrome 113+ (Android 12+ on ARM/Qualcomm/Intel since 121); Safari 26+; Firefox Windows 141+, macOS 145+; Firefox Linux Nightly-only, Android behind a flag ([gpuweb status](https://github.com/gpuweb/gpuweb/wiki/Implementation-Status)). |
-| Scroll-driven CSS animations | 87.8%: Chrome 115, Safari 26, Firefox 161 ([caniuse](https://caniuse.com/mdn-css_properties_animation-timeline_scroll)) |
+| Scroll-driven CSS animations | Chrome 115+, Safari 26+; Firefox from 159, due 2026-10-27 per `design/brief.md` [unverified: re-check on [caniuse](https://caniuse.com/mdn-css_properties_animation-timeline_scroll)] |
 
 **Measured bundle sizes.** I bundled each case with esbuild 0.25 from `three@0.186.0` (the current patch, 0.186.1, is unlikely to differ), minified and tree-shaken. Sizes are in KiB.
 
@@ -136,7 +136,7 @@ Patterns shared by current agent UIs: grouped, iconised activity ([GitHub](https
 
 Vercel serves brotli whenever the browser accepts it ([Vercel docs](https://vercel.com/docs/how-vercel-cdn-works/compression)).
 
-**Against the "≤ 250 KB gzip" 3D chunk:** WebGPU + R3F + GSAP ≈ **330 KiB gzip: does not fit.** WebGPU alone already fills it (245 KiB ≈ 251 kB).
+**Against the "≤ 250 KB gzip" 3D chunk:** the direction's stack, a WebGPU build with the scene's materials, batched mesh and lights (245 KiB) plus GSAP (27 KiB), is ≈ **272 KiB gzip: does not fit.** The renderer-only floor is 211 KiB; React Three Fiber, which the direction doesn't use, would add another 56 KiB.
 
 Options:
 - **A. Recommended for the portfolio:** vanilla three.js, **WebGLRenderer**, small GLSL shaders and a 30-line custom tween: about 140 KiB gzip. At ≤ 8 draws WebGPU's lower CPU overhead buys nothing, and WebGL 2 reaches more devices [judgement].
