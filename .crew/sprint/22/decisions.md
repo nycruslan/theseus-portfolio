@@ -25,3 +25,8 @@
    12. `/sprints` keeps its weights of 400, 500 and 600 in one family (C7.1).
 4. **The reader's interface is Probe's:** `readSprintLog()` entries gain `drawn: string[]`,
    `checked: boolean` and `tested: boolean`.
+5. **A plank too small to letter is numbered by a leader** (fix round 1, Iris's must 1). B1.4 accepts a
+   number joined to its plank by a `path.ln-leader` that starts beside the number and ends inside
+   the plank's fill. Every seated plank must still carry its number. Today only 5.0 (sprint 20)
+   takes a leader. Forge's lead-out rule measures where the plank is at least two thirds of a lift
+   deep for 24 units, so 6.0 keeps its number on the plank.
