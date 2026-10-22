@@ -14,7 +14,9 @@
 //   branches, and one past it.
 // - daily: the team's sprint PRs merged in the last 24 hours and the cap on them,
 //   THESEUS_DAILY_SPRINTS (default 6). A merge starts the next run, so the cap is what ends a chain
-//   of the crew's own making. A run with the owner's goal (--owner-goal) isn't held by it.
+//   of the crew's own making. A run with the owner's goal (--owner-goal) isn't held by it. The flag
+//   is Atlas's word, which is enough for a guard on churn: the cap was never a boundary, GitHub's
+//   required checks are.
 // - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
 //   start the next sprint. A PR or branch that changed in the last ACTIVE_HOURS is left to the run

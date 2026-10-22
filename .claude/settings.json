@@ -18,6 +18,7 @@
       "Bash(gh api *pulls/*/merge*)",
       "Bash(gh api *pulls/*/reviews*APPROVE*)",
       "Bash(gh api *pulls/*/reviews/*/dismissals*)",
+      "Bash(gh api graphql*)",
       "Bash(gh alias *)",
       "Bash(gh auth *)",
       "Bash(gh config *)",

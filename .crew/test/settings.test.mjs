@@ -78,6 +78,8 @@ test("denies the obvious, whatever the mode", () => {
     "Bash(gh api *pulls/*/merge*)",
     "Bash(gh api *pulls/*/reviews*APPROVE*)",
     "Bash(gh api *pulls/*/reviews/*/dismissals*)",
+    // The team works through REST alone; GraphQL reaches the same powers by another door.
+    "Bash(gh api graphql*)",
     "Bash(gh auth *)",
     "Bash(gh api *rulesets*)",
     "Bash(gh api *actions/secrets*)",

@@ -490,6 +490,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
       tool_input: {
         command: [
           "psql password=hunter22 db_password=hunter33",
+          `export PASSWORD="two words" SECRET='three more words'`,
           "curl --token=abc12345 --api-key=def67890",
           `echo '{"client_secret": "ghi24680", "author": "Theseus"}'`,
           'git commit --author="Theseus Team" -m x',
@@ -499,11 +500,15 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
     },
   ]);
   const [{ raw, body }] = studio.received;
-  assert.doesNotMatch(raw, /hunter22|hunter33|abc12345|def67890|ghi24680/);
+  assert.doesNotMatch(
+    raw,
+    /hunter22|hunter33|words|abc12345|def67890|ghi24680/,
+  );
   assert.equal(
     body.tool_input.command,
     [
       "psql password=[redacted] db_password=[redacted]",
+      `export PASSWORD="[redacted]" SECRET='[redacted]'`,
       "curl --token=[redacted] --api-key=[redacted]",
       `echo '{"client_secret": "[redacted]", "author": "Theseus"}'`,
       'git commit --author="Theseus Team" -m x',
