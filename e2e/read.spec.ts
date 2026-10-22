@@ -832,7 +832,7 @@ async function scriptBytes(browser: Browser, url: string) {
   return { files: sizes.length, bytes: sizes.reduce((a, b) => a + b, 0) };
 }
 
-test("B2.10 LCP, fonts and script: /read's LCP is text in main > header within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /read and the 404 within 2,048 B of /sprints'", async ({
+test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /read and the 404 within 2,048 B of /sprints'", async ({
   page,
   browser,
 }, testInfo) => {
@@ -840,16 +840,32 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main > header within 2
   for (const [width, height] of SIZES) {
     const fresh = await page.context().newPage();
     await fresh.setViewportSize({ width, height });
+    // Atlas's amendment (.crew/sprint/23/): on /read the LCP may be any text in main, since the
+    // JPMorgan summary outsizes the title block on the first screen; / keeps main > header (B1.9).
+    await fresh.addInitScript(() => {
+      const win = window as Window & { __lcpInMain?: boolean[] };
+      win.__lcpInMain = [];
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const el = (entry as PerformanceEntry & { element: Element | null })
+            .element;
+          win.__lcpInMain?.push(Boolean(el?.closest("main")));
+        }
+      }).observe({ type: "largest-contentful-paint", buffered: true });
+    });
     const lcp = await measureLcp(fresh, READ);
+    const inMain = await fresh.evaluate(
+      () =>
+        (window as Window & { __lcpInMain?: boolean[] }).__lcpInMain?.at(-1) ??
+        false,
+    );
     const where = `on /read at ${width} x ${height}`;
     expect(lcp, `an LCP candidate ${where}`).not.toBeNull();
     if (lcp) {
       expect
-        .soft(
-          lcp.inHeader,
-          `LCP <${lcp.tag}> "${lcp.text}" is in main > header ${where}`,
-        )
+        .soft(inMain, `LCP <${lcp.tag}> "${lcp.text}" is in main ${where}`)
         .toBe(true);
+      expect.soft(lcp.inPlan, `LCP is in the drawing ${where}`).toBe(false);
       expect.soft(lcp.url, `LCP has a url ${where}`).toBe("");
       expect
         .soft(lcp.tag, `LCP is text, not an image or drawing, ${where}`)
