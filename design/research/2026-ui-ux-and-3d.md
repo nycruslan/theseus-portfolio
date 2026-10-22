@@ -28,10 +28,11 @@ Scope: the Theseus portfolio redesign and Theseus Studio. Every claim links to i
 
 ## B. The portfolio redesign
 
-The approved direction (`.crew/sprint/17/direction-iris.md`) and the owner's four calls win over
-this section. What the direction already decides is stated here as decided; the research adds
-technique and sources. Anything the direction doesn't have is marked **[proposal]**, for Iris to
-weigh and, if she agrees, for the owner to approve. It is never a change on its own.
+This section is research input, not a spec. The approved direction
+(`.crew/sprint/17/direction-iris.md`) and the owner's four calls decide; where this section says
+"(direction)", it repeats them. Everything else here is a suggestion for Iris and Quill to weigh
+when they write a sprint's contract, and a visible change to the approved design still needs the
+owner. **[proposal]** marks the suggestions that change something the direction already decided.
 
 ### B1. The 2D sheet (first paint)
 - **Server-render the sheet as HTML plus inline SVG.** The name is the largest paint, so LCP is text, never the drawing or a canvas (direction).
@@ -82,6 +83,8 @@ weigh and, if she agrees, for the owner to approve. It is never a change on its 
 
 ## C. The Studio (a 3D-hero live view)
 
+Input for the owner's Studio work, not the crew's: the crew doesn't work on the Studio (CLAUDE.md).
+
 1. **Four layers, each with one job, nothing repeated:** **Stage** (3D station: *where*, *who*); **Now** (caption line + crew chips: *what's happening*); **Panels** (board: *what*; threads: *why*; profiles: *who*; closed by default); **Transport** (play bar: *when*).
 2. **The three-second glance test:** Is this live? Who is working? On what? Is it going well? Answer with a LIVE/REPLAY badge and time, text-labelled state chips, the now line, and an "n of N" count.
 3. **Dock the panels; don't float them.** Figma shipped floating panels in UI3, found they crowded the canvas, and reverted to fixed, resizable panels ([Figma](https://www.figma.com/blog/our-approach-to-designing-ui3/) [pre-2025]). visionOS ornaments attach controls to a window edge, stay visible, and are few in number ([HIG Ornaments](https://developer.apple.com/design/human-interface-guidelines/ornaments)). Show one panel at a time; on mobile it becomes a bottom sheet.
@@ -125,7 +128,9 @@ Patterns shared by current agent UIs: grouped, iconised activity ([GitHub](https
 
 Vercel serves brotli whenever the browser accepts it ([Vercel docs](https://vercel.com/docs/how-vercel-cdn-works/compression)).
 
-**Against the "≤ 250 KB gzip" 3D chunk** (sizes here are KiB; 1 KiB = 1.024 kB): the direction's stack, a WebGPU build with the scene's materials, batched mesh and lights (245 KiB ≈ 251 kB, already at the limit) plus GSAP (27 KiB), is ≈ **272 KiB ≈ 279 kB gzip: does not fit.** The renderer-only floor is 211 KiB; React Three Fiber, which the direction doesn't use, would add another 56 KiB.
+**Against the "≤ 250 KB gzip" 3D chunk** (sizes here are KiB; 1 KiB = 1.024 kB). `2027-redesign.md`
+set that budget from three.js at about 185 KB as a full import, which is the WebGL build; these
+measurements of the WebGPU build replace it for the B3 decision: the direction's stack, a WebGPU build with the scene's materials, batched mesh and lights (245 KiB ≈ 251 kB, already at the limit) plus GSAP (27 KiB), is ≈ **272 KiB ≈ 279 kB gzip: does not fit.** The renderer-only floor is 211 KiB; React Three Fiber, which the direction doesn't use, would add another 56 KiB.
 
 Options:
 - **A. [proposal, for the B3 decision] The portfolio on WebGL:** vanilla three.js, **WebGLRenderer**, small GLSL shaders and a 30-line custom tween: about 140 KiB gzip. At ≤ 8 draws WebGPU's lower CPU overhead buys nothing, and WebGL 2 reaches more devices [judgement].
