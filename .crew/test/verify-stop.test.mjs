@@ -90,16 +90,19 @@ const FAILED_TYPECHECK = [
   "[ELIFECYCLE] Command failed with exit code 2.",
 ].join("\n");
 
-test("lets a builder stop once pnpm verify passes in its directory", () => {
-  const dir = project();
-  const { code, answer, runs } = verifyStop(stop(dir));
-  assert.equal(code, 0);
-  assert.equal(answer, null);
-  assert.deepEqual(
-    runs.map(({ args }) => args),
-    [["verify"]],
-  );
-  assert.equal(runs[0].cwd, realpathSync(dir));
+test("lets each builder, Forge and Pixel, stop once pnpm verify passes in its directory", () => {
+  for (const role of ["engineer", "creative-engineer"]) {
+    const dir = project();
+    const { code, answer, runs } = verifyStop(stop(dir, { agent_type: role }));
+    assert.equal(code, 0, role);
+    assert.equal(answer, null, role);
+    assert.deepEqual(
+      runs.map(({ args }) => args),
+      [["verify"]],
+      role,
+    );
+    assert.equal(runs[0].cwd, realpathSync(dir), role);
+  }
 });
 
 test("runs nothing for any other role, whatever the hook's matcher catches", () => {
@@ -152,7 +155,6 @@ test("lets the second stop through without running verify again", () => {
   assert.deepEqual(runs, []);
 });
 
-// Which roles it runs for is settings.json's matcher (settings.test.mjs).
 test("runs only where verify exists", () => {
   const none = verifyStop(stop(project({ build: "next build" })), {
     FAKE_EXIT: "1",

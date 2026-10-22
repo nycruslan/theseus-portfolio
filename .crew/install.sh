@@ -56,6 +56,9 @@ download_shell() {
 
 playwright_browser() {
   local want
+  # A session started under an older install.sh may still point at the browser shim it built, which
+  # holds an older Chromium than CI's: look in Playwright's own cache again.
+  case "$PLAYWRIGHT_BROWSERS_PATH" in */theseus-browsers) forget PLAYWRIGHT_BROWSERS_PATH ;; esac
   want=$(wanted_shell)
   if [ -n "$want" ] && [ -d "$want" ]; then
     say "Playwright uses its own download ($want)."

@@ -117,6 +117,19 @@ function install({
   };
 }
 
+test("a resumed session forgets the browser shim an older install.sh built", () => {
+  const home = tempDir();
+  const shim = join(home, ".cache/theseus-browsers");
+  mkdirSync(join(shim, "chromium_headless_shell-1248"), { recursive: true });
+  const { code, browsers, stderr } = install({
+    home,
+    env: { PLAYWRIGHT_BROWSERS_PATH: shim },
+  });
+  assert.equal(code, 0);
+  assert.doesNotMatch(stderr, /uses its own download/);
+  assert.equal(browsers, "");
+});
+
 test("downloads the build CI runs into Playwright's own cache, never into the image", () => {
   const images = image("1194");
   const before = listing(images);

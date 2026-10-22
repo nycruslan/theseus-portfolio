@@ -234,6 +234,22 @@ test("asks GitHub once the checks have settled, whatever the checks it doesn't r
     }),
   );
   assert.equal(unstable.code, 0);
+  // Anything else is GitHub's to answer, such as a code owner's review it still waits for.
+  const refused = merge(
+    github({
+      pulls: pr({ mergeable_state: "blocked" }),
+      merge: {
+        $error: 405,
+        message: "Waiting on code owner review from nycruslan.",
+      },
+    }),
+  );
+  assert.equal(refused.code, 1);
+  assert.equal(refused.merges.length, 1);
+  assert.match(
+    refused.stderr,
+    /refused the merge: Waiting on code owner review from nycruslan\./,
+  );
 });
 
 test("refuses a failed or still-running required check by name, without asking GitHub", () => {
