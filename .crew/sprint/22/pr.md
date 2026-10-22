@@ -37,7 +37,7 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
 ## Results
 
 - `pnpm verify` passes.
-- `pnpm test:e2e`: RESULTS_PENDING.
+- `pnpm test:e2e`: 123 passed, 0 failed, on the head before the close-out. B1.4's leader branch was proven against a mutant whose leader ends outside its plank.
 - The checks: B1.1 to B1.11 are in `e2e/sheet.spec.ts` and `e2e/plan.spec.ts`, with the oracle in
   `e2e/retros.ts`. They were written before the build, and all 17 tests were red on main.
 - The suite on main had 107 tests. Of these, 70 are kept unedited, 12 are rewritten with the same
