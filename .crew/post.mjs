@@ -31,11 +31,14 @@ const SECRET_PATTERNS = [
   // `NAME="…"` and `NAME='…'` to the closing quote, or to the end when there is none.
   new RegExp(`(?<=${ASSIGNED}")[^"]+`, "gi"),
   new RegExp(`(?<=${ASSIGNED}')[^']+`, "gi"),
-  // `NAME=value`, `--name=value` and `--name value`, to a space or shell separator. A value that
-  // opens with `{` is code (JSX's `key={item.id}`), not a credential; a quoted JSX key is masked.
-  new RegExp(`(?<=${ASSIGNED})[^\\s"';&|{][^\\s"';&|]*`, "gi"),
+  // `NAME=value`, `--name=value` and `--name value`, to a space or shell separator. JSX's bare
+  // `key={item.id}` is code, not a credential, so it stays readable; a quoted JSX key is masked.
   new RegExp(
-    `(?<=--[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64} )[^\\s"';&|{-][^\\s"';&|]*`,
+    `(?<=${ASSIGNED})(?!(?<=(?<![\\w-])key=)\\{)[^\\s"';&|][^\\s"';&|]*`,
+    "gi",
+  ),
+  new RegExp(
+    `(?<=--[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64} )[^\\s"';&|-][^\\s"';&|]*`,
     "gi",
   ),
   // JSON's `"name": "…"`, escaped characters included.
