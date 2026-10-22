@@ -26,15 +26,16 @@ page, and B3, the signature moment.
   contract lists which live checks it keeps, rewrites or retires, and the owner approves the
   retirements in that PR. (Sprint 22, PR #62, merged 2026-10-22 with batches A, B and C approved.)
 - [x] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
-  - Built in sprint 23, PR #67: Lens ship, Iris ship at 8.5/10, 141 of 141 checks. It waits for the
-    owner, who approves the one retired check (batch D, the cards' whole-surface link) on the PR.
-    Its B2.10 is amended for `/read` (`.crew/sprint/23/decisions.md`, item 7).
-- [ ] Next upgrade (S): Next's own build notice marks 16.4.0 as carrying a known security advisory.
-  One sprint, after B2 merges, before B3's spike. **It can't merge until the revision block's
-  height is settled:** the block grows a row per sprint, and at 1440 × 900 the title block's
-  contact links (B1.1) end 7 px above the fold with sprint 23's one-line row; one more row puts
-  them below it. Quill and Iris decide how the block holds its height (a cap on the rows shown,
-  with the rest in the Log, or the owner's call on B1.1), in that sprint's contract.
+  - Sprint 23, PR #67, merged 2026-10-22 with batch D (the cards' whole-surface link) approved by
+    the owner: Lens ship, Iris ship at 8.5/10, 141 of 141 checks. Its B2.10 is amended for `/read`
+    (`.crew/sprint/23/decisions.md`, item 7).
+- [x] Next upgrade: 16.4.0 to 16.4.2, for three advisories (two critical RCEs and a DoS). Done by
+  the owner outside a sprint (PR #69, merged 2026-10-22), so it added no revision row. The revision
+  block's height, which this item said had to be settled first, turned out not to block it: the
+  block is capped at five rows and only a goal that wraps to two lines at 1440 adds height
+  (`.crew/sprint/24/decisions.md`, items 2 and 3). The rule is a one-line goal, at most 78
+  characters, in every retro; Iris's one-line descriptions with an ellipsis (her sprint 22 notes,
+  section 8) stay a proposal for the next PR that waits for the owner, since B1.5's check changes.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
   phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
   a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
