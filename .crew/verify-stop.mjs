@@ -1,8 +1,10 @@
-// SubagentStop hook for the builders, Forge and Pixel (engineer and creative-engineer; see
-// .claude/settings.json). A builder can't end its turn until `pnpm verify` passes in its working
-// directory, or until it has been told once what failed: on that second stop (stop_hook_active) it
-// may stop, so it reports the failure honestly instead of looping. The run is time-boxed by the
-// first argument, in seconds, and everything it started is killed at the limit.
+// SubagentStop hook for the builders, Forge and Pixel (engineer and creative-engineer). It checks
+// the role itself, since a matcher with a hyphen may be read as an unanchored pattern that would
+// also catch qa-engineer. A builder can't end its turn until `pnpm verify` passes in its
+// working directory, or until it has been told once what failed: on that second stop
+// (stop_hook_active) it may stop, so it reports the failure honestly instead of looping. The run
+// is time-boxed by the first argument, in seconds, and everything it started is killed at the
+// limit.
 // It blocks with JSON (`decision: "block"`), not exit 2: on SubagentStop an exit 2 whose message
 // mentions a missing file counts as a non-blocking error
 // (https://code.claude.com/docs/en/hooks#exit-code-output), and build output often does.
@@ -29,7 +31,7 @@ if (run.code !== 0) {
   const step = failedStep(run.output, scripts);
   const what = run.timedOut
     ? `\`pnpm verify\` didn't finish within ${limit} s, so it was stopped`
-    : `\`pnpm verify\` failed${step && step !== "verify" ? ` at \`${step}\`` : ""} (exit ${run.code})`;
+    : `\`pnpm verify\` failed${step ? ` at \`${step}\`` : ""} (exit ${run.code})`;
   const reason = [
     `${what}. Fix it and run \`pnpm verify\` until it passes before you stop. If you can't make it pass, stop and report exactly what still fails.`,
     "",
@@ -58,23 +60,13 @@ function scriptsOf(cwd) {
   return null;
 }
 
-// The script that was running when verify stopped. pnpm 12 prints each script's command as
-// `$ <command>`, which maps back to its name; older versions printed `> pkg@1.0.0 <name> /dir`.
+// The script that was running when verify stopped. pnpm (12, as packageManager pins) prints each
+// script's command as `$ <command>` before it runs it, which maps back to its name.
 function failedStep(output, scripts) {
-  const commands = [...output.matchAll(/^\$ (.+)$/gm)].map(([, command]) =>
-    command.trim(),
+  const last = [...output.matchAll(/^\$ (.+)$/gm)].at(-1)?.[1].trim();
+  return Object.keys(scripts).find(
+    (name) => name !== "verify" && scripts[name].trim() === last,
   );
-  const last = commands.at(-1);
-  if (last !== undefined) {
-    const name = Object.keys(scripts).find(
-      (key) => key !== "verify" && scripts[key].trim() === last,
-    );
-    if (name) return name;
-  }
-  return output
-    .match(/^> \S+@\S+ (\S+) /gm)
-    ?.at(-1)
-    ?.split(" ")[2];
 }
 
 // Runs in its own process group, so the time-box can stop pnpm and every step it started.

@@ -1,11 +1,11 @@
-// W1, the stalled-stop watchdog (see .claude/settings.json). Sprint 01 ended this way: the lead said
-// "Waiting for Forge…", stopped, and nothing woke it, since a routine never resumes a session.
-// A session that brought in the team and is about to stop with its own tasks still open, nothing
-// merged and no STATE.md entry is held once with guidance, and a second stall gets the
-// escalation. It never holds a session waiting on background work or a wake-up, or one Claude
-// Code is already continuing (stop_hook_active). The other events only feed a per-session ledger
-// in tmpdir. It's deterministic (no model calls) and fails open: a rule it can't evaluate doesn't
-// fire. Each fire goes on air as StudioWatchdog.
+// W1, the stalled-stop watchdog (see .claude/settings.json). A routine never resumes a session, so
+// a lead that stops to wait for a role ("Waiting for Forge…") ends the run. A session that brought
+// in the team and is about to stop with its own tasks still open, nothing merged and no STATE.md
+// entry is held once with guidance, and a second stall gets the escalation. It never holds a
+// session waiting on background work or a wake-up, or one Claude Code is already continuing
+// (stop_hook_active). The other events only feed a per-session ledger in tmpdir. It's
+// deterministic (no model calls) and fails open: a rule it can't evaluate doesn't fire. Each fire
+// goes on air as StudioWatchdog.
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -72,10 +72,7 @@ function recordTool(tool, input, result) {
 function stalledStop(event) {
   // Without the task registry the session may be waiting on work it can't see, so let it be.
   if (event.stop_hook_active || !Array.isArray(event.background_tasks)) return;
-  if (
-    [event.background_tasks, event.session_crons].some((list) => list?.length)
-  )
-    return;
+  if (event.background_tasks.length || event.session_crons?.length) return;
   const entries = readLedger();
   if (!entries.some((entry) => entry.team)) return;
   if (entries.some((entry) => entry.shipped || entry.wroteState)) return;

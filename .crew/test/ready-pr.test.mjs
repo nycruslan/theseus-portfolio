@@ -1,17 +1,28 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ghLog, gitRepo, REPO, routes, runHook, tempDir } from "./kit.mjs";
+import { setTimeout as sleep } from "node:timers/promises";
+import {
+  ghLog,
+  gitRepo,
+  ingest,
+  REPO,
+  routes,
+  runHook,
+  tempDir,
+} from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
+const HEAD = "4ead4ead4ead";
 const pr = (draft, state = "open") => ({
   number: 7,
   draft,
   state,
+  head: { sha: HEAD },
   html_url: `https://github.com/${REPO}/pull/7`,
 });
 
-function ready(table, { args = ["7"], wait = "10000" } = {}) {
+function ready(table, { args = ["7"], wait = "10000", env = {} } = {}) {
   const log = ghLog();
   const result = runHook("ready-pr.mjs", "", {
     cwd: repo,
@@ -28,6 +39,7 @@ function ready(table, { args = ["7"], wait = "10000" } = {}) {
       // Each fake gh call is a Node process, slow on a busy machine, and a passing run returns as
       // soon as GitHub answers: only the tests of running out of time set a short budget.
       THESEUS_READY_PR_WAIT_MS: wait,
+      ...env,
     },
   });
   const dispatches = log
@@ -91,5 +103,32 @@ test("says how to call it", () => {
     const { code, stderr } = ready({}, { args });
     assert.equal(code, 2, args.join(" "));
     assert.match(stderr, /^Usage: node \.crew\/ready-pr\.mjs <number>/);
+  }
+});
+
+test("puts the PR on air once it's ready, and not while it stays a draft", async () => {
+  const studio = await ingest();
+  try {
+    const env = { STUDIO_INGEST_URL: studio.url };
+    ready({ [`${R}/pulls/7`]: pr(true) }, { wait: "300", env });
+    ready({ [`${R}/pulls/7`]: { $seq: [pr(true), pr(false)] } }, { env });
+    await studio.until(1);
+    await sleep(300);
+    assert.deepEqual(
+      studio.received.map(({ body }) => [body.hook_event_name, body.pr]),
+      [
+        [
+          "StudioPullRequest",
+          {
+            action: "ready",
+            number: 7,
+            url: `https://github.com/${REPO}/pull/7`,
+            head: HEAD,
+          },
+        ],
+      ],
+    );
+  } finally {
+    studio.close();
   }
 });

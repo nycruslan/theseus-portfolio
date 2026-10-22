@@ -2,10 +2,12 @@
 // close-out is pushed, then waits until GitHub says it is. The team's PRs open as drafts
 // (open-pr.mjs), so nobody merges one while the team still works on it. REST can't mark a draft
 // ready and cloud sessions can't reach GraphQL, so it asks .github/workflows/ready-pr.yml, which
-// can, and polls every 5 s for up to 3 minutes. Run it with the Bash tool's timeout at 5 minutes.
+// can, and polls every 5 s for up to 3 minutes. A PR it finds ready goes on air as
+// StudioPullRequest. Run it with the Bash tool's timeout at 5 minutes.
 
 import { setTimeout as sleep } from "node:timers/promises";
 import { api, configure, repoOf, toplevel } from "./github.mjs";
+import { announce } from "./post.mjs";
 
 const POLL_MS = Number(process.env.THESEUS_READY_PR_POLL_MS || 5_000);
 const BUDGET_MS = Number(process.env.THESEUS_READY_PR_WAIT_MS || 180_000);
@@ -52,6 +54,9 @@ try {
     process.exit(1);
   }
   console.log(`PR #${number} is ready for review: ${pr.html_url}`);
+  announce(cwd, "StudioPullRequest", {
+    pr: { action: "ready", number, url: pr.html_url, head: pr.head?.sha },
+  });
 } catch (error) {
   console.error(`Couldn't mark PR #${number} ready: ${error.message}`);
   process.exit(1);

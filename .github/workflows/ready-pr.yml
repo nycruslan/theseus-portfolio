@@ -1,10 +1,9 @@
 name: ready-pr
 
 # Marks a team pull request ready for review, as the team's checks app, once its sprint's
-# close-out is pushed. open-pr.yml opens each one as a draft, so nobody merges it while the team
-# still works on it: on 2026-10-20 #43 was merged seconds before its close-out landed. REST can't
-# mark a draft ready and cloud sessions can't reach GraphQL, so `.crew/ready-pr.mjs` asks for
-# this run, which can.
+# close-out is pushed. open-pr.yml opens each one as a draft, so nobody merges it before its
+# close-out lands. REST can't mark a draft ready and cloud sessions can't reach GraphQL, so
+# `.crew/ready-pr.mjs` asks for this run, which can.
 #
 # workflow_dispatch runs this file from the ref it's given, but the `checks` environment, which
 # holds the app key, serves the default branch alone. The number reaches the step through env.

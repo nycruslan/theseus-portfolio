@@ -9,7 +9,7 @@
 //   head for the owner's approval or passed it only on that approval. A draft is still being built,
 //   whatever its labels.
 // - unopened: sprint branches with no PR yet whose last commit is recent. A run pushes before it
-//   opens its PR, and on 2026-10-17 a heartbeat in that gap started a duplicate sprint.
+//   opens its PR, so such a branch may be a live sprint.
 // - highest and next: the highest sprint number among main's sprint folders, the open PRs and the
 //   branches, and one past it.
 // - daily: the team's sprint PRs merged in the last 24 hours and the cap on them,
@@ -36,9 +36,9 @@ const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
-// How long a PR or branch stays the run's that last changed it. Builders can work in their own
-// worktrees for an hour or more before anything reaches GitHub, so a shorter window let a heartbeat
-// start a second run on a live sprint; a run that died is picked up once the window has passed.
+// How long a PR or branch stays the run's that last changed it: builders can work in their own
+// worktrees for an hour or more before anything reaches GitHub. A run that died is picked up once
+// the window has passed.
 const ACTIVE_HOURS = 2;
 const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
@@ -60,7 +60,7 @@ try {
 }
 
 function preflight(repo) {
-  const { default_branch: base = "main" } = api(`repos/${repo}`);
+  const { default_branch: base } = api(`repos/${repo}`);
   // The repository is public, so anyone can open a PR from a fork with a branch named sprint/<n>.
   // Only the team's own PRs count: a branch in this repository, opened by the owner, a member, a
   // collaborator or the team's checks app (open-pr.mjs). GitHub treats repository names as
@@ -121,10 +121,7 @@ function freshBranches(repo, branches, open, closed) {
   return branches
     .filter(
       ({ name, commit }) =>
-        sprintOf(name) &&
-        commit?.sha &&
-        !opened.has(name) &&
-        !ended.has(commit.sha),
+        sprintOf(name) && !opened.has(name) && !ended.has(commit.sha),
     )
     .map(({ name, commit }) => ({
       branch: name,
@@ -155,9 +152,9 @@ function gateWaits(repo, head) {
 // The team's own sprint PRs, as GitHub lists them.
 function ours(repo) {
   return ({ head, author_association: association, user }) =>
-    head?.repo?.full_name?.toLowerCase() === repo.toLowerCase() &&
+    head.repo?.full_name.toLowerCase() === repo.toLowerCase() &&
     (TRUSTED.has(association) || user?.login === CHECKS_APP) &&
-    SPRINT_BRANCH.test(head?.ref ?? "");
+    SPRINT_BRANCH.test(head.ref);
 }
 
 // The team's sprint PRs merged into the base in the last 24 hours, from one page of the closed
@@ -166,7 +163,7 @@ function ours(repo) {
 function mergedToday(closed, base) {
   const since = Date.now() - DAY;
   const times = closed
-    .filter((pr) => pr.base?.ref === base && pr.merged_at)
+    .filter((pr) => pr.base.ref === base && pr.merged_at)
     .map((pr) => Date.parse(pr.merged_at))
     .filter((time) => time > since)
     .sort((a, b) => a - b);
@@ -315,7 +312,7 @@ function minutesSince(time) {
 }
 
 function sprintOf(name) {
-  const found = String(name ?? "").match(SPRINT_BRANCH);
+  const found = name.match(SPRINT_BRANCH);
   return found ? Number(found[1]) : 0;
 }
 

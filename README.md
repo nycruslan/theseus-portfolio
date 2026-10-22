@@ -30,10 +30,10 @@ Three parts, each in its own place:
 | How the team works | [`.claude/skills/sprint/`](.claude/skills/sprint/SKILL.md) |
 | Design and engineering skills | [`.claude/skills/`](.claude/skills) |
 | The design bar | [`design/rubric.md`](design/rubric.md) |
-| Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.crew/`](.crew) |
+| Guardrails and the live broadcast (the hooks, and the PR scripts' own `StudioPullRequest` events) | [`.claude/settings.json`](.claude/settings.json), [`.crew/`](.crew) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
 | How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.crew/open-pr.mjs`](.crew/open-pr.mjs), [`.crew/ready-pr.mjs`](.crew/ready-pr.mjs) |
-| How Atlas merges (waits, then squash-merges) | [`.crew/merge.mjs`](.crew/merge.mjs) |
+| How Atlas merges (waits for the required checks, then squash-merges; GitHub refuses a red one) | [`.crew/merge.mjs`](.crew/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.crew/sprint/`](.crew/sprint) |
 | What the team has done so far | [`.crew/STATE.md`](.crew/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |

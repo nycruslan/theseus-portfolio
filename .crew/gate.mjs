@@ -1,13 +1,11 @@
 // The `gate` check (.github/workflows/gate.yml). It holds a PR the owner has to decide:
 // - it touches an owner path, changes package.json's scripts or weakens a test (scope.mjs);
 // - it carries needs-owner now, or ever did.
-// The owner releases a PR someone else opened with an approving review of its current head; a
-// later push needs a new one. The team's checks app opens the team's PRs (open-pr.mjs), so the
-// owner can approve them. A PR under the owner's own login can't be approved by them (nobody can
-// approve their own PR) and the ruleset has no bypass, so such a PR is closed and opened again
-// through the checks app. The result goes on the head
-// as a check run from the team's checks app, the source the ruleset requires, so no other workflow
-// or account can stand in for it.
+// The owner releases a PR with an approving review of its current head; a later push needs a new
+// one. The team's checks app opens the team's PRs (open-pr.mjs), so the owner can approve them; a
+// PR under the owner's own login can't be approved by them, so it's closed and opened again through
+// the app. The result goes on the head as a check run from the team's checks app, the source the
+// ruleset requires, so no other workflow or account can stand in for it.
 // The workflow runs this from the default branch (pull_request_target, and workflow_run after the
 // review relay), never the PR's code. It reads the PR live rather than from the event, and posts
 // nothing if the head moved while it judged, so whatever triggered it, a result is about the head

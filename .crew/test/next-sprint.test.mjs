@@ -41,7 +41,7 @@ const branch = (name, sha = "a".repeat(40)) => ({ name, commit: { sha } });
 function github({
   pulls = [],
   folders = [folder("1")],
-  branches = [{ name: "main" }],
+  branches = [branch("main")],
   commits = {},
   events = {},
   closed = [],
@@ -118,10 +118,10 @@ test("with nothing open, the next sprint is one past the highest anywhere", () =
     github({
       folders: [folder("1"), folder("2"), { name: "README.md", type: "file" }],
       branches: [
-        { name: "main" },
-        { name: "sprint/1-design-tokens" },
-        { name: "sprint/4-dark-mode" },
-        { name: "team/v4.1" },
+        branch("main"),
+        branch("sprint/1-design-tokens"),
+        branch("sprint/4-dark-mode"),
+        branch("team/v4.1"),
       ],
       pulls: [pr(11, "team/v4.1")],
     }),
@@ -143,7 +143,7 @@ test("an open sprint PR is continued, not started again", () => {
     github({
       folders: [],
       pulls: [pr(9, "sprint/1-design-tokens")],
-      branches: [{ name: "sprint/1-design-tokens" }],
+      branches: [branch("sprint/1-design-tokens")],
     }),
   );
   assert.deepEqual(
@@ -593,8 +593,8 @@ test("reads today's merges from one page of the closed PRs, most recently update
 });
 
 test("stands down while a sprint branch with no PR yet was committed to in the last two hours", () => {
-  // 2026-10-17: sprint 8 pushed its branch at once and opened its PR an hour later; the heartbeat
-  // in between saw no open PR and started sprint 9 on the same work.
+  // A run pushes its branch before it opens its PR: a heartbeat in between mustn't start the same
+  // work again.
   const fresh = "8".repeat(40);
   const committedAt = minutesAgo(20);
   const { state } = preflight(

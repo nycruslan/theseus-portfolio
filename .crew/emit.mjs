@@ -22,28 +22,10 @@ const RESULT_FIELDS = {
   ],
   Workflow: ["runId", "workflowName", "summary", "error"],
   TaskCreate: ["task"],
-  // Claude Code's own reading of git and gh commands: commits, pushes, and the PR's number, URL
-  // and action (created, ready, merged).
+  // Claude Code's own reading of git and gh commands: commits, pushes, and a PR's number, URL and
+  // action. The team's PR scripts announce their PRs themselves (StudioPullRequest).
   Bash: ["gitOperation"],
 };
-// A PR opened through REST or open-pr.mjs, marked ready by ready-pr.mjs, or merged by merge.mjs:
-// the Studio shows its number, which only the command's output has. Only the PR's URL leaves; the
-// rest of stdout stays local. The scripts' URLs come only from the lines they print once it
-// happened ("Opened PR #<n> …", "PR #<n> is ready for review: …", "Merged PR #<n> …"), since a
-// command that runs one can succeed without any (`… || true`).
-const OPENS_PR =
-  /\bgh\s+api\b(?=[^;&|\n]*\brepos\/[\w.-]+\/[\w.-]+\/pulls(?![\w/]))(?=[^;&|\n]*\s(-f|-F|--field|--raw-field)\s)/;
-const RUNS_OPEN_PR = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.crew\/open-pr\.mjs\s/;
-const RUNS_READY_PR =
-  /(^|[;&|\n]\s*)node\s+(\S*\/)?\.crew\/ready-pr\.mjs\s+\d+/;
-const RUNS_MERGE = /(^|[;&|\n]\s*)node\s+(\S*\/)?\.crew\/merge\.mjs\s+\d+/;
-const PR_URL = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/;
-const OPENED_URL =
-  /^Opened PR #\d+ .*?(https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+)/m;
-const READY_URL =
-  /^PR #\d+ is ready for review: (https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+)/m;
-const MERGED_URL =
-  /^Merged PR #\d+ .*?(https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+)/m;
 const NARRATION_LENGTH = 1200;
 const PROMPT_LENGTH = 1000;
 const ERROR_LINES = 3;
@@ -62,12 +44,10 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
   const kept = (RESULT_FIELDS[hook.tool_name] ?? []).filter(
     (key) => result?.[key] !== undefined,
   );
-  const prUrl = pullRequestUrl(hook, result);
-  if (kept.length || prUrl) {
-    hook.tool_response = {
-      ...Object.fromEntries(kept.map((key) => [key, result[key]])),
-      ...(prUrl && { prUrl }),
-    };
+  if (kept.length) {
+    hook.tool_response = Object.fromEntries(
+      kept.map((key) => [key, result[key]]),
+    );
   }
   // Only text that goes public with the code anyway: a file git ignores (.env.local, build output)
   // or one outside the repository shows by its path alone.
@@ -98,17 +78,6 @@ function trim({ tool_response: result, tool_calls: calls, ...hook }) {
     default:
       return hook;
   }
-}
-
-function pullRequestUrl({ tool_name: tool, tool_input: input }, result) {
-  if (tool !== "Bash") return undefined;
-  const command = String(input?.command ?? "");
-  const stdout = String(result?.stdout ?? "");
-  if (OPENS_PR.test(command)) return stdout.match(PR_URL)?.[0];
-  if (RUNS_OPEN_PR.test(command)) return stdout.match(OPENED_URL)?.[1];
-  if (RUNS_READY_PR.test(command)) return stdout.match(READY_URL)?.[1];
-  if (RUNS_MERGE.test(command)) return stdout.match(MERGED_URL)?.[1];
-  return undefined;
 }
 
 // check-ignore exits 1 for a file git would track, 0 for an ignored one and 128 outside a repository.

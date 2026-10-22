@@ -340,7 +340,7 @@ function runVerdict(event, env) {
     return;
   }
   // The check is what the merge waits for, and its summary carries the whole review, so a review
-  // GitHub won't take (it once answered both attempts with an empty body) mustn't cost the check.
+  // GitHub won't take mustn't cost the check.
   try {
     postReview({
       repo,

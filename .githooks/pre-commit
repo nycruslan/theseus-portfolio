@@ -1,8 +1,7 @@
 #!/bin/sh
-# Formats what a commit stages, so a push never fails CI's `biome ci` on formatting alone: sprints
-# 5, 7, 9, 10 and 11 each lost a CI round to one unformatted file. Formatting only: lint findings
-# stay for `pnpm verify` and CI to report. Set up by `pnpm install` (the prepare script) and, in
-# cloud sessions, by .crew/install.sh.
+# Formats what a commit stages, so a push never fails CI's `biome ci` on formatting alone.
+# Formatting only: lint findings stay for `pnpm verify` and CI to report. Set up by `pnpm install`
+# (the prepare script) and, in cloud sessions, by .crew/install.sh.
 biome=node_modules/.bin/biome
 if [ ! -x "$biome" ]; then
   echo "pre-commit: Biome isn't installed (run pnpm install), so staged files aren't formatted." >&2
