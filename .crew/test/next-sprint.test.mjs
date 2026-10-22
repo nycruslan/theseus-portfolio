@@ -366,6 +366,13 @@ test("reminds the owner about a PR a day past its last commit and the team's las
     body: "Reminded the owner.",
   };
   assert.deepEqual(remind({ committed: 25, comments: [team] }), []);
+  // So does the checks app's, which posts the team's comments (team-pr.mjs).
+  const app = {
+    ...team,
+    author_association: "NONE",
+    user: { login: "theseus-checks[bot]" },
+  };
+  assert.deepEqual(remind({ committed: 25, comments: [app] }), []);
   // A stranger's comment on the public PR doesn't.
   const stranger = {
     ...team,
@@ -417,6 +424,24 @@ test("lists a waiting PR that conflicts with main to bring up to date, beside th
     }),
   ).state;
   assert.deepEqual(flagged.update, []);
+  // The checks app's counts the same: it posts the team's comments (team-pr.mjs).
+  const byApp = preflight(
+    github({
+      pulls: [waiting()],
+      conflicts: [12],
+      comments: {
+        12: [
+          {
+            author_association: "NONE",
+            user: { login: "theseus-checks[bot]" },
+            created_at: minutesAgo(120),
+            body: `Product code conflicts.\n\ntheseus:conflict ${head}`,
+          },
+        ],
+      },
+    }),
+  ).state;
+  assert.deepEqual(byApp.update, []);
   // The same marker from a stranger on the public repository doesn't count.
   const forged = preflight(
     github({

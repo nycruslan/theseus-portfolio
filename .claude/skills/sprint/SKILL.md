@@ -15,7 +15,7 @@ a new sprint from the latest `origin/main` (a run a merge started begins on that
 you start while a PR waits for the owner (`waiting`) works on something that neither repeats nor
 builds on that PR. If the script exits 1, GitHub couldn't be read: start nothing and report it.
 
-Two lists come beside the action, and neither stops it:
+Two lists come beside the action, and neither stops it (comment with `team-pr.mjs`, see Ship):
 - `update`: PRs waiting for the owner that conflict with main, usually in the notes another
   sprint's close-out changed. Merge `origin/main` into each one's branch. When only notes conflict
   (STATE.md, ROADMAP.md), keep both sides, push, and once its checks pass tell the owner its head
@@ -76,14 +76,14 @@ memory loads into the agents' prompts, so Lens reviews it, and memory pushed aft
 pays for a second review. A role that reports after the label (Iris) adds its lines with a
 fix-round push, or in the next sprint's build.
 
-**Review.** When the build and its memory are pushed, add the `review` label: Lens reviews the head
-in CI, posts the findings as a review on the PR, and the `lens` check passes only on ship. Every
-later push is reviewed again, except one that only touches notes (see Close), which keeps Lens's
-last ship. Send Important findings back to the same builder, and push the fix. Two fix rounds at
-most: if Lens still says changes after the second, cut scope yourself (revert, or record a
-contract change) or stop. Weigh Iris's advice and act on what's cheap; her `changes` alone is no
-reason for `needs-owner`. CI runs Probe's checks on every push; ask Probe for an exploratory pass
-only on interaction-heavy work.
+**Review.** When the build and its memory are pushed, add the `review` label
+(`node .crew/team-pr.mjs <n> --label review`): Lens reviews the head in CI, posts the findings as a
+review on the PR, and the `lens` check passes only on ship. Every later push is reviewed again,
+except one that only touches notes (see Close), which keeps Lens's last ship. Send Important
+findings back to the same builder, and push the fix. Two fix rounds at most: if Lens still says
+changes after the second, cut scope yourself (revert, or record a contract change) or stop. Weigh
+Iris's advice and act on what's cheap; her `changes` alone is no reason for `needs-owner`. CI runs
+Probe's checks on every push; ask Probe for an exploratory pass only on interaction-heavy work.
 
 **The owner's decisions.** `gate` holds a PR that touches an owner path, changes `package.json`'s
 scripts, weakens a test or ever carried `needs-owner`, until the owner approves its head. Escalate
@@ -100,15 +100,20 @@ skips the checks too, so a red `check` handed over would land on main.
 
 **Ship.** Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL,
 which `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
-`git remote get-url origin`, and pass long text as a file. Three scripts carry a PR through its
+`git remote get-url origin`, and pass long text as a file. Four scripts carry a PR through its
 life; run each on its own, with the Bash timeout at 5 minutes (10 for merging):
 - `node .crew/open-pr.mjs --head <branch> --title "…" --body .crew/sprint/<n>/pr.md`, right
   after the branch's first push: the pre-flight knows a sprint is in flight by its open PR. The
-  checks app opens it as a draft, and the script sets the title and body. Never open one by
-  POSTing to `repos/<owner>/<repo>/pulls` yourself. If the app's PR doesn't come, the script opens
-  it under the owner's login and says so; say that in your report. The body carries the goal
-  (saying "chosen by the owner" when it's theirs), the size, the contract and its results, and the
+  checks app opens it as a draft, with the title and body. Never open one by POSTing to
+  `repos/<owner>/<repo>/pulls` yourself. If the app's PR doesn't come, the script opens it under
+  the owner's login and says so; say that in your report. The body carries the goal (saying
+  "chosen by the owner" when it's theirs), the size, the contract and its results, and the
   decisions.
+- `node .crew/team-pr.mjs <n>` with `--comment <file>`, `--label <name>`, `--title "…"` or
+  `--body <file>`, for every comment and label this skill asks of you (`review`, `needs-owner`,
+  Iris's advice, the `update` and `remind` comments) and a later title or body: the checks app
+  writes them, so GitHub shows the team rather than the owner. Don't post them through `gh api`.
+  If the app's change doesn't show, the script makes it under the owner's login and says so.
 - `node .crew/ready-pr.mjs <n>`, once Lens says ship and the close-out is pushed, which only
   touches notes, so Lens's ship stands: the draft becomes ready for review.
 - `node .crew/merge.mjs <n>`, unless the PR waits for the owner: it waits for the checks and

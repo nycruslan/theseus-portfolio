@@ -53,9 +53,10 @@ finish", never the command itself.
 GitHub decides what merges: the `protect-main` ruleset requires `check` (CI), `gate` (the owner's
 paths and decisions) and `lens` (code review), and the owner's review wherever `.github/CODEOWNERS`
 names them. In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the
-owner's connection. So the owner's powers are in reach, and never yours to use: merge only through
-`merge.mjs`, which only Atlas runs (the sprint skill), and never approve or dismiss reviews, change
-settings or rulesets, or push to `main`.
+owner's connection, which is why the team's PRs, comments and labels go through its checks app
+(`open-pr.mjs`, `team-pr.mjs`). So the owner's powers are in reach, and never yours to use: merge
+only through `merge.mjs`, which only Atlas runs (the sprint skill), and never approve or dismiss
+reviews, change settings or rulesets, or push to `main`.
 
 ## The owner's
 

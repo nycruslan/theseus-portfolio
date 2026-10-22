@@ -1,0 +1,83 @@
+name: team-pr
+
+# Comments on, labels or retitles a team pull request as the team's checks app. Cloud sessions
+# reach GitHub as the owner, so what a session writes on a PR itself shows the owner's name and
+# avatar: #55's new title and its `review` label were the owner's, as is every comment a session
+# posts. Written by the app, it shows as the team's. `.crew/team-pr.mjs` asks for this run and
+# waits until the change shows. Pushes and merges stay the session's: the app can't write code.
+#
+# workflow_dispatch runs this file from the ref it's given, but the `checks` environment, which
+# holds the app key, serves the default branch alone. The inputs are data, so they reach the step
+# through env, never the script's text, and an empty one is a change nobody asked for. The number
+# goes into paths, so it must be digits. The app writes only on a pull request from a branch of
+# this repository: the repository is public, and the team's name on a fork's pull request would
+# vouch for a stranger's code.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment, as in
+# the other workflows.
+on:
+  workflow_dispatch:
+    inputs:
+      number:
+        description: The pull request to write on
+        required: true
+        type: number
+      comment:
+        description: A comment to post on it
+        required: false
+        type: string
+      label:
+        description: A label to add to it
+        required: false
+        type: string
+      title:
+        description: Its new title
+        required: false
+        type: string
+      body:
+        description: Its new body
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  team-pr:
+    runs-on: ubuntu-latest
+    environment: checks
+    timeout-minutes: 2
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.CHECKS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CHECKS_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ inputs.number }}
+          COMMENT: ${{ inputs.comment }}
+          LABEL: ${{ inputs.label }}
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.body }}
+        run: |
+          if ! [[ "$NUMBER" =~ ^[0-9]+$ ]] ||
+            [ "$(gh api "repos/$REPO/pulls/$NUMBER" --jq .head.repo.full_name)" != "$REPO" ]; then
+            echo "::error::That isn't a pull request from a branch of $REPO."
+            exit 1
+          fi
+          # One edit for both, so gate runs once for it.
+          fields=()
+          if [ -n "$TITLE" ]; then fields+=(-f title="$TITLE"); fi
+          if [ -n "$BODY" ]; then fields+=(-f body="$BODY"); fi
+          if [ ${#fields[@]} -gt 0 ]; then
+            gh api --method PATCH "repos/$REPO/pulls/$NUMBER" "${fields[@]}" --jq '"Edited \(.html_url)"'
+          fi
+          if [ -n "$LABEL" ]; then
+            gh api "repos/$REPO/issues/$NUMBER/labels" -f "labels[]=$LABEL" --jq '"Labels: \(map(.name) | join(", "))"'
+          fi
+          if [ -n "$COMMENT" ]; then
+            gh api "repos/$REPO/issues/$NUMBER/comments" -f body="$COMMENT" --jq '"Commented \(.html_url)"'
+          fi

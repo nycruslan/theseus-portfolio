@@ -50,8 +50,9 @@ import { carriedNeedsOwner, OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
-// The checks app opens the team's PRs (.github/workflows/open-pr.yml). GitHub calls it no
-// association at all, and a bot's login, with its [bot], is one no person can take.
+// The checks app opens the team's PRs and posts the team's comments on them
+// (.github/workflows/open-pr.yml, team-pr.yml). GitHub calls it no association at all, and a
+// bot's login, with its [bot], is one no person can take.
 const CHECKS_APP = "theseus-checks[bot]";
 const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;

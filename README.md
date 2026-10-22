@@ -32,6 +32,7 @@ Three parts, each in its own place:
 | Guardrails and the live broadcast (hooks) | [`.claude/settings.json`](.claude/settings.json), [`.crew/`](.crew) |
 | What GitHub checks before a merge | [`.github/workflows/`](.github/workflows) |
 | How Atlas opens a PR (a draft, through the checks app, so the owner can approve it) and marks it ready | [`.crew/open-pr.mjs`](.crew/open-pr.mjs), [`.crew/ready-pr.mjs`](.crew/ready-pr.mjs) |
+| How the team comments on, labels and retitles its PRs, as the checks app rather than the owner | [`.crew/team-pr.mjs`](.crew/team-pr.mjs) |
 | How Atlas merges (waits, then squash-merges) | [`.crew/merge.mjs`](.crew/merge.mjs) |
 | Each sprint's contract, positions and decisions | [`.crew/sprint/`](.crew/sprint) |
 | What the team has done so far | [`.crew/STATE.md`](.crew/STATE.md) |

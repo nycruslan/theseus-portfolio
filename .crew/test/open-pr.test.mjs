@@ -19,19 +19,32 @@ const FIELDS = {
   title: "Sprint 3: dots",
   body: "**Work in progress**\n\n## Goal\nDots.\n",
 };
-const pr = (number, author = "theseus-checks[bot]") => ({
+const pr = (number, author = "theseus-checks[bot]", fields = FIELDS) => ({
   number,
   user: { login: author },
+  ...fields,
+  labels: [],
+  head: { ref: BRANCH, repo: { full_name: REPO } },
   html_url: `https://github.com/${REPO}/pull/${number}`,
 });
+// A PR the app opened before it was given a title and body.
+const placeholder = {
+  title: BRANCH,
+  body: "The team is working on this pull request.",
+};
 
-/** GitHub's side: the repository, the branch's open PRs (maybe {$seq: […]}), and the writes. */
-function github({ open = [], dispatch = "" } = {}) {
+/**
+ * GitHub's side: the repository, the branch's open PRs and PR #7 as team-pr.mjs reads it (either
+ * maybe {$seq: […]}), and the writes.
+ */
+function github({ open = [], dispatch = "", pr7 = pr(7), team = "" } = {}) {
   return {
     [R]: { default_branch: "main", owner: { login: "nycruslan" } },
     [`${R}/branches/${BRANCH}`]: { name: BRANCH },
     [`${R}/pulls?state=open`]: open,
+    [`${R}/pulls/7`]: pr7,
     [`POST ${R}/actions/workflows/open-pr.yml/dispatches`]: dispatch,
+    [`POST ${R}/actions/workflows/team-pr.yml/dispatches`]: team,
     [`POST ${R}/pulls`]: pr(8, "nycruslan"),
     [`PATCH ${R}/pulls/*`]: {},
   };
@@ -47,9 +60,11 @@ function openPr(table, { args = ARGS, env = {} } = {}) {
       GH_LOG: log.file,
       GH_STATE: tempDir(),
       THESEUS_OPEN_PR_POLL_MS: "10",
+      THESEUS_TEAM_PR_POLL_MS: "10",
       // Each fake gh call is a Node process, slow on a busy machine, and a passing run returns as
       // soon as GitHub answers: only the tests of running out of time set a short budget.
       THESEUS_OPEN_PR_WAIT_MS: "10000",
+      THESEUS_TEAM_PR_WAIT_MS: "10000",
       ...env,
     },
   });
@@ -61,7 +76,7 @@ function openPr(table, { args = ARGS, env = {} } = {}) {
   return { ...result, calls, sent };
 }
 
-test("asks the checks app for the PR, waits for it, then sets its title and body", () => {
+test("asks the checks app for the PR, with its title and body, and waits for it", () => {
   const { code, stdout, sent, calls } = openPr(
     github({ open: { $seq: [[], [], [pr(7)]] } }),
   );
@@ -72,9 +87,14 @@ test("asks the checks app for the PR, waits for it, then sets its title and body
   );
   assert.deepEqual(
     sent("POST", `${R}/actions/workflows/open-pr.yml/dispatches`),
-    [{ ref: "main", inputs: { branch: BRANCH } }],
+    [{ ref: "main", inputs: { branch: BRANCH, ...FIELDS } }],
   );
-  assert.deepEqual(sent("PATCH", `${R}/pulls/7`), [FIELDS]);
+  // The app opened it with them, so nothing renames it under the owner's login.
+  assert.equal(sent("PATCH", `${R}/pulls/7`).length, 0);
+  assert.equal(
+    sent("POST", `${R}/actions/workflows/team-pr.yml/dispatches`).length,
+    0,
+  );
   assert.equal(sent("POST", `${R}/pulls`).length, 0);
   // It asks for the branch's own open PRs, by owner:branch.
   const read = calls.find((call) => String(call[3]).startsWith(`${R}/pulls?`));
@@ -83,13 +103,55 @@ test("asks the checks app for the PR, waits for it, then sets its title and body
   assert.equal(asked.get("state"), "open");
 });
 
-test("keeps a PR that's already open, with the new title and body, and opens nothing", () => {
-  const { code, stdout, sent } = openPr(github({ open: [pr(7)] }));
+test("keeps a PR that's already open, has the app give it the new title and body, and opens nothing", () => {
+  const old = pr(7, undefined, placeholder);
+  const { code, stdout, sent } = openPr(
+    github({ open: [old], pr7: { $seq: [old, old, pr(7)] } }),
+  );
   assert.equal(code, 0);
-  assert.match(stdout, /^PR #7 was already open from sprint\/3-dots/m);
+  assert.match(
+    stdout,
+    /^PR #7 was already open from sprint\/3-dots; it has the new title and body from the checks app: https:\/\/github\.com\/nycruslan\/theseus-portfolio\/pull\/7$/m,
+  );
   assert.doesNotMatch(stdout, /^Opened/m);
+  assert.deepEqual(
+    sent("POST", `${R}/actions/workflows/team-pr.yml/dispatches`),
+    [{ ref: "main", inputs: { number: "7", ...FIELDS } }],
+  );
+  assert.equal(sent("PATCH", `${R}/pulls/7`).length, 0);
+  assert.equal(
+    sent("POST", `${R}/actions/workflows/open-pr.yml/dispatches`).length,
+    0,
+  );
+  assert.equal(sent("POST", `${R}/pulls`).length, 0);
+});
+
+test("leaves an open PR that has the title and body already alone", () => {
+  const { code, stdout, calls } = openPr(github({ open: [pr(7)] }));
+  assert.equal(code, 0);
+  assert.match(
+    stdout,
+    /^PR #7 was already open from sprint\/3-dots; it has the new title and body already: /m,
+  );
+  assert.equal(calls.filter((call) => call.includes("POST")).length, 0);
+  assert.equal(calls.filter((call) => call.includes("PATCH")).length, 0);
+});
+
+test("sets an open PR's title and body itself, under the owner's login, when GitHub won't start team-pr.yml", () => {
+  const old = pr(7, undefined, placeholder);
+  const { code, stdout, sent } = openPr(
+    github({
+      open: [old],
+      pr7: old,
+      team: { $error: 404, message: "Not Found" },
+    }),
+  );
+  assert.equal(code, 0);
+  assert.match(
+    stdout,
+    /^PR #7 was already open from sprint\/3-dots; it has the new title and body under the owner's login, since GitHub refused to start team-pr\.yml \(Not Found\): /m,
+  );
   assert.deepEqual(sent("PATCH", `${R}/pulls/7`), [FIELDS]);
-  assert.equal(sent("POST", "dispatches").length, 0);
 });
 
 test("opens the PR itself, under the owner's login, when the app's PR doesn't come", () => {
@@ -119,7 +181,10 @@ test("keeps the app's PR when it lands just as the script opens its own", () => 
   });
   assert.equal(code, 0);
   assert.match(stdout, /^Opened PR #7 through the checks app/m);
-  assert.deepEqual(sent("PATCH", `${R}/pulls/7`), [FIELDS]);
+  assert.deepEqual(sent("POST", `${R}/pulls`), [
+    { ...FIELDS, head: BRANCH, base: "main", draft: true },
+  ]);
+  assert.equal(sent("PATCH", `${R}/pulls/7`).length, 0);
 });
 
 test("opens the PR itself when GitHub won't start the workflow", () => {

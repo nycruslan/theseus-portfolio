@@ -5,11 +5,12 @@ name: open-pr
 # ready (ready-pr.yml). Cloud sessions reach GitHub as the owner, and nobody can approve their own
 # PR: opened by the app, a PR is one the owner can approve, which releases `gate` and counts as
 # their code-owner review, and then merge with the usual button, every required check included.
-# `.crew/open-pr.mjs` asks for this run, waits for the PR and fills in its title and body.
+# `.crew/open-pr.mjs` asks for this run, with the PR's title and body, and waits for the PR. A run
+# without them opens it with the branch's name and a placeholder.
 #
 # workflow_dispatch runs this file from the ref it's given, but the `checks` environment, which
 # holds the app key, serves the default branch alone: a run from any other ref fails before the
-# key is read. The branch is data, so it reaches the step through env, never the script's text.
+# key is read. The inputs are data, so they reach the step through env, never the script's text.
 #
 # Third-party actions are pinned to full commit SHAs, with the release in a trailing comment, as in
 # gate.yml and lens.yml.
@@ -19,6 +20,14 @@ on:
       branch:
         description: The branch to open a pull request from
         required: true
+        type: string
+      title:
+        description: The pull request's title
+        required: false
+        type: string
+      body:
+        description: The pull request's body
+        required: false
         type: string
 
 permissions: {}
@@ -47,6 +56,8 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           BASE: ${{ github.event.repository.default_branch }}
           BRANCH: ${{ inputs.branch }}
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.body }}
         run: |
           if [ "$BRANCH" = "$BASE" ]; then
             echo "::error::A pull request can't come from $BASE itself."
@@ -57,5 +68,5 @@ jobs:
             echo "$BRANCH already has an open pull request."
             exit 0
           fi
-          gh api "repos/$REPO/pulls" -f head="$BRANCH" -f base="$BASE" -f title="$BRANCH" -F draft=true \
-            -f body="The team is working on this pull request." --jq '"Opened \(.html_url)"'
+          gh api "repos/$REPO/pulls" -f head="$BRANCH" -f base="$BASE" -f title="${TITLE:-$BRANCH}" -F draft=true \
+            -f body="${BODY:-The team is working on this pull request.}" --jq '"Opened \(.html_url)"'
