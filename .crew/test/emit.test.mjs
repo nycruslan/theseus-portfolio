@@ -494,6 +494,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
           "curl --token=abc12345 --api-key=def67890",
           `echo '{"client_secret": "ghi24680", "author": "Theseus"}'`,
           'git commit --author="Theseus Team" -m x',
+          'echo TOKEN="unterminated value',
         ].join("; "),
       },
       tool_use_id: "toolu_07",
@@ -502,7 +503,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
   const [{ raw, body }] = studio.received;
   assert.doesNotMatch(
     raw,
-    /hunter22|hunter33|words|abc12345|def67890|ghi24680/,
+    /hunter22|hunter33|words|abc12345|def67890|ghi24680|unterminated/,
   );
   assert.equal(
     body.tool_input.command,
@@ -512,6 +513,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
       "curl --token=[redacted] --api-key=[redacted]",
       `echo '{"client_secret": "[redacted]", "author": "Theseus"}'`,
       'git commit --author="Theseus Team" -m x',
+      'echo TOKEN="[redacted]',
     ].join("; "),
   );
 });

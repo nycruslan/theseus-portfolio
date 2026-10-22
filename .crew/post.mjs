@@ -24,10 +24,10 @@ const SECRET_NAMES =
 const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const ASSIGNED = `\\b[A-Z0-9_]*(?:${SECRET_NAMES})[A-Z0-9_]*=`;
 const SECRET_PATTERNS = [
-  // A quoted value is masked up to its closing quote, spaces included; an unquoted one up to the
-  // first space or shell separator.
-  new RegExp(`(?<=${ASSIGNED}")[^"]*(?=")`, "gi"),
-  new RegExp(`(?<=${ASSIGNED}')[^']*(?=')`, "gi"),
+  // A quoted value is masked up to its closing quote (or the end, when it has none), spaces
+  // included; an unquoted one up to the first space or shell separator.
+  new RegExp(`(?<=${ASSIGNED}")[^"]*(?="|$)`, "gi"),
+  new RegExp(`(?<=${ASSIGNED}')[^']*(?='|$)`, "gi"),
   new RegExp(`(?<=${ASSIGNED})[^\\s"';&|]+`, "gi"),
   new RegExp(`(?<="[\\w-]*(?:${SECRET_NAMES})[\\w-]*"\\s*:\\s*")[^"]+`, "gi"),
   /\b(?:sk|pk|rk)(?:-|_live_|_test_)[\w-]{16,}/g,
