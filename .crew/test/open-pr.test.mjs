@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ghLog, gitRepo, REPO, routes, runHook, tempDir } from "./kit.mjs";
+import { setTimeout as sleep } from "node:timers/promises";
+import {
+  ghLog,
+  gitRepo,
+  ingest,
+  REPO,
+  routes,
+  runHook,
+  tempDir,
+} from "./kit.mjs";
 
 const { dir: repo } = gitRepo({
   ".crew/sprint/3/pr.md": "**Work in progress**\n\n## Goal\nDots.\n",
@@ -19,9 +28,11 @@ const FIELDS = {
   title: "Sprint 3: dots",
   body: "**Work in progress**\n\n## Goal\nDots.\n",
 };
+const HEAD = "4ead4ead4ead";
 const pr = (number, author = "theseus-checks[bot]") => ({
   number,
   user: { login: author },
+  head: { ref: BRANCH, sha: HEAD },
   html_url: `https://github.com/${REPO}/pull/${number}`,
 });
 
@@ -169,5 +180,43 @@ test("says how to call it when an argument is missing", () => {
     assert.equal(code, 2, args.join(" "));
     assert.match(stderr, /^Usage: node \.crew\/open-pr\.mjs --head/);
     assert.equal(calls.length, 0);
+  }
+});
+
+test("puts each PR it opens on air, and none it only kept", async () => {
+  const studio = await ingest();
+  try {
+    const env = {
+      STUDIO_INGEST_URL: studio.url,
+      CLAUDE_CODE_SESSION_ID: "abc123",
+    };
+    openPr(github({ open: [pr(7)] }), { env });
+    openPr(github({ open: { $seq: [[], [pr(9)]] } }), { env });
+    openPr(github(), { env: { ...env, THESEUS_OPEN_PR_WAIT_MS: "300" } });
+    await studio.until(2);
+    await sleep(300);
+    const posts = studio.received.map(({ body }) => body);
+    assert.deepEqual(
+      posts.map(({ hook_event_name: name, session_id: id }) => [name, id]),
+      [
+        ["StudioPullRequest", "abc123"],
+        ["StudioPullRequest", "abc123"],
+      ],
+    );
+    assert.equal(posts[0].repo, "theseus-portfolio");
+    // One opened through the app, one under the owner's login.
+    const opened = (number) => ({
+      action: "opened",
+      number,
+      url: `https://github.com/${REPO}/pull/${number}`,
+      title: FIELDS.title,
+      head: HEAD,
+    });
+    assert.deepEqual(
+      posts.map(({ pr }) => pr).sort((a, b) => a.number - b.number),
+      [opened(8), opened(9)],
+    );
+  } finally {
+    studio.close();
   }
 });

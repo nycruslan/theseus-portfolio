@@ -11,14 +11,7 @@
 // is blocked, and settings.json blocks if it crashes. Blocks are put on air as StudioWriteBlocked.
 
 import { lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-} from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { broadcast } from "./post.mjs";
 import { ownersIn } from "./scope.mjs";
@@ -44,7 +37,7 @@ try {
   block("This write couldn't be verified, so it was blocked.");
 }
 // Outside the project is Claude Code's own business (permissions and deny rules).
-const inside = !(path === ".." || path.startsWith("../") || isAbsolute(path));
+const inside = !(path === ".." || path.startsWith("../"));
 const reason = inside && refusal(inProject(path), hook.agent_type);
 if (reason) {
   broadcast({ ...hook, hook_event_name: "StudioWriteBlocked", path, reason });

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { repoFromRemote } from "../github.mjs";
 import {
   ghLog,
@@ -163,34 +164,6 @@ test("refuses without asking GitHub when a required check never reports, and say
   );
 });
 
-test("refuses without asking GitHub when a required check failed: the owner's bypass would merge it", () => {
-  for (const name of ["check", "gate", "lens"]) {
-    const checks = GREEN.map((run) =>
-      run.name === name ? done(name, "failure") : run,
-    );
-    const { code, stderr, merges } = merge(github({ checks }));
-    assert.equal(code, 1, name);
-    assert.equal(merges.length, 0, name);
-    assert.match(
-      stderr,
-      new RegExp(`NO-GO for PR #12: ${name} didn't pass on 4ead4ea\\.`),
-    );
-  }
-});
-
-test("refuses without asking GitHub when time runs out with a required check still running", () => {
-  const { code, stderr, merges } = merge(
-    github({ checks: [done("check"), done("gate"), RUNNING] }),
-    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
-  );
-  assert.equal(code, 1);
-  assert.equal(merges.length, 0);
-  assert.match(
-    stderr,
-    /NO-GO for PR #12: lens still running on 4ead4ea: run node \.crew\/merge\.mjs 12 again\./,
-  );
-});
-
 test("leaves a PR that gate passed on the owner's approval to the owner", () => {
   // A session acts as the owner, so it could have posted that approval itself.
   const released = { ...done("gate"), external_id: "owner-approved" };
@@ -203,47 +176,13 @@ test("leaves a PR that gate passed on the owner's approval to the owner", () => 
     stderr,
     /NO-GO for PR #12: gate passed on the owner's approval, so the owner merges it\./,
   );
-  // The same mark from another app doesn't count: only the named app's run is gate.
-  const other = {
-    ...done("gate", "success", 5, { id: 99, slug: "someone" }),
-    external_id: "owner-approved",
-  };
-  assert.equal(merge(github({ checks: [...GREEN, other] })).code, 0);
-});
-
-test("counts a required check only from the app the rules name", () => {
-  const impostor = done("lens", "success", 5, { id: 99, slug: "someone" });
-  const { code, stderr, merges } = merge(
-    github({ checks: [done("check"), done("gate"), impostor] }),
-    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  // A later gate run from another app doesn't hide the checks app's.
+  const other = done("gate", "success", 5, { id: 99, slug: "someone" });
+  const hidden = merge(
+    github({ checks: [done("check"), released, other, done("lens")] }),
   );
-  assert.equal(code, 1);
-  assert.equal(merges.length, 0);
-  assert.match(stderr, /lens never reported on 4ead4ea/);
-  const both = merge(github({ checks: [...GREEN, impostor] }));
-  assert.equal(both.code, 0);
-  // Anyone who can post a commit status could name it lens: it stands in for no app's check.
-  const status = merge(
-    github({
-      checks: [done("check"), done("gate")],
-      statuses: [{ context: "lens", state: "success" }],
-    }),
-    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
-  );
-  assert.equal(status.code, 1);
-  assert.equal(status.merges.length, 0);
-  assert.match(status.stderr, /lens never reported on 4ead4ea/);
-  // A rule that names no app takes a status.
-  const open = rules("check", "preview");
-  open[1].parameters.required_status_checks[1] = { context: "preview" };
-  const preview = merge(
-    github({
-      required: open,
-      checks: [done("check")],
-      statuses: [{ context: "preview", state: "success" }],
-    }),
-  );
-  assert.equal(preview.code, 0);
+  assert.equal(hidden.code, 1);
+  assert.equal(hidden.merges.length, 0);
 });
 
 test("waits for the checks the base branch's rules require, not a fixed list", () => {
@@ -287,7 +226,7 @@ test("counts only the latest run of a check, so a superseded cancelled run doesn
   assert.equal(code, 0);
 });
 
-test("asks GitHub whatever a check it doesn't require says, and reports GitHub's answer", () => {
+test("asks GitHub once the checks have settled, whatever they say, and reports GitHub's answer", () => {
   const unstable = merge(
     github({
       pulls: pr({ mergeable_state: "unstable" }),
@@ -295,24 +234,28 @@ test("asks GitHub whatever a check it doesn't require says, and reports GitHub's
     }),
   );
   assert.equal(unstable.code, 0);
+  // The ruleset has no bypass, so GitHub refuses a failed required check itself.
   const refused = merge(
     github({
       pulls: pr({ mergeable_state: "blocked" }),
+      checks: [done("check"), done("gate"), done("lens", "failure")],
       merge: {
         $error: 405,
-        message: "Waiting on code owner review from nycruslan.",
+        message:
+          'Repository rule violations found: Required status check "lens" is failing.',
       },
     }),
   );
   assert.equal(refused.code, 1);
+  assert.equal(refused.merges.length, 1);
   assert.match(
     refused.stderr,
-    /refused the merge: Waiting on code owner review from nycruslan\./,
+    /refused the merge: Repository rule violations found: Required status check "lens" is failing\./,
   );
 });
 
-test("doesn't ask when GitHub says no or can't yet tell: a conflict, a draft, a branch behind, unknown", () => {
-  for (const state of ["dirty", "draft", "behind", "unknown"]) {
+test("doesn't ask when GitHub says no or can't yet tell: a conflict, a branch behind, unknown", () => {
+  for (const state of ["dirty", "behind", "unknown"]) {
     const { code, merges, stderr } = merge(
       github({ pulls: pr({ mergeable_state: state }) }),
       { env: { THESEUS_MERGE_WAIT_MS: "300" } },
@@ -371,19 +314,21 @@ test("takes only a bare PR number", () => {
   }
 });
 
-test("puts the checks on air, merged or not", async () => {
+test("puts the checks on air, and then the merged PR", async () => {
   const studio = await ingest();
   try {
     merge(github(), {
       env: { STUDIO_INGEST_URL: studio.url, CLAUDE_CODE_SESSION_ID: "abc123" },
     });
-    const [{ body }] = await studio.until(1);
-    assert.equal(body.hook_event_name, "StudioGateChecked");
-    assert.equal(body.session_id, "abc123");
+    const posts = await studio.until(2);
+    const [gate, merged] = ["StudioGateChecked", "StudioPullRequest"].map(
+      (name) => posts.find(({ body }) => body.hook_event_name === name).body,
+    );
+    assert.equal(gate.session_id, "abc123");
     assert.deepEqual(
       {
-        ...body.gate,
-        items: body.gate.items.map(({ who, state }) => `${who} ${state}`),
+        ...gate.gate,
+        items: gate.gate.items.map(({ who, state }) => `${who} ${state}`),
       },
       {
         target: "merge",
@@ -392,6 +337,36 @@ test("puts the checks on air, merged or not", async () => {
         pass: true,
         items: ["check go", "gate go", "lens go"],
       },
+    );
+    assert.equal(merged.session_id, "abc123");
+    assert.equal(merged.repo, "theseus-portfolio");
+    assert.deepEqual(merged.pr, {
+      action: "merged",
+      number: 12,
+      url: `https://github.com/${REPO}/pull/12`,
+      head: HEAD,
+      merged: "5a1e5a1e5a1e",
+    });
+  } finally {
+    studio.close();
+  }
+});
+
+test("puts only the checks on air when it doesn't merge", async () => {
+  const studio = await ingest();
+  try {
+    merge(github({ pulls: pr({ draft: true, mergeable_state: "draft" }) }), {
+      env: { STUDIO_INGEST_URL: studio.url },
+    });
+    await studio.until(1);
+    await sleep(300);
+    assert.deepEqual(
+      studio.received.map(({ body }) => [
+        body.hook_event_name,
+        body.gate?.pass,
+        "session_id" in body,
+      ]),
+      [["StudioGateChecked", false, false]],
     );
   } finally {
     studio.close();

@@ -6,19 +6,11 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  realpathSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { CREW, tempDir } from "./kit.mjs";
-
-// Playwright's folder name for the headless shell on this machine's CPU, as install.sh picks it.
-const PLATFORM = ["arm64", "aarch64"].includes(
-  execFileSync("uname", ["-m"], { encoding: "utf8" }).trim(),
-)
-  ? "chrome-headless-shell-linux-arm64"
-  : "chrome-headless-shell-linux64";
 
 function file(path, content = "", mode = 0o644) {
   mkdirSync(join(path, ".."), { recursive: true });
@@ -26,7 +18,7 @@ function file(path, content = "", mode = 0o644) {
   chmodSync(path, mode);
 }
 
-/** A cloud image's /opt/pw-browsers, with the headless shell at `build`, in the old layout. */
+/** A cloud image's /opt/pw-browsers, with Chromium and its headless shell at `build`. */
 function image(build = "1194") {
   const dir = join(tempDir(), "pw-browsers");
   file(
@@ -34,11 +26,7 @@ function image(build = "1194") {
     "",
     0o755,
   );
-  file(
-    join(dir, `chromium_headless_shell-${build}/chrome-linux/resources.pak`),
-  );
   file(join(dir, `chromium-${build}/chrome-linux/chrome`), "", 0o755);
-  file(join(dir, "ffmpeg-1011/ffmpeg-linux"), "", 0o755);
   return dir;
 }
 
@@ -47,7 +35,8 @@ function listing(dir) {
 }
 
 // A stand-in for pnpm that logs its calls. The dry run answers as Playwright 1.64 does (it wants
-// build 1248); `fail` names calls that fail, as the cloud's proxy makes downloads fail.
+// build 1248), and the download lands where it says; `fail` names calls that fail, as a proxy that
+// blocks the download hosts makes downloads fail.
 function pnpm(fail = []) {
   const bin = tempDir();
   const log = join(bin, "calls.log");
@@ -62,6 +51,8 @@ case "$*" in
     echo "  Download url:        https://cdn.playwright.dev/x.zip"
     exit 0 ;;
 ${fail.map((call) => `  "${call}") exit 1 ;;`).join("\n")}
+  "exec playwright install --only-shell chromium")
+    mkdir -p "\${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}/chromium_headless_shell-1248" ;;
 esac
 exit 0
 `,
@@ -84,7 +75,6 @@ function install({
 } = {}) {
   const project = tempDir();
   if (repo) execFileSync("git", ["init", "--quiet", project]);
-  const shim = join(tempDir(), "shim");
   const envFile = join(project, "env.sh");
   const fake = pnpm(fail);
   const result = spawnSync("bash", [join(CREW, "install.sh")], {
@@ -95,12 +85,11 @@ function install({
       CLAUDE_PROJECT_DIR: project,
       CLAUDE_ENV_FILE: envFile,
       THESEUS_BROWSERS_IMAGE: images ?? join(tempDir(), "none"),
-      THESEUS_BROWSERS_SHIM: shim,
       ...(remote && { CLAUDE_CODE_REMOTE: "true" }),
       ...env,
     },
   });
-  // What a later command in the session sees.
+  // What a later command in the session sees: the session's environment, then the env file.
   const seen = existsSync(envFile)
     ? spawnSync(
         "bash",
@@ -108,7 +97,7 @@ function install({
           "-c",
           `source "${envFile}"; echo "$PLAYWRIGHT_BROWSERS_PATH"; echo "$AGENT_BROWSER_EXECUTABLE_PATH"; echo "$PATH"`,
         ],
-        { encoding: "utf8" },
+        { encoding: "utf8", env: { ...process.env, ...env } },
       ).stdout.split("\n")
     : [];
   return {
@@ -116,7 +105,6 @@ function install({
     stdout: result.stdout,
     stderr: result.stderr,
     calls: fake.calls(),
-    shim,
     browsers: seen[0] ?? "",
     chrome: seen[1] ?? "",
     path: seen[2] ?? "",
@@ -129,81 +117,55 @@ function install({
   };
 }
 
-test("presents an older image Chromium under the build Playwright wants, without writing to the image", () => {
+test("downloads the build CI runs into Playwright's own cache, never into the image", () => {
   const images = image("1194");
   const before = listing(images);
-  const { code, browsers, chrome, shim, calls } = install({ images });
+  const home = tempDir();
+  // An image that points Playwright at itself, without the build this Playwright wants.
+  const { code, browsers, chrome, stderr } = install({
+    images,
+    home,
+    env: { PLAYWRIGHT_BROWSERS_PATH: images },
+  });
   assert.equal(code, 0);
-  assert.equal(browsers, shim);
-  const exe = join(shim, "chromium_headless_shell-1248", PLATFORM);
-  assert.equal(
-    realpathSync(join(exe, "chrome-headless-shell")),
-    realpathSync(
-      join(images, "chromium_headless_shell-1194/chrome-linux/headless_shell"),
-    ),
+  assert.match(stderr, /Playwright downloaded the build CI runs/);
+  assert.ok(
+    existsSync(join(home, ".cache/ms-playwright/chromium_headless_shell-1248")),
   );
-  assert.ok(existsSync(join(exe, "resources.pak")));
-  assert.ok(existsSync(join(shim, "ffmpeg-1011/ffmpeg-linux")));
-  assert.equal(chrome, join(images, "chromium-1194/chrome-linux/chrome"));
+  // Later commands look where it landed, not at the image.
+  assert.equal(browsers, "");
   assert.deepEqual(listing(images), before);
-  // It tried for the exact build first; the fake proxy left no browser behind, so the shim stands.
-  assert.ok(calls.includes("exec playwright install --only-shell chromium"));
-  assert.ok(!calls.includes("exec agent-browser install"));
+  assert.equal(chrome, join(images, "chromium-1194/chrome-linux/chrome"));
 });
 
 test("uses Playwright's own download of the wanted build when it's there", () => {
   const cache = tempDir();
   mkdirSync(join(cache, "chromium_headless_shell-1248"));
   const images = image("1194");
-  const { code, browsers, shim, stderr } = install({
+  const { code, browsers, calls, stderr } = install({
     images,
     env: { PLAYWRIGHT_BROWSERS_PATH: cache },
   });
   assert.equal(code, 0);
   assert.match(stderr, /Playwright uses its own download/);
-  // Nothing overrides where Playwright already looks, and no shim is built.
-  assert.equal(browsers, "");
-  assert.equal(existsSync(shim), false);
+  // Nothing overrides where Playwright already looks, and nothing is downloaded.
+  assert.equal(browsers, cache);
+  assert.ok(!calls.includes("exec playwright install --only-shell chromium"));
 });
 
-test("doesn't take a resumed session's shim for Playwright's own download", () => {
-  const images = image("1194");
-  const shim = join(tempDir(), "shim");
-  mkdirSync(join(shim, "chromium_headless_shell-1248"), { recursive: true });
-  const { code, browsers, stderr } = install({
-    images,
-    env: { PLAYWRIGHT_BROWSERS_PATH: shim, THESEUS_BROWSERS_SHIM: shim },
-  });
-  assert.equal(code, 0);
-  assert.doesNotMatch(stderr, /its own download/);
-  assert.equal(browsers, shim);
-});
-
-test("a resumed session that finds the exact build stops pointing at its old shim", () => {
-  const home = tempDir();
-  mkdirSync(join(home, ".cache/ms-playwright/chromium_headless_shell-1248"), {
-    recursive: true,
-  });
-  const shim = join(tempDir(), "shim");
-  const { code, browsers, stderr } = install({
-    images: image("1194"),
-    home,
-    env: { PLAYWRIGHT_BROWSERS_PATH: shim, THESEUS_BROWSERS_SHIM: shim },
-  });
-  assert.equal(code, 0);
-  assert.match(stderr, /Playwright uses its own download/);
-  // Later commands no longer see the shim the last start left them.
-  assert.equal(browsers, "");
-});
-
-test("tries a refused download once, when the image has no headless shell to fall back on", () => {
-  const images = join(tempDir(), "pw-browsers");
-  file(join(images, "chromium-1194/chrome-linux/chrome"), "", 0o755);
+test("says which hosts to allow when the download is refused, and tries it once", () => {
   const download = "exec playwright install --only-shell chromium";
-  const { code, calls, stderr } = install({ images, fail: [download] });
+  const { code, calls, stderr, browsers } = install({
+    images: image("1194"),
+    fail: [download],
+  });
   assert.equal(code, 0);
   assert.equal(calls.filter((call) => call === download).length, 1);
-  assert.match(stderr, /Couldn't download Playwright's Chromium/);
+  assert.match(
+    stderr,
+    /Couldn't download Playwright's Chromium.*cdn\.playwright\.dev and playwright\.download\.prss\.microsoft\.com/,
+  );
+  assert.equal(browsers, "");
 });
 
 test("puts the project's own tools on PATH and points git at the repo's hooks", () => {
@@ -215,10 +177,10 @@ test("puts the project's own tools on PATH and points git at the repo's hooks", 
 
 test("uses the image as it is when it has the build Playwright wants", () => {
   const images = image("1248");
-  const { code, browsers, shim } = install({ images });
+  const { code, browsers, calls } = install({ images });
   assert.equal(code, 0);
   assert.equal(browsers, images);
-  assert.equal(existsSync(shim), false);
+  assert.ok(!calls.includes("exec playwright install --only-shell chromium"));
 });
 
 test("a failed step doesn't stop the others, and the script still exits 0", () => {

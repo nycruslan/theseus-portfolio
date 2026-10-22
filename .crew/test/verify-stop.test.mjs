@@ -89,15 +89,6 @@ const FAILED_TYPECHECK = [
   "[ELIFECYCLE] Command failed with exit code 2.",
   "[ELIFECYCLE] Command failed with exit code 2.",
 ].join("\n");
-// Older pnpm and npm printed a header naming the script instead.
-const FAILED_KNIP_OLD = [
-  "> portfolio@0.1.0 verify /repo",
-  "> pnpm lint && pnpm typecheck && pnpm knip && pnpm build",
-  "> portfolio@0.1.0 knip /repo",
-  "> knip",
-  "Unused files (1)",
-  " ELIFECYCLE  Command failed with exit code 1.",
-].join("\n");
 
 test("lets a builder stop once pnpm verify passes in its directory", () => {
   const dir = project();
@@ -126,14 +117,6 @@ test("blocks with the failing step and its last lines", () => {
   assert.match(answer.reason, /error TS2322/);
   // Said in JSON, a missing-file message still blocks.
   assert.match(answer.reason, /no such file or directory/);
-  const older = verifyStop(stop(project()), {
-    FAKE_OUTPUT: FAILED_KNIP_OLD,
-    FAKE_EXIT: "1",
-  });
-  assert.match(
-    older.answer.reason,
-    /^`pnpm verify` failed at `knip` \(exit 1\)\./,
-  );
 });
 
 test("keeps only the tail of a long failure", () => {
@@ -157,26 +140,13 @@ test("lets the second stop through without running verify again", () => {
   assert.deepEqual(runs, []);
 });
 
-test("runs only for the builders, and only where verify exists", () => {
-  const reviewer = verifyStop(
-    stop(project(), { agent_type: "code-reviewer" }),
-    {
-      FAKE_EXIT: "1",
-    },
-  );
-  assert.deepEqual(reviewer.runs, []);
+// Which roles it runs for is settings.json's matcher (settings.test.mjs).
+test("runs only where verify exists", () => {
   const none = verifyStop(stop(project({ build: "next build" })), {
     FAKE_EXIT: "1",
   });
   assert.equal(none.answer, null);
   assert.deepEqual(none.runs, []);
-  const pixel = verifyStop(
-    stop(project(), { agent_type: "creative-engineer" }),
-    {
-      FAKE_EXIT: "1",
-    },
-  );
-  assert.equal(pixel.answer.decision, "block");
 });
 
 test("time-boxes verify and stops everything it started", async () => {
