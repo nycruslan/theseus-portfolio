@@ -52,9 +52,10 @@ Size it by the decision it carries, not the diff, and take the smaller lane only
 truly fits it:
 - **S: the change fits one sentence.** One builder; the existing suite stays green.
 - **M: a new section, component or behaviour.** A one-page `contract.md`: the outcome in a sentence
-  or two, a handful of numbered checks a visitor would notice, the budgets that apply, and what's out
-  of scope. Write it yourself, or ask Quill when the milestone needs a product call. Probe writes the
-  checks as failing Playwright tests in `e2e/` before the build; the builder makes them pass.
+  or two, a handful of numbered checks a visitor would notice, the budgets that apply, and what's
+  out of scope. Write it yourself, or ask Quill when the milestone needs a product call. Probe
+  writes the checks as failing Playwright tests in `e2e/` before the build; the builder makes them
+  pass.
 - **L: new visual language, or an ambiguous, cross-cutting call.** It starts on a Design canvas the
   owner reviews: Iris develops the directions and publishes them (publish her files yourself if her
   session can't), and you send the owner one push notification with the link. Read the canvas's
@@ -117,9 +118,9 @@ own, with the Bash timeout at 5 minutes (10 for merging):
   the branch's first push, so the pre-flight sees the sprint in flight. The checks app opens it as a
   draft. Never open a PR any other way. If the app's PR doesn't come, the script opens it under the
   owner's login and says so: say that in your report, and if that PR comes to need the owner, close
-  it and run the script again, since nobody can approve a PR under their own login. The body carries the goal (saying
-  "chosen by the owner" when it's theirs), the size, the contract and its results, and the
-  decisions.
+  it and run the script again, since nobody can approve a PR under their own login. The body
+  carries the goal (saying "chosen by the owner" when it's theirs), the size, the contract and its
+  results, and the decisions.
 - `node .crew/ready-pr.mjs <n>`, once Lens says ship and the close-out is pushed.
 - `node .crew/merge.mjs <n>`, unless the PR waits for the owner. It waits for the checks and
   squash-merges the head, or says why not; act on what it says, or stop.
