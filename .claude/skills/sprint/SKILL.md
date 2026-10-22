@@ -93,12 +93,12 @@ prompts, so Lens reviews it. Then add the `review` label. Lens reviews the head 
 findings as a review, and the `lens` check passes only on ship. Read the verdict from that check
 run on the head (`commits/<sha>/check-runs?check_name=lens`), whose summary carries the whole
 review: the reviews endpoint is closed to the team, since approving is the owner's alone. Every
-later push is reviewed again,
-except one that only touches notes. Send Important findings back to the same builder; after two
-fix rounds, cut scope (revert, or record a contract change) or stop. Nits ride along with the next
-sprint that touches that code. Weigh Iris's verdict, act on what's cheap, and post it on the PR as
-advice; her `changes` alone is no reason for `needs-owner`. A role that reports after the label
-(Iris) adds its memory lines with a fix-round push or in the next sprint.
+later push is reviewed again, except one that only touches notes. Send Important findings back to
+the same builder; after two fix rounds, cut scope (revert, or record a contract change) or stop.
+Nits ride along with the next sprint that touches that code. Weigh Iris's verdict, act on what's
+cheap, and post it on the PR as advice; her `changes` alone is no reason for `needs-owner`. A role
+that reports after the label (Iris) adds its memory lines with a fix-round push or in the next
+sprint.
 
 `gate` holds a PR that touches an owner path, changes `package.json`'s scripts, weakens a test or
 ever carried `needs-owner`, until the owner approves its head. Taste calls on large work go to the
