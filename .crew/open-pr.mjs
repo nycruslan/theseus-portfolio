@@ -1,20 +1,20 @@
 // `node .crew/open-pr.mjs --head <branch> --title "<title>" --body <file>`: opens the branch's
-// pull request into the default branch through the team's checks app, then sets its title and body.
-// In the cloud every GitHub call acts as the owner, so a PR a session opens itself is the owner's,
-// and nobody can approve their own PR, while the ruleset has no bypass. Opened by the app (.github/workflows/open-pr.yml), it's a PR
-// the owner can approve, and then merge with every check run. Either way it opens as a draft, which
-// nobody can merge until the team marks it ready at its close-out (ready-pr.mjs).
+// pull request into the default branch through the team's checks app (.github/workflows/
+// open-pr.yml), then sets its title and body. Sessions reach GitHub as the owner, and nobody can
+// approve their own PR: opened by the app, it's one the owner can approve. It opens as a draft,
+// which nobody can merge until the team marks it ready at its close-out (ready-pr.mjs).
 // It asks for the workflow, then polls every 5 s, for up to 3 minutes, until the PR is open. If the
 // workflow can't be asked for or the PR doesn't come in time, it opens the PR itself, under the
 // owner's login, and says so: a sprint never waits on the app. A branch that already has an open PR
-// keeps it, with the new title and body. It prints "Opened PR #<n> …: <url>" once it opened one,
-// the line emit.mjs sends the Studio. Run it with the Bash tool's timeout at 5 minutes.
+// keeps it, with the new title and body. A PR it opened goes on air as StudioPullRequest. Run it
+// with the Bash tool's timeout at 5 minutes.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { api, configure, repoOf, toplevel } from "./github.mjs";
+import { announce } from "./post.mjs";
 
 const POLL_MS = Number(process.env.THESEUS_OPEN_PR_POLL_MS || 5_000);
 const BUDGET_MS = Number(process.env.THESEUS_OPEN_PR_WAIT_MS || 180_000);
@@ -76,6 +76,15 @@ try {
         ? `Opened PR #${pr.number} under the owner's login, since ${reason}. The owner can't approve it, so if it comes to need them, close it and run this again to open it through the checks app: ${pr.html_url}`
         : `Opened PR #${pr.number} through the checks app, so the owner can approve it: ${pr.html_url}`,
     );
+    announce(cwd, "StudioPullRequest", {
+      pr: {
+        action: "opened",
+        number: pr.number,
+        url: pr.html_url,
+        title: fields.title,
+        head: pr.head?.sha,
+      },
+    });
   }
 } catch (error) {
   console.error(`Couldn't open a PR from ${head}: ${error.message}`);

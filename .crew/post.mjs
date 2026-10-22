@@ -1,6 +1,7 @@
-// Delivers the Studio broadcast. Hooks call broadcast(), which masks secrets, writes the payload to
-// a temp file and starts this file as a fully detached process to POST it. The hook returns in
-// milliseconds, and the POST outlives a headless session's teardown, which kills hooks still running
+// Delivers the Studio broadcast. Hooks call broadcast() and the team's scripts announce(), which
+// masks secrets, writes the payload to a temp file and starts this file as a fully detached process
+// to POST it. The caller returns in milliseconds, and the POST outlives a headless session's
+// teardown, which kills hooks still running
 // (https://code.claude.com/docs/en/hooks#run-hooks-in-the-background). Delivery failures are ignored
 // on purpose: the build matters more than the broadcast.
 
@@ -83,6 +84,20 @@ export function broadcast(payload, transcript) {
   } catch {
     // Ignored: see the header comment.
   }
+}
+
+/**
+ * Sends an event a script of the team's raises itself (merge.mjs, open-pr.mjs, ready-pr.mjs): no
+ * hook carries it, so it names the session that ran the script, when Claude Code says which.
+ */
+export function announce(cwd, name, fields) {
+  const session = process.env.CLAUDE_CODE_SESSION_ID;
+  broadcast({
+    ...(session && { session_id: session }),
+    cwd,
+    hook_event_name: name,
+    ...fields,
+  });
 }
 
 if (process.argv[1] === SELF) {
