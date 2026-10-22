@@ -23,6 +23,7 @@ export const COLOR_TOKENS = [
 ] as const;
 /** The type scale's steps, as custom properties on :root. */
 export const STEP_TOKENS = [
+  "--step-xs",
   "--step-sm",
   "--step-base",
   "--step-lg",
