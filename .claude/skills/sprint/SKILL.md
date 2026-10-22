@@ -137,3 +137,8 @@ sprint under its milestone with its PR, and note what's left open), and `.crew/S
 the sprint taught a lesson the next ones need. A run that ends without shipping says why in the PR
 and in `.crew/STATE.md`. Finish with a report a reader who saw none of the run can follow: the
 outcome first, then anything the owner needs to do.
+
+A run ships one sprint. Every merge of a sprint PR starts the next run by itself, so once yours
+merges, or the owner says they merged it, end with your report. Starting the next sprint here would
+race that run to the same sprint number, and neither run's pre-flight can see the other until it
+pushes.

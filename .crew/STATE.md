@@ -20,6 +20,9 @@ makes stale, and keep the file under about 100 lines.
   - The owner's goal isn't held by the daily cap.
   - A PR or branch committed to in the last two hours is left to the run still on it. Reviews,
     labels and comments don't count: they aren't a run.
+- **One run, one sprint.** After #62 merged, the owner's "Merged" in the finished run's session
+  had it start sprint 23 while the merge's own run did the same. That left two PRs for one sprint
+  (#66, #67), and the two crews spent the five-hour usage limit together.
 
 ## Lessons that hold
 
