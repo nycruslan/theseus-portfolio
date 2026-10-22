@@ -74,12 +74,12 @@ test("denies the obvious, whatever the mode", () => {
   for (const rule of [
     "Bash(gh pr merge *)",
     // Sessions act as the owner, whose powers the REST API reaches too: merging (merge.mjs does
-    // that, in its own process), approving and dismissing reviews.
+    // that, in its own process), and approving or dismissing reviews, which only the owner does.
+    // The whole reviews endpoint is closed, since its writes come in too many forms to list; Atlas
+    // reads Lens's verdict from the `lens` check run instead.
     "Bash(gh api *pulls/*/merge*)",
-    "Bash(gh api *pulls/*/reviews*APPROVE*)",
-    "Bash(gh api *pulls/*/reviews*--input*)",
+    "Bash(gh api *pulls/*/reviews*)",
     "Bash(gh pr review *)",
-    "Bash(gh api *pulls/*/reviews/*/dismissals*)",
     // The team works through REST alone; GraphQL reaches the same powers by another door.
     "Bash(gh api *graphql*)",
     "Bash(gh auth *)",

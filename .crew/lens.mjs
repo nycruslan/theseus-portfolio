@@ -60,8 +60,12 @@ const EFFORT = [
   { upTo: 600, effort: "high" },
 ];
 
-/** The review's effort for a compare's files: by the lines changed outside the team's notes. */
+/**
+ * The review's effort for a compare's files: by the lines changed outside the team's notes. A list
+ * GitHub cut short hides files, so it counts as the largest change.
+ */
 export function effortFor(files) {
+  if (files.length >= COMPARE_LIMIT) return "xhigh";
   const lines = files
     .filter(({ filename }) => !NOTES.test(filename))
     .reduce(

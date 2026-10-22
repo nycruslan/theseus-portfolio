@@ -16,10 +16,8 @@
     "deny": [
       "Bash(gh pr merge *)",
       "Bash(gh api *pulls/*/merge*)",
-      "Bash(gh api *pulls/*/reviews*APPROVE*)",
-      "Bash(gh api *pulls/*/reviews*--input*)",
+      "Bash(gh api *pulls/*/reviews*)",
       "Bash(gh pr review *)",
-      "Bash(gh api *pulls/*/reviews/*/dismissals*)",
       "Bash(gh api *graphql*)",
       "Bash(gh alias *)",
       "Bash(gh auth *)",

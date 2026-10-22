@@ -52,9 +52,10 @@ Size it by the decision it carries, not the diff, and take the smaller lane only
 truly fits it:
 - **S: the change fits one sentence.** One builder; the existing suite stays green.
 - **M: a new section, component or behaviour.** A one-page `contract.md`: the outcome in a sentence
-  or two, a handful of numbered checks a visitor would notice, the budgets that apply, and what's out
-  of scope. Write it yourself, or ask Quill when the milestone needs a product call. Probe writes the
-  checks as failing Playwright tests in `e2e/` before the build; the builder makes them pass.
+  or two, a handful of numbered checks a visitor would notice, the budgets that apply, and what's
+  out of scope. Write it yourself, or ask Quill when the milestone needs a product call. Probe
+  writes the checks as failing Playwright tests in `e2e/` before the build; the builder makes them
+  pass.
 - **L: new visual language, or an ambiguous, cross-cutting call.** It starts on a Design canvas the
   owner reviews: Iris develops the directions and publishes them (publish her files yourself if her
   session can't), and you send the owner one push notification with the link. Read the canvas's
@@ -90,12 +91,15 @@ When the build is done, each role that worked adds at most three memory lines, e
 sprint path, and corrects or deletes lines that proved wrong. Bring memory commits made in
 worktrees over with `git cherry-pick` and push them with the build: memory loads into the agents'
 prompts, so Lens reviews it. Then add the `review` label. Lens reviews the head in CI and posts its
-findings as a review, and the `lens` check passes only on ship. Every later push is reviewed again,
-except one that only touches notes. Send Important findings back to the same builder; after two
-fix rounds, cut scope (revert, or record a contract change) or stop. Nits ride along with the next
-sprint that touches that code. Weigh Iris's verdict, act on what's cheap, and post it on the PR as
-advice; her `changes` alone is no reason for `needs-owner`. A role that reports after the label
-(Iris) adds its memory lines with a fix-round push or in the next sprint.
+findings as a review, and the `lens` check passes only on ship. Read the verdict from that check
+run on the head (`commits/<sha>/check-runs?check_name=lens`), whose summary carries the whole
+review: the reviews endpoint is closed to the team, since approving is the owner's alone. Every
+later push is reviewed again, except one that only touches notes. Send Important findings back to
+the same builder; after two fix rounds, cut scope (revert, or record a contract change) or stop.
+Nits ride along with the next sprint that touches that code. Weigh Iris's verdict, act on what's
+cheap, and post it on the PR as advice; her `changes` alone is no reason for `needs-owner`. A role
+that reports after the label (Iris) adds its memory lines with a fix-round push or in the next
+sprint.
 
 `gate` holds a PR that touches an owner path, changes `package.json`'s scripts, weakens a test or
 ever carried `needs-owner`, until the owner approves its head. Taste calls on large work go to the
@@ -114,9 +118,9 @@ own, with the Bash timeout at 5 minutes (10 for merging):
   the branch's first push, so the pre-flight sees the sprint in flight. The checks app opens it as a
   draft. Never open a PR any other way. If the app's PR doesn't come, the script opens it under the
   owner's login and says so: say that in your report, and if that PR comes to need the owner, close
-  it and run the script again, since nobody can approve a PR under their own login. The body carries the goal (saying
-  "chosen by the owner" when it's theirs), the size, the contract and its results, and the
-  decisions.
+  it and run the script again, since nobody can approve a PR under their own login. The body
+  carries the goal (saying "chosen by the owner" when it's theirs), the size, the contract and its
+  results, and the decisions.
 - `node .crew/ready-pr.mjs <n>`, once Lens says ship and the close-out is pushed.
 - `node .crew/merge.mjs <n>`, unless the PR waits for the owner. It waits for the checks and
   squash-merges the head, or says why not; act on what it says, or stop.
