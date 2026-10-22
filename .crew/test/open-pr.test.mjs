@@ -4,6 +4,7 @@ import { ghLog, gitRepo, REPO, routes, runHook, tempDir } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({
   ".crew/sprint/3/pr.md": "**Work in progress**\n\n## Goal\nDots.\n",
+  ".crew/sprint/3/empty.md": " \n",
 });
 const R = `repos/${REPO}`;
 const BRANCH = "sprint/3-dots";
@@ -235,4 +236,22 @@ test("says how to call it when an argument is missing", () => {
     assert.match(stderr, /^Usage: node \.crew\/open-pr\.mjs --head/);
     assert.equal(calls.length, 0);
   }
+});
+
+test("refuses an empty body before asking GitHub for anything", () => {
+  const args = [
+    "--head",
+    BRANCH,
+    "--title",
+    "Sprint 3: dots",
+    "--body",
+    ".crew/sprint/3/empty.md",
+  ];
+  const { code, stderr, calls } = openPr(
+    github({ open: [pr(7, "theseus-checks[bot]", placeholder)] }),
+    { args },
+  );
+  assert.equal(code, 1);
+  assert.match(stderr, /\.crew\/sprint\/3\/empty\.md is empty/);
+  assert.equal(calls.length, 0);
 });

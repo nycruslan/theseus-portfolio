@@ -79,5 +79,14 @@ jobs:
             gh api "repos/$REPO/issues/$NUMBER/labels" -f "labels[]=$LABEL" --jq '"Labels: \(map(.name) | join(", "))"'
           fi
           if [ -n "$COMMENT" ]; then
-            gh api "repos/$REPO/issues/$NUMBER/comments" -f body="$COMMENT" --jq '"Commented \(.html_url)"'
+            # A run that waited in the queue past team-pr.mjs's budget finds its comment already
+            # posted under the owner's login, and doesn't post it twice.
+            posted=$(gh api --paginate "repos/$REPO/issues/$NUMBER/comments?per_page=100" \
+              --jq '[.[] | select(.body == env.COMMENT and (.created_at | fromdateiso8601) > now - 900)] | length' |
+              awk '{ n += $1 } END { print n + 0 }')
+            if [ "$posted" != 0 ]; then
+              echo "The comment is on the PR already."
+            else
+              gh api "repos/$REPO/issues/$NUMBER/comments" -f body="$COMMENT" --jq '"Commented \(.html_url)"'
+            fi
           fi

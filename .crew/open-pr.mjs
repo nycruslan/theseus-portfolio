@@ -52,6 +52,8 @@ try {
     title: options.title.trim(),
     body: readFileSync(resolve(cwd, options.body), "utf8"),
   };
+  // The workflows take an empty input for one not given, so an empty body would never show.
+  if (!fields.body.trim()) throw new Error(`${options.body} is empty`);
   const { default_branch: base, owner } = api(`repos/${repo}`, { cwd });
   // Neither the app nor GitHub can open a PR from a branch that isn't on GitHub yet.
   if (!onGitHub()) {
