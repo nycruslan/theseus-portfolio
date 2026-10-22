@@ -21,14 +21,16 @@ not a spec: the direction decides, and a visible change to it still needs the ow
 owner sees the milestone at two demos, on the PR's Vercel preview: B1, which replaces today's
 page, and B3, the signature moment.
 
-- [ ] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
+- [x] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
   block from the retros, with Off as everyone's default. It replaces today's home page, so its
   contract lists which live checks it keeps, rewrites or retires, and the owner approves the
-  retirements in that PR.
-  - Built in sprint 22, PR #62. Lens's one Important finding, a hovered card painting over the
-    sticky bar, is fixed in round 2. It waits for the owner, who approves the retired checks
-    (batches A, B and C) on the PR.
-- [ ] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
+  retirements in that PR. (Sprint 22, PR #62, merged 2026-10-22 with batches A, B and C approved.)
+- [x] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
+  - Built in sprint 23, PR #67: Lens ship, Iris ship at 8.5/10, 141 of 141 checks. It waits for the
+    owner, who approves the one retired check (batch D, the cards' whole-surface link) on the PR.
+    Its B2.10 is amended for `/read` (`.crew/sprint/23/decisions.md`, item 7).
+- [ ] Next upgrade (S): Next's own build notice marks 16.4.0 as carrying a known security advisory.
+  One sprint, after B2 merges, before B3's spike.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
   phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
   a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
@@ -40,12 +42,14 @@ page, and B3, the signature moment.
 - [ ] B5: `/log` and the ghost hull.
 
 Riding along with the sprints that touch the same code:
-- When B1 replaces the hull, check these and drop the ones it settles: `mountHull`'s teardown and a
-  reduced-motion change mid-visit (`components/hero-gl.ts`), retina ticks at the bow tip
-  (`.crew/sprint/10/review-iris.md` item 3), the font-swap CLS on `/`, and C14's draw-count check
-  under load (`e2e/hero-3d.spec.ts`).
-- The skip link: B1's labelled bar decides whether it stays, moves or goes (removing it weakens
-  `keyboard.spec.ts`, which is the owner's call).
+- With the next sprint that touches the facts or the fonts: Lens's two nits on PR #67 (the stale
+  font comments in `app/fonts.ts` and `app/layout.tsx`, and the focus-ring comment in
+  `app/globals.css` that cites the deleted card link); Iris's cheap changes (the dark scheme's
+  Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
+  rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
+  (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).
+- B4's contract re-lays the phone bar: a fifth link (Crew) doesn't fit the row at 16 px (Iris,
+  sprint 23).
 - On `/sprints`: group the build log past about 30 entries (Quill), and take C9.5's selector from
   `ENTRIES` in `e2e/sprints.spec.ts` (Lens's nit on sprint 21).
 

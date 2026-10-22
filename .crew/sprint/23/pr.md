@@ -27,6 +27,11 @@ copper means "live now" and nothing else.
 
 ## Results
 
+**Lens: ship** on a740a64, one run, no Important findings, two nits on comments the PR made stale
+(`app/fonts.ts` and `app/layout.tsx` on where the display face is used; the focus-ring comment in
+`app/globals.css` that cites the deleted card link). Both ride along with the next sprint that
+touches that code.
+
 The suite is 141 of 141 (`pnpm test:e2e`, CI `check` on cfcef9e and this head). Probe's checks
 went on the branch first (899c558): 34 red on today's page, 107 green. All of B2.1 to B2.11 are
 tests in `e2e/facts.spec.ts`, `e2e/read.spec.ts`, `e2e/not-found.spec.ts` and the rewritten

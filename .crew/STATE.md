@@ -19,6 +19,9 @@ makes stale, and keep the file under about 100 lines.
 - **The pre-flight:**
   - The owner's goal isn't held by the daily cap.
   - A PR or branch that changed in the last two hours is left to the run still on it.
+- **A resumed sprint starts the build at once.** Sprint 23's first run ended after the briefs, and
+  the next run began the notes, the checks and the build in parallel from the contract, with
+  Probe's commits cherry-picked in as they landed: four hours lost to the gap, none to the overlap.
 
 ## Lessons that hold
 
