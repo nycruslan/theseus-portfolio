@@ -19,9 +19,10 @@
 //   required checks are.
 // - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
-//   start the next sprint. A PR or branch committed to in the last ACTIVE_HOURS is left to the run
-//   most likely still on it, since two runs on one branch collide. While one PR waits for the owner
-//   a new sprint may start beside it; a second waiting PR stops new work.
+//   start the next sprint. A PR or branch a run worked on in the last ACTIVE_HOURS (a commit, or a
+//   PR marked ready or for review) is left to the run most likely still on it, since two runs on
+//   one branch collide. While one PR waits for the owner a new sprint may start beside it; a second
+//   waiting PR stops new work.
 // It fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate
 // one.
 
@@ -36,10 +37,10 @@ const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
-// How long a PR or branch stays the run's that last committed to it: builders can work in their own
-// worktrees for an hour or more before anything reaches GitHub. A run that died is picked up once
-// the window has passed. Only a commit counts: Lens's reviews, gate's labels and the owner's
-// comments change a PR too, but none of them is a run on it.
+// How long a PR or branch stays the run's that last worked on it (workedOn): builders can work in
+// their own worktrees for an hour or more before anything reaches GitHub. A run that died is
+// picked up once the window has passed. A commit's time is when it was made, not pushed, so a
+// commit pushed hours later doesn't hold a branch.
 const ACTIVE_HOURS = 2;
 const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
@@ -77,7 +78,7 @@ function preflight(repo) {
         number: pr.number,
         branch: pr.head.ref,
         head: pr.head.sha,
-        committedAt: committedAt(repo, pr.head.sha),
+        ...workedOn(repo, pr),
         draft: pr.draft === true,
         waitsForOwner:
           pr.draft !== true &&
@@ -136,6 +137,23 @@ function freshBranches(repo, branches, open, closed) {
 
 function committedAt(repo, sha) {
   return api(`repos/${repo}/commits/${sha}`).commit.committer.date;
+}
+
+// When a run last worked on an open PR: its head commit, or a later mark only a run leaves, the PR
+// marked ready (ready-pr.mjs) or labelled `review` for Lens. A run that waits on Lens or merge.mjs
+// pushes nothing for a while, and these keep its PR its own. Lens's reviews, gate's checks and the
+// owner's comments change a PR too, but none of them is a run on it.
+function workedOn(repo, pr) {
+  const committed = committedAt(repo, pr.head.sha);
+  const marks = list(`repos/${repo}/issues/${pr.number}/events?per_page=100`)
+    .filter(
+      ({ event, label }) =>
+        event === "ready_for_review" ||
+        (event === "labeled" && label?.name === "review"),
+    )
+    .map(({ created_at: at }) => Date.parse(at));
+  const worked = Math.max(Date.parse(committed), ...marks);
+  return { committedAt: committed, workedAt: new Date(worked).toISOString() };
 }
 
 // Whether the checks app's latest `gate` on the head leaves it to the owner: held for their
@@ -224,7 +242,7 @@ function ownerQueue(repo, open) {
     if (Date.now() - lastSeen >= DAY) {
       remind.push({ number: pr.number, url: pr.url });
     }
-    const quiet = Date.now() - committed >= ACTIVE_MS;
+    const quiet = Date.now() - Date.parse(pr.workedAt) >= ACTIVE_MS;
     if (
       quiet &&
       !comments.some(({ body }) =>
@@ -295,12 +313,12 @@ function action(open, unopened, next, daily, ownerGoal) {
       say: `PR #${first.number} (${first.branch}) waits for the owner${others(first)}. Don't start a new sprint: stand down with a short report.`,
     };
   }
-  if (Date.now() - Date.parse(current.committedAt) < ACTIVE_MS) {
-    const minutes = minutesSince(current.committedAt);
+  if (Date.now() - Date.parse(current.workedAt) < ACTIVE_MS) {
+    const minutes = minutesSince(current.workedAt);
     return {
       do: "stand down",
       pr: current.number,
-      say: `PR #${current.number} (${current.branch}) was committed to ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for ${ACTIVE_HOURS} hours.`,
+      say: `PR #${current.number} (${current.branch}) was last worked on ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for ${ACTIVE_HOURS} hours.`,
     };
   }
   return {

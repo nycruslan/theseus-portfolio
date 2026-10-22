@@ -531,22 +531,38 @@ test("leaves an open sprint PR committed to in the last two hours to the run wor
   ).state;
   assert.equal(busy.action.do, "stand down");
   assert.equal(busy.action.pr, 9);
-  assert.match(busy.action.say, /was committed to 10 min ago/);
+  assert.match(busy.action.say, /was last worked on 10 min ago/);
   const quiet = preflight(
     github({ pulls: [print], commits: { [shaOf(9)]: minutesAgo(130) } }),
   ).state;
   assert.equal(quiet.action.do, "continue");
 });
 
-test("a review, label or comment on a quiet PR doesn't hold it: only a commit means a run is on it", () => {
-  // Lens's review of the last push updated the PR ten minutes ago; no run has pushed in three hours.
-  const { state } = preflight(
-    github({
-      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
-    }),
+test("only a run's marks hold a PR whose head is old: marked ready or labelled review, not a review or comment", () => {
+  // The head was committed three hours ago (the default), so only the events can hold the PR.
+  const event = (minutes, name, label) => ({
+    event: name,
+    created_at: minutesAgo(minutes),
+    ...(label && { label: { name: label } }),
+  });
+  const action = (events, from = {}) =>
+    preflight(
+      github({
+        pulls: [pr(9, "sprint/5-print", [], from)],
+        events: { 9: events },
+      }),
+    ).state.action.do;
+  // Lens's review updated the PR ten minutes ago: that's no run.
+  assert.equal(action([], { updatedAt: minutesAgo(10) }), "continue");
+  // needs-owner says the PR waits, not that a run is on it.
+  assert.equal(
+    action([event(10, "labeled", "needs-owner")], { draft: true }),
+    "continue",
   );
-  assert.equal(state.action.do, "continue");
-  assert.equal(state.action.pr, 9);
+  // A run waiting on Lens or merge.mjs pushes nothing, but it marked the PR.
+  assert.equal(action([event(10, "labeled", "review")]), "stand down");
+  assert.equal(action([event(10, "ready_for_review")]), "stand down");
+  assert.equal(action([event(130, "labeled", "review")]), "continue");
 });
 
 test("an open sprint PR is continued even at the daily cap: finishing work isn't starting it", () => {
