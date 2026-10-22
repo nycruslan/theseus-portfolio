@@ -4,8 +4,9 @@
 //   base always does. A push reuses Lens's last ship instead when it was given against the same
 //   base and merge-base and only notes changed since, so a close-out commit doesn't pay for a
 //   second review; reusing posts the `lens` check itself. To review, it writes the PR's
-//   description and diff to lens-context.md for the model, which reads but never writes. A run
-//   whose head is no longer the PR's posts nothing: the newer head has its own run.
+//   description and diff to lens-context.md for the model, which reads but never writes, and sets
+//   the review's effort by the size of the change (effortFor). A run whose head is no longer the
+//   PR's posts nothing: the newer head has its own run.
 // - `node .crew/lens.mjs verdict` reads the review's structured output (claude-code-action's
 //   `--json-schema`), posts it on the PR as one review with the findings inline, and posts the
 //   `lens` check run: success only on ship with no Important finding.
@@ -51,6 +52,24 @@ export const SCHEMA = {
   },
   required: ["verdict", "summary", "findings"],
 };
+
+// How hard Lens thinks follows the size of the change: a small diff doesn't need the deepest pass,
+// a large one does. Notes don't count, as they never make a review stale either.
+const EFFORT = [
+  { upTo: 100, effort: "medium" },
+  { upTo: 600, effort: "high" },
+];
+
+/** The review's effort for a compare's files: by the lines changed outside the team's notes. */
+export function effortFor(files) {
+  const lines = files
+    .filter(({ filename }) => !NOTES.test(filename))
+    .reduce(
+      (sum, { additions = 0, deletions = 0 }) => sum + additions + deletions,
+      0,
+    );
+  return EFFORT.find(({ upTo }) => lines <= upTo)?.effort ?? "xhigh";
+}
 
 /** "review" when the event asks for a fresh review, "reuse?" when a ship may still stand. */
 export function plan(event) {
@@ -265,6 +284,7 @@ function runPlan(event, env) {
   const against = reviewedAgainst(pr.base.ref, fork.sha);
   output("schema", JSON.stringify(SCHEMA));
   output("against", against);
+  output("effort", effortFor(compare.files ?? []));
   const from =
     plan(event) === "reuse?" &&
     reusableShip({

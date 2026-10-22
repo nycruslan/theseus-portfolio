@@ -1,6 +1,7 @@
 // `node .crew/merge.mjs <number>`: waits until GitHub says the sprint PR can merge, then
 // squash-merges the head it checked. It refuses itself when a required check failed: in the cloud
-// GitHub calls act as the owner, whose admin bypass would let GitHub merge it anyway. For the same
+// GitHub calls act as the owner, and should the ruleset ever get a bypass again, GitHub would merge
+// it anyway. For the same
 // reason it leaves a PR that gate passed only on the owner's approval to the owner. It
 // exists because the cloud's proxy refuses GraphQL, and with it `gh pr merge` and auto-merge, so
 // it's REST only (github.mjs).
@@ -116,7 +117,8 @@ function refusal() {
   if (failed.length) {
     return `${failed.join(", ")} didn't pass on ${head.slice(0, 7)}`;
   }
-  // Out of time with a required check still running: the owner's bypass would merge without it.
+  // Out of time with a required check still running: a bypass, were there one, would merge without
+  // it.
   const running = requiredWhere(({ state }) => state === "pending");
   if (running.length) {
     return `${running.join(", ")} still running on ${head.slice(0, 7)}: run node .crew/merge.mjs ${number} again`;

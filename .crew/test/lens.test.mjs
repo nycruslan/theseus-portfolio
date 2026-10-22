@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
   commentFor,
+  effortFor,
   lastVerdict,
   notesOnly,
   plan,
@@ -66,6 +67,31 @@ test("plan: a new review label or a new base always reviews; anything else may r
     "reuse?",
   );
   assert.equal(plan(event()), "reuse?");
+});
+
+test("the review's effort follows the lines changed outside the notes", () => {
+  const change = (filename, additions, deletions = 0) => ({
+    filename,
+    additions,
+    deletions,
+  });
+  assert.equal(effortFor([]), "medium");
+  assert.equal(effortFor([change("app/page.tsx", 60, 40)]), "medium");
+  assert.equal(effortFor([change("app/page.tsx", 60, 41)]), "high");
+  assert.equal(
+    effortFor([change("e2e/a.spec.ts", 400), change("lib/a.ts", 200)]),
+    "high",
+  );
+  assert.equal(effortFor([change("components/hero.tsx", 601)]), "xhigh");
+  // A long close-out doesn't buy a deeper review of a small change.
+  assert.equal(
+    effortFor([
+      change("app/page.tsx", 10),
+      change(".crew/sprint/7/pr.md", 900),
+      change("ROADMAP.md", 50),
+    ]),
+    "medium",
+  );
 });
 
 test("only the team's notes leave a review standing", () => {
@@ -272,6 +298,8 @@ test("a code change, another base or merge-base, a forged ship or a fresh label 
     SCHEMA,
   );
   assert.match(labelled.outputs, /^against=main@f0e1$/m);
+  // The stand-in diff changes no counted line, so the review runs at the lightest effort.
+  assert.match(labelled.outputs, /^effort=medium$/m);
 });
 
 test("the verdict step posts one review with the findings inline, then the lens check", () => {

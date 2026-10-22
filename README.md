@@ -3,9 +3,10 @@
 A portfolio that an AI agent team keeps rebuilding, sprint by sprint, in public.
 
 Each time a sprint merges, a Claude Code session wakes up in this repository as **Atlas**, the team
-lead, and starts the next one, up to six a day. It sizes the next roadmap item (or the owner's
-goal, when they press "Start a sprint" in the Studio), briefs one builder (with tests written first
-for anything bigger than a small change), and opens a pull request. GitHub then decides: CI
+lead, and starts the next one. It takes the next sprint of the roadmap's current milestone (or
+the owner's goal, when they press "Start a sprint" in the Studio), briefs the roles that sprint
+needs (with tests written first for anything bigger than a small change), and opens a pull request.
+When the milestone can't move until the owner answers, the team waits rather than polish. GitHub then decides: CI
 must pass, a gate run from `main` must agree the PR stays out of the owner's files, and Lens, the
 code reviewer, must say ship from a fresh review in GitHub Actions. If something needs the owner,
 the PR waits. It all runs through GitHub's REST API, so the team works the same on a laptop and as
@@ -49,15 +50,16 @@ Three parts, each in its own place:
   its current head. The checks app opens the team's PRs as drafts (`.github/workflows/open-pr.yml`),
   so nobody merges one mid-sprint, and marks them ready at the close-out (`ready-pr.yml`); the
   owner can approve them and merge them with the usual button. A PR under the owner's own login
-  can't be approved by them (nobody can approve their own PR), so they decide it with the bypass;
+  (open-pr.mjs's fallback when the app doesn't answer) can't be approved by them, since nobody can
+  approve their own PR, so when it needs them it's closed and opened again through the app;
 - `lens` (the checks app): Claude Code reviews the PR as Lens and the check passes only on ship. A
   push that only touches the team's notes (the sprint folder's `.md` files and `retro.json`,
   `STATE.md`, `ROADMAP.md`) keeps the last ship.
 
 Only the checks app can post `gate` and `lens`, and its key lives in a `checks` environment that
 serves `main` alone, where both workflows run on `pull_request_target`. Lens reads the PR's code
-outside its workspace and never runs it. The ruleset's one bypass is the owner's, for pull requests
-only.
+outside its workspace and never runs it. The ruleset has no bypass: the owner approves and merges
+like any reviewer, so not even a session acting as the owner can merge past a red check.
 
 **What starts a sprint (the owner's routine).** The routine `theseus-sprint` runs `/sprint` on
 three triggers, which only the owner can change:
@@ -73,20 +75,22 @@ three triggers, which only the owner can change:
 
 The daily cap is guidance, not binding: the pre-flight Atlas runs (`.crew/next-sprint.mjs`) stands
 down once `THESEUS_DAILY_SPRINTS` (default 6) of the team's sprint PRs merged in the last 24 hours.
-An open sprint PR is still finished at the cap. Each run also counts against the owner's
+An open sprint PR is still finished at the cap, and a run with the owner's goal still starts. Each run also counts against the owner's
 subscription usage and the routines' own hourly limits.
 
 **Guidance (the hooks).** They keep the team in its lane without being a boundary: a file-edit
 guard (owner paths, `e2e/` for Probe, each role's own memory), deny rules for the obvious (`pkill`,
-`gh pr merge`, force pushes, the repository's admin endpoints), the builders' `pnpm verify` on stop, and a watchdog for a stalled lead. A shell command can get past
+the plain forms of merging or approving through `gh`, force pushes, the repository's admin
+endpoints), the builders' `pnpm verify` on stop, and a watchdog for a stalled lead. A shell command can get past
 all of them.
 
 **The residual risk.** In the cloud, every GitHub call goes through Claude's GitHub proxy with the
 owner's connection, git pushes included, whatever token the session holds: a deliberately fake
 token was answered as the owner (tested 2026-10-17). So a session can do anything the owner can,
-approving a PR and the admin bypass included. `merge.mjs` refuses a PR whose required checks didn't
-pass or that `gate` passed only on the owner's approval; the deny rules block the admin endpoints
-and `gh pr merge`; and every merge goes on air in the Studio and in GitHub's audit log. None of
+approving a PR included. With no bypass on the ruleset, the required checks bind it; `merge.mjs`
+refuses a PR that `gate` passed only on the owner's approval; the deny rules block the admin
+endpoints and the plain forms of merging or approving through `gh`; and every merge goes on air in
+the Studio and in GitHub's audit log. None of
 that stops a session set on misusing it. On a laptop the same
 holds for the owner's own `gh` login.
 
@@ -116,9 +120,9 @@ holds for the owner's own `gh` login.
      checks app as their source.
    - "Require a pull request before merging": keep 0 approvals, and tick "Require review from Code
      Owners" and "Dismiss stale pull request approvals when new commits are pushed".
-   - Bypass list: add the Repository admin role, set to "For pull requests only". That lets you
-     merge your own PRs (no direct pushes). The team's PRs come from the checks app: approve
-     those and merge them with the usual button, which keeps every required check.
+   - Bypass list: leave it empty. Sessions act as you, so a bypass would let one merge past a red
+     check. The team's PRs come from the checks app: approve those and merge them with the usual
+     button, which keeps every required check.
 8. **Check code-owner review.** GitHub doesn't document how code-owner review behaves with 0
    approvals. A team PR that touches only `app/` should merge without your review, and one that
    touches `.claude/` should wait for you. If every PR waits, untick "Require review from Code

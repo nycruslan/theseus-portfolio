@@ -1,7 +1,42 @@
 # Roadmap
 
-Quill owns this list. Atlas takes the top open item under Next, unless the owner set the goal, and
-at the close-out ticks what shipped, with its sprint and PR. Keep items small enough for one sprint.
+Quill keeps this roadmap in milestones: an outcome the owner can see, built as a sequence of
+sprints, each one pull request that leaves the site whole. Atlas takes the current milestone's next
+sprint, unless the owner set the goal, and at the close-out ticks it with its sprint and PR. Small
+fixes and follow-ups ride along with the sprint that touches the same code.
+
+## Now: the redesign
+
+The site in `PRODUCT.md` and `design/brief.md`, built to the direction the owner approved on sprint
+17's canvas (https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5) on 2026-10-21, with their four calls:
+1. the model is white card;
+2. copper means "live now" and nothing else, so links become ink;
+3. the revision block's Approved column says what really happened: Owner or Gate;
+4. Detail A stays.
+
+The direction, its budgets and the build order are in `.crew/sprint/17/direction-iris.md`. Quill
+writes each sprint's contract from them. The owner sees the milestone at two demos, on the PR's
+Vercel preview: B1, which replaces today's page, and B3, the signature moment.
+
+- [ ] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
+  block from the retros, with Off as everyone's default. It replaces today's home page, so its
+  contract lists which live checks it keeps, rewrites or retires, and the owner approves the
+  retirements in that PR.
+- [ ] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
+- [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
+  phone budget, and Iris works beside Pixel on the loft's feel.
+- [ ] B4: `/crew`, the crew at work, from the Studio's data.
+- [ ] B5: `/log` and the ghost hull.
+
+Riding along with the sprints that touch the same code:
+- When B1 replaces the hull, check these and drop the ones it settles: `mountHull`'s teardown and a
+  reduced-motion change mid-visit (`components/hero-gl.ts`), retina ticks at the bow tip
+  (`.crew/sprint/10/review-iris.md` item 3), the font-swap CLS on `/`, and C14's draw-count check
+  under load (`e2e/hero-3d.spec.ts`).
+- The skip link: B1's labelled bar decides whether it stays, moves or goes (removing it weakens
+  `keyboard.spec.ts`, which is the owner's call).
+- On `/sprints`: group the build log past about 30 entries (Quill), and take C9.5's selector from
+  `ENTRIES` in `e2e/sprints.spec.ts` (Lens's nit on sprint 21).
 
 ## Done
 
@@ -22,33 +57,6 @@ at the close-out ticks what shipped, with its sprint and PR. Keep items small en
 - [x] The drawn dots show in forced colors, and the Stack list clips only sideways; the build-log
   specs' raw U+00A0 as escapes. (Sprint 20, PR #54: `app/page.tsx`, `components/sprint-entry.tsx`,
   `e2e/profile-sections.spec.ts` C8.)
-
 - [x] The forced-colors checks cover what sprint 20 shipped: C8 asserts the Stack list clips
   sideways, and C9.5 checks the build log's bullets in forced colors. (Sprint 21, PR #55:
   `e2e/profile-sections.spec.ts` C8, `e2e/sprints.spec.ts` C9.5.)
-  - Rider: C9.5 should take its selector from `ENTRIES` (Lens's nit, Probe).
-
-## Next (highest first)
-
-- [ ] Redesign (L, the owner's goal, 2026-10-21): the site in `PRODUCT.md` and `design/brief.md`,
-  on the research in `design/research/2027-redesign.md`. One experience: the portfolio shows the
-  crew at work, from the Studio's data. Iris's direction comes first, on a Design canvas the owner
-  approves (the L lane); then Quill's contract and M sprints, the hero first.
-  - Superseded: sprint 15's direction ("the log of the Theseus", #47) and sprint 16's B1 build
-    (#49, closed), which came before the owner's interview.
-  - Direction on the canvas (sprint 17, PR #51): https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5,
-    with four calls for the owner. Next: read its comments; Iris revises; Quill's contract once the
-    owner approves there.
-
-- [ ] A not-found page in the site's style (S, after B1 sets the type): today Next's default 404
-  ignores the tokens and fonts, has two titles and no way home. Fits with the redesign's B-sprints.
-- [ ] Leftovers to check once B1 replaces the hull, and drop if it settles them: `mountHull`'s
-  teardown and a reduced-motion change mid-visit (`components/hero-gl.ts`); retina ticks at the bow
-  tip (`.crew/sprint/10/review-iris.md` item 3); the font-swap CLS on `/`; C14's draw-count check
-  under load (`e2e/hero-3d.spec.ts`).
-- [ ] Small follow-ups (S, as riders): grouping the build log past about 30 entries (Quill); C9.5's
-  selector from `ENTRIES` in `e2e/sprints.spec.ts` (Probe, Lens's nit on sprint 21).
-- [ ] Skip link decision (S): nothing focusable comes before the first project card, so the link
-  can't save a Tab however `main` is cut. B2's navigation may answer it; otherwise keep it as
-  convention and close this, or retarget it. Removing it would weaken `keyboard.spec.ts`, which is
-  the owner's call.

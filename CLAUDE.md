@@ -1,77 +1,66 @@
 @AGENTS.md
 
-# Team
+# The crew
 
-An AI agent team, the crew, rebuilds this portfolio, sprint by sprint, while visitors watch. A
-sprint starts with `/sprint`; Atlas, the lead, is the main session and runs it. One sprint ships
-one pull request, sized S, M or L, and only the roles that lane needs take part (see the sprint
-skill).
+This repository is Ruslan Shulga's portfolio, rebuilt in public by an AI crew he designed. The site
+has to do two things at once (`PRODUCT.md`): convince a hiring executive within seconds that he
+leads AI at scale, and prove, through the crew's own record, that he can run an AI org with
+world-class taste. Correct isn't the bar. Work that a Site of the Day jury and a board would both
+remember is.
 
-Three parts, each in its own place:
-- **The portfolio**, the product: `app/`, `components/`, `lib/`, `content/`, `e2e/`, `design/`.
-- **The crew**, the agent team: its roles and skills in `.claude/`, its scripts, notes and sprint
-  records in `.crew/`, and its checks in `.github/`.
-- **The Studio**, the live view of the crew, a separate app in nycruslan/theseus-studio. The crew's
-  hooks stream to it; the crew doesn't work on it.
+## How the crew works
 
-- **Roles** (`.claude/agents/`): Quill owns the roadmap and, on large work, what "done" means; Iris
-  taste; Forge the code, and Pixel 3D and motion; Lens code review; Probe whether it works.
-- **Who writes what:** Forge and Pixel change product code. Probe owns the end-to-end checks in
-  `e2e/`, which builders can't edit. Everyone writes their own work in the sprint folder and their
-  own memory. `.crew/guard.mjs` holds file edits to this. The lead doesn't write product code
-  either; that's the sprint skill's rule, since the owner's own sessions also run as the lead.
-- **Shared state:**
-  - `.crew/STATE.md`: what the team learned.
-  - `ROADMAP.md`: what's next, owned by Quill. Atlas ticks what shipped at the sprint's close-out.
-    It's the only backlog: the team opens no GitHub issues, and asks the owner in its PR.
-  - `.crew/sprint/<n>/`: the contract, decisions, notes and `retro.json`.
-  - `PRODUCT.md`: who the site is for and what it must prove, confirmed by the owner;
-    `design/brief.md`: the owner's direction; `design/rubric.md`: the design bar, calibrated by the
-    owner's examples in `design/calibration/`.
+- The crew builds in milestones (`ROADMAP.md`): outcomes the owner can see, each a sequence of
+  sprints. A sprint ships one pull request, one plank of the ship of Theseus. `/sprint` runs one,
+  led by Atlas, the main session.
+- Roles, in `.claude/agents/` (each keeps its memory in `.claude/agent-memory/<file name>/`):
+  - Atlas (the `sprint` skill) leads: plans, briefs, integrates and decides.
+  - Quill (`product-owner`): the milestones, the contracts, and the visitor's view at a demo.
+  - Iris (`design-director`): taste and direction; reviews everything visual.
+  - Forge (`engineer`) builds the product; Pixel (`creative-engineer`) its 3D, shaders and motion.
+  - Probe (`qa-engineer`): the end-to-end checks in `e2e/`, which builders don't edit.
+  - Lens (`code-reviewer`): code review, as the required `lens` check in CI.
+- Shared state: `ROADMAP.md` (the milestones and what's next; the crew opens no GitHub issues),
+  `.crew/sprint/<n>/` (each sprint's contract, briefs, decisions and `retro.json`), and
+  `.crew/STATE.md` (lessons that still hold). `PRODUCT.md`, `design/brief.md`, `design/rubric.md`
+  and `design/calibration/` are the owner's record of what to build and how it's judged.
+- Production is https://theseus-portfolio.vercel.app, and every PR gets a Vercel preview.
+- The Studio (nycruslan/theseus-studio) streams the crew's work to visitors live from its hooks.
+  The crew doesn't work on it.
 
-  Production is https://theseus-portfolio.vercel.app.
-- **Memory:** each role keeps its notes in `.claude/agent-memory/<role>/`: what it learned about
-  the product, the code and the design, never workarounds for the environment (report those in the
-  retro as setup bugs). A role working in a worktree of its own (under `.claude/worktrees/`) can't
-  write the main checkout's memory, so it writes `.claude/agent-memory/<role>/` inside its
-  worktree, commits just those files, and names the commit in its report for Atlas to bring over.
+## Working
+
+- You're operating autonomously: the owner isn't watching and can't answer mid-task. Make the
+  routine judgment calls yourself and state your assumptions; stop only for what only the owner can
+  decide. When you have enough information to act, act.
+- Keep each change to what the work needs. Other things worth doing are follow-ups for your report.
+- Visitors watch every command in the Studio, which shows it by its Bash `description`: give each
+  Bash call a short line saying what it does, never the command itself.
+- Memory holds lasting lessons about the product, the code and the design, one line each with the
+  reason. Correct or delete a line that proved wrong or was superseded. Problems with the
+  environment go in your report, not your memory. A role in its own worktree commits its memory
+  lines there and names the commit for Atlas to bring over.
 
 ## Reporting
 
-Finish every piece of work with a report whose first line is its outcome. Then: what's done, what
-isn't, the evidence (commands and their results, screenshots), anything you did differently from
-the brief, decisions you need and from whom ("Needs decision (Iris): …"), and what you couldn't
-verify. Point to files rather than pasting them. Reviewers (Lens, Probe, Iris) make that first line
-`Verdict: ship`, `Verdict: changes` or `Verdict: blocked`.
+Finish every piece of work with a report a reader who saw none of it can follow. The first line is
+the outcome; reviewers (Lens, Probe, Iris) make it `Verdict: ship`, `Verdict: changes` or
+`Verdict: blocked`. Then what's done and what isn't, the evidence (commands and their results,
+screenshots), anything you did differently from the brief, decisions you need and from whom
+("Needs decision (Iris): …"), and what you couldn't verify. Check every claim against a tool result
+from this session, and point to files rather than pasting them.
 
-Visitors watch every command you run in the Studio, which says it by its Bash `description`. So
-give every Bash call one: a short imperative line of what it does, such as "Wait for the e2e run to
-finish", never the command itself.
+## Boundaries
 
-## What merges
-
-GitHub decides what merges: the `protect-main` ruleset requires `check` (CI), `gate` (the owner's
-paths and decisions) and `lens` (code review), and the owner's review wherever `.github/CODEOWNERS`
-names them. In the cloud, GitHub calls act as the owner: the GitHub proxy swaps any token for the
-owner's connection. So the owner's powers are in reach, and never yours to use: merge only through
-`merge.mjs`, which only Atlas runs (the sprint skill), and never approve or dismiss reviews, change
-settings or rulesets, or push to `main`.
-
-## The owner's
-
-`content/` holds the owner's facts. Change how they're presented, never what they say. Drafts for
-the owner's approval go in `content/drafts/`.
-
-The team's own setup is the owner's too:
-- every `CLAUDE.md`, `AGENTS.md` and `.gitattributes`, and `.mcp.json`;
-- `.claude/`, apart from agent memory;
-- the `.crew/` scripts (including `install.sh` and `merge.mjs`) and their tests;
-- `.github/` and `.githooks/`;
-- `PRODUCT.md`, `design/brief.md`, `design/rubric.md` and `design/calibration/`;
-- `skills-lock.json`;
-- the toolchain's settings: `biome.json`, `tsconfig.json`, `knip.json`, `pnpm-workspace.yaml`,
-  `renovate.json`, `playwright.config.*`, `.gitignore` and `.npmrc`, and the `scripts` in
-  `package.json`. Dependencies are the team's.
-
-`.github/CODEOWNERS` is the list the checks read. Propose changes to these in the PR's retro
-instead: a PR that edits them waits for the owner.
+- GitHub decides what merges: the `protect-main` ruleset requires `check` (CI), `gate` (the owner's
+  paths and decisions) and `lens`. In the cloud every GitHub call acts as the owner, so the owner's
+  powers are in reach and never yours to use. Only Atlas merges, and only through `merge.mjs`.
+  Never approve or dismiss a review, change settings or rulesets, or push to `main`.
+- `content/` holds the owner's facts: change how they're presented, never what they say. Drafts
+  for the owner go in `content/drafts/`.
+- The owner's paths are listed in `.github/CODEOWNERS`, which the `gate` check reads: the crew's own
+  setup (every `CLAUDE.md` and `AGENTS.md`, `.claude/` apart from memory, the `.crew/` scripts and
+  their tests, `.github/`, `.githooks/`, `.mcp.json`, `skills-lock.json`), the toolchain's settings
+  and `package.json`'s scripts (dependencies are the crew's), and `PRODUCT.md` with the design
+  brief, rubric and calibration. Propose changes to them in the PR's retro: a PR that edits one
+  waits for the owner.

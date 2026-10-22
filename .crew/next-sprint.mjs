@@ -1,50 +1,29 @@
-// The sprint pre-flight: `node .crew/next-sprint.mjs`, run by Atlas before sizing anything (see
-// the sprint skill). It prints, as JSON, what's already in flight on GitHub and the next sprint's
-// number, so a run continues an open sprint instead of starting a duplicate one. Two cloud runs on
-// 2026-10-13 showed why: a sprint's folder only reaches main when its PR merges, so a run that
-// looked at main alone started sprint 1 again while sprint 1's PR was open.
-// - actingAs: who GitHub thinks is calling. In a cloud session that is always the owner: the
-//   cloud's GitHub proxy swaps any token a request carries, the team's own included, for the
-//   owner's connection (tested 2026-10-17). So the rules hold through gate, Lens, merge.mjs and
-//   the guard, not through a separate account.
-// - open: the open PRs whose branch is a sprint's (sprint/<n>-<slug>), oldest first, each with
-//   whether it waits for the owner: it was marked ready for review, and it carries needs-owner now
-//   or ever did, or `gate` holds its head for the owner's approval (an owner path, package.json's
-//   scripts, a weakened test) or passed it only on that approval. It waits until the owner merges
-//   or closes it, approved or not, since merge.mjs leaves a PR the owner's approval released to the
-//   owner. A draft is still being built, whatever its labels: #47 was labelled when it opened, and
-//   had it been taken for waiting, the heartbeat would have started a sprint beside it, and no run
-//   would have finished it had its own died.
-// - highest: the highest sprint number among the folders under .crew/sprint/ on main, the names
-//   of the open sprint PRs' branches, and the names of the remote sprint branches (the number in
-//   sprint/<n>-…). next is one past the highest of them.
-// - daily: the team's sprint PRs merged into the base in the last 24 hours, and the cap on them,
-//   THESEUS_DAILY_SPRINTS (a positive integer; anything else means the default, 6). A merged
-//   sprint starts the next one (the routine's GitHub trigger), so the cap is what stops a chain.
-// - unopened: the sprint branches no PR was opened from yet whose last commit is from the last 45
-//   minutes. A run pushes its branch before it opens the PR, sometimes an hour before: on
-//   2026-10-17 the heartbeat saw no PR for sprint 8's fresh branch and started sprint 9 on the
-//   same work. A branch whose head a closed PR ended on is that PR's, merged or not, so the run
-//   its own merge starts isn't held up by it. Freshness is the commit's time, not the push's: a
-//   run pushes as it commits, but one that held commits back for 45 minutes would look quiet.
-// - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down when
-//   the day's cap is reached, or start the next sprint, with its branch name. While one PR waits
-//   for the owner the team keeps working, on something that neither repeats nor builds on it, as a
-//   team does while a review is pending (it stood idle for two days behind #35); a second waiting
-//   PR stops new work. An open sprint PR is continued even at the cap: finishing work isn't
-//   starting it. One that changed in the last 45 minutes is left alone, since another run is most
-//   likely still on it: the 3-hourly heartbeat lands mid-sprint, and two runs on one branch
-//   collide. So is everything while an unopened sprint branch is that fresh.
-// - remind: the PRs waiting for the owner a day past their last commit and the team's last comment
-//   on them. The run that reminds the owner comments on each, which restarts its day, so the owner
-//   hears once a day while it waits. The owner was told about #35 once and it waited two days.
-// - update: the PRs waiting for the owner that conflict with the base, as other sprints' close-outs
-//   edit the same notes, and that no run is on (quiet for 45 minutes). The run brings each up to
-//   date beside its action; one it can't (product code conflicts) it flags in a comment ending
-//   `theseus:conflict <head>`, and that head isn't listed again. Both lists read only the team's
-//   and the owner's comments (ownerQueue).
-// It reads GitHub through REST alone (github.mjs), so it works the same in a cloud session. It
-// fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate one.
+// The sprint pre-flight: `node .crew/next-sprint.mjs [--owner-goal]`, run by Atlas before anything
+// else (the sprint skill). A sprint's folder reaches main only when its PR merges, so main alone
+// can't tell what's in flight. This reads GitHub, through REST alone (github.mjs), and prints JSON:
+// - actingAs: who GitHub thinks is calling. In a cloud session that's always the owner, since the
+//   cloud's GitHub proxy swaps any token for the owner's connection, so the rules hold through gate,
+//   Lens, merge.mjs and the guard rather than a separate account.
+// - open: the team's open sprint PRs (branch sprint/<n>-<slug>), oldest first. One waits for the
+//   owner when it's marked ready and carries or once carried needs-owner, or when `gate` holds its
+//   head for the owner's approval or passed it only on that approval. A draft is still being built,
+//   whatever its labels.
+// - unopened: sprint branches with no PR yet whose last commit is recent. A run pushes before it
+//   opens its PR, and on 2026-10-17 a heartbeat in that gap started a duplicate sprint.
+// - highest and next: the highest sprint number among main's sprint folders, the open PRs and the
+//   branches, and one past it.
+// - daily: the team's sprint PRs merged in the last 24 hours and the cap on them,
+//   THESEUS_DAILY_SPRINTS (default 6). A merge starts the next run, so the cap is what ends a chain
+//   of the crew's own making. A run with the owner's goal (--owner-goal) isn't held by it. The flag
+//   is Atlas's word, which is enough for a guard on churn: the cap was never a boundary, GitHub's
+//   required checks are.
+// - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
+// - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
+//   start the next sprint. A PR or branch that changed in the last ACTIVE_HOURS is left to the run
+//   most likely still on it, since two runs on one branch collide. While one PR waits for the owner
+//   a new sprint may start beside it; a second waiting PR stops new work.
+// It fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate
+// one.
 
 import { carriedNeedsOwner, OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
@@ -57,9 +36,15 @@ const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
-const ACTIVE_MS = 45 * 60 * 1000;
+// How long a PR or branch stays the run's that last changed it. Builders can work in their own
+// worktrees for an hour or more before anything reaches GitHub, so a shorter window let a heartbeat
+// start a second run on a live sprint; a run that died is picked up once the window has passed.
+const ACTIVE_HOURS = 2;
+const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
 configure({ timeout: 20_000 });
+
+const ownerGoal = process.argv.slice(2).includes("--owner-goal");
 
 let repo;
 try {
@@ -123,11 +108,11 @@ function preflight(repo) {
     next,
     daily: { merged: daily.merged, cap: daily.cap },
     ...ownerQueue(repo, open),
-    action: action(open, unopened, next, daily),
+    action: action(open, unopened, next, daily, ownerGoal),
   };
 }
 
-// The sprint branches with no PR yet, whose last commit is under 45 minutes old, newest first: not
+// The sprint branches with no PR yet, whose last commit is within ACTIVE_MS, newest first: not
 // an open PR's branch, nor still on the head a closed PR ended on. Only the repository's own
 // branches are listed, and only collaborators can push one.
 function freshBranches(repo, branches, open, closed) {
@@ -216,7 +201,7 @@ function sprintFolders(repo, base) {
 // nor mark a conflict as dealt with.
 // - remind: the PRs a day past their last commit and their last such comment. The run that
 //   reminds the owner comments on each, which restarts the day.
-// - update: the PRs that conflict with the base, that no run is on (quiet for 45 minutes), and
+// - update: the PRs that conflict with the base, that no run is on (quiet for ACTIVE_HOURS), and
 //   whose head no such comment flagged as beyond the team (`theseus:conflict <head>`). GitHub
 //   reports a conflict only on the PR itself; "unknown", while it works one out, counts as none,
 //   so a later run sees it.
@@ -253,8 +238,10 @@ function ownerQueue(repo, open) {
   return { remind, update };
 }
 
-// One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner.
-function action(open, unopened, next, daily) {
+// One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner. The
+// daily cap holds back new sprints, but never the owner's goal or the finishing of an open one.
+function action(open, unopened, next, daily, ownerGoal) {
+  const capped = daily.merged >= daily.cap && !ownerGoal;
   const [busy] = unopened;
   if (busy) {
     const minutes = minutesSince(busy.committedAt);
@@ -264,7 +251,7 @@ function action(open, unopened, next, daily) {
       say: `Branch ${busy.branch} has no PR yet and was committed to ${minutes} min ago, so another run is most likely working on it. Don't touch it or start a new sprint: stand down with a short report.`,
     };
   }
-  if (!open.length && daily.merged >= daily.cap) {
+  if (!open.length && capped) {
     const sprints = daily.merged === 1 ? "sprint" : "sprints";
     return {
       do: "stand down",
@@ -287,7 +274,7 @@ function action(open, unopened, next, daily) {
   };
   if (!current) {
     const [first] = open;
-    if (open.length <= WAITING_CAP && daily.merged >= daily.cap) {
+    if (open.length <= WAITING_CAP && capped) {
       return {
         do: "stand down",
         pr: first.number,
@@ -313,7 +300,7 @@ function action(open, unopened, next, daily) {
     return {
       do: "stand down",
       pr: current.number,
-      say: `PR #${current.number} (${current.branch}) changed ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for 45 minutes.`,
+      say: `PR #${current.number} (${current.branch}) changed ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for ${ACTIVE_HOURS} hours.`,
     };
   }
   return {

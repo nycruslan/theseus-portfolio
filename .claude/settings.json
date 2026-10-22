@@ -10,10 +10,17 @@
       "Bash(gh api *)",
       "Bash(node .crew/merge.mjs *)",
       "Bash(node .crew/next-sprint.mjs)",
+      "Bash(node .crew/next-sprint.mjs *)",
       "Workflow"
     ],
     "deny": [
       "Bash(gh pr merge *)",
+      "Bash(gh api *pulls/*/merge*)",
+      "Bash(gh api *pulls/*/reviews*APPROVE*)",
+      "Bash(gh api *pulls/*/reviews*--input*)",
+      "Bash(gh pr review *)",
+      "Bash(gh api *pulls/*/reviews/*/dismissals*)",
+      "Bash(gh api *graphql*)",
       "Bash(gh alias *)",
       "Bash(gh auth *)",
       "Bash(gh config *)",
@@ -44,8 +51,7 @@
       "Edit(~/.claude/hooks/**)",
       "Edit(~/.claude/plugins/**)",
       "Edit(~/.config/gh/**)",
-      "Edit(~/.gitconfig)",
-      "Agent(model:*fable*)"
+      "Edit(~/.gitconfig)"
     ]
   },
   "worktree": {

@@ -482,6 +482,46 @@ test("masks OAuth and authorization values, but not an author's name", async () 
   );
 });
 
+test("masks secret-named values in any case, in flags and in JSON, but not an author", async () => {
+  await emit([
+    {
+      hook_event_name: "PostToolUse",
+      tool_name: "Bash",
+      tool_input: {
+        command: [
+          "psql password=hunter22 db_password=hunter33",
+          `export PASSWORD="two words" SECRET='three more words'`,
+          "curl --token=abc12345 --api-key def67890 -H 'Authorization: token jkl13579'",
+          `echo '{"client_secret": "ghi24680", "author": "Theseus"}'`,
+          'git commit --author="Theseus Team" -m x',
+          "<li key={item.id}> API_KEY={abc123} --token {def456}",
+          'echo TOKEN="unterminated value',
+        ].join("; "),
+        api_key: "plain-key-value",
+      },
+      tool_use_id: "toolu_07",
+    },
+  ]);
+  const [{ raw, body }] = studio.received;
+  assert.doesNotMatch(
+    raw,
+    /hunter22|hunter33|words|abc12345|abc123}|def456|def67890|ghi24680|jkl13579|unterminated|plain-key/,
+  );
+  assert.equal(
+    body.tool_input.command,
+    [
+      "psql password=[redacted] db_password=[redacted]",
+      `export PASSWORD="[redacted]" SECRET='[redacted]'`,
+      "curl --token=[redacted] --api-key [redacted] -H 'Authorization: [redacted]'",
+      `echo '{"client_secret": "[redacted]", "author": "Theseus"}'`,
+      'git commit --author="Theseus Team" -m x',
+      "<li key={item.id}> API_KEY=[redacted] --token [redacted]",
+      'echo TOKEN="[redacted]',
+    ].join("; "),
+  );
+  assert.equal(body.tool_input.api_key, "[redacted]");
+});
+
 // Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY is set, and cloud sessions reach the
 // internet only through their proxy, so settings.json sets it for every hook. Older Node versions
 // don't know it, and the test is skipped there.

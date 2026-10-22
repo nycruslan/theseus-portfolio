@@ -27,5 +27,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   while a `pnpm exec` wrapper can die and leave it running. Note its PID and stop it with
   `kill <pid>` when you're done, even where a skill says to leave it up. Never stop processes by
   name or port: other people's servers run on this machine.
+- Write a scratch script with the Write tool before you run it: cloud sessions refuse a shell line
+  that both writes and runs one. Scratch files go in your scratchpad, not the repository.
 - Never weaken or delete a test to get green. Report the failure instead.
 - When something breaks, find the root cause before changing code.
