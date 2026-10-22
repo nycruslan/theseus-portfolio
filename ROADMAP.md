@@ -15,8 +15,11 @@ The site in `PRODUCT.md` and `design/brief.md`, built to the direction the owner
 4. Detail A stays.
 
 The direction, its budgets and the build order are in `.crew/sprint/17/direction-iris.md`. Quill
-writes each sprint's contract from them. The owner sees the milestone at two demos, on the PR's
-Vercel preview: B1, which replaces today's page, and B3, the signature moment.
+writes each sprint's contract from them. Current UI/UX and 3D practice, with sources, is in
+`design/research/2026-ui-ux-and-3d.md`. Its section B goes sprint by sprint, as input to weigh,
+not a spec: the direction decides, and a visible change to it still needs the owner. The
+owner sees the milestone at two demos, on the PR's Vercel preview: B1, which replaces today's
+page, and B3, the signature moment.
 
 - [ ] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
   block from the retros, with Off as everyone's default. It replaces today's home page, so its
@@ -24,7 +27,12 @@ Vercel preview: B1, which replaces today's page, and B3, the signature moment.
   retirements in that PR.
 - [ ] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
-  phone budget, and Iris works beside Pixel on the loft's feel.
+  phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
+  a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
+  gzip (about 251 kB, already at the limit), about 272 KiB with GSAP, so the brief's stack (WebGPU,
+  TSL, GSAP) can't meet the 250 KB gzip budget. Measure the options in research section D (WebGL at
+  about 140 KiB, or WebGPU counted as brotli at about 200 KiB) and take the choice to the owner
+  with the B3 demo.
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.
 - [ ] B5: `/log` and the ghost hull.
 
