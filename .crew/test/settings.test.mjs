@@ -77,6 +77,8 @@ test("denies the obvious, whatever the mode", () => {
     // that, in its own process), approving and dismissing reviews.
     "Bash(gh api *pulls/*/merge*)",
     "Bash(gh api *pulls/*/reviews*APPROVE*)",
+    "Bash(gh api *pulls/*/reviews*--input*)",
+    "Bash(gh pr review *)",
     "Bash(gh api *pulls/*/reviews/*/dismissals*)",
     // The team works through REST alone; GraphQL reaches the same powers by another door.
     "Bash(gh api *graphql*)",

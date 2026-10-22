@@ -494,6 +494,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
           "curl --token=abc12345 --api-key def67890 -H 'Authorization: token jkl13579'",
           `echo '{"client_secret": "ghi24680", "author": "Theseus"}'`,
           'git commit --author="Theseus Team" -m x',
+          "<li key={item.id}>",
           'echo TOKEN="unterminated value',
         ].join("; "),
         api_key: "plain-key-value",
@@ -514,6 +515,7 @@ test("masks secret-named values in any case, in flags and in JSON, but not an au
       "curl --token=[redacted] --api-key [redacted] -H 'Authorization: [redacted]'",
       `echo '{"client_secret": "[redacted]", "author": "Theseus"}'`,
       'git commit --author="Theseus Team" -m x',
+      "<li key={item.id}>",
       'echo TOKEN="[redacted]',
     ].join("; "),
   );

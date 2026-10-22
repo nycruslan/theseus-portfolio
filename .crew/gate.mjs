@@ -4,7 +4,8 @@
 // The owner releases a PR someone else opened with an approving review of its current head; a
 // later push needs a new one. The team's checks app opens the team's PRs (open-pr.mjs), so the
 // owner can approve them. A PR under the owner's own login can't be approved by them (nobody can
-// approve their own PR), so they decide one with the ruleset's bypass. The result goes on the head
+// approve their own PR) and the ruleset has no bypass, so such a PR is closed and opened again
+// through the checks app. The result goes on the head
 // as a check run from the team's checks app, the source the ruleset requires, so no other workflow
 // or account can stand in for it.
 // The workflow runs this from the default branch (pull_request_target, and workflow_run after the
@@ -28,8 +29,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /**
  * Whether the PR passes, with a one-line summary and the holds behind it. A PR under the owner's
  * login holds like any other: passing it on authorship would let any session through, since they
- * all reach GitHub as the owner. The owner merges it with the ruleset's pull-request bypass, which
- * doesn't need gate.
+ * all reach GitHub as the owner. Nobody can approve it, so it's opened again through the checks
+ * app.
  */
 export function decide({ notes, everHeld, approved, byOwner = false }) {
   const holds = everHeld
@@ -39,7 +40,7 @@ export function decide({ notes, everHeld, approved, byOwner = false }) {
   if (holds.length && approved) summary = "The owner approved this head.";
   else if (holds.length && byOwner) {
     summary =
-      "This PR is under the owner's login, so the owner decides it: they merge it with the ruleset's bypass.";
+      "This PR is under the owner's login, so nobody can approve it: close it and open it again through the checks app (node .crew/open-pr.mjs).";
   } else if (holds.length) {
     summary = "This PR needs the owner's approving review of its head.";
   }

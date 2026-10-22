@@ -19,41 +19,44 @@ const MAX_STRING_LENGTH = 4000;
 // `password=`, `--token value`, `"secret": "…"`, a secret-named key's string), then common key and
 // token formats. The Studio's ingest masks again with the same patterns (its lib/redact.ts). AUTH
 // leaves out a whole AUTHOR word (but not AUTHORIZATION), or a GIT_AUTHOR_NAME or a commit's
-// --author would blank that name in every line the Studio shows. Every quantifier is bounded, so a
-// long or hostile string can't make a pattern backtrack for long.
+// --author would blank that name in every line the Studio shows. The patterns fail safe, masking to
+// a delimiter or to the end rather than stopping at a length, and stay linear: only the names in
+// look-behinds are bounded, which is what would make a long or hostile string slow.
 const SECRET_NAMES =
   "TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|AUTH(?!OR(?:[^A-Z0-9]|$))|DATABASE_URL|POSTGRES";
 const SECRET_ENV = new RegExp(SECRET_NAMES, "i");
 const NAME = `[A-Z0-9_]{0,64}(?:${SECRET_NAMES})[A-Z0-9_]{0,64}`;
 const ASSIGNED = `\\b${NAME}=`;
 const SECRET_PATTERNS = [
-  // `NAME="…"` and `NAME='…'` up to the closing quote, or the end when there is none.
-  new RegExp(`(?<=${ASSIGNED}")[^"]{0,4096}(?="|$)`, "gi"),
-  new RegExp(`(?<=${ASSIGNED}')[^']{0,4096}(?='|$)`, "gi"),
-  // `NAME=value`, `--name=value` and `--name value`, up to a space or shell separator.
-  new RegExp(`(?<=${ASSIGNED})[^\\s"';&|]{1,4096}`, "gi"),
+  // `NAME="…"` and `NAME='…'` to the closing quote, or to the end when there is none.
+  new RegExp(`(?<=${ASSIGNED}")[^"]+`, "gi"),
+  new RegExp(`(?<=${ASSIGNED}')[^']+`, "gi"),
+  // `NAME=value`, `--name=value` and `--name value`, to a space or shell separator. A value that
+  // opens with `{` is code (JSX's `key={item.id}`), not a credential; a quoted JSX key is masked.
+  new RegExp(`(?<=${ASSIGNED})[^\\s"';&|{][^\\s"';&|]*`, "gi"),
   new RegExp(
-    `(?<=--[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64} )[^\\s"';&|-][^\\s"';&|]{0,4096}`,
+    `(?<=--[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64} )[^\\s"';&|{-][^\\s"';&|]*`,
     "gi",
   ),
   // JSON's `"name": "…"`, escaped characters included.
   new RegExp(
-    `(?<="[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64}"\\s{0,8}:\\s{0,8}")(?:[^"\\\\]|\\\\.){1,4096}`,
+    `(?<="[\\w-]{0,64}(?:${SECRET_NAMES})[\\w-]{0,64}"\\s{0,8}:\\s{0,8}")(?:[^"\\\\]|\\\\.)+`,
     "gi",
   ),
   // An Authorization header's scheme and credentials, whatever the scheme.
-  /(?<=\bauthorization\s{0,8}:\s{0,8})(?:\w{1,16}\s{1,8})?[^\s"']{1,4096}/gi,
-  /\b(?:Bearer|Basic)\s{1,8}[\w.~+/-]{16,4096}=*/gi,
-  /\b(?:sk|pk|rk)(?:-|_live_|_test_)[\w-]{16,512}/g,
-  /\bgh[pousr]_\w{20,512}/g,
-  /\bgithub_pat_\w{20,512}/g,
-  /\bglpat-[\w-]{20,512}/g,
-  /\bxox[abprs]-[\w-]{10,512}/g,
-  /\bAIza[\w-]{30,512}/g,
+  /(?<=\bauthorization\s{0,8}:\s{0,8})(?:\w{1,16}\s{1,8})?[^\s"']+/gi,
+  /\b(?:Bearer|Basic)\s{1,8}[\w.~+/-]{16,}=*/gi,
+  /\b(?:sk|pk|rk)(?:-|_live_|_test_)[\w-]{16,}/g,
+  /\bgh[pousr]_\w{20,}/g,
+  /\bgithub_pat_\w{20,}/g,
+  /\bglpat-[\w-]{20,}/g,
+  /\bxox[abprs]-[\w-]{10,}/g,
+  /\bAIza[\w-]{30,}/g,
   /\bAKIA[0-9A-Z]{16}\b/g,
   // Credentials in a URL (`user:password@`, `token@`), up to the last `@` before the host.
-  /\b[a-z][\w+.-]{0,30}:\/\/[^\s/]{1,256}@/gi,
-  /-----BEGIN [A-Z ]{0,32}PRIVATE KEY-----[\s\S]{0,8192}?-----END [A-Z ]{0,32}PRIVATE KEY-----/g,
+  /[a-z][\w+.-]{0,30}:\/\/[^\s/]+@/gi,
+  // A private key to its END line, or to the end when the END is cut off.
+  /-----BEGIN [A-Z ]{0,32}PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]{0,32}PRIVATE KEY-----|$)/g,
 ];
 const secretValues = Object.entries(process.env)
   .filter(
@@ -174,15 +177,12 @@ function redact(text) {
   return clean;
 }
 
-// Hook payloads can carry whole files; the Studio only needs a redacted preview. A string is cut
-// to twice the preview before it's masked, which bounds the work, and to the preview after, so a
-// secret the first cut split stays out of what's sent.
+// Hook payloads can carry whole files; the Studio only needs a redacted preview. The whole string
+// is masked before it's cut, so a cut can't split a secret past its mask (masking 2 MB takes about
+// 0.1 s, in a hook that runs in the background).
 function sanitize(value) {
   if (typeof value === "string")
-    return redact(value.slice(0, 2 * MAX_STRING_LENGTH)).slice(
-      0,
-      MAX_STRING_LENGTH,
-    );
+    return redact(value).slice(0, MAX_STRING_LENGTH);
   if (Array.isArray(value)) return value.map(sanitize);
   if (value && typeof value === "object") {
     return Object.fromEntries(

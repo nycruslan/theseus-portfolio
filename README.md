@@ -51,7 +51,7 @@ Three parts, each in its own place:
   so nobody merges one mid-sprint, and marks them ready at the close-out (`ready-pr.yml`); the
   owner can approve them and merge them with the usual button. A PR under the owner's own login
   (open-pr.mjs's fallback when the app doesn't answer) can't be approved by them, since nobody can
-  approve their own PR;
+  approve their own PR, so when it needs them it's closed and opened again through the app;
 - `lens` (the checks app): Claude Code reviews the PR as Lens and the check passes only on ship. A
   push that only touches the team's notes (the sprint folder's `.md` files and `retro.json`,
   `STATE.md`, `ROADMAP.md`) keeps the last ship.
@@ -80,7 +80,7 @@ subscription usage and the routines' own hourly limits.
 
 **Guidance (the hooks).** They keep the team in its lane without being a boundary: a file-edit
 guard (owner paths, `e2e/` for Probe, each role's own memory), deny rules for the obvious (`pkill`,
-`gh pr merge` and merging or approving through the REST API, force pushes, the repository's admin
+the plain forms of merging or approving through `gh`, force pushes, the repository's admin
 endpoints), the builders' `pnpm verify` on stop, and a watchdog for a stalled lead. A shell command can get past
 all of them.
 
@@ -89,8 +89,8 @@ owner's connection, git pushes included, whatever token the session holds: a del
 token was answered as the owner (tested 2026-10-17). So a session can do anything the owner can,
 approving a PR included. With no bypass on the ruleset, the required checks bind it; `merge.mjs`
 refuses a PR that `gate` passed only on the owner's approval; the deny rules block the admin
-endpoints and merging or approving through `gh`; and every merge goes on air in the Studio and in
-GitHub's audit log. None of
+endpoints and the plain forms of merging or approving through `gh`; and every merge goes on air in
+the Studio and in GitHub's audit log. None of
 that stops a session set on misusing it. On a laptop the same
 holds for the owner's own `gh` login.
 

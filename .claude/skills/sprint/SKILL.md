@@ -112,8 +112,9 @@ Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach Gr
 own, with the Bash timeout at 5 minutes (10 for merging):
 - `node .crew/open-pr.mjs --head <branch> --title "…" --body .crew/sprint/<n>/pr.md`, right after
   the branch's first push, so the pre-flight sees the sprint in flight. The checks app opens it as a
-  draft. Never open a PR any other way; if the app's PR doesn't come, the script opens it under the
-  owner's login and says so, and you say that in your report. The body carries the goal (saying
+  draft. Never open a PR any other way. If the app's PR doesn't come, the script opens it under the
+  owner's login and says so: say that in your report, and if that PR comes to need the owner, close
+  it and run the script again, since nobody can approve a PR under their own login. The body carries the goal (saying
   "chosen by the owner" when it's theirs), the size, the contract and its results, and the
   decisions.
 - `node .crew/ready-pr.mjs <n>`, once Lens says ship and the close-out is pushed.
