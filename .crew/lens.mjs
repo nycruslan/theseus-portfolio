@@ -55,8 +55,9 @@ export const SCHEMA = {
 
 // How hard Lens thinks, and how many turns it may take, follow the size of what the change adds:
 // a small diff doesn't need the deepest pass, and a large one needs the turns to read it (B1, at
-// xhigh, ran out of 40 turns twice). Removed lines don't count: deleting code needs the owner's eye
-// through gate more than a deep review. Nor do notes, which never make a review stale either.
+// xhigh, ran out of 40 turns twice; at about 8 s a turn, 100 turns fit the job's 30 minutes). Removed
+// lines don't count: deleting tests or owner paths waits for the owner through gate, and other
+// deletions get a lighter pass. Nor do notes, which never make a review stale either.
 const REVIEW = [
   { upTo: 100, effort: "medium", turns: 40 },
   { upTo: 600, effort: "high", turns: 60 },
