@@ -5,7 +5,7 @@
 //   base and merge-base and only notes changed since, so a close-out commit doesn't pay for a
 //   second review; reusing posts the `lens` check itself. To review, it writes the PR's
 //   description and diff to lens-context.md for the model, which reads but never writes, and sets
-//   the review's effort by the size of the change (effortFor). A run whose head is no longer the
+//   the review's effort and turns by the size of the change (reviewFor). A run whose head is no longer the
 //   PR's posts nothing: the newer head has its own run.
 // - `node .crew/lens.mjs verdict` reads the review's structured output (claude-code-action's
 //   `--json-schema`), posts it on the PR as one review with the findings inline, and posts the
@@ -53,26 +53,28 @@ export const SCHEMA = {
   required: ["verdict", "summary", "findings"],
 };
 
-// How hard Lens thinks follows the size of the change: a small diff doesn't need the deepest pass,
-// a large one does. Notes don't count, as they never make a review stale either.
-const EFFORT = [
-  { upTo: 100, effort: "medium" },
-  { upTo: 600, effort: "high" },
+// How hard Lens thinks, and how many turns it may take, follow the size of what the change adds:
+// a small diff doesn't need the deepest pass, and a large one needs the turns to read it (B1, at
+// xhigh, ran out of 40 turns twice; at about 8 s a turn, 100 turns fit the job's 30 minutes). Removed
+// lines don't count: deleting tests or owner paths waits for the owner through gate, and other
+// deletions get a lighter pass. Nor do notes, which never make a review stale either.
+const REVIEW = [
+  { upTo: 100, effort: "medium", turns: 40 },
+  { upTo: 600, effort: "high", turns: 60 },
 ];
+const LARGEST = { effort: "xhigh", turns: 100 };
 
 /**
- * The review's effort for a compare's files: by the lines changed outside the team's notes. A list
- * GitHub cut short hides files, so it counts as the largest change.
+ * The review's effort and turns for a compare's files: by the lines added outside the team's notes.
+ * A list GitHub cut short hides files, so it counts as the largest change.
  */
-export function effortFor(files) {
-  if (files.length >= COMPARE_LIMIT) return "xhigh";
-  const lines = files
+export function reviewFor(files) {
+  if (files.length >= COMPARE_LIMIT) return LARGEST;
+  const added = files
     .filter(({ filename }) => !NOTES.test(filename))
-    .reduce(
-      (sum, { additions = 0, deletions = 0 }) => sum + additions + deletions,
-      0,
-    );
-  return EFFORT.find(({ upTo }) => lines <= upTo)?.effort ?? "xhigh";
+    .reduce((sum, { additions = 0 }) => sum + additions, 0);
+  const { effort, turns } = REVIEW.find(({ upTo }) => added <= upTo) ?? LARGEST;
+  return { effort, turns };
 }
 
 /** "review" when the event asks for a fresh review, "reuse?" when a ship may still stand. */
@@ -288,7 +290,9 @@ function runPlan(event, env) {
   const against = reviewedAgainst(pr.base.ref, fork.sha);
   output("schema", JSON.stringify(SCHEMA));
   output("against", against);
-  output("effort", effortFor(compare.files ?? []));
+  const { effort, turns } = reviewFor(compare.files ?? []);
+  output("effort", effort);
+  output("turns", turns);
   const from =
     plan(event) === "reuse?" &&
     reusableShip({
