@@ -29,8 +29,8 @@ page, and B3, the signature moment.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
   phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
   a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
-  gzip, about 272 KiB with GSAP, so the brief's stack (WebGPU, TSL, GSAP) can't meet the 250 KB
-  gzip budget. Measure the options in research section D (WebGL at
+  gzip (about 251 kB, already at the limit), about 272 KiB with GSAP, so the brief's stack (WebGPU,
+  TSL, GSAP) can't meet the 250 KB gzip budget. Measure the options in research section D (WebGL at
   about 140 KiB, or WebGPU counted as brotli at about 200 KiB) and take the choice to the owner
   with the B3 demo.
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.

@@ -29,65 +29,54 @@ Scope: the Theseus portfolio redesign and Theseus Studio. Every claim links to i
 ## B. The portfolio redesign
 
 The approved direction (`.crew/sprint/17/direction-iris.md`) and the owner's four calls win over
-this section. Where the research suggests something different, it's marked **[proposal]**, for
-Iris to weigh and, if she agrees, for the owner to approve. It is never a change on its own.
+this section. What the direction already decides is stated here as decided; the research adds
+technique and sources. Anything the direction doesn't have is marked **[proposal]**, for Iris to
+weigh and, if she agrees, for the owner to approve. It is never a change on its own.
 
 ### B1. The 2D sheet (first paint)
-- **Server-render the sheet as HTML plus inline SVG.** The LCP element is the title block's text, never the drawing or a canvas.
-- **The title block answers the executive in five seconds.** The approved block has the name, the role, the bio's first two sentences and contact. **[proposal]** One primary action as its largest labelled target (principle 2), and proof numbers only from the owner's facts in `content/`.
-- **Draw it like a real drawing:** 2–3 stroke weights (outline, stations, construction). Meaningful lines need ≥ 3:1 contrast against the paper ([WCAG 1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)); construction lines are decorative and `aria-hidden`. Off-white paper, dark ink, not pure black [judgement].
-- **Typography:** the direction's one family, Sofia Sans for text and Sofia Sans Extra Condensed for annotations, pairs label and copy styles the way Geist does ([Geist](https://vercel.com/geist/typography)); body ≥ 16 px; annotations ≥ 12–13 px and never essential; no Light or Thin weights ([HIG](https://developer.apple.com/design/human-interface-guidelines/typography)); measure ≤ 80 characters ([WCAG 1.4.8](https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html)), ideally 60–75 [judgement].
+- **Server-render the sheet as HTML plus inline SVG.** The name is the largest paint, so LCP is text, never the drawing or a canvas (direction).
+- **The title block** holds the name, the role, the bio's first two sentences and contact (direction). It answers the executive in five seconds. **[proposal]** One primary action as its largest labelled target (principle 2), with any proof numbers taken only from the owner's facts in `content/`.
+- **The labelled bar** holds Work, Crew, Log, Contact, Read as page and the Full/Calm/Off control (direction). Off is everyone's default (direction). The control persists the visitor's choice (with try/catch around storage). **[proposal]** Mirror the choice into the URL, and default to Full when `prefers-reduced-motion` doesn't ask for less.
+- **Draw it like a real drawing:** 2–3 stroke weights (outline, stations, construction). Meaningful lines need ≥ 3:1 contrast against the paper ([WCAG 1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)); construction lines are decorative and `aria-hidden`.
+- **Typography:** the direction's one family, Sofia Sans for text and Sofia Sans Extra Condensed for annotations, pairs label and copy styles the way Geist does ([Geist](https://vercel.com/geist/typography)); body ≥ 16 px; annotations ≥ 12–13 px and never essential; no Light or Thin weights ([HIG](https://developer.apple.com/design/human-interface-guidelines/typography)); measure ≤ 80 characters ([WCAG 1.4.8](https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html)).
 - **Annotations are real text** (`<text>` or positioned HTML): selectable, translatable, forced-colours safe.
-- **Full/Calm/Off** is a small segmented control in the title-block corner. It persists the visitor's choice (with try/catch around storage) and mirrors it into the URL. The direction makes Off everyone's default. **[proposal]** Default to Full when `prefers-reduced-motion` doesn't ask for less.
 - **No line-drawing reveal before the text is readable** (see E).
 
-### B2. Facts and the read view
-- **The read view *is* the baseline page:** semantic headings, lists and tables, works with JavaScript off, prints cleanly. 3D is an enhancement on top.
-- **Switch sheet ↔ read view with React 19.3 `<ViewTransition>`** (stable; cross-fades by default; animates only `startTransition`, Suspense reveals and `useDeferredValue` updates: [React, 2026-09-09](https://react.dev/blog/2026/09/09/react-19-3)). Support is 92.9%, Firefox 144+ ([caniuse](https://caniuse.com/view-transitions)). Keep it ≤ 300 ms.
-- **Each fact = claim + number (tabular numerals) + source link.** Headline visible, detail in `<details>`; deep links (`#fact-id`, `?view=read`) ([Vercel](https://vercel.com/design/guidelines)).
+### B2. The facts and `/read`
+- **`/read` is the semantic page** (direction: "Read as page"): headings, lists and tables, works with JavaScript off, prints cleanly. On `/`, the no-JS, print and Off baseline is the 2D sheet with the planks drawn (direction).
+- **Move between `/` and `/read` with a view transition:** React 19.3's `<ViewTransition>` is stable and cross-fades by default; it animates `startTransition`, Suspense reveals and `useDeferredValue` updates ([React, 2026-09-09](https://react.dev/blog/2026/09/09/react-19-3)). Support is 92.9%, Firefox 144+ ([caniuse](https://caniuse.com/view-transitions)). Keep it ≤ 300 ms.
+- **Each fact deep-links** as `/read#fact-id` ([Vercel](https://vercel.com/design/guidelines)). Facts come from `content/` verbatim; their wording is the owner's.
 - **No facts inside the 3D scene.** If a fact points at the hull, use a DOM label with a screen-space leader line (principle 8).
 
 ### B3. The 3D model and the loft
-- **Load order:** HTML/SVG paints → on idle, dynamic-import the 3D chunk → `await renderer.init()` ([manual](https://threejs.org/manual/en/webgpurenderer.html)) → render one hidden frame → show the canvas registered exactly over the SVG's profile, with no cross-fade and no pop, as the direction specifies. Size the `OrthographicCamera` frustum to the SVG `viewBox` in CSS pixels so the handoff is invisible [judgement].
-- **The one camera move (orthographic → dolly-zoom):**
+- **Load order:** HTML/SVG paints → on idle, dynamic-import the 3D chunk → `await renderer.init()` ([manual](https://threejs.org/manual/en/webgpurenderer.html)) → render one hidden frame → show the canvas registered exactly over the SVG's profile, with no cross-fade and no pop (direction). Size the `OrthographicCamera` frustum to the SVG `viewBox` in CSS pixels so the handoff is invisible [judgement].
+- **The one camera move** is the direction's: orthographic on the inked profile, then a dolly-zoom to a 30° lens that holds the sheet's size, ending at the settled three-quarter pose; the page, the title block and every word never move. Technique:
   1. Swap to a perspective camera with a very long lens (FOV ≈ 1°), placed so the hull's framed height matches: `d = h / (2·tan(fov/2))` ([Wikipedia](https://en.wikipedia.org/wiki/Dolly_zoom)); the usual trick is a near-zero FOV at the switch ([three.js forum](https://discourse.threejs.org/t/how-to-animation-switch-camera-from-perspective-to-orthographic-like-3d-program-maya-blender-unity-etc-in-three-js/9470) [pre-2025]).
-  2. Dolly in while widening the FOV, holding the hull's size; end at about 30–40° with a small three-quarter orbit.
-  
-  A strong dolly zoom causes "a sensation of disorientation and discomfort" ([Wikipedia](https://en.wikipedia.org/wiki/Dolly_zoom)), so keep it subtle, and keep the title block still as the stationary frame of reference ([HIG](https://developer.apple.com/design/human-interface-guidelines/motion)).
-- **Timing:** once per visit; the direction budgets 2.4 s with an exponential ease-out, and Kowalski exempts marketing sites from his 300 ms rule ([source](https://emilkowal.ski/ui/you-dont-need-animations)). **[proposal]** Test 1.2–1.8 s in the B3 spike. Any wheel, key or pointer input jumps to the end state. Never bind the camera to scroll (see E).
-- **Calm** and reduced motion open settled, as the direction says: no camera travel, no z-motion ([HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility)). **Off** never downloads WebGL; it shows the 2D sheet with the planks drawn, as the direction says. **[proposal]** A static AVIF render of the hull, if it never outpaints the name as LCP.
-- **White-card look without textures** [judgement unless linked]:
+  2. Dolly in while widening the FOV to 30°, holding the hull's size.
+
+  A strong dolly zoom causes "a sensation of disorientation and discomfort" ([Wikipedia](https://en.wikipedia.org/wiki/Dolly_zoom)); the still page is the stationary frame of reference that keeps it comfortable ([HIG](https://developer.apple.com/design/human-interface-guidelines/motion)).
+- **Timing:** once per visit, 2.4 s with an exponential ease-out, skippable by any input (direction); Kowalski exempts marketing sites from his 300 ms rule ([source](https://emilkowal.ski/ui/you-dont-need-animations)). **[proposal]** Test 1.2–1.8 s in the B3 spike. Never bind the camera to scroll (see E).
+- **Calm and reduced motion open settled; Off never loads WebGL** and shows the 2D sheet with the planks drawn (direction). **[proposal]** A static AVIF render of the hull for Off, if it never outpaints the name as LCP.
+- **The white card look without textures** (the direction's card model on drafting film, no textures but a 64 px hatch) [judgement unless linked]:
   - warm-white standard or Lambert node material, roughness ≈ 1; a hemisphere light plus one soft directional; no real-time shadow maps (PCFSoftShadowMap is gone in [r186](https://github.com/mrdoob/three.js/releases/tag/r186));
   - AO baked into vertex colours offline, or faked in TSL from normals and plank edges;
-  - one contact-shadow plane with a pre-blurred shadow (`webgl_shadow_contact` / `webgpu_shadow_contact` [examples](https://github.com/mrdoob/three.js/tree/r186/examples)); drei's `ContactShadows` with `frames={1}` does this for static scenes ([drei](https://drei.docs.pmnd.rs/staging/contact-shadows)) but stable drei is WebGL-only (see D);
+  - the shadow on its own half-breadth plan (direction) as one pre-blurred contact-shadow plane (`webgl_shadow_contact` / `webgpu_shadow_contact` [examples](https://github.com/mrdoob/three.js/tree/r186/examples));
   - ink-coloured plank edges as fat lines (`webgpu_lines_fat`), so the 3D reads as the same drawing.
-- **Draw budget (6 of 8):**
+- **Draws (≤ 8, direction):** all planks in one instanced or batched mesh with a per-plank state attribute, seams as one line batch, the deck and the shadow (direction). `BatchedMesh` gives one draw with per-object culling ([docs](https://threejs.org/docs/pages/BatchedMesh.html)). Transparent canvas; background in CSS.
+- **Render on demand** (direction): no idle loop; render on tween ticks and crew events (`setAnimationLoop(null)` between them). DPR ≤ 1.5 on phones and 2 on desktop, stepping quality down above 22 ms a frame (direction); `renderer.info` counts draws.
+- **Keyboard:** the canvas is `aria-hidden` because every 3D object has a DOM twin (a fact or a revision row); focusing the twin highlights the object.
 
-  | Draws | What |
-  |---|---|
-  | 1 | Planks: one `BatchedMesh`, one material, per-instance colour for state, per-object culling ([docs](https://threejs.org/docs/pages/BatchedMesh.html)) |
-  | 1 | Frames and keel |
-  | 1 | Edge lines |
-  | 1 | Ghost hull |
-  | 1 | Shadow plane |
-  | 1 | Crew markers (`InstancedMesh`) |
+### B4. The crew at work (`/crew`)
+- **Only real events, each with one mark, and an honest rest state when the crew is idle** (direction); LIVE or REPLAY with timestamps, no theatrical typing ([HIG](https://developer.apple.com/design/human-interface-guidelines/generative-ai)). When idle, say so and offer the last run.
+- **The plank states are the direction's:** ink and card merged, graphite in progress, copper live this minute, vellum removed.
+- **One DOM "now" line** in specific words, e.g. "Pixel is fitting plank 14 of 22" (principle 11), with `aria-live="polite"` throttled to state changes ([Vercel](https://vercel.com/design/guidelines)). Live updates running past 5 s need a pause control ([WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html)).
+- **[proposal]** Label agents as AI (avatar and badge, [Linear AIG](https://linear.app/developers/aig)), with the same few agent states everywhere (working, waiting, blocked, done), as Devin and Linear do ([Devin](https://docs.devin.ai/release-notes/overview), [Linear](https://linear.app/developers/agent-interaction)).
 
-  Transparent canvas; background in CSS.
-- **Render on demand:** no idle loop; render on tween ticks and agent events (`frameloop="demand"` + `invalidate()` in R3F, `setAnimationLoop(null)` in vanilla). On phones cap DPR at ≈ 1.5 and lower it via `PerformanceMonitor`/`regress()` when frame rate drops ([R3F docs](https://r3f.docs.pmnd.rs/advanced/scaling-performance)).
-- **Keyboard:** the canvas is `aria-hidden` because every 3D object has a DOM twin (a fact or log row); focusing the twin highlights the object.
-
-### B4. The crew at work
-- **One DOM "now" line:** "Pixel is fitting plank 14 of 22 (starboard, strake 3)" (principle 11).
-- **Label agents as AI** (avatar + badge) ([Linear AIG](https://linear.app/developers/aig)). Use **four states, named the same everywhere:** Working, Waiting, Blocked, Done, mirroring Devin's Working/Ready/Blocked/Inactive ([Devin, 2026-09-25](https://docs.devin.ai/release-notes/overview)) and Linear's session states ([Linear](https://linear.app/developers/agent-interaction)).
-- **One focal highlight in 3D:** the plank being placed. Other crew are still markers; nothing moves at the edges ([HIG](https://developer.apple.com/design/human-interface-guidelines/motion)). A placement takes 400–600 ms, ease-out, then rendering stops [judgement].
-- **Screen readers:** `aria-live="polite"` on the now line ([Vercel](https://vercel.com/design/guidelines)), throttled to state changes [judgement]. Live updates running past 5 s need a pause button ([WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html)).
-- **Real events only:** LIVE or REPLAY with timestamps; no theatrical typing ("Clearly identify when and where you use AI", [HIG](https://developer.apple.com/design/human-interface-guidelines/generative-ai)). When the crew is idle, say so and offer the last replay and the next run time.
-
-### B5. The log and the ghost hull
-- **The log is a DOM list:** time, agent, verb-first action, plank. Collapse repeated tool calls into one row with a count, with inline previews and one-click diffs ([GitHub, 2026-01-26](https://github.blog/changelog/2026-01-26-introducing-the-agents-tab-in-your-repository)); drop housekeeping lines ([Devin, 2026-10-19](https://docs.devin.ai/release-notes/overview)); show change size as `+42 −18`, the way [Claude Code](https://code.claude.com/docs/en/claude-code-on-the-web) does.
-- **Selecting a row** highlights its plank; the camera moves only if the plank is off-screen (Calm: cut and fade). URL `?entry=`; ↑/↓ or J/K, Enter.
-- **Ghost hull:** the direction gives removed planks the vellum material. **[proposal for Iris]** Draw it as thin ink lines rather than a translucent fill: one draw, no transparency sorting, and it matches the sheet; ≥ 3:1 if it carries meaning.
-- **One solid panel material,** never glass on glass. Apple uses its frosted variant for text-heavy surfaces and a 35% dimming layer under clear glass on bright content ([HIG](https://developer.apple.com/design/human-interface-guidelines/materials)).
+### B5. The log and the ghost hull (`/log`)
+- **The revision table is a DOM list:** each plank, who drew, checked and tested it, and the approval (direction). Show change size as `+42 −18`, the way [Claude Code](https://code.claude.com/docs/en/claude-code-on-the-web) does.
+- **The ghost hull** is the removed planks in vellum (direction). **[proposal for Iris]** Thin ink lines rather than a translucent fill: one draw, no transparency sorting, and it matches the sheet; ≥ 3:1 if it carries meaning.
+- **[proposal]** Selecting a row highlights its plank, and the camera moves between the brief's named viewpoints only if the plank is off-screen (Calm: cut); `?entry=` in the URL, and ↑/↓ with Enter.
+- **One solid panel material,** never glass on glass ([HIG](https://developer.apple.com/design/human-interface-guidelines/materials)).
 
 ---
 
@@ -136,11 +125,11 @@ Patterns shared by current agent UIs: grouped, iconised activity ([GitHub](https
 
 Vercel serves brotli whenever the browser accepts it ([Vercel docs](https://vercel.com/docs/how-vercel-cdn-works/compression)).
 
-**Against the "≤ 250 KB gzip" 3D chunk:** the direction's stack, a WebGPU build with the scene's materials, batched mesh and lights (245 KiB) plus GSAP (27 KiB), is ≈ **272 KiB gzip: does not fit.** The renderer-only floor is 211 KiB; React Three Fiber, which the direction doesn't use, would add another 56 KiB.
+**Against the "≤ 250 KB gzip" 3D chunk** (sizes here are KiB; 1 KiB = 1.024 kB): the direction's stack, a WebGPU build with the scene's materials, batched mesh and lights (245 KiB ≈ 251 kB, already at the limit) plus GSAP (27 KiB), is ≈ **272 KiB ≈ 279 kB gzip: does not fit.** The renderer-only floor is 211 KiB; React Three Fiber, which the direction doesn't use, would add another 56 KiB.
 
 Options:
-- **A. Recommended for the portfolio:** vanilla three.js, **WebGLRenderer**, small GLSL shaders and a 30-line custom tween: about 140 KiB gzip. At ≤ 8 draws WebGPU's lower CPU overhead buys nothing, and WebGL 2 reaches more devices [judgement].
-- **B. Keep TSL:** vanilla `three/webgpu`, no R3F or GSAP, budgeted as **brotli on the wire** (about 200 KiB): fits, with the manual's "experimental" caveat. Enforce size in CI.
+- **A. [proposal, for the B3 decision] The portfolio on WebGL:** vanilla three.js, **WebGLRenderer**, small GLSL shaders and a 30-line custom tween: about 140 KiB gzip. At ≤ 8 draws WebGPU's lower CPU overhead buys nothing, and WebGL 2 reaches more devices [judgement].
+- **B. [proposal, for the B3 decision] Keep WebGPU and TSL:** vanilla `three/webgpu`, no R3F or GSAP, budgeted as **brotli on the wire** (about 200 KiB): fits, with the manual's "experimental" caveat. Enforce size in CI.
 - **The Studio has no stated size budget:** use R3F 9.8.x with drei 10 (WebGL path) behind `next/dynamic` now, and revisit R3F v10 at its beta.
 
 **Skip for now:**
