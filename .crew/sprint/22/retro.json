@@ -4,35 +4,57 @@
   "goal": "The home page becomes the hull's drawing sheet, with a plank and a revision for each sprint",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "needs-owner: open, waiting for the owner. CI check green and the full suite at 123 passed on 5914a41; Iris changes 8.0/10, with her three musts done in fix round 1. Lens returned no verdict twice, at its 40-turn cap, and gate waits for the owner to approve the retired checks",
-  "fixRounds": 1,
-  "minutes": 140,
+  "outcome": "needs-owner: open, waiting for the owner. Lens ship on 9ea4fe7 after fix round 2, CI check green and 124 e2e tests passed; gate waits for the owner to approve the retired checks (batches A, B and C). Iris changes 8.0/10 with her three musts done in fix round 1",
+  "fixRounds": 2,
+  "minutes": 180,
   "agents": [
-    { "role": "product-owner", "model": "opus", "tokens": 217999, "minutes": 13 },
-    { "role": "design-director", "model": "fable", "tokens": 500357, "minutes": 34 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 282589, "minutes": 32 },
-    { "role": "engineer", "model": "opus", "tokens": 569695, "minutes": 58 }
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 217999,
+      "minutes": 13
+    },
+    {
+      "role": "design-director",
+      "model": "fable",
+      "tokens": 500357,
+      "minutes": 34
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 358049,
+      "minutes": 38
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 701243,
+      "minutes": 68
+    }
   ],
-  "lens": { "runs": 2, "tokens": 6066966, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": {
+    "runs": 4,
+    "tokens": 11953129,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 6
+  },
   "wentWrong": [
     {
       "what": "The code review ran out of turns twice before reaching a verdict on a change this large",
-      "evidence": "The lens check on 5914a41 shows no verdict after 44 turns, then 55 turns on the re-run, against --max-turns 40 in .github/workflows/lens.yml. The diff is 53 files, +5,504 and −5,125 lines"
+      "evidence": "The lens check on 5914a41 shows no verdict after 44 turns, then 55 turns on the re-run, against --max-turns 40 in .github/workflows/lens.yml. The diff is 53 files, +5,504 and −5,125 lines. Resolved by the owner's #63, which sizes the turns by what a change adds: the review on aa9fcd9 took 49 turns"
     },
     {
       "what": "The design notes and the contract disagreed in twelve places that the checks would have caught only after the build",
       "evidence": "Probe's list in .crew/sprint/22/decisions.md, item 3. Iris and Quill wrote in parallel"
     },
     {
-      "what": "A font check failed on a browser cache quirk, not on the page",
-      "evidence": "B1.10's response listener read bodies on /sprints, where the font came from memory cache (fixed in 1a890bf)"
+      "what": "The sticky bar and a hovered project card shared a z-index, so a hovered card painted over the bar and took its clicks",
+      "evidence": "Lens on aa9fcd9, Important. B1.3 clicked the bar with no card under it, so the suite was green; the new B1.3 check puts a hovered card under the bar first (.crew/sprint/22/fix-round-2.md)"
     }
   ],
   "proposals": [
-    {
-      "change": "Scale Lens's --max-turns with the size of the change, as its effort already does (for example 40, 80 and 120 by effortFor's lane)",
-      "moves": "Lens runs without a verdict (2 this sprint, on a page replacement)"
-    },
     {
       "change": "Run the designer's build notes after the contract, or have the contract writer read them before the checks are written, rather than in parallel",
       "moves": "Conflicts between notes and contract found after the checks are written (12 this sprint)"
@@ -43,10 +65,29 @@
     }
   ],
   "followUps": [
-    { "who": "Owner", "what": "Approve the retired checks in batches A, B and C on PR #62, and raise or scale Lens's turn cap so it can judge the PR" },
-    { "who": "Atlas", "what": "Once Lens can run, take its verdict on PR #62's head, send Important findings to Forge, then ready the PR" },
-    { "who": "Iris", "what": "The favicon's copper mark (now the one copper thing on the site) and the social cards' typeface, with B2" },
-    { "who": "Forge", "what": "app/opengraph-image.tsx still calls Geist the site's typeface, so fix that comment with B2" },
-    { "who": "Forge", "what": "A revision whose goal wraps to three lines grows the bottom row, which pushes the title block's contact links below the fold at 1440 (B1.1). Keep the first screen fixed whatever the goals' length" }
+    {
+      "who": "Owner",
+      "what": "Approve the retired checks in batches A, B and C on PR #62, then merge it"
+    },
+    {
+      "who": "Iris",
+      "what": "The favicon's copper mark (now the one copper thing on the site) and the social cards' typeface, with B2"
+    },
+    {
+      "who": "Forge",
+      "what": "app/opengraph-image.tsx still calls Geist the site's typeface, so fix that comment with B2"
+    },
+    {
+      "who": "Forge",
+      "what": "A revision whose goal wraps to three lines grows the bottom row, which pushes the title block's contact links below the fold at 1440 (B1.1). Keep the first screen fixed whatever the goals' length"
+    },
+    {
+      "who": "Forge",
+      "what": "In forced colours, seated and original planks and the legend's two swatches all fill Canvas, so the drawing shows one state. Fill .plank-original and its swatch GrayText (Lens nit on 9ea4fe7), with the next sprint that touches the plan's CSS"
+    },
+    {
+      "who": "Forge",
+      "what": "The folded revision table on phones: add a plain `content: attr(data-label)` before the alt-text form for older Safari and Firefox, and check whether WebKit keeps the table's semantics under display: block and grid (Lens nit on 9ea4fe7, unverified), with B2"
+    }
   ]
 }

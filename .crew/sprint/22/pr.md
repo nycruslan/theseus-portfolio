@@ -74,6 +74,10 @@ the sheet. This is the redesign's first demo: look at the Vercel preview at 1440
     just inside the card, a closed box (`after-focus-390.png`).
   - The notes that called Lens's turn cap a blocker are brought up to date.
 - `origin/main` is merged in (31c4a63), which brings the owner's #63 and #60 to the branch.
+- Lens on 9ea4fe7, the fix round's head: **ship**, with four nits and nothing Important. The stale
+  PR body and retro are corrected in this close-out; the forced-colours plank fills, the folded
+  table's label fallback on older Safari and Firefox, and the Open Graph comment are in the retro's
+  follow-ups, to ride along with the sprints that touch that code.
 
 ## Needs owner decision
 
