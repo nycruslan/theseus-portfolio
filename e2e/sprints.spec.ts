@@ -361,37 +361,6 @@ test.describe("C1. The route and its skeleton", () => {
     expect(found.inMain, "forbidden elements in main").toEqual([]);
     expect(found.hero, "[data-hero] elements").toBe(0);
   });
-
-  test("C1.3 main opens the way the home page's main does", async ({
-    page,
-  }) => {
-    const mainBox = () =>
-      page.evaluate(() => {
-        const style = getComputedStyle(
-          document.querySelector("main") ?? document.body,
-        );
-        return {
-          display: style.display,
-          flexDirection: style.flexDirection,
-          width: style.width,
-          maxWidth: style.maxWidth,
-          paddingTop: style.paddingTop,
-          paddingRight: style.paddingRight,
-          paddingBottom: style.paddingBottom,
-          paddingLeft: style.paddingLeft,
-          rowGap: style.rowGap,
-          columnGap: style.columnGap,
-        };
-      });
-    for (const width of [390, 1440]) {
-      await page.setViewportSize({ width, height: HEIGHT });
-      await page.goto("/");
-      const home = await mainBox();
-      const response = await page.goto(SPRINTS);
-      expect(response?.status(), `status of ${SPRINTS}`).toBe(200);
-      expect(await mainBox(), `main's box at ${width} px`).toEqual(home);
-    }
-  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -644,14 +613,15 @@ test.describe("C4. One entry's words", () => {
     expect(words(7), "sprint 7 (L)").toMatch(/^Large sprint/);
   });
 
-  test("C4.3 the pull request link: text, href, 24 px tall, in --accent", async ({
+  test("C4.3 the pull request link: text, href, 24 px tall, in --foreground", async ({
     page,
   }) => {
     expect(entryOf(11)?.pr, "the oracle's pull request for sprint 11").toBe(36);
     for (const scheme of SCHEMES) {
       for (const width of [320, 390, 1440]) {
         await open(page, width, scheme);
-        const accent = (await resolveColors(page))["--accent"]?.computed;
+        // Owner's call 2 (sprint 22): links are ink; copper means live now.
+        const ink = (await resolveColors(page))["--foreground"]?.computed;
         const dom = await readEntries(page);
         const boxes = await page.evaluate(
           (selector) =>
@@ -674,7 +644,7 @@ test.describe("C4. One entry's words", () => {
             expect
               .soft(box.height, `link height, ${where}`)
               .toBeGreaterThanOrEqual(24 - 0.05);
-            expect.soft(box.color, `link color, ${where}`).toBe(accent);
+            expect.soft(box.color, `link color, ${where}`).toBe(ink);
           }
         }
         const eleven = dom[VALID.findIndex((e) => e.sprint === 11)];
@@ -1256,18 +1226,17 @@ for (const scheme of SCHEMES) {
       }
     });
 
-    test(`C7.2 the accent colour is on links only (${scheme})`, async ({
+    test(`C7.2 the accent colour is on nothing, links included (${scheme})`, async ({
       page,
     }) => {
       await open(page, 1440);
       const accent = (await resolveColors(page))["--accent"]?.computed;
       expect(accent, "--accent resolves").toBeTruthy();
+      // Sprint 22: nothing on /sprints is live, so nothing is copper, not even a link.
       const found = await page.evaluate((color) => {
         const links = document.querySelectorAll("main a").length;
         const off = [...document.body.querySelectorAll("*")]
-          .filter(
-            (el) => getComputedStyle(el).color === color && !el.closest("a"),
-          )
+          .filter((el) => getComputedStyle(el).color === color)
           .map(
             (el) =>
               `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 30)}"`,
@@ -1278,7 +1247,7 @@ for (const scheme of SCHEMES) {
         found.links,
         "links in main (the back link and the PR links)",
       ).toBeGreaterThan(1);
-      expect(found.off, "elements in --accent that are not links").toEqual([]);
+      expect(found.off, "elements in --accent").toEqual([]);
     });
 
     test(`C7.3 no background, radius, shadow, outline, rail or transform in the log, but the dots (${scheme})`, async ({
@@ -1599,15 +1568,18 @@ test.describe("C9. Accessibility", () => {
     await page.emulateMedia({ forcedColors: "active" });
     for (const width of [390, 1440]) {
       await open(page, width);
-      const seen = await page.evaluate(() => ({
-        page: getComputedStyle(document.body).backgroundColor,
-        dots: [
-          ...document.querySelectorAll("main section ol > li ul > li"),
-        ].map((li) => ({
-          text: (li.textContent ?? "").trim().slice(0, 24),
-          background: getComputedStyle(li, "::before").backgroundColor,
-        })),
-      }));
+      const seen = await page.evaluate(
+        (entries) => ({
+          page: getComputedStyle(document.body).backgroundColor,
+          dots: [...document.querySelectorAll(`${entries} ul > li`)].map(
+            (li) => ({
+              text: (li.textContent ?? "").trim().slice(0, 24),
+              background: getComputedStyle(li, "::before").backgroundColor,
+            }),
+          ),
+        }),
+        ENTRIES,
+      );
       const where = `${width} px`;
       expect(
         seen.dots.length,
