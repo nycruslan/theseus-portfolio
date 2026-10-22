@@ -25,6 +25,8 @@ page, and B3, the signature moment.
   block from the retros, with Off as everyone's default. It replaces today's home page, so its
   contract lists which live checks it keeps, rewrites or retires, and the owner approves the
   retirements in that PR.
+  - Built in sprint 22, PR #62. It waits for the owner, who approves the retired checks (batches A, B
+    and C) and Lens's turn cap, which ran out twice before a verdict. Once Lens says ship, it's ready.
 - [ ] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
 - [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
   phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
