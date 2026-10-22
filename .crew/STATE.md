@@ -18,7 +18,8 @@ makes stale, and keep the file under about 100 lines.
   file states. Lens's effort in CI follows the size of the change.
 - **The pre-flight:**
   - The owner's goal isn't held by the daily cap.
-  - A PR or branch that changed in the last two hours is left to the run still on it.
+  - A PR or branch committed to in the last two hours is left to the run still on it. Reviews,
+    labels and comments don't count: they aren't a run.
 
 ## Lessons that hold
 
