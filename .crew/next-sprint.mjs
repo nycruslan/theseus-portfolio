@@ -19,7 +19,7 @@
 //   required checks are.
 // - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
-//   start the next sprint. A PR or branch that changed in the last ACTIVE_HOURS is left to the run
+//   start the next sprint. A PR or branch committed to in the last ACTIVE_HOURS is left to the run
 //   most likely still on it, since two runs on one branch collide. While one PR waits for the owner
 //   a new sprint may start beside it; a second waiting PR stops new work.
 // It fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate
@@ -36,9 +36,10 @@ const SPRINT_BRANCH = /^sprint[/-](\d+)(?:-|$)/;
 const FOLDER = /^\d+$/;
 const DAY = 24 * 60 * 60 * 1000;
 const DAILY_DEFAULT = 6;
-// How long a PR or branch stays the run's that last changed it: builders can work in their own
+// How long a PR or branch stays the run's that last committed to it: builders can work in their own
 // worktrees for an hour or more before anything reaches GitHub. A run that died is picked up once
-// the window has passed.
+// the window has passed. Only a commit counts: Lens's reviews, gate's labels and the owner's
+// comments change a PR too, but none of them is a run on it.
 const ACTIVE_HOURS = 2;
 const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
@@ -76,7 +77,7 @@ function preflight(repo) {
         number: pr.number,
         branch: pr.head.ref,
         head: pr.head.sha,
-        updatedAt: pr.updated_at,
+        committedAt: committedAt(repo, pr.head.sha),
         draft: pr.draft === true,
         waitsForOwner:
           pr.draft !== true &&
@@ -125,13 +126,16 @@ function freshBranches(repo, branches, open, closed) {
     )
     .map(({ name, commit }) => ({
       branch: name,
-      committedAt: api(`repos/${repo}/commits/${commit.sha}`).commit.committer
-        .date,
+      committedAt: committedAt(repo, commit.sha),
     }))
     .filter(
       ({ committedAt }) => Date.now() - Date.parse(committedAt) < ACTIVE_MS,
     )
     .sort((a, b) => Date.parse(b.committedAt) - Date.parse(a.committedAt));
+}
+
+function committedAt(repo, sha) {
+  return api(`repos/${repo}/commits/${sha}`).commit.committer.date;
 }
 
 // Whether the checks app's latest `gate` on the head leaves it to the owner: held for their
@@ -212,16 +216,15 @@ function ownerQueue(repo, open) {
       ({ author_association: association, user }) =>
         TRUSTED.has(association) || user?.login === CHECKS_APP,
     );
-    const committed = api(`repos/${repo}/commits/${pr.head}`).commit.committer
-      .date;
+    const committed = Date.parse(pr.committedAt);
     const lastSeen = Math.max(
-      Date.parse(committed),
+      committed,
       ...comments.map(({ created_at: at }) => Date.parse(at)),
     );
     if (Date.now() - lastSeen >= DAY) {
       remind.push({ number: pr.number, url: pr.url });
     }
-    const quiet = Date.now() - Date.parse(pr.updatedAt) >= ACTIVE_MS;
+    const quiet = Date.now() - committed >= ACTIVE_MS;
     if (
       quiet &&
       !comments.some(({ body }) =>
@@ -292,12 +295,12 @@ function action(open, unopened, next, daily, ownerGoal) {
       say: `PR #${first.number} (${first.branch}) waits for the owner${others(first)}. Don't start a new sprint: stand down with a short report.`,
     };
   }
-  if (Date.now() - Date.parse(current.updatedAt) < ACTIVE_MS) {
-    const minutes = minutesSince(current.updatedAt);
+  if (Date.now() - Date.parse(current.committedAt) < ACTIVE_MS) {
+    const minutes = minutesSince(current.committedAt);
     return {
       do: "stand down",
       pr: current.number,
-      say: `PR #${current.number} (${current.branch}) changed ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for ${ACTIVE_HOURS} hours.`,
+      say: `PR #${current.number} (${current.branch}) was committed to ${minutes} min ago, so another run is most likely still working on it${others(current)}. Don't touch it or start a new sprint: stand down with a short report. A later run continues it once it has been quiet for ${ACTIVE_HOURS} hours.`,
     };
   }
   return {
