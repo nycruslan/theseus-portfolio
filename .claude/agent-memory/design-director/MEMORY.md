@@ -11,4 +11,7 @@
 - Canvas mocks use real renders: the model rendered with three.js from `lib/half-model.ts`'s geometry, every artboard checked with axe in a stub before publishing. Sources and recipe: `.crew/sprint/17/render/` (sprint 17).
 - The revision block's facts: Approved is Owner where the owner accepted the PR (sprints 1, 2, 7, 9, 10, 12, 15) and Gate where `merge.mjs` merged it; merge times come from `gh api …/pulls/<n>`; a closed sprint (16, #49) takes no plank.
 - Review on a slow phone profile (4x CPU, 400 kbps). The 0.015 font-swap CLS on today's `/` predates the redesign (sprint 14).
+- A drawing's lettering is HTML at fixed px over a scaling SVG with `vector-effect: non-scaling-stroke`: lettering height never follows the drawing's scale, and SVG text shrinks under 12 px at 1024 (sprint 22).
+- Fonts for CLS 0: `next/font/google` with `display: 'optional'`, preload and the fitted fallback; Chrome holds first paint for a preloaded optional font, so the real face paints first on a normal line and the fallback stays, honestly, on a slow one (sprint 22).
+- B1's calls beyond the canvas (legend in the revisions footer, phone plan = profile + half-breadth, control deferred to B3, no copper and no Date column in B1, bar with three items) are in `.crew/sprint/22/notes-iris.md` §13; review B1 against them, not against the canvas's live frame.
 - impeccable's URL detector needs `IMPECCABLE_BROWSER` pointed at a Chromium wrapper that adds `--no-sandbox` when the session runs as root; axe needs `browser.newContext()`, not `browser.newPage()` (sprint 4).

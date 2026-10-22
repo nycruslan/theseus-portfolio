@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theseus, rest state, 390</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400..800&amp;family=Sofia+Sans+Extra+Condensed:wght@500..800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#111c22}a:hover{color:#111c22;text-decoration-thickness:2px}
+.sheet{position:relative;overflow:hidden;background:#eaf1ee;color:#111c22;font-family:"Sofia Sans",system-ui,sans-serif;font-size:16px;line-height:1.5}
+.cond{font-family:"Sofia Sans Extra Condensed","Sofia Sans",sans-serif}
+.pnav{position:absolute;left:0;right:0;top:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #111c22;box-sizing:border-box;background:#eaf1ee}
+.mark{font-family:"Sofia Sans Extra Condensed",sans-serif;font-weight:700;font-size:24px;line-height:1;text-decoration:none}
+.plinks{display:flex;font-size:15px;font-weight:600}
+.plinks a{text-decoration:none;padding:0 8px;min-height:44px;display:flex;align-items:center}
+.seg{display:flex;border:1px solid #111c22}
+.seg button{font:600 14px/1 "Sofia Sans",sans-serif;padding:0 14px;height:44px;background:transparent;color:#111c22;border:0;border-left:1px solid #111c22}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:#111c22;color:#eaf1ee}
+.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1px solid #111c22;background:transparent;font:600 14px/1 "Sofia Sans",sans-serif;color:#111c22;white-space:nowrap}
+</style>
+</helmet>
+<div class="sheet" style="width: 390px; height: 844px">
+<img src="/_blob/df0fe19f2ce78624702f8394453c4156" alt="" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<header class="pnav">
+<a class="mark" href="#">Theseus</a>
+<nav aria-label="Main" class="plinks"><a href="#work">Work</a><a href="#crew">Crew</a><a href="#log">Log</a><a href="#contact" style="padding-right: 0">Contact</a></nav>
+</header>
+<div style="position: absolute; left: 0; right: 0; top: 350px; bottom: 0; border-top: 2px solid #111c22; background: #eaf1ee; padding: 14px 16px 0; display: flex; flex-direction: column">
+<h1 class="cond" style="margin: 0; font-size: 60px; font-weight: 700; line-height: 0.9; letter-spacing: -0.01em">Ruslan Shulga</h1>
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 6px; border-top: 1px solid #111c22">
+<p style="margin: 0; font-size: 18px; font-weight: 650">VP Engineering, AI Platform</p>
+<p style="margin: 0; font-size: 14px; color: #555c61">New York, NY</p>
+</div>
+<p style="margin: 8px 0 0; font-size: 16px; line-height: 1.45">VP Engineering at JPMorgan Chase. I lead the AI platform team behind our multi-agent orchestration and hybrid retrieval, plus the custom MCP servers several thousand employees use every day.</p>
+<div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #111c22; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 14px; line-height: 1.4; font-feature-settings: 'tnum' 1"><strong>Crew resting.</strong> Last plank seated: sprint 15, 21 Oct, 01:22 UTC.</p>
+<div style="display: flex; gap: 10px; align-items: center"><button type="button" class="btn"><svg aria-hidden="true" width="10" height="12" viewBox="0 0 10 12"><path d="M1 1L9 6L1 11Z" fill="#111c22"/></svg>Replay sprint 15, 4x</button><a href="#log" style="font-size: 14px; font-weight: 600">Revisions</a></div>
+</div>
+<div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding: 10px 0 14px">
+<a href="#read" style="font-weight: 600; font-size: 15px; min-height: 44px; display: flex; align-items: center">Read as page</a>
+<div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Calm</button><button type="button" aria-pressed="false">Off</button></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

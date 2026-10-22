@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Type, colour and line tokens</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400..800&amp;family=Sofia+Sans+Extra+Condensed:wght@500..800&amp;display=swap">
+<style>
+body{margin:0}
+.cond{font-family:"Sofia Sans Extra Condensed","Sofia Sans",sans-serif}
+h3{margin:0 0 12px;padding-top:10px;border-top:2px solid #111c22;font-family:"Sofia Sans Extra Condensed",sans-serif;font-size:30px;font-weight:700;line-height:1}
+.sw{display:grid;grid-template-columns:56px minmax(0,1fr);gap:0 14px;align-items:center;padding:7px 0;border-bottom:1px solid #bfcac7;font-size:14px;line-height:1.35}
+.chip{width:56px;height:36px;border:1px solid #111c22;box-sizing:border-box}
+.sw b{display:block;font-size:15px}
+.sw span{color:#555c61;font-feature-settings:"tnum" 1}
+.dk .sw{border-bottom-color:#323d40}
+.dk .sw span{color:#a3adb1}
+.dk .chip{border-color:#e2eae9}
+.ty{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0 20px;align-items:baseline;padding:10px 0;border-bottom:1px solid #bfcac7}
+.ty small{font-size:13px;color:#555c61;line-height:1.35}
+.st{display:grid;grid-template-columns:80px 120px minmax(0,1fr);gap:0 14px;align-items:center;padding:8px 0;border-bottom:1px solid #bfcac7;font-size:14px}
+.hatch{background:repeating-linear-gradient(-50deg,#eaf1ee 0 3px,#aab0b3 3px 4px)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1270px; box-sizing: border-box; padding: 48px 56px; background: #eaf1ee; color: #111c22; font-family: 'Sofia Sans', system-ui, sans-serif; display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: 24px; row-gap: 36px; align-content: start">
+
+<section style="grid-column: 1 / span 7">
+<h3>Type: one family, two widths</h3>
+<div class="ty"><small>Display<br>Sofia Sans Extra Condensed 700<br>name 104 / 60 px, line 0.86</small><span class="cond" style="font-size: 104px; font-weight: 700; line-height: 0.86; letter-spacing: -0.01em">Ruslan Shulga</span></div>
+<div class="ty"><small>Section 72 / 52 px<br>Company 36 / 30 px</small><span class="cond" style="font-size: 52px; font-weight: 700; line-height: 1">Work <span style="font-size: 36px">JPMorgan Chase &amp; Co.</span></span></div>
+<div class="ty"><small>Text<br>Sofia Sans 400 to 700<br>17 / 16 px, line 1.55</small><span style="font-size: 17px; line-height: 1.55">I lead the AI platform team behind our multi-agent orchestration and hybrid retrieval.</span></div>
+<div class="ty"><small>Role 21 / 18 px, 650</small><span style="font-size: 21px; font-weight: 650">VP Engineering, AI Platform</span></div>
+<div class="ty"><small>Figures: tabular everywhere a column is read</small><span style="font-size: 15px; font-feature-settings: 'tnum' 1">Rev 17 · 21 Oct, 01:22 UTC · 70 of 2,027 lines · 15 / 22</span></div>
+<p style="margin: 12px 0 0; font-size: 14px; line-height: 1.5; color: #555c61">Why: a DIN-lineage grotesque, the family of DIN 1451, the standard lettering of engineering drawings. The extra-condensed width sets the title block like drawn lettering; the normal width carries the reading. SIL OFL, self-hosted, latin subset: two variable woff2 files, about 40 KB each. The display file is preloaded because the name is the largest paint. Replaces Geist.</p>
+</section>
+
+<section style="grid-column: 9 / span 4">
+<h3>Four states, one material each</h3>
+<div class="st"><span class="chip" style="background: #fbfaf7; width: 80px"></span><b>Ink, card</b><span>Merged. A seated plank, a ruled row, a word that is final.</span></div>
+<div class="st"><span class="chip hatch" style="width: 80px"></span><b>Graphite</b><span>In progress. The plank being drawn, the row not yet signed.</span></div>
+<div class="st"><span class="chip" style="background: #9e441d; border-color: #9e441d; width: 80px"></span><b>Copper</b><span>Live, this minute. Nothing else is ever copper: not links, not hovers.</span></div>
+<div class="st"><span class="chip" style="background: #cfdcdc; opacity: 0.7; width: 80px"></span><b>Vellum</b><span>Removed. The ghost hull in the Log.</span></div>
+<div class="st" style="border-bottom: 0"><span class="chip" style="background: #d9e0dc; width: 80px"></span><b>Old card</b><span>Original: a plank no sprint has replaced yet.</span></div>
+</section>
+
+<section style="grid-column: 1 / span 4">
+<h3>Day: drafting film</h3>
+<div class="sw"><div class="chip" style="background: #eaf1ee"></div><div><b>film #eaf1ee</b><span>oklch(95.2% 0.008 165). The ground.</span></div></div>
+<div class="sw"><div class="chip" style="background: #111c22"></div><div><b>ink #111c22</b><span>15.1:1. Text, outlines, merged lines.</span></div></div>
+<div class="sw"><div class="chip" style="background: #555c61"></div><div><b>graphite #555c61</b><span>5.9:1. Secondary text, the pencil state.</span></div></div>
+<div class="sw"><div class="chip" style="background: #878d91"></div><div><b>pencil #878d91</b><span>2.9:1. Construction lines only, never text.</span></div></div>
+<div class="sw"><div class="chip" style="background: #bfcac7"></div><div><b>rule #bfcac7</b><span>Row hairlines, never text.</span></div></div>
+<div class="sw"><div class="chip" style="background: #9e441d"></div><div><b>copper #9e441d</b><span>5.5:1. Live now, only.</span></div></div>
+<div class="sw" style="border-bottom: 0"><div class="chip" style="background: #fbfaf7"></div><div><b>card #fbfaf7</b><span>The model's planks. Old card #d9e0dc.</span></div></div>
+</section>
+
+<section class="dk" style="grid-column: 5 / span 4; background: #10191c; color: #e2eae9; padding: 0 20px 12px; margin: 0 -20px">
+<h3 style="border-top-color: #e2eae9">Night watch</h3>
+<div class="sw"><div class="chip" style="background: #10191c"></div><div><b>film #10191c</b><span>oklch(20.5% 0.014 225).</span></div></div>
+<div class="sw"><div class="chip" style="background: #e2eae9"></div><div><b>ink #e2eae9</b><span>14.6:1.</span></div></div>
+<div class="sw"><div class="chip" style="background: #a3adb1"></div><div><b>graphite #a3adb1</b><span>7.8:1.</span></div></div>
+<div class="sw"><div class="chip" style="background: #6a7377"></div><div><b>pencil #6a7377</b><span>3.7:1. Lines only.</span></div></div>
+<div class="sw"><div class="chip" style="background: #323d40"></div><div><b>rule #323d40</b><span>Hairlines.</span></div></div>
+<div class="sw"><div class="chip" style="background: #ee8f63"></div><div><b>copper #ee8f63</b><span>7.4:1. Live now.</span></div></div>
+<div class="sw" style="border-bottom: 0"><div class="chip" style="background: #dfe4e2"></div><div><b>card #dfe4e2</b><span>Lit by one cool lamp.</span></div></div>
+</section>
+
+<section style="grid-column: 9 / span 4">
+<h3>Lines and layout</h3>
+<svg role="img" aria-label="Line weights: outline 1.6 px ink, seam 0.9 px ink, construction 0.6 px pencil, centreline dash-dot, hatch at minus 50 degrees" width="100%" height="150" viewBox="0 0 400 150">
+<g font-family="Sofia Sans" font-size="12" fill="#555c61">
+<path d="M0 12H230" stroke="#111c22" stroke-width="1.6"/><text x="246" y="16">Outline 1.6</text>
+<path d="M0 40H230" stroke="#111c22" stroke-width="0.9"/><text x="246" y="44">Seam 0.9</text>
+<path d="M0 68H230" stroke="#878d91" stroke-width="0.6"/><text x="246" y="72">Construction 0.6</text>
+<path d="M0 96H230" stroke="#555c61" stroke-width="0.75" stroke-dasharray="14 3 2 3"/><text x="246" y="100">Centreline, DWL</text>
+<path d="M0 124H230" stroke="#111c22" stroke-width="2"/><text x="246" y="128">Section rule 2</text>
+</g>
+</svg>
+<ul style="margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.5">
+<li>The sheet: a 1 px ink frame, 16 px in. The bar sits above it.</li>
+<li>12 columns, 24 px gutters; 56 px margins at 1440, 16 px on phones.</li>
+<li>No radii, no shadows in the interface. The only shadow is the model's, on its own drawing.</li>
+<li>Focus: a 2 px ink ring, 2 px out. Selection: rule on film.</li>
+</ul>
+</section>
+
+<section style="grid-column: 1 / span 12">
+<h3>Not this, checked against every board</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; max-width: 120ch">No gradients, glow, glass or orbs. No chat bubbles, no self-typing terminal. No anchors, ship's wheels or rope type, no "Captain". No drivable world, no tiny planet, no preloader and no Enter button. No blue blueprint grid. No painted sea: "at sea" is the designed waterline. No cards with radii, no eyebrow labels over headings, no emoji. Every word is HTML at full opacity, and the canvas is decoration (aria-hidden).</p>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1270}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

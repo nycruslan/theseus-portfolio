@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The motion control</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400..800&amp;family=Sofia+Sans+Extra+Condensed:wght@500..800&amp;display=swap">
+<style>
+body{margin:0}
+.cond{font-family:"Sofia Sans Extra Condensed","Sofia Sans",sans-serif}
+.seg{display:inline-flex;border:1px solid #111c22}
+.seg button{font:600 14px/1 "Sofia Sans",sans-serif;padding:0 12px;height:32px;background:transparent;color:#111c22;border:0;border-left:1px solid #111c22}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:#111c22;color:#eaf1ee}
+.big button{height:44px;padding:0 16px}
+.lbl{font-size:13px;color:#555c61;margin:0 0 6px}
+.mt{width:100%;border-collapse:collapse;font-size:14px;line-height:1.35}
+.mt th{text-align:left;font-weight:700;padding:0 10px 6px 0;border-bottom:1px solid #111c22}
+.mt td{padding:7px 10px 7px 0;border-bottom:1px solid #bfcac7;vertical-align:top}
+.mt td:first-child{font-weight:600}
+</style>
+</helmet>
+<div style="width: 720px; height: 900px; box-sizing: border-box; padding: 44px 48px; background: #eaf1ee; color: #111c22; font-family: 'Sofia Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 24px">
+<div>
+<h2 class="cond" style="margin: 0; font-size: 52px; font-weight: 700; line-height: 0.95">Full, Calm, Off</h2>
+<p style="margin: 10px 0 0; font-size: 16px; line-height: 1.45">One labelled control, always in the bar, three real buttons with aria-pressed. The choice is remembered on this device. Reduced motion starts at Calm.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px 24px">
+<div><p class="lbl">Full (the default)</p><div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Calm</button><button type="button" aria-pressed="false">Off</button></div></div>
+<div><p class="lbl">Calm (and prefers-reduced-motion)</p><div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="false">Full</button><button type="button" aria-pressed="true">Calm</button><button type="button" aria-pressed="false">Off</button></div></div>
+<div><p class="lbl">Off</p><div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="false">Full</button><button type="button" aria-pressed="false">Calm</button><button type="button" aria-pressed="true">Off</button></div></div>
+<div><p class="lbl">Keyboard focus on Calm</p><div class="seg" role="group" aria-label="Motion"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false" style="outline: 2px solid #111c22; outline-offset: 2px; position: relative">Calm</button><button type="button" aria-pressed="false">Off</button></div></div>
+<div style="grid-column: span 2"><p class="lbl">On a phone: 44 px targets, in the first screen's bottom strip</p><div class="seg big" role="group" aria-label="Motion"><button type="button" aria-pressed="true">Full</button><button type="button" aria-pressed="false">Calm</button><button type="button" aria-pressed="false">Off</button></div></div>
+</div>
+<table class="mt">
+<thead><tr><th style="width: 128px; color: #555c61; font-weight: 600">What moves</th><th>Full</th><th>Calm</th><th>Off</th></tr></thead>
+<tbody>
+<tr><td>The loft</td><td>Once a visit, 2.4 s, skippable</td><td>Skipped: opens settled</td><td>No 3D: the drawing, planks in 2D</td></tr>
+<tr><td>Between views</td><td>The camera eases to a named viewpoint, 600 ms</td><td>Cuts to it</td><td>The drawing stays; panels open</td></tr>
+<tr><td>Live marks</td><td>The pencil line draws on; the copper tip moves</td><td>Appear in place</td><td>Appear in place, in 2D</td></tr>
+<tr><td>Ambient light</td><td>Follows one shared clock, slowly</td><td>Still</td><td>None</td></tr>
+<tr><td>Cost</td><td>3D chunk after first paint; renders on demand</td><td>Same chunk; renders on events only</td><td>No WebGL loaded at all</td></tr>
+<tr><td>Also used for</td><td></td><td>prefers-reduced-motion</td><td>No WebGL, no JavaScript, print, slow devices</td></tr>
+</tbody>
+</table>
+<p style="margin: 0; font-size: 14px; color: #555c61">Nothing the visitor reads ever moves, in any mode. Every fact is in the HTML at full opacity before any of this runs.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
