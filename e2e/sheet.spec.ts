@@ -62,6 +62,20 @@ async function settled(page: Page) {
   });
 }
 
+/** "in view" when the element's top is below the bar's bottom edge and inside the viewport. */
+function clearOfTheBar(page: Page, id: string) {
+  return page.evaluate((target) => {
+    const el = document.getElementById(target);
+    const bar = document.querySelector("header:has(nav)");
+    if (!el) return "missing";
+    const r = el.getBoundingClientRect();
+    const under = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+    return r.top >= under - 1 && r.top < innerHeight
+      ? "in view"
+      : `top ${r.top}, bar ${under}`;
+  }, id);
+}
+
 /** A token as [r, g, b, a], through the page's own canvas. */
 async function tokenRgba(page: Page, name: string): Promise<Rgba> {
   return page.evaluate((token) => {
@@ -381,19 +395,7 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
         .toBe(`#${id}`);
       await expect
         .poll(
-          () =>
-            page.evaluate((target) => {
-              const el = document.getElementById(target);
-              const bar = document.querySelector("header:has(nav)");
-              if (!el) return "missing";
-              const r = el.getBoundingClientRect();
-              const under = bar
-                ? Math.max(0, bar.getBoundingClientRect().bottom)
-                : 0;
-              return r.top >= under - 1 && r.top < innerHeight
-                ? "in view"
-                : `top ${r.top}, bar ${under}`;
-            }, id),
+          () => clearOfTheBar(page, id),
           `#${id} in view and clear of the bar after ${text} at ${width}`,
         )
         .toBe("in view");
@@ -404,6 +406,135 @@ test("B1.3 the labelled bar: the wordmark, then Work, Log and Contact, each a 24
     await expect(page.locator("h1"), `after Log at ${width}`).toHaveText(
       "Build log",
     );
+  }
+});
+
+test("B1.3 the bar stays above a hovered card: at 1024, with a linked project card under the bar and hovered, Work, Log and Contact are hit and land on their targets", async ({
+  page,
+  baseURL,
+}) => {
+  // Lens on aa9fcd9 (.crew/sprint/22/fix-round-2.md): a hovered card lifted itself to the bar's own
+  // z-index and, later in the DOM, painted over the bar and took its clicks. Between md and about
+  // 1300 px the bar's links sit over the cards' column. Off-site requests are refused, so a click
+  // the card steals fails here instead of leaving the site.
+  const origin = new URL(baseURL ?? "http://localhost").origin;
+  await page.route(
+    (url) => url.origin !== origin,
+    (route) => route.abort(),
+  );
+  const CARD = 'section[aria-labelledby="projects"] li:has(a[href])';
+
+  /** Opens `/`, slides the first linked card up under the whole bar, its lower part still showing, and hovers that part. */
+  const hoverUnderTheBar = async () => {
+    await open(page, 1024, 768);
+    const at = await page.evaluate((selector) => {
+      const card = document.querySelector(selector);
+      const bar = document.querySelector("header:has(nav)");
+      if (!card || !bar) return null;
+      // Twice: the bar has a top margin from lg, so it sticks only once the page has scrolled.
+      for (let pass = 0; pass < 2; pass++) {
+        window.scrollBy({
+          top:
+            card.getBoundingClientRect().top -
+            (bar.getBoundingClientRect().top - 8),
+          behavior: "instant",
+        });
+      }
+      const b = bar.getBoundingClientRect();
+      const c = card.getBoundingClientRect();
+      return {
+        barBottom: b.bottom,
+        card: { top: c.top, bottom: c.bottom, left: c.left, right: c.right },
+        links: [...bar.querySelectorAll("nav a")].map((a) => {
+          const r = a.getBoundingClientRect();
+          return {
+            text: (a.textContent ?? "").trim(),
+            x: r.left + r.width / 2,
+            y: r.top + r.height / 2,
+          };
+        }),
+      };
+    }, CARD);
+    expect(at, "a linked project card and the bar").not.toBeNull();
+    if (!at) throw new Error("unreachable");
+    expect(
+      at.card.top < at.barBottom && at.card.bottom > at.barBottom + 24,
+      `the card (top ${at.card.top}, bottom ${at.card.bottom}) runs under the bar's bottom edge (${at.barBottom})`,
+    ).toBe(true);
+    // Otherwise the check has no card under the links and passes whatever the card's z-index.
+    expect(
+      at.links
+        .filter(
+          ({ x, y }) =>
+            x < at.card.left ||
+            x > at.card.right ||
+            y < at.card.top ||
+            y > at.card.bottom,
+        )
+        .map(({ text }) => text),
+      "bar links whose centre the card doesn't sit under",
+    ).toEqual([]);
+    const x = at.links[0]?.x ?? 0;
+    await page.mouse.move(
+      x,
+      (at.barBottom + Math.min(at.card.bottom, 768)) / 2,
+    );
+    expect(
+      await page
+        .locator(CARD)
+        .first()
+        .evaluate((el) => el.matches(":hover")),
+      "the card is hovered",
+    ).toBe(true);
+    return at.links;
+  };
+
+  const links = await hoverUnderTheBar();
+  const log = links.find(({ text }) => text === "Log");
+  expect(log, "the Log link").toBeDefined();
+  expect
+    .soft(
+      await page.evaluate(({ x, y }) => {
+        const hit = document.elementFromPoint(x, y);
+        const link = hit?.closest("a");
+        return hit?.closest("header nav")
+          ? "the bar's nav"
+          : `<${hit?.tagName.toLowerCase()}> in ${link ? `a link to ${link.getAttribute("href")}` : "no link"}`;
+      }, log ?? { x: 0, y: 0 }),
+      "the element at the Log link's centre while the card is hovered",
+    )
+    .toBe("the bar's nav");
+
+  for (const [text, id] of [
+    ["Work", "work"],
+    ["Log", null],
+    ["Contact", "contact"],
+  ] as const) {
+    const link = (await hoverUnderTheBar()).find((l) => l.text === text);
+    expect(link, `the ${text} link`).toBeDefined();
+    if (!link) continue;
+    // The pointer travels from the card up into the bar, as a visitor's does, then clicks.
+    await page.mouse.move(link.x, link.y, { steps: 4 });
+    await page.mouse.down();
+    await page.mouse.up();
+    if (id === null) {
+      await expect
+        .poll(() => page.url(), `the URL after ${text} over a hovered card`)
+        .toBe(`${origin}/sprints`);
+      continue;
+    }
+    await expect
+      .poll(
+        () => new URL(page.url()).hash,
+        `the hash after ${text} over a hovered card`,
+      )
+      .toBe(`#${id}`);
+    await expect
+      .poll(
+        () => clearOfTheBar(page, id),
+        `#${id} in view after ${text} over a hovered card`,
+      )
+      .toBe("in view");
   }
 });
 
