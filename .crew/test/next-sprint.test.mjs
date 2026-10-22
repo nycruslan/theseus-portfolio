@@ -5,7 +5,8 @@ import { ghLog, gitRepo, REPO, routes, runHook } from "./kit.mjs";
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
 
-// An open PR as REST lists it.
+// An open PR as REST lists it, on the head `shaOf(number)`.
+const shaOf = (number) => `${number}`.padStart(40, "0");
 const pr = (number, branch, labels = [], from = {}) => ({
   number,
   title: `PR ${number}`,
@@ -13,7 +14,7 @@ const pr = (number, branch, labels = [], from = {}) => ({
   user: { login: from.author ?? "nycruslan" },
   head: {
     ref: branch,
-    sha: `${number}`.padStart(40, "0"),
+    sha: shaOf(number),
     repo: { full_name: from.repo ?? REPO },
   },
   labels: labels.map((name) => ({ name })),
@@ -36,7 +37,7 @@ const branch = (name, sha = "a".repeat(40)) => ({ name, commit: { sha } });
 
 /**
  * The GitHub side, as REST serves it: open PRs, the sprint folders on main, the branches, and when
- * each head commit was made (`commits`, by sha; any other is two hours old).
+ * each head commit was made (`commits`, by sha; any other is three hours old).
  */
 function github({
   pulls = [],
@@ -297,15 +298,16 @@ test("a PR that once carried needs-owner still waits for the owner, as the gate 
 });
 
 test("a draft is still being built, whatever its labels: it's continued, or left to the run on it", () => {
-  const draft = (updatedAt) =>
-    pr(12, "sprint/2-direction", ["needs-owner"], { draft: true, updatedAt });
-  const quiet = preflight(github({ pulls: [draft()] })).state;
+  const draft = pr(12, "sprint/2-direction", ["needs-owner"], { draft: true });
+  const quiet = preflight(github({ pulls: [draft] })).state;
   assert.equal(quiet.open[0].draft, true);
   assert.equal(quiet.open[0].waitsForOwner, false);
   assert.equal(quiet.action.do, "continue");
   assert.equal(quiet.action.pr, 12);
   assert.deepEqual([quiet.remind, quiet.update], [[], []]);
-  const active = preflight(github({ pulls: [draft(minutesAgo(10))] })).state;
+  const active = preflight(
+    github({ pulls: [draft], commits: { [shaOf(12)]: minutesAgo(10) } }),
+  ).state;
   assert.equal(active.action.do, "stand down");
   assert.equal(active.action.pr, 12);
   assert.match(active.action.say, /another run is most likely still working/);
@@ -394,8 +396,7 @@ test("reminds the owner about a PR a day past its last commit and the team's las
 });
 
 test("lists a waiting PR that conflicts with main to bring up to date, beside the run's own work", () => {
-  const waiting = (updatedAt) =>
-    pr(12, "sprint/2-dark-mode", ["needs-owner"], { updatedAt });
+  const waiting = () => pr(12, "sprint/2-dark-mode", ["needs-owner"]);
   const listed = preflight(
     github({ pulls: [waiting()], conflicts: [12] }),
   ).state;
@@ -406,11 +407,15 @@ test("lists a waiting PR that conflicts with main to bring up to date, beside th
   assert.equal(listed.action.do, "start");
   // A run is on it: left alone.
   const busy = preflight(
-    github({ pulls: [waiting(minutesAgo(10))], conflicts: [12] }),
+    github({
+      pulls: [waiting()],
+      conflicts: [12],
+      commits: { [shaOf(12)]: minutesAgo(10) },
+    }),
   ).state;
   assert.deepEqual(busy.update, []);
   // A run already found this head's conflict beyond it and said so: not listed again.
-  const head = "12".padStart(40, "0");
+  const head = shaOf(12);
   const flagged = preflight(
     github({
       pulls: [waiting()],
@@ -519,21 +524,45 @@ test("starts nothing beside a waiting PR once the day's cap is reached", () => {
   assert.match(state.action.say, /the daily cap \(5\)/);
 });
 
-test("leaves an open sprint PR that changed in the last two hours to the run working on it", () => {
+test("leaves an open sprint PR committed to in the last two hours to the run working on it", () => {
+  const print = pr(9, "sprint/5-print");
   const busy = preflight(
-    github({
-      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
-    }),
+    github({ pulls: [print], commits: { [shaOf(9)]: minutesAgo(10) } }),
   ).state;
   assert.equal(busy.action.do, "stand down");
   assert.equal(busy.action.pr, 9);
-  assert.match(busy.action.say, /changed 10 min ago/);
+  assert.match(busy.action.say, /was last worked on 10 min ago/);
   const quiet = preflight(
-    github({
-      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(130) })],
-    }),
+    github({ pulls: [print], commits: { [shaOf(9)]: minutesAgo(130) } }),
   ).state;
   assert.equal(quiet.action.do, "continue");
+});
+
+test("only a run's marks hold a PR whose head is old: marked ready or labelled review, not a review or comment", () => {
+  // The head was committed three hours ago (the default), so only the events can hold the PR.
+  const event = (minutes, name, label) => ({
+    event: name,
+    created_at: minutesAgo(minutes),
+    ...(label && { label: { name: label } }),
+  });
+  const action = (events, from = {}) =>
+    preflight(
+      github({
+        pulls: [pr(9, "sprint/5-print", [], from)],
+        events: { 9: events },
+      }),
+    ).state.action.do;
+  // Lens's review updated the PR ten minutes ago: that's no run.
+  assert.equal(action([], { updatedAt: minutesAgo(10) }), "continue");
+  // needs-owner says the PR waits, not that a run is on it.
+  assert.equal(
+    action([event(10, "labeled", "needs-owner")], { draft: true }),
+    "continue",
+  );
+  // A run waiting on Lens or merge.mjs pushes nothing, but it marked the PR.
+  assert.equal(action([event(10, "labeled", "review")]), "stand down");
+  assert.equal(action([event(10, "ready_for_review")]), "stand down");
+  assert.equal(action([event(130, "labeled", "review")]), "continue");
 });
 
 test("an open sprint PR is continued even at the daily cap: finishing work isn't starting it", () => {
@@ -565,7 +594,8 @@ test("the owner's goal starts beside a waiting PR at the cap, but never on a liv
   assert.equal(beside.action.waiting, 12);
   const live = runWithGoal(
     github({
-      pulls: [pr(9, "sprint/5-print", [], { updatedAt: minutesAgo(10) })],
+      pulls: [pr(9, "sprint/5-print")],
+      commits: { [shaOf(9)]: minutesAgo(10) },
     }),
   ).state;
   assert.equal(live.action.do, "stand down");
@@ -629,7 +659,7 @@ test("a sprint branch with no PR, quiet for more than two hours, holds nothing u
   assert.equal(state.next, 9);
 });
 
-test("an open PR's own branch is its PR's to judge, so its commit isn't read", () => {
+test("an open PR's own branch is its PR's to judge, so the branch's commit isn't read", () => {
   const { state, calls } = preflight(
     github({
       branches: [branch("main"), branch("sprint/5-print")],
@@ -639,10 +669,9 @@ test("an open PR's own branch is its PR's to judge, so its commit isn't read", (
   );
   assert.deepEqual(state.unopened, []);
   assert.equal(state.action.do, "continue");
-  // Its gate is read (`commits/<sha>/check-runs`), its commit isn't.
-  assert.ok(
-    !calls.some((args) => args.some((arg) => /\/commits\/[^/]+$/.test(arg))),
-  );
+  // The PR's head commit is read (and its gate, `commits/<sha>/check-runs`), the branch's isn't.
+  const commits = calls.flat().filter((arg) => /\/commits\/[^/]+$/.test(arg));
+  assert.deepEqual(commits, [`${R}/commits/${shaOf(9)}`]);
 });
 
 test("a just-merged sprint's branch, still listed, doesn't hold up the run its merge starts", () => {
