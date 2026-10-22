@@ -510,6 +510,7 @@ html {
 }
 
 .entry-text {
+  max-width: 66ch;
   line-height: 1.55;
 }
 
@@ -576,11 +577,13 @@ html {
 }
 
 @media (width >= 64rem) {
+  /* 24 px in from the frame, so each head's left edge is the wordmark's and the list ends under
+     Read as page. */
   .sched {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     column-gap: 24px;
-    padding: 28px 56px 40px;
+    padding: 28px 24px 40px;
   }
 
   .sched-contact {
@@ -602,7 +605,7 @@ html {
     padding-top: 8px;
   }
 
-  /* 140 px holds "Sep 2021 — Present" and leaves the text 514 px at 1024. */
+  /* 140 px holds "Sep 2021 — Present" and leaves the text 538 px at 1024. */
   .entry {
     grid-template-columns: 140px minmax(0, 1fr);
     column-gap: 24px;
@@ -636,10 +639,6 @@ html {
 
   .entry-credential {
     margin-bottom: 0;
-  }
-
-  .entry-text {
-    max-width: 66ch;
   }
 
   .when-link a {
@@ -931,6 +930,7 @@ html {
 }
 
 .read-meta {
+  max-width: 66ch;
   color: var(--muted);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -967,19 +967,21 @@ html {
 }
 
 /* The not-found page: the column, one heading under a 2 px rule, one line and the ways back. The
-   heading is the text face at its boldest, not the display face: the root not-found sits in every
-   route's tree, so a font it loads would be preloaded on /sprints too (app/not-found.tsx). */
+   heading is the text face at the entry step, a document's head, not the display face: the root
+   not-found sits in every route's tree, so a font it loads would be preloaded on /sprints too
+   (app/not-found.tsx). */
 .lost {
   padding: 12px 0 48px;
 }
 
 .lost h1 {
-  margin-top: 28px;
+  margin-top: 24px;
   padding-top: 12px;
   border-top: 2px solid var(--foreground);
-  font-size: var(--step-2xl);
+  font-size: var(--step-entry);
   font-weight: 700;
-  line-height: 0.9;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
