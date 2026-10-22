@@ -1,5 +1,6 @@
-// SubagentStop hook for the builders, Forge and Pixel: settings.json's matcher runs it for engineer
-// and creative-engineer alone. A builder can't end its turn until `pnpm verify` passes in its
+// SubagentStop hook for the builders, Forge and Pixel (engineer and creative-engineer). It checks
+// the role itself, since a matcher with a hyphen may be read as an unanchored pattern that would
+// also catch qa-engineer. A builder can't end its turn until `pnpm verify` passes in its
 // working directory, or until it has been told once what failed: on that second stop
 // (stop_hook_active) it may stop, so it reports the failure honestly instead of looping. The run
 // is time-boxed by the first argument, in seconds, and everything it started is killed at the
@@ -13,6 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { broadcast } from "./post.mjs";
 
+const BUILDERS = new Set(["engineer", "creative-engineer"]);
 const TAIL_LINES = 40;
 const TAIL_CHARS = 3000;
 const KEEP_CHARS = 200_000;
@@ -22,7 +24,7 @@ const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 const limit = Number(process.argv[2] || 300);
 
 const hook = JSON.parse(readFileSync(0, "utf8"));
-const scripts = scriptsOf(hook.cwd);
+const scripts = BUILDERS.has(hook.agent_type) ? scriptsOf(hook.cwd) : null;
 if (hook.stop_hook_active || !scripts?.verify) process.exit(0);
 const run = await verify(hook.cwd);
 if (run.code !== 0) {

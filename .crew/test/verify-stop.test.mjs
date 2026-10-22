@@ -102,6 +102,18 @@ test("lets a builder stop once pnpm verify passes in its directory", () => {
   assert.equal(runs[0].cwd, realpathSync(dir));
 });
 
+test("runs nothing for any other role, whatever the hook's matcher catches", () => {
+  for (const role of ["qa-engineer", "design-director", "code-reviewer"]) {
+    const { code, answer, runs } = verifyStop(
+      stop(project(), { agent_type: role }),
+      { FAKE_EXIT: "1" },
+    );
+    assert.equal(code, 0, role);
+    assert.equal(answer, null, role);
+    assert.deepEqual(runs, [], role);
+  }
+});
+
 test("blocks with the failing step and its last lines", () => {
   const { code, answer } = verifyStop(stop(project()), {
     FAKE_OUTPUT: FAILED_TYPECHECK,

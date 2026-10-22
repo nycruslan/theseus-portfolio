@@ -53,7 +53,8 @@ test("the guard covers the file tools and blocks if it crashes", () => {
 
 test("builders stop only after pnpm verify, inside the hook's timeout", () => {
   const verify = one("SubagentStop", "verify-stop.mjs");
-  // Letters, hyphens and `|` make an exact list, not a pattern: qa-engineer isn't a builder.
+  // The matcher may be read as an unanchored pattern that also catches qa-engineer, so
+  // verify-stop.mjs checks the role itself (verify-stop.test.mjs).
   assert.equal(verify.matcher, "engineer|creative-engineer");
   const [, limit] = verify.args;
   assert.ok(Number(limit) > 0 && Number(limit) + 15 <= verify.timeout);

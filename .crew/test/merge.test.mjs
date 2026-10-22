@@ -226,7 +226,7 @@ test("counts only the latest run of a check, so a superseded cancelled run doesn
   assert.equal(code, 0);
 });
 
-test("asks GitHub once the checks have settled, whatever they say, and reports GitHub's answer", () => {
+test("asks GitHub once the checks have settled, whatever the checks it doesn't require say", () => {
   const unstable = merge(
     github({
       pulls: pr({ mergeable_state: "unstable" }),
@@ -234,23 +234,34 @@ test("asks GitHub once the checks have settled, whatever they say, and reports G
     }),
   );
   assert.equal(unstable.code, 0);
-  // The ruleset has no bypass, so GitHub refuses a failed required check itself.
-  const refused = merge(
+});
+
+test("refuses a failed or still-running required check by name, without asking GitHub", () => {
+  const failed = merge(
     github({
       pulls: pr({ mergeable_state: "blocked" }),
       checks: [done("check"), done("gate"), done("lens", "failure")],
-      merge: {
-        $error: 405,
-        message:
-          'Repository rule violations found: Required status check "lens" is failing.',
-      },
     }),
   );
-  assert.equal(refused.code, 1);
-  assert.equal(refused.merges.length, 1);
+  assert.equal(failed.code, 1);
+  assert.equal(failed.merges.length, 0);
+  assert.match(failed.stderr, /lens didn't pass on/);
+  const running = merge(
+    github({
+      pulls: pr({ mergeable_state: "blocked" }),
+      checks: [
+        done("check"),
+        done("gate"),
+        { ...done("lens"), status: "in_progress", conclusion: null },
+      ],
+    }),
+    { env: { THESEUS_MERGE_WAIT_MS: "300" } },
+  );
+  assert.equal(running.code, 1);
+  assert.equal(running.merges.length, 0);
   assert.match(
-    refused.stderr,
-    /refused the merge: Repository rule violations found: Required status check "lens" is failing\./,
+    running.stderr,
+    /lens still running on .+: run node \.crew\/merge\.mjs \d+ again/,
   );
 });
 

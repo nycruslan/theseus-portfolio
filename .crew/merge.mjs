@@ -3,9 +3,10 @@
 // REST only (github.mjs): the cloud's proxy refuses GraphQL, and with it `gh pr merge` and
 // auto-merge.
 // The ruleset has no bypass, so GitHub itself refuses a PR whose required checks failed or are
-// still running. This adds what the ruleset can't know: sessions act as the owner, so a PR that
-// gate passed only on the owner's approval is left to the owner; and rules that require no check
-// would let a PR merge on nothing, so they're a NO-GO.
+// still running; this refuses them too, by name, which gives Atlas a reason to act on and still
+// holds should a bypass come back. It adds what the ruleset can't know: sessions act as the owner,
+// so a PR that gate passed only on the owner's approval is left to the owner; and rules that
+// require no check would let a PR merge on nothing, so they're a NO-GO.
 // It waits for the checks those rules require, so the list can't drift from GitHub's: it polls
 // every 15 s, for up to 8 minutes, until each has reported, every check on the head has finished
 // and GitHub knows the PR's mergeable_state. A draft, a conflict, a branch behind its base, a
@@ -109,6 +110,16 @@ function refusal() {
   if (missing.length) {
     return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${lensHint(missing)}`;
   }
+  // GitHub refuses these itself while the ruleset has no bypass; saying so here gives Atlas a
+  // reason it can act on, and still holds should a bypass ever come back.
+  const failed = requiredIn("nogo");
+  if (failed.length) {
+    return `${failed.join(", ")} didn't pass on ${head.slice(0, 7)}`;
+  }
+  const running = requiredIn("pending");
+  if (running.length) {
+    return `${running.join(", ")} still running on ${head.slice(0, 7)}: run node .crew/merge.mjs ${number} again`;
+  }
   // A session acts as the owner, so it could have posted the approval gate.mjs released the PR on.
   const released = checks.find((check) => check.released);
   if (released) {
@@ -146,6 +157,13 @@ function requiredChecks(base) {
 // The required checks with no run, or status, on the head yet.
 function unreported() {
   return required.filter((name) => !checks.some(({ who }) => who === name));
+}
+
+// The required checks with a run, or status, on the head in this state.
+function requiredIn(state) {
+  return required.filter((name) =>
+    checks.some((check) => check.who === name && check.state === state),
+  );
 }
 
 // The latest run of each check from each app on the commit, plus the commit statuses, such as
