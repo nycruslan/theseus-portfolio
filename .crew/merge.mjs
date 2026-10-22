@@ -3,10 +3,11 @@
 // REST only (github.mjs): the cloud's proxy refuses GraphQL, and with it `gh pr merge` and
 // auto-merge.
 // The ruleset has no bypass, so GitHub itself refuses a PR whose required checks failed or are
-// still running; this refuses them too, by name, which gives Atlas a reason to act on, and would
-// still catch a failed or running check should a bypass come back. It adds what the ruleset can't know: sessions act as the owner,
-// so a PR that gate passed only on the owner's approval is left to the owner; and rules that
-// require no check would let a PR merge on nothing, so they're a NO-GO.
+// still running, and checks that each came from the app it requires. This refuses failed and
+// running checks too, by name, so Atlas gets a reason it can act on. It adds what the ruleset
+// can't know: sessions act as the owner, so a PR that gate passed only on the owner's approval is
+// left to the owner; and rules that require no check would let a PR merge on nothing, so they're
+// a NO-GO.
 // It waits for the checks those rules require, so the list can't drift from GitHub's: it polls
 // every 15 s, for up to 8 minutes, until each has reported, every check on the head has finished
 // and GitHub knows the PR's mergeable_state. A draft, a conflict, a branch behind its base, a
