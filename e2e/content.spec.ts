@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { ROUTES, STATUS } from "./helpers";
 
 const MARKER = "TODO(owner)";
 
@@ -33,29 +34,43 @@ function markedPlaceholders(contentDir: string): string[] {
 
 // Every fact a visitor sees: the visible text, the page title and description, and link targets.
 async function renderedFacts(page: Page) {
-  const description = page.locator('meta[name="description"]');
   const hrefs = await page
     .locator("a[href]")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  const description = await page.evaluate(
+    () =>
+      document
+        .querySelector('meta[name="description"]')
+        ?.getAttribute("content") ?? "",
+  );
   return [
     await page.locator("body").innerText(),
     await page.title(),
-    (await description.getAttribute("content")) ?? "",
+    description,
     ...hrefs,
   ].join("\n");
 }
 
 // content/ has carried no TODO(owner) marker since the owner's 2026 facts landed, so this holds
-// again and guards the next stand-in: a value marked TODO(owner) must not reach the page.
-test("no value the owner marked TODO(owner) renders", async ({
+// again and guards the next stand-in: a value marked TODO(owner) must not reach the page. Sprint 23
+// adds /read and the 404 (.crew/sprint/23/contract.md, B2.9).
+test("no value the owner marked TODO(owner) renders, on /, /read or the 404", async ({
   page,
 }, testInfo) => {
   const placeholders = markedPlaceholders(
     join(testInfo.project.testDir, "..", "content"),
   );
-  await page.goto("/");
-  const facts = await renderedFacts(page);
+  for (const route of ROUTES) {
+    const response = await page.goto(route);
+    expect(response?.status(), `status of ${route}`).toBe(STATUS[route]);
+    const facts = await renderedFacts(page);
 
-  expect(facts).not.toContain(MARKER);
-  expect(placeholders.filter((value) => facts.includes(value))).toEqual([]);
+    expect.soft(facts, `the marker on ${route}`).not.toContain(MARKER);
+    expect
+      .soft(
+        placeholders.filter((value) => facts.includes(value)),
+        `placeholders on ${route}`,
+      )
+      .toEqual([]);
+  }
 });
