@@ -43,3 +43,25 @@
    only in Pixel's measurement worktree and not committed, so `package.json`, knip and the lockfile
    are untouched and `pnpm verify` and the suite run as on main. The first build sprint adds the
    dependency with the code that uses it.
+
+6. **The stack call goes to the owner before sprint 25 merges, not at the B3 demo** (Quill's
+   recommendation, `b3-plan.md`, taken). Sprint 25 writes nearly all the renderer-specific code, and
+   neither option fits every line the owner approved: A departs from `design/brief.md`'s Technology
+   section (the owner's file), B fits the 250 KB budget only counted as brotli. Pixel's S7 paragraph
+   goes in this PR's body as a non-blocking question; sprint 25 builds on the spike's provisional
+   pick and carries the call under "Needs owner decision" with the loft running on its preview.
+
+7. **The one-line revision descriptions ride with sprint 25** as batch E. Quill takes Iris's
+   one-liner from the visitor's side (the description is a row's label; the Log holds the record;
+   the canvas's `main.webp` drew one-line rows, and sprint 22's "never truncated" was the departure),
+   at 1024 px and up only, phones keeping the full text. B1.5's "truncated cells" assertion changes,
+   so it needs the owner, and sprint 25's PR waits for them anyway. Until then item 3's rule holds.
+
+8. **Full is the default once the 3D exists** (the canvas's `Motion-Control.html`; reduced motion
+   starts at Calm). The roadmap's B3 line says so at the close-out; B1's "Off for everyone" stays as
+   history.
+
+9. **B3 is three build sprints after this spike** (Quill, `b3-plan.md`): 25, the hull lifts off the
+   drawing at 1024 px and up, with no control; 26, phones and tablets with quality stepping; 27, the
+   Full/Calm/Off control and the B3 demo. The control comes last so it never ships with buttons that
+   change nothing at some width (sprint 22's rule).
