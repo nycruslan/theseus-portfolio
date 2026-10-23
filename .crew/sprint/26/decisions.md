@@ -27,3 +27,16 @@
 6. **Role branches are pushed to origin after every commit** (sprint 25's retro proposal, applied
    as a brief rule without a skill change): Atlas cherry-picks from `origin/pixel/26` and
    `origin/probe/26`, so a lost container loses nothing.
+
+7. **Iris's call on the phone's settled pose, taken** (`.crew/sprint/26/notes-iris.md`): `G_NARROW`
+   0.25 and `SETTLE_NARROW { dx: 0, dy: 26, yaw: −36, pitch: 16 }`, in place of the contract's
+   defaults (0.1 and the desktop's offset scaled). The turn to −36° foreshortens the hull to 0.80 of
+   its length, so at 0.1 the settled hull sat 30 px short of the hollow profile's bow and read as
+   having moved away; at 0.25 the growth pays back what the turn took, and the model settles as long
+   as the drawing it left (310 px at 390, 253 at 320; the framed height 73.7 and 60.5 px). dy 26
+   puts the deck 15 px below the sheer and the shadow on the half-breadth crown; the shadow and the
+   hull stay inside the canvas at both widths (Pixel's ceiling with the shadow whole is about 0.3).
+   B3.2's formula at 390 uses 0.25, word for word in `e2e/model.ts`. Against `rest-390.webp` the
+   hull has the same presence (79% of the width against 76%); what differs is the drawing under it,
+   the profile in place of the body plan the phone sheet hasn't carried since sprint 22 (#62,
+   owner-approved), so the PR says so without waiting for the owner.
