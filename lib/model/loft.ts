@@ -11,7 +11,7 @@
 
 import { HEIGHT, LENGTH } from "@/lib/half-model";
 import { WIDE } from "@/lib/hull-layouts";
-import { GROW, HOLD, SETTLE } from "./calls";
+import { GROW, HOLD, LIFT, SETTLE } from "./calls";
 import type { Vec3 } from "./hull";
 
 /** Where the model stands on the canvas: its centre (CSS px from the top left), lift and turn. */
@@ -34,8 +34,6 @@ export type Pose = {
 
 /** The deck's greatest half-breadth and a margin, in hull units: the model clears the sheet. */
 const STANDOFF = 76;
-/** Sprint 17's lift from the registered to the settled pose, in hull units. */
-const LIFT = 57;
 /** Samples of the solved loft; the frame loop interpolates between them. */
 const SAMPLES = 48;
 

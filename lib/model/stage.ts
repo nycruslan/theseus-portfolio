@@ -7,6 +7,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  CustomBlending,
   DataTexture,
   DirectionalLight,
   Group,
@@ -15,10 +16,13 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
   OrthographicCamera,
   PlaneGeometry,
   RGBAFormat,
   Scene,
+  SrcAlphaFactor,
   Vector4,
   WebGLRenderer,
 } from "three";
@@ -162,11 +166,19 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
   sun.position.set(...LIGHT);
   scene.add(sky, fill, sun);
 
+  // The shadow blends as a transparent plane would, but in the opaque pass and before the card
+  // (renderOrder only sorts within a pass), so the card always paints over it: no part of the
+  // model is ever tinted by the sheet's shadow, wherever the pose puts it.
   const shadowMaterial = new MeshBasicMaterial({
-    transparent: true,
+    blending: CustomBlending,
+    blendSrc: SrcAlphaFactor,
+    blendDst: OneMinusSrcAlphaFactor,
+    blendSrcAlpha: OneFactor,
+    blendDstAlpha: OneMinusSrcAlphaFactor,
     depthWrite: false,
   });
   const shadow = new Mesh(new PlaneGeometry(1, 1), shadowMaterial);
+  shadow.renderOrder = -1;
   shadow.frustumCulled = false;
   scene.add(shadow);
   let darkness = SHADOW_LIGHT;

@@ -5,11 +5,9 @@
 // loft it fades in under the lifting model. It is the scene's one texture, generated rather than
 // downloaded (notes-iris.md, call 4).
 
+import { SHADOW_BLUR as BLUR } from "./calls";
 import type { Vec3 } from "./hull";
 import { type Pose, place } from "./loft";
-
-/** The blur's radius in texels: the soft edge of a shadow on paper. */
-const BLUR = 5;
 
 /** Toward the light: up and to the left of the sheet, in front of it (sprint 17's sun). */
 export const LIGHT: Vec3 = (() => {

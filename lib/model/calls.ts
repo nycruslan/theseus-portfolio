@@ -35,9 +35,18 @@ export const GROW = 0.1;
  */
 export const SETTLE = { dx: -6, dy: 40, yaw: -30, pitch: 15 };
 
+/**
+ * How far the settled model stands further off the sheet than the registered one, in hull units
+ * (scaled with the model): high enough that the stern's keel clears the sheet by 27 to 35 px at
+ * 1440, where sprint 17's 57 left it 8 to 16 px behind the paper (Iris's early look).
+ */
+export const LIFT = 90;
+
 /** The shadow's darkness: --foreground over the sheet in light, black over it in dark (call 4). */
 export const SHADOW_LIGHT = 0.18;
 export const SHADOW_DARK = 0.6;
+/** The shadow's blur radius in texels: a lobe edge of about 18 px, as main.webp's (Iris's early look). */
+export const SHADOW_BLUR = 2;
 
 /** Line weights in CSS px, the drawing's own: the seams and the outline (call 5; SVG untouched). */
 export const SEAM_PX = 0.9;
