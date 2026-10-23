@@ -137,14 +137,19 @@
     is the safe one (the whole drawing), so the code stands. If a capture tool ever needs it closed:
     act on a narrow reading only when it still holds two animation frames later. A follow-up.
 
-14. **B3.1's number boxes take B3.7's 8-level bound at the hand-off** (Probe, `b5f84f6`). On
+14. **B3.1's number-box hand-off asserts the numbers' ink, not identical pixels** (Probe). On
     `f6a5ff0` Lens shipped and the cloud's suite was 151 of 151 three times, but CI's `check` failed
     B3.1 on one soft assertion, all 22 plank numbers' boxes "changing" at the hand-off, while the
     hard `landed` hold, the regions, the drawing outside the profile and every text node's box
-    passed, and B3.7's fills-within-8-levels passed on the same runner. The number boxes sit over
-    the canvas's flat fill, and the assertion counted any channel delta above 0: CI's runner rounds
-    SwiftShader's flat fill a level off the SVG's where the cloud's rounds it exactly. The contract's
-    "pixel-identical" is over-strict on a WebGL fill; build note 6's intent, that the numbers paint
-    above the canvas, still fails under the bound (a mutant that lets the canvas paint over the
-    spans turns it red on 21 of 22 numbers, the 22nd sitting on its leader outside the hull). Every
-    other floor in the check stays 0.
+    passed. A first reading blamed CI's SwiftShader rounding the canvas's flat fill under the
+    numbers, and `b5f84f6` gave the boxes B3.7's 8-level bound; CI failed it again on all 22,
+    including "20", which sits on its leader outside the hull where the canvas never reaches, so the
+    fill was not the cause. What differs in exactly those boxes is text anti-aliasing: the
+    `.plan-plank` spans are the only elements painted above the canvas (build note 6), so the model
+    page composites them in a transparent layer, where Chromium drops LCD anti-aliasing for
+    grayscale; the cloud's container renders both pages grayscale, CI's runner only the composited
+    one. The contract's "pixel-identical" can't hold for text over a WebGL canvas on a platform with
+    LCD text. The check now asserts what build note 6 means: each number keeps its ink at frame 1
+    (an ink-pixel count against the Off page's), which a canvas painted over the spans fails (the
+    mutant that flips the stacking rule) and anti-aliasing can't. Every other floor in the check
+    stays 0, and the strong-change count against S4's 4,891 is reported as before.
