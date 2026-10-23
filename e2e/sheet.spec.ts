@@ -624,7 +624,7 @@ test("B2.3 the bar stays above the facts (B1.3): at 1024, with each fact section
   }
 });
 
-test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros and one link to the Log, at every width", async ({
+test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros and one link to the Log, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
   page,
 }) => {
   const entries = async () => {
@@ -636,59 +636,83 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
     "entries /sprints renders, against valid retros",
   ).toBe(N);
 
-  const read = () =>
-    page.evaluate((selector) => {
-      const squashed = (el: Element | null) =>
-        (el?.textContent ?? "").replace(/\s+/g, " ").trim();
-      const section = document.querySelector(selector);
-      const cw = document.documentElement.clientWidth;
-      return {
-        section: section !== null,
-        h2: [...(section?.querySelectorAll("h2") ?? [])].map((h) => ({
-          id: h.id,
-          text: squashed(h),
-        })),
-        text: squashed(section),
-        heads: [
-          ...(section?.querySelectorAll('table th[scope="col"]') ?? []),
-        ].map((th) => squashed(th)),
-        rows: [...(section?.querySelectorAll("table tbody tr") ?? [])].map(
-          (tr) => ({
-            cells: [...tr.querySelectorAll(":scope > th, :scope > td")].map(
-              (c) => squashed(c),
-            ),
-            seen: tr.checkVisibility({
-              opacityProperty: true,
-              visibilityProperty: true,
-            }),
-            clipped: [...tr.querySelectorAll("*")]
-              .filter((el) => {
-                const s = getComputedStyle(el);
-                return (
-                  (s.overflowX !== "visible" &&
-                    el.scrollWidth > el.clientWidth + 1) ||
-                  (s.webkitLineClamp !== "none" &&
-                    el.scrollHeight > el.clientHeight + 1)
-                );
-              })
-              .map(
-                (el) =>
-                  `<${el.tagName.toLowerCase()}> "${squashed(el).slice(0, 30)}"`,
+  const read = (cutsDescription: boolean) =>
+    page.evaluate(
+      ({ selector, cutsDescription }) => {
+        const squashed = (el: Element | null) =>
+          (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+        const section = document.querySelector(selector);
+        const cw = document.documentElement.clientWidth;
+        return {
+          section: section !== null,
+          h2: [...(section?.querySelectorAll("h2") ?? [])].map((h) => ({
+            id: h.id,
+            text: squashed(h),
+          })),
+          text: squashed(section),
+          heads: [
+            ...(section?.querySelectorAll('table th[scope="col"]') ?? []),
+          ].map((th) => squashed(th)),
+          rows: [...(section?.querySelectorAll("table tbody tr") ?? [])].map(
+            (tr) => ({
+              cells: [...tr.querySelectorAll(":scope > th, :scope > td")].map(
+                (c) => squashed(c),
               ),
-            outside: [...tr.querySelectorAll(":scope > th, :scope > td")].some(
-              (c) => {
+              seen: tr.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+              }),
+              // From 1024 px the Description cell is cut to one line on purpose (batch E); it is
+              // read as `description` below, and every other element still mustn't clip.
+              clipped: [...tr.querySelectorAll("*")]
+                .filter((el) => !(cutsDescription && el === tr.children[1]))
+                .filter((el) => {
+                  const s = getComputedStyle(el);
+                  return (
+                    (s.overflowX !== "visible" &&
+                      el.scrollWidth > el.clientWidth + 1) ||
+                    (s.webkitLineClamp !== "none" &&
+                      el.scrollHeight > el.clientHeight + 1)
+                  );
+                })
+                .map(
+                  (el) =>
+                    `<${el.tagName.toLowerCase()}> "${squashed(el).slice(0, 30)}"`,
+                ),
+              description: (() => {
+                const cell = tr.children[1];
+                if (!cell) return null;
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                const tops = new Set(
+                  [...range.getClientRects()]
+                    .filter((r) => r.width > 0)
+                    .map((r) => Math.round(r.top)),
+                );
+                const s = getComputedStyle(cell);
+                return {
+                  lines: tops.size,
+                  cut: cell.scrollWidth > cell.clientWidth + 1,
+                  ellipsis:
+                    s.textOverflow === "ellipsis" && s.overflowX !== "visible",
+                };
+              })(),
+              outside: [
+                ...tr.querySelectorAll(":scope > th, :scope > td"),
+              ].some((c) => {
                 const r = c.getBoundingClientRect();
                 return r.left < -0.5 || r.right > cw + 0.5;
-              },
-            ),
-          }),
-        ),
-        links: [...(section?.querySelectorAll("a") ?? [])].map((a) => ({
-          text: squashed(a),
-          href: a.getAttribute("href"),
-        })),
-      };
-    }, REVISIONS);
+              }),
+            }),
+          ),
+          links: [...(section?.querySelectorAll("a") ?? [])].map((a) => ({
+            text: squashed(a),
+            href: a.getAttribute("href"),
+          })),
+        };
+      },
+      { selector: REVISIONS, cutsDescription },
+    );
 
   const expected = ROWS.map((row) => [
     row.rev,
@@ -700,7 +724,10 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
   ]);
   for (const width of [320, 390, 768, 1024, 1440]) {
     await open(page, width);
-    const found = await read();
+    // Batch E (sprint 25, .crew/sprint/25/contract.md, Riders): from 1024 px each Description cell
+    // is one line with an ellipsis, its DOM text still the whole goal; below it, the full text.
+    const oneLine = width >= 1024;
+    const found = await read(oneLine);
     const where = `${width} px`;
     expect(found.section, `${REVISIONS} at ${where}`).toBe(true);
     expect
@@ -720,9 +747,27 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
     expect
       .soft(
         found.rows.flatMap((r) => r.clipped),
-        `truncated cells at ${where}`,
+        oneLine
+          ? `truncated cells other than Description at ${where}`
+          : `truncated cells at ${where}`,
       )
       .toEqual([]);
+    if (oneLine) {
+      expect
+        .soft(
+          found.rows.map((r) => r.description?.lines),
+          `lines in each Description cell at ${where}`,
+        )
+        .toEqual(found.rows.map(() => 1));
+      expect
+        .soft(
+          found.rows
+            .filter((r) => r.description?.cut && !r.description.ellipsis)
+            .map((r) => r.cells[1]?.slice(0, 30)),
+          `Description cells cut without an ellipsis at ${where}`,
+        )
+        .toEqual([]);
+    }
     expect
       .soft(found.links, `its links at ${where}`)
       .toEqual([{ text: `All ${N} revisions in the Log`, href: "/sprints" }]);
