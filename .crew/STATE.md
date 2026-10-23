@@ -52,9 +52,10 @@ makes stale, and keep the file under about 100 lines.
   - A check added after its fix can't be red on main: prove it with the mutant that turns it red.
   - In forced colors Chromium paints a background-only dot opaque Canvas. A check that it "shows"
     compares it with the page's background.
-  - A check that compares WebGL pixels with the DOM's takes a tolerance (B3.7's 8 levels): CI's
-    runner rounds SwiftShader's flat fill a level off the SVG's where the cloud's rounds it exactly,
-    so sprint 25's suite passed three times here and failed once there.
+  - Text painted above a WebGL canvas is composited in its own transparent layer, where CI's
+    Chromium drops LCD anti-aliasing for grayscale and every glyph pixel moves; the cloud's renders
+    grayscale either way, so sprint 25's "pixel-identical numbers" passed three times here and
+    failed twice there. Assert what the text must do (its ink is still there), not its pixels.
   - A kept check that reads what a new state restyles races it: B1.4 read the lettering the hollow
     rule hides and lost to the idle import once. Read such things on the Off path (sprint 25).
 - **Building.**
