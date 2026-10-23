@@ -88,7 +88,7 @@ without scripts is the sheet it is today, with the control's place kept.
   group at its width: one in the bar's `nav` after the four links (shown from 768 px, hidden
   below), one in `main` after `[data-model]` and before `main > header` (shown below 768 px, hidden
   from it). Exactly one is shown at any width, and only the shown one holds the group: when
-  scripts run it holds `<div role="group" aria-label="Motion">` with three
+  scripts run it holds `<fieldset aria-label="Motion">` (the implicit `group` role; biome refuses a `div` with the role) with three
   `<button type="button" aria-pressed>` reading Full, Calm, Off in that order, exactly one
   `aria-pressed="true"`, and that slot carries `data-mode` with the mode (the builder renders the
   group into the shown slot, or into both with the hidden one `display: none`, so its buttons are
