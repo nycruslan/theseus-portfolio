@@ -58,6 +58,9 @@ makes stale, and keep the file under about 100 lines.
     failed twice there. Assert what the text must do (its ink is still there), not its pixels.
   - A kept check that reads what a new state restyles races it: B1.4 read the lettering the hollow
     rule hides and lost to the idle import once. Read such things on the Off path (sprint 25).
+  - The stepping rule runs under load: a check that reads the canvas's ratio mid-move sees 1× on a
+    loaded runner (CI and two suites together both did). Read ratio-dependent things at rest, and
+    give a test page's WebGL context `preserveDrawingBuffer` before screenshotting it (sprint 26).
 - **Building.**
   - A builder who measures in the browser catches what a direction misses.
   - A fix for a pattern goes into the brief for every instance of the pattern, not only the one the
@@ -102,4 +105,9 @@ makes stale, and keep the file under about 100 lines.
   - Check the cloud browser's Chromium against CI's before trusting a browser-sensitive readout.
   - A fresh worktree has no `node_modules`: run `pnpm install --frozen-lockfile` first.
   - A run's worktrees go with its container: sprint 25 lost its 3D build twice before a commit
-    reached a branch. Cherry-pick and push each role's commits as they land.
+    reached a branch. Cherry-pick and push each role's commits as they land. Sprint 26's first run
+    ended with three of Pixel's commits on `origin/pixel/26` only, and the second run lost nothing.
+  - A resumed run can't force-push a role branch (the cloud refuses `--force-with-lease`): roles
+    push to `<role>/<n>-r2` from the sprint head and say so; Atlas cherry-picks from either.
+  - `kill $!` on `node .../next start &` can leave its `next-server` child serving the port: check
+    the port after, and kill the child by its PID (sprint 26, Pixel).

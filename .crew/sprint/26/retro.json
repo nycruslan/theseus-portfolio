@@ -1,0 +1,58 @@
+{
+  "sprint": 26,
+  "pr": 73,
+  "goal": "The card hull lofts on phones and tablets, quality stepping to a still frame",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "OUTCOME",
+  "fixRounds": FIXROUNDS,
+  "minutes": MINUTES,
+  "agents": [
+    { "role": "creative-engineer", "model": "opus", "tokens": 226500, "minutes": 38 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 341994, "minutes": 57 },
+    { "role": "design-director", "model": "fable", "tokens": 525222, "minutes": 33 }
+  ],
+  "lens": LENS,
+  "wentWrong": [
+    {
+      "what": "The first run ended with the build on a role branch, three commits short of the sprint branch",
+      "evidence": "decision 8: origin/pixel/26 held 1eed4c3, 7b6fbba and 1b36b0e at 18:58 UTC and the sprint branch didn't; the second run cherry-picked them in its first ten minutes and rebuilt nothing, so the run-1 agents' tokens and minutes are not in this retro"
+    },
+    {
+      "what": "The phone's growth on the desktop's curve swelled the hull past its drawing for 600 ms",
+      "evidence": "decision 9 and review-iris.md: the solve at 390 peaked at 335.6 px at u 0.15 with the stern 6.6 px from the screen's edge; Iris's early look caught it from frames, and the e² curve keeps the length within 312 to 317 px with frame 1 and the settled frame unchanged"
+    },
+    {
+      "what": "Three harness races showed only under load: the ratio read mid-move, a plank sampled on the outline's edge, a screenshot taken between two draws",
+      "evidence": "Probe's ea5461b and 28ea559: B3.1 read a 1x buffer in CI and in Pixel's run while two suites shared four cores, B3.7's first points for planks 5.0 and 6.0 read 35 levels off on the keel's anti-aliased edge, B3.10's test page presented between its sync draws and its timeout draw"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In design/brief.md's Technology section, replace the WebGPURenderer and TSL line with the stack as built and approved on #72: three.js WebGLRenderer with GLSL, the hull's planks in one instanced mesh, two levels of one chunk under 250 kB gzip; and drop GSAP, which the loft doesn't use (the camera move is the model's own clock)",
+      "moves": "Quill's follow-up from sprint 25: the brief's stack is stale since the owner approved A, and a reader of the brief would brief the wrong renderer"
+    },
+    {
+      "change": "In AGENTS.md's server rule, say that `$!` of `node .../next start &` is a wrapper whose `next-server` child survives `kill $!`: check the port after and kill the child by its PID",
+      "moves": "Pixel's sprint 26 servers on 4700 and 4701 kept serving after the wrapper died, and a port in use fails the next test:e2e run"
+    },
+    {
+      "change": "In the sprint skill's brief rules, a resumed run's roles push to `<role>/<n>-r2` from the sprint head rather than force-pushing `<role>/<n>`, which the cloud refuses",
+      "moves": "Pixel's and Probe's first pushes in run 2 were refused and each lost a round finding the way around"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "The B3 demo on a phone (sprint 27): 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel, the dark hull under the warm lamp; and the narrow sheet's Base label under the shadow's tail, a composition call"
+    },
+    {
+      "who": "Forge",
+      "what": "The cold-cache fallback face: the page scrolls 21 px sideways at 320 (scrollWidth 341) and the nav's Read as page wraps at 390 on production today; likely .rev's td[data-label]::before nowrap labels below 40rem (Iris's review)"
+    },
+    {
+      "who": "Quill",
+      "what": "Sprint 27's contract: the Full/Calm/Off control and the demo; whether the phone strip moves"
+    }
+  ]
+}

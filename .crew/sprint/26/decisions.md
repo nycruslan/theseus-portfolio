@@ -62,3 +62,11 @@
    budget table carry the square; Probe's `e2e/model.ts` and Pixel's `lib/model/loft.ts` implement
    it word for word. Evidence: `.crew/screenshots/sprint-26/strip-phone-light-b.png` and
    `zoom-phone-light-u012.png` (not in git), Iris's sim table in her report.
+
+10. **B3.10's known-scene fixture creates its context with `preserveDrawingBuffer: true`**
+    (Probe's `ea5461b`; Lens's nit on `4e04b82`). The contract kept B3.10 unedited but for the
+    hog's self-check, and this is an edit to the live check's test page: under load the compositor
+    presented between the page's synchronous draws and its zero-delay multi-draw, the second batch
+    started on a cleared buffer, and the screenshot read the body's white (the integrated run on
+    `cb99e36`, 157 of 158). The assertions are unchanged; the fixture is now deterministic rather
+    than weaker. Lens's other four nits on `4e04b82` ride with sprint 27 (`ROADMAP.md`).
