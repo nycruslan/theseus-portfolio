@@ -64,3 +64,31 @@
      from 1024 px, so the sheet ends at 883 px in the 1440 × 900 frame as `main.webp` does, and the
      facts' rule stays below the fold. Measured by Iris: 1024 × 768, 1280 × 800 and 1920 × 1080
      unchanged or fitting. B1.1 holds.
+
+8. **The third run builds at once, from the branch** (`resume-3.md`). The second run ended with the
+   checks on the branch and no build on any branch, so Pixel built the whole 3D from the spike in one
+   worktree this run, with Iris's values from the first line, against Probe's checks as the readout.
+
+9. **B3.9's "during the loft" precondition is reported, not gated** (Probe, `517bee7`). In headless
+   SwiftShader at 4× CPU each loft frame is a 100 to 170 ms task (the canvas is read back for
+   software compositing), so the contract's own net ends the move `still` about 570 ms in, and a
+   press Playwright sends from a 50 ms poll arrives at rest: CDP traffic lagged 743 to 1,250 ms
+   behind the page while the renderer was busy. The contract makes B3.9's INP "reported, not gated",
+   so the check now presses at the model's first `landed` or `lofting` mutation through an exposed
+   binding, records the state the keydown reached the page in and its INP from the event's own
+   timestamp, and asserts only that it reached the page in one of the model's states. A dispatched
+   key was no alternative: Event Timing ignores untrusted events. Locally the press lands in the loft
+   about one run in five, with a real INP sample when it does (192 ms, Skip settling 19 ms later).
+
+10. **Iris's early look, taken in the build** (her frames in her scratchpad; the review records the
+    result). Three changes, none a number the contract names:
+    - the settled pose lifts higher, `LIFT 90` (from 57), with the shadow's blur `BLUR 2` (from 5): at
+      57 the yawed hull's stern reached the sheet plane, so the shadow plane tinted the stern and its
+      blur haloed it; at 90 the keel clears z = 0 by 27 to 35 px and the lobe's edge reads like
+      `main.webp`'s;
+    - the settled hull 24 px to the left, `SETTLE.dx −30` (from −6), so the model's bow sits at
+      station 9.2 as on `main.webp`, clear of the drawing's own bow at station 10;
+    - under reduced motion the planks' fills fade with the canvas (`fill: transparent` and a 240 ms
+      `transition: fill` under `reduce` only), since in dark the hull emptied a frame before the model
+      faded in. B1.8 counts motion under `no-preference` only; `.plan` is `pointer-events: none`, so
+      `transparent` changes no hit-test.
