@@ -3,6 +3,9 @@ import { profile } from "../content/profile";
 import {
   composite,
   contrast,
+  MODES,
+  MOTION,
+  motionReady,
   PROJECTS,
   parseColor,
   type Rgb,
@@ -16,7 +19,9 @@ import {
 // color, and a project link shows keyboard focus the way it shows hover. The skip link is
 // `a[href="#main"]`. Sprint 23 (.crew/sprint/23/contract.md): projects are rows with one small link,
 // so the hover is the link's (B2.9 disposition); B2.3 pins Contact's first link as the 12th stop;
-// B2.9 holds the forced-colours ring on /read and the 404.
+// B2.9 holds the forced-colours ring on /read and the 404. Sprint 27 (.crew/sprint/27/contract.md):
+// the motion control's three buttons follow Read as page, so Contact's first link is the 15th stop,
+// `tabUntil`'s bound is 15, and the buttons are stops with one clear ring each.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -45,7 +50,7 @@ async function settled(page: Page) {
 }
 
 /** Presses Tab until the focused element matches `selector`, at most `max` times. */
-async function tabUntil(page: Page, selector: string, max = 12) {
+async function tabUntil(page: Page, selector: string, max = 15) {
   for (let presses = 0; presses < max; presses++) {
     await page.keyboard.press("Tab");
     const found = await page.evaluate(
@@ -209,13 +214,25 @@ test("Tab visits every link in DOM order, each seen with one clear ring, in both
   for (const scheme of SCHEMES) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/");
-    // The order the DOM gives, skip link first: a positive tabindex would jump the queue.
+    await motionReady(page);
+    // The order the DOM gives, skip link first: a positive tabindex would jump the queue. A
+    // button is named by its text, as `<button> Full`.
     const expectedStops = await page.evaluate(() =>
-      [...document.querySelectorAll("a[href]")]
+      [...document.querySelectorAll("a[href], button:not([disabled])")]
         .filter((a) => a.checkVisibility())
-        .map((a) => a.getAttribute("href") ?? ""),
+        .map((a) =>
+          a.tagName === "BUTTON"
+            ? `<button> ${(a.textContent ?? "").trim()}`
+            : (a.getAttribute("href") ?? ""),
+        ),
     );
     expect(expectedStops[0], "the first link in the DOM").toBe("#main");
+    expect
+      .soft(
+        expectedStops.filter((stop) => stop.startsWith("<button>")),
+        `the motion buttons among the stops (${scheme})`,
+      )
+      .toEqual(MODES.map((mode) => `<button> ${mode}`));
     const colors = await resolveColors(page);
     const tokenRgba = new Map(
       Object.values(colors).map((c) => [c.computed, c.rgba] as const),
@@ -230,7 +247,7 @@ test("Tab visits every link in DOM order, each seen with one clear ring, in both
       await settled(page);
       const stop = await page.evaluate((projects) => {
         const el = document.activeElement;
-        if (el?.tagName !== "A") return null;
+        if (el?.tagName !== "A" && el?.tagName !== "BUTTON") return null;
         const box = el.getBoundingClientRect();
         const cx = box.left + box.width / 2;
         const cy = box.top + box.height / 2;
@@ -249,8 +266,37 @@ test("Tab visits every link in DOM order, each seen with one clear ring, in both
         // A project link may hand its ring to its card; every other link wears its own.
         const card = el.closest(`${projects} li`);
         const candidates = card ? [el, card] : [el];
+        // B2.9's rule for a button: one ring, on it, its group and slot wearing none.
+        const outlined: string[] = [];
+        if (el.tagName === "BUTTON") {
+          for (
+            let a: Element | null = el;
+            a && a !== document.body;
+            a = a.parentElement
+          ) {
+            const s = getComputedStyle(a);
+            if (
+              s.outlineStyle !== "none" &&
+              Number.parseFloat(s.outlineWidth) > 0
+            )
+              outlined.push(a.tagName.toLowerCase());
+          }
+          for (const c of el.querySelectorAll("*")) {
+            const s = getComputedStyle(c);
+            if (
+              s.outlineStyle !== "none" &&
+              Number.parseFloat(s.outlineWidth) > 0
+            )
+              outlined.push(c.tagName.toLowerCase());
+          }
+        }
         return {
-          href: el.getAttribute("href") ?? "",
+          href:
+            el.tagName === "BUTTON"
+              ? `<button> ${(el.textContent ?? "").trim()}`
+              : (el.getAttribute("href") ?? ""),
+          button: el.tagName === "BUTTON",
+          outlined,
           seen,
           onItself: !card,
           rings: candidates.map((c) => {
@@ -288,6 +334,11 @@ test("Tab visits every link in DOM order, each seen with one clear ring, in both
       });
       if (!verdicts.some(({ why }) => why.length === 0)) {
         problems.push(`${stop.href}: ${JSON.stringify(verdicts)}`);
+      }
+      if (stop.button && stop.outlined.length !== 1) {
+        problems.push(
+          `${stop.href}: ${stop.outlined.length} rings (${stop.outlined.join(", ")})`,
+        );
       }
     }
     expect(stops, `Tab order (${scheme})`).toEqual(expectedStops);
@@ -424,41 +475,45 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 12th Tab stop: skip, the 4 bar links, the 3 title-block links, the Log link, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 15th Tab stop: skip, the 4 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");
+  await motionReady(page);
   const expected = [
     "#main",
     "#work",
     "/sprints",
     "#contact",
     "/read",
+    ...MODES.map((mode) => `<button> ${mode}`),
     ...profile.links.map((link) => link.href),
     "/sprints",
     ...withLink.map((project) => project.href ?? ""),
     profile.links[0]?.href ?? "",
   ];
   // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
-  expect(expected, "the stops up to Contact's first link").toHaveLength(12);
+  expect(expected, "the stops up to Contact's first link").toHaveLength(15);
   const stops: string[] = [];
   for (let press = 0; press < expected.length; press++) {
     await page.keyboard.press("Tab");
     stops.push(
-      await page.evaluate(
-        () =>
-          document.activeElement?.getAttribute("href") ??
-          `<${document.activeElement?.tagName.toLowerCase()}>`,
-      ),
+      await page.evaluate((slot) => {
+        const el = document.activeElement;
+        if (el?.matches(`${slot} button`)) {
+          return `<button> ${(el.textContent ?? "").trim()}`;
+        }
+        return el?.getAttribute("href") ?? `<${el?.tagName.toLowerCase()}>`;
+      }, MOTION),
     );
   }
-  expect(stops, "the first 12 Tab stops on /").toEqual(expected);
+  expect(stops, "the first 15 Tab stops on /").toEqual(expected);
   expect(
     await page.evaluate(
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 12th stop is Contact's first link",
+    "the 15th stop is Contact's first link",
   ).toBe(true);
 });
 
