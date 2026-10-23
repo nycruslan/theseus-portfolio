@@ -101,14 +101,88 @@ body {
 }
 
 /* The bar sticks to the top (components/bar.tsx), so a fragment link or a focused link scrolls in
-   below it rather than under it. */
+   below it rather than under it. Below 1024 px it is two rows, the links and the motion control. */
 html {
-  scroll-padding-top: 52px;
+  scroll-padding-top: 104px;
 }
 
 @media (width >= 64rem) {
   html {
     scroll-padding-top: 56px;
+  }
+}
+
+/*
+ * The motion control (components/motion-control.tsx; .crew/sprint/27/contract.md, "The control"):
+ * Full, Calm, Off in a 1 px ink frame with 1 px ink dividers, the pressed one ink with film text
+ * (.crew/sprint/22/notes-iris.md, 9). The slot is the group's size with or without scripts, so the
+ * buttons' arrival moves nothing; the width is set rather than the text's, so the fallback face
+ * can't change it either. 44 px targets below 1024 px, 32 px from it. The bar isn't printed.
+ */
+[data-motion] {
+  display: flex;
+  width: 183px;
+  height: 44px;
+}
+
+[data-motion] fieldset {
+  display: flex;
+  flex: 1;
+  border: 1px solid var(--foreground);
+}
+
+[data-motion] button {
+  flex: auto;
+  padding: 0 16px;
+  font-size: var(--step-sm);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+[data-motion] button + button {
+  border-left: 1px solid var(--foreground);
+}
+
+[data-motion] [aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+[data-motion] button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* The ring sits on the neighbours, a pressed one's ink included. */
+[data-motion] button:focus-visible {
+  z-index: 1;
+}
+
+/* Hover marks what a press would choose and moves nothing, as the bar's links do. */
+@media (hover: hover) {
+  [data-motion] [aria-pressed="false"]:enabled:hover {
+    text-decoration: underline 2px;
+    text-underline-offset: 4px;
+  }
+}
+
+@media (width >= 64rem) {
+  [data-motion] {
+    width: 148px;
+    height: 32px;
+  }
+
+  [data-motion] button {
+    padding: 0 12px;
+  }
+}
+
+/* Forced colours drop the ink ground, so the pressed button keeps a heavier rule above and below;
+   top and bottom only, so no button's width changes. */
+@media (forced-colors: active) {
+  [data-motion] [aria-pressed="true"] {
+    border-block: 3px solid;
   }
 }
 
