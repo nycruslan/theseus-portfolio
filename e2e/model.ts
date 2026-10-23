@@ -65,7 +65,7 @@ export function whole({ x, y, width, height }: Box): Box {
  * background transparent: its alpha is `keep`'s coverage (S4's method). `extra` is more CSS for
  * the shot. The style goes again after it, so the page is as it was.
  */
-export async function solo(
+async function solo(
   page: Page,
   keep: string,
   clip: Box,
@@ -181,7 +181,7 @@ export function canvasFit(page: Page) {
 }
 
 /** The page's clock time, performance.now(), which Playwright's clock drives. */
-export function now(page: Page) {
+function now(page: Page) {
   return page.evaluate(() => performance.now());
 }
 

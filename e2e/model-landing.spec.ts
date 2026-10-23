@@ -1,4 +1,4 @@
-import { type Browser, expect, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 import { profile as keelAt, LENGTH, sheer } from "../lib/half-model";
 import { WIDE } from "../lib/hull-layouts";
 import {
@@ -12,6 +12,7 @@ import {
   modelCoverage,
   note,
   outlineCoverage,
+  pause,
   profile,
   REVISIONS,
   SHOWN,
@@ -24,10 +25,12 @@ import {
 import {
   channelDelta,
   crop,
+  deltaE,
   edgeOffsets,
   edges,
   hausdorff,
   type Image,
+  pixel,
 } from "./pixels";
 import { openModel } from "./webgl";
 
@@ -385,5 +388,221 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
         )
         .toBeLessThanOrEqual(1 / dpr + 1e-3);
     }
+  }
+});
+
+/**
+ * A point inside each plank as the visitor sees it, in CSS px: the plank box's centre, or the
+ * nearest point to it inside the hull, 4 units clear of the plank's seams, the outline and the
+ * leaders, and clear of the plank numbers, so it reads the fill alone.
+ */
+function plankPoints(page: Page) {
+  return page.evaluate(() => {
+    const svg = document.querySelector<SVGSVGElement>(".plan-wide svg");
+    const hull = svg?.querySelector<SVGPathElement>("clipPath path");
+    const leader = svg?.querySelector<SVGPathElement>(".ln-leader");
+    const m = svg?.getScreenCTM();
+    if (!svg || !hull || !m) return [];
+    const numbers = [
+      ...document.querySelectorAll(".plan-wide .plan-plank"),
+    ].map((n) => n.getBoundingClientRect());
+    const css = (x: number, y: number) => ({
+      x: m.a * x + m.e,
+      y: m.d * y + m.f,
+    });
+    const clear = (x: number, y: number) => {
+      for (const [dx, dy] of [
+        [0, 0],
+        [-4, 0],
+        [4, 0],
+        [0, -4],
+        [0, 4],
+      ] as const) {
+        const p = new DOMPoint(x + dx, y + dy);
+        if (!hull.isPointInFill(p) || leader?.isPointInStroke(p)) return false;
+      }
+      const c = css(x, y);
+      return !numbers.some(
+        (r) =>
+          c.x > r.left - 3 &&
+          c.x < r.right + 3 &&
+          c.y > r.top - 3 &&
+          c.y < r.bottom + 3,
+      );
+    };
+    return [...svg.querySelectorAll<SVGPathElement>("[data-plank]")].map(
+      (plank) => {
+        const b = plank.getBBox();
+        const [cx, cy] = [b.x + b.width / 2, b.y + b.height / 2];
+        let best: { x: number; y: number; d: number } | null = null;
+        for (let x = b.x + 4; x <= b.x + b.width - 4; x += 1)
+          for (let y = b.y + 4; y <= b.y + b.height - 4; y += 1) {
+            const d = Math.hypot(x - cx, y - cy);
+            if ((!best || d < best.d) && clear(x, y)) best = { x, y, d };
+          }
+        const at = best ? css(best.x, best.y) : null;
+        return {
+          id: plank.getAttribute("data-plank") ?? "",
+          at,
+          centre: best?.d === 0,
+        };
+      },
+    );
+  });
+}
+
+/** A token as the page paints it, [r, g, b], through a 2D canvas. */
+function token(page: Page, name: string) {
+  return page.evaluate((prop) => {
+    const probe = document.createElement("div");
+    probe.style.color = `var(${prop})`;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    const ctx = document.createElement("canvas").getContext("2d");
+    if (!ctx) return [0, 0, 0];
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 1, 1);
+    return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+  }, name);
+}
+
+/** Canvas pixels within ΔE 10 of `accent`, each composited over the page's background. */
+function copper(image: Image, accent: number[], ground: number[]) {
+  let n = 0;
+  for (let i = 0; i < image.width * image.height; i++) {
+    const a = (image.data[i * 4 + 3] ?? 0) / 255;
+    if (a < 0.02) continue;
+    const rgb = [0, 1, 2].map(
+      (c) => (image.data[i * 4 + c] ?? 0) * a + (ground[c] ?? 0) * (1 - a),
+    );
+    if (deltaE(rgb, accent) < 10) n++;
+  }
+  return n;
+}
+
+test("B3.7 the model shows the record in the drawing's colours, and nothing copper: at frame 1 each plank's fill is within 8 levels of the drawing's in both schemes, no canvas pixel is within ΔE 10 of --accent at frame 1 or settled, and a scheme change while settled redraws once in the other scheme's colours, then stops", async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  for (const scheme of ["light", "dark"] as const) {
+    const other = scheme === "light" ? "dark" : "light";
+    const off = await openModel(browser, { scheme, refuse: true });
+    await off.goto();
+    const points = await plankPoints(off.page);
+    const offView = await view(off.page);
+    const accent = await token(off.page, "--accent");
+    const ground = await token(off.page, "--background");
+    const planBox = await box(off.page, ".plan-wide");
+    await off.close();
+    expect(points.length, `planks in the wide drawing, ${scheme}`).toBe(22);
+    expect
+      .soft(
+        points.filter((p) => !p.at).map((p) => p.id),
+        `planks with no point clear of their seams and numbers, ${scheme}`,
+      )
+      .toEqual([]);
+
+    const run = await openModel(browser, { scheme, clock: true });
+    await run.goto();
+    expect(
+      await run.until(SHOWN, 4, FIRST),
+      `frame 1 is landed, ${scheme}`,
+    ).toBe("landed");
+    const onView = await view(run.page);
+    const off8 = points.flatMap((p) => {
+      if (!p.at) return [];
+      const [a, b] = [
+        pixel(onView, p.at.x, p.at.y),
+        pixel(offView, p.at.x, p.at.y),
+      ];
+      const d = Math.max(
+        ...[0, 1, 2].map((c) => Math.abs((a[c] ?? 0) - (b[c] ?? 0))),
+      );
+      return d > 8
+        ? [`${p.id}: model ${a.slice(0, 3)} against drawing ${b.slice(0, 3)}`]
+        : [];
+    });
+    expect
+      .soft(
+        off8,
+        `plank fills more than 8 levels from the drawing's at frame 1, ${scheme}`,
+      )
+      .toEqual([]);
+    const clip = whole(planBox as Box);
+    const landed = await modelCoverage(run.page, clip);
+    expect
+      .soft(
+        copper(landed.image, accent, ground),
+        `canvas pixels within ΔE 10 of --accent at frame 1, ${scheme}`,
+      )
+      .toBe(0);
+    expect(
+      await run.until(["settled"], 16, 30_000),
+      `settled on the clock, ${scheme}`,
+    ).toBe("settled");
+    const settled = await modelCoverage(run.page, clip);
+    expect
+      .soft(
+        copper(settled.image, accent, ground),
+        `canvas pixels within ΔE 10 of --accent settled, ${scheme}`,
+      )
+      .toBe(0);
+
+    // The scheme switched while settled: one redraw in the other scheme's colours, then nothing.
+    const before = (await run.frames()).length;
+    await run.page.emulateMedia({ colorScheme: other });
+    await pause(300);
+    await run.step(200);
+    const redrawn = (await run.frames()).length - before;
+    const switched = await modelCoverage(run.page, clip);
+    await run.step(3000);
+    await pause(300);
+    const after = (await run.frames()).length - before;
+    expect
+      .soft(redrawn, `frames drawn on the switch to ${other}`)
+      .toBeGreaterThanOrEqual(1);
+    expect
+      .soft(
+        after - redrawn,
+        `frames drawn in the 3 s after the switch to ${other}`,
+      )
+      .toBe(0);
+    // The same tab reloaded in the other scheme opens settled: the reference frame.
+    await run.page.reload();
+    await run.page.evaluate(() => document.fonts.ready);
+    expect(
+      await run.until(["settled"], 16, FIRST),
+      `a reload opens settled, ${other}`,
+    ).toBe("settled");
+    const reference = await modelCoverage(run.page, clip);
+    const d = channelDelta(switched.image, reference.image);
+    let covered = 0;
+    let differ = 0;
+    for (let i = 0; i < d.length; i++) {
+      const a = Math.max(switched.alpha[i] ?? 0, reference.alpha[i] ?? 0);
+      if (a < 0.02) continue;
+      covered++;
+      if ((d[i] ?? 0) > 8) differ++;
+    }
+    note(
+      testInfo,
+      "scheme switch",
+      `${scheme} to ${other}: ${redrawn} frames on the switch, ${after - redrawn} after; ${differ} of ${covered} covered px more than 8 levels from a settled load in ${other}. ${SWIFTSHADER}.`,
+    );
+    expect(
+      covered,
+      `covered canvas pixels after the switch to ${other}`,
+    ).toBeGreaterThan(0);
+    expect
+      .soft(
+        differ / covered,
+        `share of the canvas off a settled ${other} load after the switch`,
+      )
+      .toBeLessThanOrEqual(0.01);
+    if (scheme === "light")
+      await attach(testInfo, "settled, switched to dark.png", switched.image);
+    expect.soft(run.errors, `console errors, ${scheme}`).toEqual([]);
+    await run.close();
   }
 });
