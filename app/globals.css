@@ -78,6 +78,22 @@
   --font-cond: var(--font-sofia-cond), sans-serif;
 }
 
+/* The display face's fallback (app/fonts.ts): next/font's metrics for Sofia Sans Extra Condensed over
+   Arial, taken from Arial or its metric-compatible twins (Liberation Sans on Linux, Arimo on
+   ChromeOS), else Android's Roboto, a little narrower, so the first paint without the face keeps
+   its lines on every system, not only those with Arial. */
+@font-face {
+  font-family: "Sofia Sans Extra Condensed Local";
+  src:
+    local("Arial"), local("ArialMT"), local("Liberation Sans"),
+    local("LiberationSans"), local("Arimo"), local("Arimo-Regular"),
+    local("Roboto"), local("Roboto-Regular");
+  ascent-override: 147.51%;
+  descent-override: 49.17%;
+  line-gap-override: 0%;
+  size-adjust: 61.01%;
+}
+
 /* Night watch: the same sheet under one cool lamp. The address-bar colors in app/layout.tsx repeat
    both backgrounds. A seated plank stays the brightest thing in the drawing but dark enough for its
    ink number to read on it (4.5:1 and more, contract B1.4). */

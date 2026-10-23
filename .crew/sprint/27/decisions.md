@@ -71,3 +71,11 @@
     put the slot below the bar, inside the compare. The compare is about the sheet, and the
     disabled state has its own data rule, so Probe masks the shown slot rather than Iris dropping
     the muted style, which would have buttons pretend (her sprint 22 note).
+
+11. **B3.1's hand-off views mask the shown control too (amendment 3).** Forge's full run on
+    `4167284` was 164 of 166, the two reds the same cause as decision 10: at 1440 the hand-off
+    read 2,738 bar pixels changed (Full pressed on the model page against Off pressed with Full
+    and Calm muted on the refused page), at 390 DPR 2 4,884 device pixels "outside the profile"
+    (the foot slot's top 12 px, which Iris's −12 px margin puts inside the drawing's box). The
+    control isn't the hand-off, so the compare masks the shown `[data-motion]` slot with the
+    assertions unchanged; Probe makes the edit, since builders don't edit `e2e/`.
