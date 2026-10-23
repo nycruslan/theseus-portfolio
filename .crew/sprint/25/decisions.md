@@ -168,3 +168,9 @@
     no canvas, no `data-state`, filled planks) and his nit on B3.5's print fill (alpha 0 counts as
     unfilled). Headless Chromium didn't restore `/` from the bfcache for the Back trigger, so the
     `pageshow` guard is traced, not run.
+
+16. **B3.1's ink bound is half the Off page's count** (Probe, `3e327ef`). CI's run on `515b7c3`
+    passed the ink assertion on 21 of 22 numbers and failed the smallest glyph, "7", at 17 of 22
+    ink pixels: 77% against decision 14's 80%, the LCD-to-grayscale shift the decision describes,
+    measured. A covered number falls to 0 (the stacking-rule mutant dropped 21 numbers to 0), so
+    half still catches build note 6's failure and leaves anti-aliasing room on the smallest glyph.
