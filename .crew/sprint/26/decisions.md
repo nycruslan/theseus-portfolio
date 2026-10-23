@@ -40,3 +40,12 @@
    hull has the same presence (79% of the width against 76%); what differs is the drawing under it,
    the profile in place of the body plan the phone sheet hasn't carried since sprint 22 (#62,
    owner-approved), so the PR says so without waiting for the owner.
+
+8. **Run 2 resumed the sprint from the branch, not the briefs** (STATE.md's lesson from sprint
+   23). The first run's container went with Pixel's served build and the roles' worktrees after
+   Pixel's last three commits (`1eed4c3`, `7b6fbba`, `1b36b0e` on `origin/pixel/26`: the model at
+   every width, Lens's riders, Iris's pose) had reached origin but not the sprint branch. Atlas
+   cherry-picked them (`5614367`, `f2e1a35`, `63956d8`), found `pnpm verify` red on knip alone
+   (two helpers Probe exported ahead of their checks), and started Probe (steps 2 to 5) and Iris
+   (the early look, on a build she serves herself) in parallel on that head; Pixel follows with
+   both reports, so one fix round covers the checks and the taste. Nothing was rebuilt.
