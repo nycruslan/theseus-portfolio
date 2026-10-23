@@ -245,7 +245,8 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
     if (shot.width === 1440 && shot.dpr === 1 && shot.scheme === "light") {
       const changed = channelDelta(r.onView, r.offView);
       const at = (x: number, y: number) => changed[y * r.onView.width + x] ?? 0;
-      const differing = (b: Box | null, skip?: Box) => {
+      /** Pixels of `b`, outside `skip`, whose channel delta exceeds `floor` levels. */
+      const differing = (b: Box | null, skip?: Box, floor = 0) => {
         if (!b) return Number.NaN;
         const c = whole(b);
         let n = 0;
@@ -259,7 +260,7 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
               y < skip.y + skip.height
             )
               continue;
-            if (at(x, y) > 0) n++;
+            if (at(x, y) > floor) n++;
           }
         return n;
       };
@@ -290,8 +291,14 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
       ).toBeGreaterThan(0);
       expect
         .soft(
-          r.numbers.filter((n) => differing(n) > 0).map((n) => n.text),
-          "plank numbers whose box changes at the hand-off (build note 6)",
+          // The number boxes lie over the canvas's flat card fill at frame 1, which a runner's
+          // SwiftShader can round a level off the SVG's; build note 6 is that the numbers paint
+          // above the canvas, and a hidden or covered digit (--foreground on the card) moves its
+          // box by far more than B3.7's 8 levels (decision 14).
+          r.numbers
+            .filter((n) => differing(n, undefined, 8) > 0)
+            .map((n) => n.text),
+          "plank numbers whose box changes by more than 8 levels at the hand-off (build note 6; B3.7's bound)",
         )
         .toEqual([]);
       expect
