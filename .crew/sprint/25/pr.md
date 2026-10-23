@@ -26,8 +26,9 @@ Vercel preview at 1024 px and up.
   line with an ellipsis, the full goal in the cell's DOM text; the bottom row's `min-height` keeps the
   sheet's bottom edge at 883 px in the 1440 × 900 frame as `main.webp` draws it.
 - **The checks** (Probe): the harness (`e2e/webgl.ts`, `e2e/pixels.ts`, `e2e/model.ts`), B3.1 to
-  B3.10 in `e2e/model-*.spec.ts`, and the three rewrites with the same assertions (B1.8, B2.10,
-  B1.5).
+  B3.10 in `e2e/model-*.spec.ts`, the narrowing check Lens asked for in fix round 1 (B3.5: the chunk
+  held, the viewport taken to 1000, released: the Off sheet stays), and four rewrites with the same
+  assertions (B1.8, B2.10, B1.5, and B1.4 on the Off path, decision 12).
 - **Iris's nine calls** on the loft, decided on the prototype and taken in the build
   (`.crew/sprint/25/notes-iris.md`), her early look's three changes (decision 10), and her review's
   one: a warm lamp on the dark hull (decision 13). **Iris's verdict: ship, 8.8/10**, no musts
@@ -41,11 +42,11 @@ header). Every GPU number is from headless Chromium's SwiftShader, so a floor.
 
 | Check | Result |
 |---|---|
-| B3.1 the first frame lands on the drawing | Registration at 1440: 1.00 CSS px at DPR 1 (bound 1.5), 0.71 at DPR 2 (bound 1.0), both schemes; 1024 and 1920 read the same. Whole-pixel canvas at 1024, 1366, 1440 and 1920 × DPR 1 and 2. Hand-off: 2,884 of 669,256 px change by more than 48 levels (S4: 4,891); title block, revisions, bar, numbers and text boxes unchanged; no transition |
+| B3.1 the first frame lands on the drawing | Registration at 1440: 1.00 CSS px at DPR 1 (bound 1.5), 0.71 at DPR 2 (bound 1.0), both schemes; 1024 and 1920 read the same. Whole-pixel canvas at 1024, 1366, 1440 and 1920 × DPR 1 and 2. Hand-off: 2,884 of 669,256 px change by more than 48 levels (S4: 4,891); the title block, the revisions, the bar, the drawing outside the profile and every text node's box pixel-identical; each plank number keeps its ink at frame 1 (an ink-pixel count against the Off page's, decision 14: CI's composited text loses LCD anti-aliasing, so identical pixels can't be asserted there); no transition |
 | B3.2 the loft holds the hull's size | Framed height within 1.09% of (1 + 0.10·e) × frame 1's at every step at 1440 and 1024 (bound 2%); first moving frame to `settled` 2,384 ms on the clock against 2,400 |
 | B3.3 once a visit, any input ends it | Pass: reload and second goto open settled with no lofting frame, a new tab plays again; key, click, wheel, tap and scroll settle within 2 frames and do their own work; storage throwing plays the loft with no error |
 | B3.4 reduced motion opens settled | Pass, and a switch to `reduce` mid-loft settles within 2 frames |
-| B3.5 the Off paths download nothing | Pass on all six: no extra script, one `webgl2` probe at most, no canvas, the sheet as on main; print hides the model |
+| B3.5 the Off paths download nothing | Pass on all six: no extra script, one `webgl2` probe at most, no canvas, the sheet as on main; print hides the model, and a plank printed with a transparent fill counts as unfilled. A viewport narrowed below 1024 px while the chunk downloads keeps the Off sheet (fix round 1, decision 15) |
 | B3.6 cheap and still | At most 4 draws (3 at frame 1, 4 settled; bound 8); 25,267 triangles (bound 30,000; two-triangle seam quads); backing store 2× at DPR 3; 0 frames at rest, off-screen and hidden. 3D chunk 144,516 B gzip -9 (gzip -6 145,091; brotli 11 118,337; brotli 5 133,963; Forge's independent read before the warm lamp: 144,497), one file, requested after `loadEventEnd`. Frame JS at 4× CPU: median 7.9 ms, p95 134.8 ms; the settled frame 0.6 ms |
 | B3.7 the record in the drawing's colours | Plank fills within 8 levels of the drawing's in both schemes; no pixel within ΔE 10 of `--accent`; a scheme switch draws 1 frame, then 0 |
 | B3.8 cleanup and the page around it | Pass: nothing in `[data-model]` is hit; Read as page and Back leave one context and a settled model; 1440 → 1100 refits with CLS 0; 1000 removes the canvas |
@@ -57,13 +58,20 @@ Whole suite: 151 of 151 in Pixel's worktree, and 151 of 151 on this branch (`PLA
 
 ## Decisions
 
-`.crew/sprint/25/decisions.md`, 1 to 13: the stack built on A; Iris's calls that change the
+`.crew/sprint/25/decisions.md`, 1 to 16: the stack built on A; Iris's calls that change the
 contract's numbers (7: the ease, the 10% grow, the hollow drawing, the reduced-motion fade, the
 bottom row); B3.9's precondition reported, not gated (9); Iris's early look (10); where the build
 departs from the spike (11: one camera with a hand-set projection, still frames at the full ratio,
 line weights in buffer pixels, the hollow rule off print, two-triangle seam quads); B1.4 on the Off
 path with the same assertions (12); Iris's review and the full-page-capture teardown, a safe
-artefact left as a follow-up (13).
+artefact left as a follow-up (13); B3.1's number boxes asserted by ink count, since CI's composited
+text loses LCD anti-aliasing (14, and the bound set at half in 16); fix round 1 on Lens's one
+Important finding, a viewport narrowed before the stage exists (15).
+
+**Lens:** ship on `f6a5ff0` (six nits, riding with sprint 26), `changes` on `20ad540` (one
+Important: the narrowing bug, fixed in round 1), ship on `515b7c3` (two nits: forced colours
+switched on mid-visit, riding with sprint 26; this body, brought up to date). The later pushes
+change only B3.1's ink bound and notes.
 
 ## Needs owner decision
 
