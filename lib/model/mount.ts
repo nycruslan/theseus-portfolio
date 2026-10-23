@@ -60,6 +60,15 @@ function palette(): Palette {
   };
 }
 
+/** The shadow at the loft's settled pose; its texels follow the drawing's scale. */
+const shadowFor = (hull: Hull, loft: Loft) =>
+  bakeShadow(
+    hull.position,
+    hull.index,
+    loft.at(1).pose,
+    Math.max(1, 2.5 * loft.scale),
+  );
+
 /** The DPR ladder, 2, 1.5, 1: a ratio between rungs steps to the rung below it (1.75 → 1.5). */
 const below = (ratio: number) => (ratio > 1.5 ? 1.5 : 1);
 
@@ -151,12 +160,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     });
     stage.fit(next.buffer, [next.width, next.height]);
     loft = makeLoft(next, hull.points);
-    if (!keep) {
-      const texel = Math.max(1, 2.5 * loft.scale);
-      stage.shade(
-        bakeShadow(hull.position, hull.index, loft.at(1).pose, texel),
-      );
-    }
+    if (!keep) stage.shade(shadowFor(hull, loft));
   };
 
   const draw = (e: number) => {
@@ -294,6 +298,10 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     else if (pending) redraw();
   };
 
+  // A lost context comes back blank: three rebuilds its state, and the still frame is drawn again.
+  const restored = () => redraw();
+  canvas.addEventListener("webglcontextrestored", restored);
+
   const seen = new IntersectionObserver((entries) => {
     onScreen = entries.some((entry) => entry.isIntersecting);
     if (onScreen && pending) redraw();
@@ -332,7 +340,10 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     if (!alive) return;
     stage = createStage(canvas, hull);
     stage.paint(palette(), seated);
-    apply(measure());
+    apply(measure(), true);
+    await pause();
+    if (!alive || !stage || !loft) return;
+    stage.shade(shadowFor(hull, loft));
     await pause();
     if (!alive || !stage || !loft) return;
     await stage.compile(loft);
