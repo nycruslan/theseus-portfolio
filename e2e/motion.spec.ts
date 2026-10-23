@@ -314,14 +314,45 @@ async function expectOffAfterPress(
   expectWhole(await drawing(run.page), off, `after Off, ${when}`);
 }
 
-/** The sheet below the bar, the whole page's length, as device pixels. */
+/**
+ * The sheet below the bar, the whole page's length, as device pixels (the runs are at DPR 1), with
+ * the shown `[data-motion]` slot's box blanked: below 768 px it sits in the sheet, and its disabled
+ * buttons on the WebGL-refused page are their own data rule (amendment 2, decision 10).
+ */
 async function belowTheBar(page: Page) {
-  const top = await page.evaluate(() => {
+  const { top, slot } = await page.evaluate((motion) => {
     const bar = document.querySelector("header:has(nav)");
-    return Math.ceil(bar?.getBoundingClientRect().bottom ?? 0);
-  });
+    const shown = [...document.querySelectorAll(motion)].find(
+      (el) => el.getClientRects().length > 0,
+    );
+    const r = shown?.getBoundingClientRect();
+    return {
+      top: Math.ceil(bar?.getBoundingClientRect().bottom ?? 0),
+      slot: r
+        ? {
+            left: Math.floor(r.left + scrollX),
+            top: Math.floor(r.top + scrollY),
+            right: Math.ceil(r.right + scrollX),
+            bottom: Math.ceil(r.bottom + scrollY),
+          }
+        : null,
+    };
+  }, MOTION);
   const image = decodePng(await page.screenshot({ fullPage: true }));
-  return crop(image, 0, top, image.width, image.height - top);
+  const sheet = crop(image, 0, top, image.width, image.height - top);
+  if (slot) {
+    for (let y = Math.max(slot.top, top); y < slot.bottom; y++) {
+      for (
+        let x = Math.max(0, slot.left);
+        x < Math.min(slot.right, sheet.width);
+        x++
+      ) {
+        const i = ((y - top) * sheet.width + x) * 4;
+        if (i >= 0 && i < sheet.data.length) sheet.data.fill(0, i, i + 4);
+      }
+    }
+  }
+  return sheet;
 }
 
 /** Layout shifts without recent input, each with its sources (`window.__shifts`). */
@@ -1095,7 +1126,7 @@ test("B3.19 Off: at 1440 and 390 x 844, Off pressed at rest or mid-loft leaves w
         expect
           .soft(
             channelDelta(view, baseView).filter((d) => d > 0).length,
-            `pixels below the bar that differ from the refused page's with off stored, ${scheme}, ${where}`,
+            `pixels below the bar, the control's slot masked, that differ from the refused page's with off stored, ${scheme}, ${where}`,
           )
           .toBe(0);
       }
