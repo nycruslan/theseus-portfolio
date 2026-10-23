@@ -46,8 +46,9 @@ page, and B3, the signature moment.
   - [ ] Sprint 25 (M): the hull lifts off the drawing at 1024 px and up, once a visit, skippable,
     settled under reduced motion, 0 frames at rest, with no control yet (contract draft:
     `.crew/sprint/24/b3-first-contract.md`). **Its PR waits for the owner's stack call**, with the
-    loft on its preview: A departs from `design/brief.md`'s Technology section (the owner's file),
-    B fits the 250 KB budget only counted as brotli. It also carries batch E, Iris's one-line
+    loft on its preview: A departs from `design/brief.md`'s Technology section (the owner's file);
+    B misses the 250 KB budget in either encoding on Vercel's wire (spike S1: Vercel's brotli is
+    about gzip's size), fitting only at brotli 11, which Vercel doesn't serve. It also carries batch E, Iris's one-line
     revision descriptions at 1024 px and up (B1.5's check changes), for the owner to approve.
   - [ ] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
     a still frame under 30 fps, scrolling through the canvas. The phone registers on the narrow

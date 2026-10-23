@@ -47,7 +47,9 @@
 6. **The stack call goes to the owner before sprint 25 merges, not at the B3 demo** (Quill's
    recommendation, `b3-plan.md`, taken). Sprint 25 writes nearly all the renderer-specific code, and
    neither option fits every line the owner approved: A departs from `design/brief.md`'s Technology
-   section (the owner's file), B fits the 250 KB budget only counted as brotli. Pixel's S7 paragraph
+   section (the owner's file); B misses the 250 KB budget in either encoding on Vercel's wire (spike
+   S1: Vercel's brotli came out 1.6% to 4.6% above local gzip), fitting only at brotli 11, which
+   Vercel doesn't serve. Pixel's S7 paragraph
    goes in this PR's body as a non-blocking question; sprint 25 builds on the spike's provisional
    pick and carries the call under "Needs owner decision" with the loft running on its preview.
 

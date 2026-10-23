@@ -58,13 +58,16 @@ visitor gets today's sheet and downloads no 3D.
 - It runs when all of these hold at load:
   - scripts run;
   - the viewport is at least 1024 CSS px wide;
-  - a WebGL 2 context is granted;
+  - a WebGL 2 context is granted to one throwaway `webgl2` probe, the only context request before
+    the import (sprint 10's precedent, `.crew/sprint/10/probe-checks.md`), made only once the other
+    conditions hold;
   - `forced-colors: active` doesn't match;
   - `navigator.connection?.saveData` isn't true;
   - the media isn't print.
 - Otherwise it is **Off**:
   - no 3D chunk is requested;
-  - no `getContext` for `webgl`, `webgl2` or `webgpu` is called by the site;
+  - no `getContext` for `webgl`, `webgl2` or `webgpu` is called by the site, apart from that one
+    probe where WebGL was refused;
   - the page is main's.
 
 **When.**
@@ -218,7 +221,10 @@ I judge B3.1 to B3.3 first at the demo.
 - Registration, asserted at 1440 × 900 at DPR 1 and DPR 2, in both schemes. Hold `landed` with the
   clock and compare with the same view with WebGL refused, by S4's method (`measure/s4-register.mjs`):
   the Hausdorff distance between the model's outline coverage and `.ln-outline`'s, at a 50%
-  threshold, is at most 1.0 CSS px. S4 measured 1.0 at DPR 1 and 0.71 at DPR 2.
+  threshold, is at most 1.0 CSS px at DPR 2 (S4 measured 0.71; the method's resolution there is
+  0.5 px) and at most 1.5 CSS px at DPR 1, where the method's resolution is one device pixel and a
+  single diagonal pixel of drift reads √2 (S4 measured 1.0). The sub-pixel centroid offset from
+  `measure/s4-centroid.mjs` is reported at both (S4 measured at most 0.64 px).
 - Other widths:
   - 1024 × 768 and 1920 × 1080 are measured the same way and reported, not asserted, until a run has
     measured them;
@@ -288,7 +294,8 @@ I judge B3.1 to B3.3 first at the demo.
   - scripts off.
 - In each case:
   - no script is requested beyond those the page fetches with WebGL refused;
-  - the site calls no `getContext` for `webgl`, `webgl2` or `webgpu`;
+  - the site calls no `getContext` for `webgl`, `webgl2` or `webgpu`, except that the WebGL-refused
+    case allows exactly one `webgl2` probe and no other context request;
   - no `[data-model] canvas` exists;
   - B1.4's 22 planks and the title block are as on main.
 - Printing after the model settled:
@@ -397,7 +404,7 @@ so every spec that opens `/` at that width loads the model. Each one below was r
 |---|---|---|---|
 | plan.spec.ts | B1.8 it needs no script and nothing moves | **rewrite** | Its pixel comparisons of `[data-plan]` at scroll 120, 400 and bottom-and-back take the 2D sheet with WebGL refused: the canvas overlays the drawing's box, and a scroll skips the loft. Every other assertion runs as today, with the model loading: CLS, no-script equality, markup, no animations or transition events, print, forced colours. The model's own stillness is B3.6 |
 | plan.spec.ts | B1.4, B1.9, C6, C9, B2.5 | keep | `[data-model]` is `[data-plan]`'s sibling. If the SVG draws its seams once (build note 7), the drawing's markup shrinks within the same rules. The canvas isn't an LCP candidate, is never hit, and logs no console error |
-| read.spec.ts | B2.10 script bytes on `/`, `/read` and the 404 | **rewrite** | `/` is measured with WebGL refused, so the idle import isn't counted. The chunk has its own budget in B3.6. The 2,048 B stays unless the loader doesn't fit (Needs owner decision, 3). `/read` and the 404 are unchanged |
+| read.spec.ts | B2.10 script bytes on `/`, `/read` and the 404 | **rewrite** | `/` is measured with WebGL refused, so the idle import isn't counted. The chunk has its own budget in B3.6. The 2,048 B stays unless the loader doesn't fit (Needs owner decision, 2). `/read` and the 404 are unchanged |
 | read.spec.ts | B2.4, B2.6, B2.7, B2.11 | keep | `/read` has no model |
 | sheet.spec.ts | B1.5 the revision block | **rewrite (E)** | "Truncated cells" becomes one line with an ellipsis from 1024 px, the full goal in the cell's DOM text, and the full text at 390. Every other assertion stays |
 | sheet.spec.ts | B1.1, B1.2, B2.3 (both), B1.5 the reader, B1.6, B1.7, B1.10, B1.11, B2.9 riders | keep | No layout space, no new control and no font. B1.6 reads CSS, and B3.7 checks the canvas for copper |
@@ -436,7 +443,7 @@ Nothing retires.
 
 1. **The stack: A (WebGLRenderer) or B (three/webgpu).** This PR builds on A and waits for the call,
    with the loft running on the preview. Pixel's recommendation is S7's paragraph, which the PR body
-   quotes verbatim.
+   summarises.
    - **A:**
      - 178,873 B gzip, about 182 to 187 kB on Vercel's wire, inside the 250 kB budget;
      - 4 to 5 draws;
@@ -455,9 +462,11 @@ Nothing retires.
 
 ## Needs decision (Iris)
 
-Pixel's numbers are beside each call. Iris decides with the running prototype
-(`.crew/sprint/24/spike/recipe.sh`; `?option=a&play=2400` plays the move), since frames can't show
-feel.
+Pixel's numbers are beside each call. Iris decides with the running prototype, since frames can't
+show feel. The recipe (`.crew/sprint/24/spike/recipe.sh`) tears its worktree and server down when it
+ends and leaves no prototype running (Lens, sprint 24), so sprint 25's Pixel starts one for Iris by
+the steps in `spike/proto/` (`build-proto.mjs`, then `serve.mjs`, with `three` copied rather than
+symlinked into the proto folder) and gives her the URL; `?option=a&play=2400` plays the move.
 
 1. **The duration.** It stays 2.4 s until Iris rules, and a change is shown to the owner on this
    preview. From S5, with 2^−10u:

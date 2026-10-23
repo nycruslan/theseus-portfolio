@@ -80,7 +80,8 @@ call with the loft running on its preview.
 
 - `pnpm verify` and CI's `check` on the head: see the checks on this PR (the sprint adds only
   notes, scripts under `.crew/sprint/24/spike/` that biome, knip and tsc ignore, and five webp
-  frames under 60 kB each).
+  frames under 60 kB each, added with `git add -f` since `.gitignore` drops webp files under sprint
+  folders; Lens's Important finding on the first review, fixed in round 1).
 - The measurement on main for the revision block: `.crew/sprint/24/measure.md`.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

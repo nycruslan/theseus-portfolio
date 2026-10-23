@@ -1,5 +1,7 @@
 Outcome: option A (WebGLRenderer) meets every budget the cloud can measure, and option B (three/webgpu) misses two. A's 3D chunk is 178.9 kB gzip in Turbopack, the hull is 20.3k triangles on desktop and 5.4k on phones, a frame takes 4 to 5 draws, the first frame lands within 1 CSS px of the inked profile, and the loft holds the framed height within 0.8%. B's chunk is 280.6 kB gzip, and a frame takes 26 draws on its WebGPU backend. My provisional pick for B3's first build sprint is A. The owner makes the final call at the B3 demo.
 
+(Atlas, after the report: decision 6 in `.crew/sprint/24/decisions.md` moves the owner's call to sprint 25's PR, before it merges, with the loft on its preview. Where this report says "at the B3 demo", read that.)
+
 # B3 spike (sprint 24): the measurements
 
 Pixel, for Atlas, Quill and Iris. Contract: `.crew/sprint/24/contract.md`. The direction: `.crew/sprint/17/direction-iris.md`.
