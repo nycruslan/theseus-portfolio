@@ -42,7 +42,7 @@ export function Revisions({
   return (
     <section
       aria-labelledby="revisions"
-      className={`flex flex-col gap-2.5 border-t-2 border-foreground px-4 pt-[18px] pb-6 lg:border-x lg:border-b lg:px-6 lg:pb-4 ${className}`}
+      className={`sheet-row flex flex-col gap-2.5 border-t-2 border-foreground px-4 pt-[18px] pb-6 lg:border-x lg:border-b lg:px-6 lg:pb-4 ${className}`}
     >
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
         <h2

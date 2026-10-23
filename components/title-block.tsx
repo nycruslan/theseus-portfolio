@@ -10,7 +10,7 @@ const LINK =
 export function TitleBlock({ className = "" }: { className?: string }) {
   return (
     <header
-      className={`flex flex-col border-t-2 border-foreground px-4 pt-3.5 pb-6 lg:border-r lg:border-b lg:px-7 lg:pt-[18px] lg:pb-4 ${className}`}
+      className={`sheet-row flex flex-col border-t-2 border-foreground px-4 pt-3.5 pb-6 lg:border-r lg:border-b lg:px-7 lg:pt-[18px] lg:pb-4 ${className}`}
     >
       <h1 className="font-cond text-step-3xl leading-[0.9] font-bold tracking-[-0.01em] lg:leading-[0.86]">
         {profile.name}

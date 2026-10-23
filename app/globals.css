@@ -456,6 +456,21 @@ html {
 }
 
 /*
+ * The sheet's bottom row, the revision block and the title block beside it. With one-line
+ * descriptions it can end short of the fold and show the facts' rule under the frame, so from
+ * 1024 px each cell is at least the height the viewport leaves under the bar and the drawing, less
+ * a 16 px margin like the gutters (.crew/sprint/25/notes-iris.md, section 9). 88 px is the bar (72)
+ * and that margin, 34 px the two gutters and the frame's 2 px of borders, 0.3381 the wide drawing's
+ * height over its width (lib/hull-layouts.ts, WIDE.box: 476 / 1408). 21rem caps it, so a tall
+ * window keeps the canvas's proportions instead of stretching the row.
+ */
+@media (width >= 64rem) {
+  .sheet-row {
+    min-height: min(21rem, calc(100svh - 88px - (100vw - 34px) * 0.3381));
+  }
+}
+
+/*
  * The facts on / (components/facts.tsx): the record as a drawing's schedule
  * (.crew/sprint/23/notes-iris.md, sections 2 and 3). Below 1024 px each head sits over its list and
  * each entry stacks with its period first. From 1024 a section is a 12-column grid, the head in the
