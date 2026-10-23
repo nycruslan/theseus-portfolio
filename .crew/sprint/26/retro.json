@@ -60,6 +60,10 @@
     {
       "change": "In the sprint skill's brief rules, a resumed run's roles push to `<role>/<n>-r2` from the sprint head rather than force-pushing `<role>/<n>`, which the cloud refuses",
       "moves": "Pixel's and Probe's first pushes in run 2 were refused and each lost a round finding the way around"
+    },
+    {
+      "change": "In the sprint skill's \"Review and ship\", write `node .crew/ready-pr.mjs <pr>` and `node .crew/merge.mjs <pr>` with the PR number: both scripts take the bare PR number and refuse anything else, while the skill says `<n>`, the sprint's",
+      "moves": "Atlas ran `ready-pr.mjs 26` in sprint 26 and was told PR #26 was merged; one wasted round per run that follows the skill's text"
     }
   ],
   "followUps": [
