@@ -341,6 +341,97 @@ html {
 }
 
 /*
+ * The model (components/model.tsx and lib/model/; .crew/sprint/25/contract.md): the white card
+ * model's layer over the drawing. It lies on main's first row, the drawing's, and takes no layout
+ * space; the scene lays its canvas on .plan-wide's box in whole buffer pixels. Nothing in it is hit.
+ * Nothing here is a CSS animation or transition but the reduced-motion fade, which B1.8 (motion
+ * allowed) never sees. The Off page has the layer empty, and print doesn't show it.
+ */
+[data-model] {
+  position: absolute;
+  inset: 0;
+  grid-area: 1 / 1 / 2 / -1;
+  pointer-events: none;
+}
+
+@media (width >= 64rem) {
+  main:has(> [data-model]) {
+    position: relative;
+  }
+}
+
+@media (width < 64rem) {
+  [data-model] {
+    display: none;
+  }
+}
+
+[data-model] canvas {
+  position: absolute;
+  display: block;
+}
+
+/* Hidden until frame 1 is drawn: the scene sets the state with it. */
+[data-model]:not([data-state]) canvas {
+  visibility: hidden;
+}
+
+/* The plank numbers paint above the canvas, so frame 1 changes none of them (build note 6). */
+[data-plan]:has(+ [data-model]) .plan-plank {
+  z-index: 1;
+}
+
+/* Under the lifted model the drawing goes hollow, as loft.webp's frames 2 to 5 draw it: from the
+   first lofting frame, no fills, numbers or leaders (notes-iris.md, call 5). On screen only:
+   on paper the drawing is the record, as on main. */
+@media not print {
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) {
+    & path[data-plank] {
+      fill: none;
+    }
+    & .plan-plank,
+    & .ln-leader {
+      visibility: hidden;
+    }
+  }
+}
+
+/* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the
+   plank numbers out, and the fills cut (notes-iris.md, call 8). Opacity isn't motion. The numbers'
+   visibility waits out the fade, so it can be seen. */
+@media (prefers-reduced-motion: reduce) {
+  [data-model] canvas {
+    transition: opacity 240ms linear;
+  }
+
+  [data-model]:not([data-state]) canvas {
+    opacity: 0;
+  }
+
+  [data-plan]:has(+ [data-model]) .plan-plank {
+    transition:
+      opacity 240ms linear,
+      visibility 240ms linear;
+  }
+
+  [data-plan]:has(+ [data-model][data-state]) .plan-plank {
+    opacity: 0;
+  }
+}
+
+@media print {
+  [data-model] {
+    display: none;
+  }
+}
+
+/*
  * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
  * folds: the number on the left, the description beside it, and the four signatures under it, each
  * with its column's head above it. The heads row is then read by assistive tech only. From 1024 px
