@@ -1,7 +1,7 @@
 {
   "sprint": 25,
   "pr": 72,
-  "goal": "The white card hull lands on its drawing and lifts off, once a visit, at 1024 px and up",
+  "goal": "The card hull lands on its drawing and lifts off, once a visit, from 1024 px",
   "goalFrom": "roadmap",
   "size": "M",
   "outcome": "needs-owner: open, waiting for the owner. Lens ship on f5fa66f after fix round 1 (four runs), CI check green and 152 e2e tests passed; gate waits for the owner's stack call (A, built, or B) and batch E. Iris ship 8.8/10 with her early-look changes and the warm lamp in the build",
