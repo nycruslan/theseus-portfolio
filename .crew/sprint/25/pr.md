@@ -50,7 +50,7 @@ header). Every GPU number is from headless Chromium's SwiftShader, so a floor.
 | B3.10 the harness checks itself | Pass |
 | Loader bytes | 984 B raw, 648 B gzip -9 over `/sprints'` scripts with WebGL refused, within B2.10's 2,048 B: no owner decision needed |
 
-Whole suite: 151 of 151 in Pixel's worktree; the integrated run on this branch is in "Evidence".
+Whole suite: 151 of 151 in Pixel's worktree, and 151 of 151 on this branch (`PLAYWRIGHT_PORT=4660 pnpm test:e2e`, 5.2 min) after B1.4 moved to the Off path (decision 12); the first integrated run was 150 of 151, B1.4 losing the race decision 12 describes.
 
 ## Decisions
 
@@ -75,7 +75,8 @@ The loader is within 2,048 B, so the contract's second question doesn't arise.
 ## Evidence
 
 - Pixel's run in its worktree: `pnpm verify` passes; `PLAYWRIGHT_PORT=4621 pnpm test:e2e` 151 of
-  151. The integrated run on this branch: filled in below.
+  151. On this branch: `pnpm verify` passes (lint, typecheck, knip, build) and the whole suite is
+  151 of 151.
 - Forge's chunk read: `next analyze` lists the 3D chunk's 13 sources (`lib/model/*`,
   `lib/half-model.ts`, `lib/hull-layouts.ts`, five three.js modules), and the shipped file carries
   none of the drawing's text; `/`'s six first-load chunks carry no three.js.
