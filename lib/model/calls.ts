@@ -31,9 +31,11 @@ export const GROW = 0.1;
 /**
  * The settled pose (sprint 17's approved three-quarter view): turn in degrees, and the offset
  * from the registered pose in the drawing's own units, so at 1024 it is the 1440 pose scaled by
- * the drawing's width (call 7). The lens is 30° over the viewport's height at every width.
+ * the drawing's width (call 7). The lens is 30° over the viewport's height at every width. dx
+ * sets the bow at station 9.1 at 1440, 70 px clear of the drawing's own, as main.webp does
+ * (Iris's early look; sprint 17's −6 put it at 9.5).
  */
-export const SETTLE = { dx: -6, dy: 40, yaw: -30, pitch: 15 };
+export const SETTLE = { dx: -30, dy: 40, yaw: -30, pitch: 15 };
 
 /**
  * How far the settled model stands further off the sheet than the registered one, in hull units
