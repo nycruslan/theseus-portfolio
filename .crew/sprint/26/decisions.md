@@ -49,3 +49,16 @@
    (two helpers Probe exported ahead of their checks), and started Probe (steps 2 to 5) and Iris
    (the early look, on a build she serves herself) in parallel on that head; Pixel follows with
    both reports, so one fix round covers the checks and the taste. Nothing was rebuilt.
+
+9. **On the narrow drawing the growth follows e², the turn e** (Iris's early look, run 2). As
+   built, `(1 + G_NARROW × e)` against a turn whose foreshortening is flat near 0° made the hull
+   swell to 336 px at u 0.15 (the stern 6.6 px from the screen's edge, both ends past its drawing)
+   and then shrink 21 px over the last 1.8 s: the "moved away" read decision 7 avoided at rest,
+   in motion instead. With the growth on e² the length stays within 312 to 317 px through the move
+   and frames 0 and 1 and the settled frame are the same to the pixel, so decision 7's constants
+   and every settled number stand; the desktop keeps e, so 1440 and 1024 stay pixel-identical to
+   production. The turn leading the growth instead (yaw on 2e − e²) dips the hull 6 px short of
+   its drawing and re-grows, a wobble, so no. The contract's "The phone's loft", B3.2 and the
+   budget table carry the square; Probe's `e2e/model.ts` and Pixel's `lib/model/loft.ts` implement
+   it word for word. Evidence: `.crew/screenshots/sprint-26/strip-phone-light-b.png` and
+   `zoom-phone-light-u012.png` (not in git), Iris's sim table in her report.
