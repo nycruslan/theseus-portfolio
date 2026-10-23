@@ -341,9 +341,109 @@ html {
 }
 
 /*
+ * The model (components/model.tsx and lib/model/; .crew/sprint/25/contract.md): the white card
+ * model's layer over the drawing. It lies on main's first row, the drawing's, and takes no layout
+ * space; the scene lays its canvas on .plan-wide's box in whole buffer pixels. Nothing in it is hit.
+ * Nothing here is a CSS animation or transition but the reduced-motion fade, which B1.8 (motion
+ * allowed) never sees. The Off page has the layer empty, and print doesn't show it.
+ */
+[data-model] {
+  position: absolute;
+  inset: 0;
+  grid-area: 1 / 1 / 2 / -1;
+  pointer-events: none;
+}
+
+@media (width >= 64rem) {
+  main:has(> [data-model]) {
+    position: relative;
+  }
+}
+
+@media (width < 64rem) {
+  [data-model] {
+    display: none;
+  }
+}
+
+[data-model] canvas {
+  position: absolute;
+  display: block;
+}
+
+/* Hidden until frame 1 is drawn: the scene sets the state with it. */
+[data-model]:not([data-state]) canvas {
+  visibility: hidden;
+}
+
+/* The plank numbers paint above the canvas, so frame 1 changes none of them (build note 6). */
+[data-plan]:has(+ [data-model]) .plan-plank {
+  z-index: 1;
+}
+
+/* Under the lifted model the drawing goes hollow, as loft.webp's frames 2 to 5 draw it: from the
+   first lofting frame, no fills, numbers or leaders (notes-iris.md, call 5). Transparent rather
+   than none, which paints the same and can be faded. On screen from 1024 px only, where the
+   layer can show: on paper the drawing is the record, as on main, and below 1024 px no state may
+   hollow a drawing the layer doesn't cover (Lens). */
+@media screen and (width >= 64rem) {
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) {
+    & path[data-plank] {
+      fill: transparent;
+    }
+    & .plan-plank,
+    & .ln-leader {
+      visibility: hidden;
+    }
+  }
+}
+
+/* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the
+   plank numbers and fills out together, so the hull never empties before the model shows
+   (notes-iris.md, call 8; Iris's early look). Opacity isn't motion. The numbers' visibility waits
+   out the fade, so it can be seen. On screen from 1024 px only, as the hollow rule above. */
+@media screen and (prefers-reduced-motion: reduce) and (width >= 64rem) {
+  [data-model] canvas {
+    transition: opacity 240ms linear;
+  }
+
+  [data-model]:not([data-state]) canvas {
+    opacity: 0;
+  }
+
+  [data-plan]:has(+ [data-model]) .plan-plank {
+    transition:
+      opacity 240ms linear,
+      visibility 240ms linear;
+  }
+
+  [data-plan]:has(+ [data-model][data-state]) .plan-plank {
+    opacity: 0;
+  }
+
+  [data-plan]:has(+ [data-model]) path[data-plank] {
+    transition: fill 240ms linear;
+  }
+}
+
+@media print {
+  [data-model] {
+    display: none;
+  }
+}
+
+/*
  * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
  * folds: the number on the left, the description beside it, and the four signatures under it, each
- * with its column's head above it. The heads row is then read by assistive tech only.
+ * with its column's head above it. The heads row is then read by assistive tech only. From 1024 px
+ * each description is one line, cut with an ellipsis: it is the row's label, and the Log has the
+ * record (.crew/sprint/24/decisions.md, 7). The cell's text is still the whole goal.
  */
 .rev {
   width: 100%;
@@ -375,6 +475,17 @@ html {
 
 .rev tbody th {
   font-weight: 700;
+}
+
+/* A max-width of 0 keeps the description's text out of the columns' sizing: its column still takes
+   the room the other five leave, and theirs stay as they are. */
+@media (width >= 64rem) {
+  .rev tbody td:not([data-label]) {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 @media (width < 40rem) {
@@ -439,6 +550,21 @@ html {
     .rev tbody th {
       grid-row: span 3;
     }
+  }
+}
+
+/*
+ * The sheet's bottom row, the revision block and the title block beside it. With one-line
+ * descriptions it can end short of the fold and show the facts' rule under the frame, so from
+ * 1024 px each cell is at least the height the viewport leaves under the bar and the drawing, less
+ * a 16 px margin like the gutters (.crew/sprint/25/notes-iris.md, section 9). 88 px is the bar (72)
+ * and that margin, 34 px the two gutters and the frame's 2 px of borders, 0.3381 the wide drawing's
+ * height over its width (lib/hull-layouts.ts, WIDE.box: 476 / 1408). 21rem caps it, so a tall
+ * window keeps the canvas's proportions instead of stretching the row.
+ */
+@media (width >= 64rem) {
+  .sheet-row {
+    min-height: min(21rem, calc(100svh - 88px - (100vw - 34px) * 0.3381));
   }
 }
 

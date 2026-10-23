@@ -1,0 +1,93 @@
+{
+  "sprint": 25,
+  "pr": 72,
+  "goal": "The card hull lands on its drawing and lifts off, once a visit, from 1024 px",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner: open, waiting for the owner. Lens ship on f5fa66f after fix round 1 (four runs), CI check green and 152 e2e tests passed; gate waits for the owner's stack call (A, built, or B) and batch E. Iris ship 8.8/10 with her early-look changes and the warm lamp in the build",
+  "fixRounds": 1,
+  "minutes": 225,
+  "agents": [
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 537936,
+      "minutes": 77
+    },
+    {
+      "role": "design-director",
+      "model": "fable",
+      "tokens": 511320,
+      "minutes": 43
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 177488,
+      "minutes": 37
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 130605,
+      "minutes": 8
+    }
+  ],
+  "lens": {
+    "runs": 4,
+    "tokens": 17112270,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 11
+  },
+  "wentWrong": [
+    {
+      "what": "Two runs ended before the 3D build reached a branch, so the third built it from the spike",
+      "evidence": "resume.md and resume-3.md: the first and second runs' worktrees went with their containers; origin had forge/25 and no pixel/25 at 15:10 UTC, and the build took the third run 77 minutes of Pixel's time"
+    },
+    {
+      "what": "A check the contract kept raced the model once the drawing goes hollow under it",
+      "evidence": "decision 12: B1.4 read the lettering on the Full page and lost the race to the idle import in the integrated run (plank numbers at 1440 dark: 0); it now reads the Off path with the same assertions"
+    },
+    {
+      "what": "CI's text anti-aliasing differs from the cloud's, and a pixel-identical check cost three red CI runs and two Lens runs",
+      "evidence": "decisions 14 and 16: the plank numbers composited above the canvas lose LCD anti-aliasing on CI's runner and not here; the first diagnosis (SwiftShader fill rounding) was wrong, the ink-count metric right, its bound set at half after CI's smallest glyph read 17 of 22"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In the sprint skill's brief rules, builders push their role branch to origin after each commit (origin/<role>/<n>) and Atlas cherry-picks from origin, so a lost container loses nothing",
+      "moves": "The two runs of sprint 25 that lost the 3D build with their containers, about five hours between the briefs and the build"
+    },
+    {
+      "change": "In the contract's harness rules, no check asserts pixel-identical text over a composited layer (a canvas, a transformed layer): assert the text's behaviour (its ink, its box) instead",
+      "moves": "Three red CI runs and two Lens runs on sprint 25 over the plank numbers' anti-aliasing, which only CI's platform shows"
+    },
+    {
+      "change": "In .github/workflows/check.yml, upload Playwright's report as an artifact and print each failed test's attachments' names, since cloud sessions can't read the job log (the proxy refuses the log's blob host)",
+      "moves": "Atlas diagnosed CI's three B3.1 failures from the GitHub annotations' first 1,500 characters alone; the [number ink] note that would have settled it in one round was unreachable"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "The stack for B3 on PR #72: A (WebGLRenderer, built, 144,516 B gzip against the 250 kB budget) or B (three/webgpu, 280,606 B in the spike, over the budget); and batch E, the one-line revision descriptions from 1024 px"
+    },
+    {
+      "who": "Quill",
+      "what": "If the owner picks A, propose the edit to design/brief.md's Technology section (WebGPURenderer, TSL, GSAP) in sprint 26's retro"
+    },
+    {
+      "who": "Pixel",
+      "what": "Sprint 26, with the phone work: Lens's six nits on f6a5ff0 (a lost WebGL context returns the Off sheet; stop() during compileAsync; a redraw before the model scrolls back into view; the bottom row's min-height under a classic scrollbar) and the forced-colours-mid-visit nit on 515b7c3; the full-page-capture teardown (decision 13) if a capture tool needs it"
+    },
+    {
+      "who": "Probe",
+      "what": "Sprint 26: B3.7's redraw count toBe(1), B3.6's off-screen and hidden windows proven with a scheme switch (Lens's nits); the bfcache pageshow guard, which headless Chromium can't exercise, checked by hand or in a headed browser"
+    },
+    {
+      "who": "Iris",
+      "what": "On a real display at the demo: the dark hull under the warm lamp, the DPR 2 seams, the shadow's edge at BLUR 2 at 1024, and the move's feel in real time"
+    }
+  ]
+}

@@ -10,7 +10,7 @@ const LINK =
 export function TitleBlock({ className = "" }: { className?: string }) {
   return (
     <header
-      className={`flex flex-col border-t-2 border-foreground px-4 pt-3.5 pb-6 lg:border-r lg:border-b lg:px-7 lg:pt-[18px] lg:pb-4 ${className}`}
+      className={`sheet-row flex flex-col border-t-2 border-foreground px-4 pt-3.5 pb-6 lg:border-r lg:border-b lg:px-7 lg:pt-[18px] lg:pb-4 ${className}`}
     >
       <h1 className="font-cond text-step-3xl leading-[0.9] font-bold tracking-[-0.01em] lg:leading-[0.86]">
         {profile.name}
@@ -21,7 +21,9 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         </p>
         <p className="text-step-sm text-muted">{profile.location}</p>
       </div>
-      <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5">
+      {/* From 1024 the one-line revisions (sprint 25, batch E) can leave this block the taller of
+          the pair, and the Contact row's auto margin is then 0: this margin is its floor. */}
+      <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5 lg:mb-3.5">
         {splitBio(profile.bio).lead}
       </p>
       {/* Pushed to the block's foot beside the revisions. No id: #contact is the Contact section. */}

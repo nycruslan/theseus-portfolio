@@ -10,6 +10,7 @@ import {
   watchLayoutShift,
 } from "./helpers";
 import { PLANK_IDS } from "./retros";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 23, B2: /read, the record as one plain, printable column (.crew/sprint/23/contract.md,
 // B2.4, B2.6, B2.7, B2.10 and B2.11), written before the build. The ship at its foot is B2.5, in
@@ -811,8 +812,14 @@ test("B2.7 it prints as a document: on /read and /, light and dark, body text 7:
 });
 
 /** The bodies of every script file a route requests, summed, in a fresh context. */
-async function scriptBytes(browser: Browser, url: string) {
+/**
+ * The script bytes a fresh visit to `url` fetches. `/` is measured with WebGL refused (sprint 25,
+ * .crew/sprint/25/contract.md, the check disposition), so the model's idle import isn't counted:
+ * the 3D chunk has its own budget in B3.6, and the loader stays within the same 2,048 B.
+ */
+async function scriptBytes(browser: Browser, url: string, refuse = false) {
   const context = await browser.newContext();
+  if (refuse) await context.addInitScript(refuseWebGl);
   const page = await context.newPage();
   const bodies: Promise<number>[] = [];
   page.on("response", (response) => {
@@ -832,7 +839,7 @@ async function scriptBytes(browser: Browser, url: string) {
   return { files: sizes.length, bytes: sizes.reduce((a, b) => a + b, 0) };
 }
 
-test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /read and the 404 within 2,048 B of /sprints'", async ({
+test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on / (WebGL refused), /read and the 404 within 2,048 B of /sprints'", async ({
   page,
   browser,
 }, testInfo) => {
@@ -961,10 +968,10 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the draw
   const sprints = await scriptBytes(browser, "/sprints");
   expect(sprints.files, "script files /sprints requests").toBeGreaterThan(0);
   for (const route of ["/", READ, "/no-such-page"]) {
-    const route_ = await scriptBytes(browser, route);
+    const route_ = await scriptBytes(browser, route, route === "/");
     testInfo.annotations.push({
       type: "script-bytes",
-      description: `${route}: ${route_.bytes} B in ${route_.files} files; /sprints: ${sprints.bytes} B in ${sprints.files}`,
+      description: `${route}${route === "/" ? " (WebGL refused)" : ""}: ${route_.bytes} B in ${route_.files} files; /sprints: ${sprints.bytes} B in ${sprints.files}`,
     });
     expect
       .soft(route_.bytes, `script bytes on ${route} are a number`)

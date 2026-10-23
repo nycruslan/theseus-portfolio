@@ -17,6 +17,7 @@ import {
   watchLayoutShift,
 } from "./helpers";
 import { ORIGINAL, PLANK_IDS, REPLACED, SEATED } from "./retros";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 22, B1: the lines plan, the drawing at the top of the sheet (.crew/sprint/22/contract.md).
 // Sprint 23 adds B2.5, the same drawing at the foot of /read (.crew/sprint/23/contract.md).
@@ -259,10 +260,18 @@ const over = (c: Rgba, ground: Rgb): Rgb =>
 // ---------------------------------------------------------------------------------------------
 
 test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by the retros, uncropped, legible lettering and an HTML legend", async ({
-  page,
+  browser,
   request,
 }) => {
   test.setTimeout(120_000);
+  // Sprint 25: the drawing is read on the Off path, with WebGL refused. From the model's first
+  // lofting frame the drawing goes hollow (notes-iris.md call 5: no fills, numbers or leaders), so
+  // with the model loading these reads race its idle import at 1024 px and up. Below 1024 the model
+  // never mounts, so the two paths are one page there. The model's own lettering rule is B3's.
+  const context = await browser.newContext();
+  await context.addInitScript(installRgba);
+  await context.addInitScript(refuseWebGl);
+  const page = await context.newPage();
   const html = await (await request.get("/")).text();
   const at = html.search(/data-plan(?:=|[\s>])/);
   expect(at, "[data-plan] is in the HTML response of /").toBeGreaterThan(-1);
@@ -469,6 +478,7 @@ test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by th
       `the HTML line "${PLANK_IDS.length} planks: ${REPLACED} replaced, ${ORIGINAL} original"`,
     )
     .toBe(true);
+  await context.close();
 });
 
 /** What the page shows, read in one go (it works with scripts off: page.evaluate only). */
@@ -583,26 +593,54 @@ test("B1.8 it needs no script and nothing moves: the same sheet without scripts,
     }
   });
   await open(page, 1440);
+  // Sprint 25 (.crew/sprint/25/contract.md, the check disposition): the drawing's pixels are
+  // compared on the Off path, with WebGL refused, since the model's canvas overlays the drawing's
+  // box and a scroll ends its loft; the model's own stillness is B3.6. Everything else here runs
+  // with the model loading.
+  const offContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "no-preference",
+  });
+  await offContext.addInitScript(refuseWebGl);
+  const offPage = await offContext.newPage();
+  await open(offPage, 1440);
   const animations = () => page.evaluate(() => document.getAnimations().length);
   expect.soft(await animations(), "animations at load").toBe(0);
   await wait(page, 2000);
   expect.soft(await animations(), "animations 2 s after load").toBe(0);
   const box = page.locator(PLAN);
+  const offBox = offPage.locator(PLAN);
+  const scrollBoth = async (to: "top" | "bottom" | number) => {
+    for (const p of [page, offPage]) {
+      await p.evaluate(
+        (y) =>
+          scrollTo(
+            0,
+            y === "top"
+              ? 0
+              : y === "bottom"
+                ? document.documentElement.scrollHeight
+                : y,
+          ),
+        to,
+      );
+      await p.evaluate(
+        () => new Promise((r) => requestAnimationFrame(() => r(null))),
+      );
+    }
+  };
   const snapshot = async () => ({
     html: await box.evaluate((el) => el.outerHTML),
     rect: await box.evaluate((el) => {
       const r = el.getBoundingClientRect();
       return [r.left, r.top + scrollY, r.width, r.height];
     }),
-    pixels: (await box.screenshot()).toString("base64"),
+    pixels: (await offBox.screenshot()).toString("base64"),
   });
-  await page.evaluate(() => scrollTo(0, 0));
+  await scrollBoth("top");
   const before = await snapshot();
   for (const y of [120, 400]) {
-    await page.evaluate((to) => scrollTo(0, to), y);
-    await page.evaluate(
-      () => new Promise((r) => requestAnimationFrame(() => r(null))),
-    );
+    await scrollBoth(y);
     expect.soft(await animations(), `animations at scroll ${y}`).toBe(0);
     const during = await snapshot();
     expect
@@ -614,28 +652,23 @@ test("B1.8 it needs no script and nothing moves: the same sheet without scripts,
     expect
       .soft(
         during.pixels === before.pixels,
-        `the drawing's pixels at scroll ${y}`,
+        `the drawing's pixels at scroll ${y}, WebGL refused`,
       )
       .toBe(true);
   }
-  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-  await page.evaluate(
-    () => new Promise((r) => requestAnimationFrame(() => r(null))),
-  );
+  await scrollBoth("bottom");
   expect.soft(await animations(), "animations at the bottom").toBe(0);
-  await page.evaluate(() => scrollTo(0, 0));
-  await page.evaluate(
-    () => new Promise((r) => requestAnimationFrame(() => r(null))),
-  );
+  await scrollBoth("top");
   expect.soft(await animations(), "animations after scrolling back").toBe(0);
   const after = await snapshot();
+  await offContext.close();
   expect
     .soft(after.html, "the drawing's markup after a full scroll and back")
     .toBe(before.html);
   expect
     .soft(
       after.pixels === before.pixels,
-      "the drawing's pixels after a full scroll and back",
+      "the drawing's pixels after a full scroll and back, WebGL refused",
     )
     .toBe(true);
   expect
