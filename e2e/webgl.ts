@@ -507,6 +507,11 @@ export type ModelRun = {
    */
   lose(): Promise<boolean>;
   restore(): Promise<boolean>;
+  /**
+   * `lose`, then the animation frames until `[data-model]` has no data-state, counted in the same
+   * task as the call (up to 10): -1 if it kept one, NaN if there was no context to lose.
+   */
+  loseCounted(): Promise<number>;
   /** The frame hog's spins, their start times (performance.now()). */
   hogged(): Promise<number[]>;
   close(): Promise<void>;
@@ -670,6 +675,18 @@ export async function openModel(
         if (!model?.gl.isContextLost()) return false;
         model.lose.restoreContext();
         return true;
+      }),
+    loseCounted: () =>
+      page.evaluate(async () => {
+        const model = (window as HarnessWindow).__gl?.model();
+        if (!model || model.gl.isContextLost()) return Number.NaN;
+        const host = document.querySelector("[data-model]");
+        model.lose.loseContext();
+        for (let frame = 0; frame <= 10; frame++) {
+          if (!host?.hasAttribute("data-state")) return frame;
+          await new Promise((done) => requestAnimationFrame(done));
+        }
+        return -1;
       }),
     hogged: () =>
       page.evaluate(() => [...((window as HarnessWindow).__hog ?? [])]),
