@@ -84,6 +84,11 @@ export function mount(host: HTMLElement, seated: readonly string[]) {
   const show = (event: PageTransitionEvent) => {
     if (!event.persisted || narrowed) return;
     stop();
+    // Restored at a width the model doesn't run at: Off for the rest of the visit, as a resize is.
+    if (!matchMedia(WIDE).matches) {
+      narrowed = true;
+      return;
+    }
     stop = start(host, seats);
   };
   addEventListener("pagehide", hide);
@@ -222,6 +227,12 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
   const open = (now: number) => {
     raf = 0;
     if (!alive) return;
+    // The width may have gone below 1024 px while the chunk downloaded or the scene built.
+    if (!matchMedia(WIDE).matches) {
+      narrowed = true;
+      stop();
+      return;
+    }
     flush(canvas);
     if (reduce.matches || played() || !onScreen || document.hidden) {
       return rest("settled");
@@ -252,12 +263,15 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
 
   /** Re-fits the canvas to the drawing's box; below 1024 px the model goes for the visit. */
   const refit = () => {
-    if (!alive || !stage) return;
+    if (!alive) return;
+    // Checked before the stage exists too: a resize below 1024 px during the download or the build
+    // ends it there, and stop() takes a part-built stage down.
     if (!matchMedia(WIDE).matches) {
       narrowed = true;
       stop();
       return;
     }
+    if (!stage) return;
     // A refit is at rest or ends the move, so it is at the cap; a zoom may have moved the cap.
     cap = Math.min(devicePixelRatio, 2);
     ratio = cap;
