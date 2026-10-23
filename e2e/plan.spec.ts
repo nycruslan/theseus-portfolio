@@ -260,10 +260,18 @@ const over = (c: Rgba, ground: Rgb): Rgb =>
 // ---------------------------------------------------------------------------------------------
 
 test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by the retros, uncropped, legible lettering and an HTML legend", async ({
-  page,
+  browser,
   request,
 }) => {
   test.setTimeout(120_000);
+  // Sprint 25: the drawing is read on the Off path, with WebGL refused. From the model's first
+  // lofting frame the drawing goes hollow (notes-iris.md call 5: no fills, numbers or leaders), so
+  // with the model loading these reads race its idle import at 1024 px and up. Below 1024 the model
+  // never mounts, so the two paths are one page there. The model's own lettering rule is B3's.
+  const context = await browser.newContext();
+  await context.addInitScript(installRgba);
+  await context.addInitScript(refuseWebGl);
+  const page = await context.newPage();
   const html = await (await request.get("/")).text();
   const at = html.search(/data-plan(?:=|[\s>])/);
   expect(at, "[data-plan] is in the HTML response of /").toBeGreaterThan(-1);
@@ -470,6 +478,7 @@ test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by th
       `the HTML line "${PLANK_IDS.length} planks: ${REPLACED} replaced, ${ORIGINAL} original"`,
     )
     .toBe(true);
+  await context.close();
 });
 
 /** What the page shows, read in one go (it works with scripts off: page.evaluate only). */
