@@ -97,8 +97,9 @@ visitor gets today's sheet and downloads no 3D.
 **Frame 1: registration.**
 - An orthographic frustum maps the wide SVG's `viewBox` onto the canvas.
 - The full hull is seen side-on: both halves of `lib/half-model.ts`'s geometry, mirrored.
-- Its outline lies on the profile's `.ln-outline` within 1 CSS px. S4 measured 1.0 px at 1440 DPR 1
-  (the method's resolution) and 0.71 px at DPR 2.
+- Its outline lies on the profile's `.ln-outline` within 1.0 CSS px at DPR 2 and 1.5 CSS px at DPR 1,
+  where the method's resolution is one device pixel and one diagonal pixel of drift reads √2 (B3.1's
+  bound, word for word). S4 measured 1.0 px at 1440 DPR 1 and 0.71 px at DPR 2.
 - Its plank fills equal the drawing's: the flat-to-lit mix is 0 at u = 0 (S4).
 
 **The loft (S5, `scene/loft.js`).**
@@ -140,7 +141,11 @@ visitor gets today's sheet and downloads no 3D.
 - A resize below 1024 px removes the model (Off for the rest of the visit).
 
 **Quality during the loft (S6, `scene/loft.js` `playLoft`).**
-- Three frames in a row above 22 ms step the DPR down: 2, then 1.5, then 1.
+- Three frames in a row above 22 ms step the DPR down to the next rung below the current ratio,
+  on the ladder 2, 1.5, 1: a fractional ratio between rungs (1.25, 1.75, common at 1024 px and up
+  on Windows scaling) steps to the rung below it (1.25 → 1, 1.75 → 1.5). The spike's `stage.js`
+  `step()` looks the ratio up on the ladder and treats a ratio off it as the floor (Lens's nit on
+  sprint 24): the build rounds down instead.
 - At DPR 1, six frames in a row above 33.4 ms give up the move for the settled frame, with
   `data-state="still"`.
 - Nothing steps up mid-move. Stepping up below 12 ms happens only at the next redraw.
@@ -263,8 +268,10 @@ I judge B3.1 to B3.3 first at the demo.
 - Shown by: the five frames at 1440, beside `loft.webp` and `s5-loft-1440.webp`.
 
 **B3.3 Once a visit, and any input ends it.**
-- A second load in the same context opens with `data-state="settled"`, and no `lofting` frame is
-  drawn (the harness counts draws between load and settle).
+- A reload (`page.reload()`), or a second `goto` in the same page, opens with `data-state="settled"`,
+  and no `lofting` frame is drawn (the harness counts draws between load and settle). A new page in
+  the context is a new tab with its own empty `sessionStorage`, so it plays the loft again, and the
+  check never uses one for this assertion.
 - During `lofting`, each of these sets `settled` within 2 frames:
   - a key press;
   - a click on the title block's text;
@@ -380,7 +387,7 @@ CI's Chromium version is compared with the cloud's, and both are reported (`.cre
 | DPR | ≤ 2, stepping down to 1.5 and 1 above 22 ms | S6 |
 | Frame time | still frame after 6 frames above 33.4 ms at DPR 1; loft's median and p95 at 4× CPU reported | A at 1440: 1.1 / 5.7 ms (S6) |
 | Rendering | 0 frames at rest, off-screen and with the tab hidden | 0 in 2 s after every loft (S6) |
-| Registration | ≤ 1.0 CSS px at 1440 (DPR 1 and 2); 1024 and 1920 reported | 1.0 and 0.71 (S4) |
+| Registration | ≤ 1.0 CSS px at DPR 2 and ≤ 1.5 CSS px at DPR 1, at 1440; 1024 and 1920 reported | 0.71 and 1.0 (S4) |
 | Loft | holds framed height within 2%; once a visit; 2.4 s until Iris rules; skippable; reduced motion opens settled | 0.0% at 1440 (S5) |
 | Fonts | unchanged: two woff2, ≤ 86,016 B; the model draws no text | B1.10, unedited |
 | Phones (≤ 12k triangles, DPR 1.5, 30 fps) | not sprint 25 (sprint 26) | 5,355 mesh triangles; 1.0 px at 390 (S2, S4) |

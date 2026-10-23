@@ -4,9 +4,9 @@
   "goal": "The 3D stack is measured and the hull's lift-off rehearsed before B3 is built",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "pending",
+  "outcome": "merged",
   "fixRounds": 1,
-  "minutes": 0,
+  "minutes": 105,
   "agents": [
     {
       "role": "creative-engineer",
@@ -22,11 +22,11 @@
     }
   ],
   "lens": {
-    "runs": 1,
-    "tokens": 2560447,
+    "runs": 3,
+    "tokens": 12251668,
     "important": 1,
     "actedOn": 1,
-    "nits": 5
+    "nits": 8
   },
   "wentWrong": [
     {
@@ -54,6 +54,10 @@
     {
       "change": "In .gitignore (the owner's), allow a spike's frames: `!.crew/sprint/*/spike/frames/*.webp`, as design/ frames already are",
       "moves": "A git add -f per spike, and a Lens round when it's forgotten (one this sprint)"
+    },
+    {
+      "change": "In .github/workflows/lens.yml or .crew/lens.mjs, re-run the review once by itself when claude-code-action ends without structured output and without maxing out its turns",
+      "moves": "The runs Atlas spends re-running a dead review by hand: one this sprint (71 turns and 7.6M tokens with no verdict, then ship in 36 turns on the same head)"
     }
   ],
   "followUps": [
@@ -84,6 +88,10 @@
     {
       "who": "Pixel",
       "what": "Sprint 25: the spike's recipe tears its worktree and server down and symlinks three into the proto folder, so no prototype survives it for Iris; copy three in, trap the next start process, and write down the start commands (Lens's nit)"
+    },
+    {
+      "who": "Pixel",
+      "what": "Sprint 25: the DPR ladder rounds a fractional ratio (1.25, 1.75) down to the rung below instead of treating it as the floor, as the spike's stage.js step() does (Lens's nit on da8f03a, now in the draft contract's quality rule)"
     }
   ]
 }

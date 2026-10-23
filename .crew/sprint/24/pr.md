@@ -83,6 +83,11 @@ call with the loft running on its preview.
   frames under 60 kB each, added with `git add -f` since `.gitignore` drops webp files under sprint
   folders; Lens's Important finding on the first review, fixed in round 1).
 - The measurement on main for the revision block: `.crew/sprint/24/measure.md`.
+- Lens: changes on 08005d9 (one Important, fixed in round 1), then ship on da8f03a after its
+  first review of that head died without a verdict and was re-run once. Its three nits on the
+  sprint 25 draft (the DPR 1 registration bound in three places, B3.3's "same context" against
+  a per-tab `sessionStorage`, and the DPR ladder's fractional ratios) are folded into
+  `.crew/sprint/24/b3-first-contract.md` in the close-out; the `stage.js` fix rides sprint 25.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 

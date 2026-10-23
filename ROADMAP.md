@@ -39,10 +39,13 @@ page, and B3, the signature moment.
 - [ ] B3: the 3D card model and the registered loft, as Quill planned it in
   `.crew/sprint/24/b3-plan.md`. Once the 3D exists, Full is the default (the canvas's
   `Motion-Control.html`), and reduced motion starts at Calm.
-  - [ ] Sprint 24 (M): Pixel's spike. The stack measured in Turbopack (A, WebGL, against B, WebGPU
+  - [x] Sprint 24 (M): Pixel's spike. The stack measured in Turbopack (A, WebGL, against B, WebGPU
     with the WebGL 2 fallback), the hull's triangles and draws, the registered loft prototyped, CPU
     frame time as a floor, and a recommendation (`.crew/sprint/24/contract.md`, S1 to S7). The
     30 fps phone budget is checked on the owner's phone at the demos; the cloud has none.
+    (PR #71, merged 2026-10-23: Lens ship after one fix round; Pixel recommends A, WebGL, and the
+    report is `.crew/sprint/24/spike/spike.md`. Left open: the owner's stack call, on sprint 25's
+    PR.)
   - [ ] Sprint 25 (M): the hull lifts off the drawing at 1024 px and up, once a visit, skippable,
     settled under reduced motion, 0 frames at rest, with no control yet (contract draft:
     `.crew/sprint/24/b3-first-contract.md`). **Its PR waits for the owner's stack call**, with the

@@ -66,6 +66,10 @@ makes stale, and keep the file under about 100 lines.
   - Advice taken after Lens's ship costs a full re-review, so batch it unless it's a real risk; a
     nit that only moves code rides along with the next sprint.
   - Lens reads a check's title against its body: a check named for two things asserts both.
+  - A `lens` check that says "no verdict" without running out of turns is a review that died in
+    CI, not a judgement: re-run its failed job once (`actions/runs/<id>/rerun-failed-jobs`)
+    before pushing anything, since a push re-reviews from scratch. Sprint 24's died at 71 turns
+    and 7.6M tokens; the re-run shipped the same head in 36.
 - **Designs.**
   - A direction the owner can only reach in a repo file isn't reviewed. It goes on a Design canvas
     for their comments, and nothing is built until they approve there (sprints 15 and 16 were
