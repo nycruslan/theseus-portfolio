@@ -46,13 +46,19 @@ page, and B3, the signature moment.
     (PR #71, merged 2026-10-23: Lens ship after one fix round; Pixel recommends A, WebGL, and the
     report is `.crew/sprint/24/spike/spike.md`. Left open: the owner's stack call, on sprint 25's
     PR.)
-  - [ ] Sprint 25 (M): the hull lifts off the drawing at 1024 px and up, once a visit, skippable,
-    settled under reduced motion, 0 frames at rest, with no control yet (contract draft:
-    `.crew/sprint/24/b3-first-contract.md`). **Its PR waits for the owner's stack call**, with the
-    loft on its preview: A departs from `design/brief.md`'s Technology section (the owner's file);
-    B misses the 250 KB budget in either encoding on Vercel's wire (spike S1: Vercel's brotli is
-    about gzip's size), fitting only at brotli 11, which Vercel doesn't serve. It also carries batch E, Iris's one-line
-    revision descriptions at 1024 px and up (B1.5's check changes), for the owner to approve.
+  - [x] Sprint 25 (M): the hull lifts off the drawing at 1024 px and up, once a visit, skippable,
+    settled under reduced motion, 0 frames at rest, with no control yet. (PR #72, built over three
+    runs on 2026-10-23: Lens ship, Iris ship at 8.8/10, 151 of 151 checks; the contract is
+    `.crew/sprint/25/contract.md` with decisions 7 to 14 in `decisions.md`.) **Its PR waits for the
+    owner**, with the loft on its preview: the stack call, A (`WebGLRenderer`, built, 144,516 B gzip
+    against the 250 kB budget; it departs from `design/brief.md`'s Technology section) or B
+    (`three/webgpu`, 280,606 B in the spike, over the budget on Vercel's wire), and batch E, Iris's
+    one-line revision descriptions at 1024 px and up (B1.5's check changed). Riding with sprint 26,
+    which touches the same code: Lens's six nits on #72 (a lost WebGL context should return the Off
+    sheet rather than leave the drawing hollow; `stop()` during `compileAsync`; a redraw before the
+    model scrolls back into view after an off-screen resize or scheme change; B3.7's redraw count
+    `toBe(1)`; B3.6's off-screen and hidden windows proven with a scheme switch; the bottom row's
+    `min-height` under a classic scrollbar), and the full-page-capture teardown (decision 13).
   - [ ] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
     a still frame under 30 fps, scrolling through the canvas. The phone registers on the narrow
     profile phones already draw (the narrow sheet has had no body plan since sprint 22, so the
