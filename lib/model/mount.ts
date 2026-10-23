@@ -331,7 +331,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
   }
 
   // The build, in steps with a yield between them, so a key press isn't held behind one long
-  // task (build note 9): the geometry, the scene with the loft and the shadow, then the programs.
+  // task (build note 9): the geometry, the renderer and scene, the loft, the shadow, the programs.
   const build = async () => {
     await pause();
     if (!alive) return;
@@ -339,6 +339,8 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     await pause();
     if (!alive) return;
     stage = createStage(canvas, hull);
+    await pause();
+    if (!alive || !stage) return;
     stage.paint(palette(), seated);
     apply(measure(), true);
     await pause();
