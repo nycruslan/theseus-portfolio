@@ -37,7 +37,7 @@ type HarnessWindow = Window & {
 };
 
 /** getContext returns null for the WebGL types: a device or browser with no WebGL. */
-function refuseWebGl() {
+export function refuseWebGl() {
   for (const host of [HTMLCanvasElement, globalThis.OffscreenCanvas]) {
     if (!host) continue;
     const original = host.prototype.getContext as (
