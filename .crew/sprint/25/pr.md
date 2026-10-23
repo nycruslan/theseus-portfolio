@@ -29,7 +29,10 @@ Vercel preview at 1024 px and up.
   B3.10 in `e2e/model-*.spec.ts`, and the three rewrites with the same assertions (B1.8, B2.10,
   B1.5).
 - **Iris's nine calls** on the loft, decided on the prototype and taken in the build
-  (`.crew/sprint/25/notes-iris.md`), and her early look's three changes (decision 10).
+  (`.crew/sprint/25/notes-iris.md`), her early look's three changes (decision 10), and her review's
+  one: a warm lamp on the dark hull (decision 13). **Iris's verdict: ship, 8.8/10**, no musts
+  (`.crew/sprint/25/review-iris.md`): better than production at 1440 and 1024, pixel-identical at
+  390 and 320.
 
 ## The contract and its results
 
@@ -43,27 +46,29 @@ header). Every GPU number is from headless Chromium's SwiftShader, so a floor.
 | B3.3 once a visit, any input ends it | Pass: reload and second goto open settled with no lofting frame, a new tab plays again; key, click, wheel, tap and scroll settle within 2 frames and do their own work; storage throwing plays the loft with no error |
 | B3.4 reduced motion opens settled | Pass, and a switch to `reduce` mid-loft settles within 2 frames |
 | B3.5 the Off paths download nothing | Pass on all six: no extra script, one `webgl2` probe at most, no canvas, the sheet as on main; print hides the model |
-| B3.6 cheap and still | At most 4 draws (3 at frame 1, 4 settled; bound 8); 25,267 triangles (bound 30,000; two-triangle seam quads); backing store 2× at DPR 3; 0 frames at rest, off-screen and hidden. 3D chunk 144,497 B gzip -9 (Forge's read: 144,497; gzip -6 145,072; brotli 11 118,271; brotli 5 133,958), one file, requested after `loadEventEnd`. Frame JS at 4× CPU: median 7.9 ms, p95 134.8 ms; the settled frame 0.6 ms |
+| B3.6 cheap and still | At most 4 draws (3 at frame 1, 4 settled; bound 8); 25,267 triangles (bound 30,000; two-triangle seam quads); backing store 2× at DPR 3; 0 frames at rest, off-screen and hidden. 3D chunk 144,516 B gzip -9 (gzip -6 145,091; brotli 11 118,337; brotli 5 133,963; Forge's independent read before the warm lamp: 144,497), one file, requested after `loadEventEnd`. Frame JS at 4× CPU: median 7.9 ms, p95 134.8 ms; the settled frame 0.6 ms |
 | B3.7 the record in the drawing's colours | Plank fills within 8 levels of the drawing's in both schemes; no pixel within ΔE 10 of `--accent`; a scheme switch draws 1 frame, then 0 |
 | B3.8 cleanup and the page around it | Pass: nothing in `[data-model]` is hit; Read as page and Back leave one context and a settled model; 1440 → 1100 refits with CLS 0; 1000 removes the canvas |
 | B3.9 the first paint is untouched | B1.9 and B1.8's CLS hold with the model loading. Reported: the scene build's own steps 62 to 172 ms at 4× CPU; the longest task (334 to 385 ms alone) is frame 1's rendering update, headless Chromium reading the canvas back for software compositing; INP for a key press that landed in the loft 272 ms beside B3.6's worker (decision 9) |
 | B3.10 the harness checks itself | Pass |
 | Loader bytes | 984 B raw, 648 B gzip -9 over `/sprints'` scripts with WebGL refused, within B2.10's 2,048 B: no owner decision needed |
 
-Whole suite: 151 of 151 in Pixel's worktree, and 151 of 151 on this branch (`PLAYWRIGHT_PORT=4660 pnpm test:e2e`, 5.2 min) after B1.4 moved to the Off path (decision 12); the first integrated run was 150 of 151, B1.4 losing the race decision 12 describes.
+Whole suite: 151 of 151 in Pixel's worktree, and 151 of 151 on this branch (`PLAYWRIGHT_PORT=4660 pnpm test:e2e`, 5.2 min) after B1.4 moved to the Off path (decision 12), and again on the final head with the warm lamp; the first integrated run was 150 of 151, B1.4 losing the race decision 12 describes.
 
 ## Decisions
 
-`.crew/sprint/25/decisions.md`, 1 to 11: the stack built on A; Iris's calls that change the
+`.crew/sprint/25/decisions.md`, 1 to 13: the stack built on A; Iris's calls that change the
 contract's numbers (7: the ease, the 10% grow, the hollow drawing, the reduced-motion fade, the
 bottom row); B3.9's precondition reported, not gated (9); Iris's early look (10); where the build
 departs from the spike (11: one camera with a hand-set projection, still frames at the full ratio,
-line weights in buffer pixels, the hollow rule off print, two-triangle seam quads).
+line weights in buffer pixels, the hollow rule off print, two-triangle seam quads); B1.4 on the Off
+path with the same assertions (12); Iris's review and the full-page-capture teardown, a safe
+artefact left as a follow-up (13).
 
 ## Needs owner decision
 
 1. **The stack: A (`WebGLRenderer`, built here, Pixel's recommendation) or B (`three/webgpu`).**
-   A's chunk is 144,497 B gzip against the 250,000 B budget; B measured 280,606 B in the spike and
+   A's chunk is 144,516 B gzip against the 250,000 B budget; B measured 280,606 B in the spike and
    misses the budget on Vercel's wire in either encoding. A departs from `design/brief.md`'s
    Technology section (the owner's file); the retro proposes that section's edit. Picking B means
    raising the budget to about 295 kB and porting the spike's TSL twin here before the merge.
