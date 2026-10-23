@@ -5,7 +5,7 @@ card model and the registered loft" (`ROADMAP.md`), built to `.crew/sprint/17/di
 and the owner-approved canvas frames `main.webp`, `loft.webp`, `loft-390.webp`, `motion-*.webp` and
 `night-1440.webp` in `.crew/sprint/17/design/`. Three build sprints follow the spike, each one PR
 that leaves the site whole. The first one's contract is drafted in
-`.crew/sprint/24/b3-first-contract.md`, with the spike's numbers marked `[spike: …]`.
+`.crew/sprint/24/b3-first-contract.md`, with its numbers from the spike (`.crew/sprint/24/spike/spike.md`).
 
 ## What the visitor gets, and what decides the order
 
@@ -51,7 +51,7 @@ slow devices. The roadmap's B1 line can stay as history. The B3 line should say 
   - B1.8 (no script needed, nothing moves) is rewritten with the same assertions. Its pixel
     comparisons run on the 2D sheet with WebGL refused, and the model's own stillness is B3.6.
   - B2.10's script bytes on `/` are measured with WebGL refused, against the same 2,048 B if the
-    loader fits `[spike: loader bytes]`. A larger number needs the owner.
+    loader fits (the spike didn't isolate the loader's bytes). A larger number needs the owner.
   - Nothing retires.
 - **What the owner sees:** the loft on the PR's preview at 1440, in both schemes. Also the stack call
   (below), taken there.
@@ -67,14 +67,13 @@ slow devices. The roadmap's B1 line can stay as history. The B3 line should say 
 
   The page still scrolls through the canvas (`touch-action: pan-y`).
 - **Size: M.**
-- **Opens with a decision (Iris, with Pixel's S4 readout).** What the phone loft lands on:
-  - the profile the phone already draws (B1.4's two-view plan below 768 px), which keeps the planks,
-    the record, in the first screen and changes no live check;
-  - or the body plan of `loft-390.webp`, which lands bow-on. That is more striking, but it changes
-    the 2D phone drawing, and B1.4 and B1.1 at 390 with it, so the owner approves.
-
-  From the visitor's side I prefer the profile: an executive on a phone should see the planks before
-  the turn.
+- **The phone lands on the profile it already draws** (B1.4's two-view plan below 768 px). The
+  spike registered it there within 1.0 CSS px at DPR 1 and 0.5 px at DPR 1.5 (S4). The body-plan
+  landing of `loft-390.webp` no longer applies, since the narrow sheet has had no body plan since
+  sprint 22. That keeps the planks, the record, in the phone's first screen, and it changes no live
+  check.
+- **Opens with a decision (Iris):** the phone's model scale. On the narrow profile at scale 0.5 the
+  hull is 59 px tall (spike S7's notes).
 - **Checks it adds:**
   - B3.1 to B3.3 at 390 × 844 (DPR 1 and 2) and 768 × 1024;
   - the triangle level ≤ 12k and DPR ≤ 1.5 by the harness;
@@ -135,16 +134,17 @@ The call has to come **before sprint 25's PR merges**, not at the end of the mil
   call at sprint 27's demo would put a stack in production that the owner may reverse, and cost a
   port of sprint 25's work.
 - Neither option fits every owner-approved line as written:
-  - **Option A (WebGL, research section D: about 136 to 140 KiB gzip)** departs from
-    `design/brief.md`'s "Technology" (three.js `WebGPURenderer`, TSL, GSAP). That is the owner's
-    file.
-  - **Option B (WebGPU with its WebGL 2 fallback)** fits the direction's 250 KB only if the budget is
-    counted as brotli, which changes a budget the owner approved with the direction.
+  - **Option A (WebGL: 178,873 B gzip in Turbopack, spike S1)** fits the budget, but it departs
+    from `design/brief.md`'s "Technology" (three.js `WebGPURenderer`, TSL, GSAP). That is the
+    owner's file.
+  - **Option B (WebGPU with its WebGL 2 fallback: 280,606 B gzip)** misses the direction's 250 kB in
+    either encoding, since Vercel's brotli is about gzip's size (spike S1). Choosing it raises a
+    budget the owner approved with the direction.
   - Either way, it is the owner's call, not the crew's.
 - **The cheapest way to ask:**
   - Atlas puts S7's paragraph in sprint 24's PR as a non-blocking question, so the owner can answer
     before sprint 25 starts.
-  - Sprint 25 builds on the spike's provisional pick (`[spike: S7]`).
+  - Sprint 25 builds on the spike's provisional pick, A (S7; Atlas's decision 6).
   - Its PR carries the call as "Needs owner decision", with the loft running on the preview, which
     is the best place to weigh bytes against reach.
   - If the owner picks the other stack, the port happens in that PR before it merges.

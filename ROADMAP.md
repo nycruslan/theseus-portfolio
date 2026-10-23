@@ -50,9 +50,10 @@ page, and B3, the signature moment.
     B fits the 250 KB budget only counted as brotli. It also carries batch E, Iris's one-line
     revision descriptions at 1024 px and up (B1.5's check changes), for the owner to approve.
   - [ ] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
-    a still frame under 30 fps, scrolling through the canvas. Opens with Iris's call on what the
-    phone loft lands on (the profile phones draw, Quill's pick, or `loft-390.webp`'s body plan,
-    which changes B1.4 and B1.1 at 390 and needs the owner).
+    a still frame under 30 fps, scrolling through the canvas. The phone registers on the narrow
+    profile phones already draw (the narrow sheet has had no body plan since sprint 22, so the
+    canvas's `loft-390.webp` hand-off no longer applies); it opens with Iris's call on whether the
+    settled pose grows the model beyond its 59 px drawing (spike S4).
   - [ ] Sprint 27 (S, or M if the phone strip moves): the Full/Calm/Off control, remembered on the
     device; rewrites B2.3 and the keyboard Tab bound with the same assertions. **The B3 demo.**
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.
