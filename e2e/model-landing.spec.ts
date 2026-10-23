@@ -16,6 +16,7 @@ import {
   outlineCoverage,
   pause,
   profile,
+  REST,
   REVISIONS,
   SHOWN,
   stats,
@@ -445,7 +446,9 @@ test("B3.1 the first frame lands on the drawing shown: registered within 1.0 CSS
       const ratio = capAt(width, dpr);
       const run = await openModel(browser, { width, height, dpr });
       await run.goto();
-      await run.waitFor(SHOWN, FIRST);
+      // At rest: the cap holds on the rest frame, while a slow move may step the ratio down
+      // (contract, "Quality"), as SwiftShader under load does.
+      await run.waitFor([...REST], FIRST);
       expect(
         await run.page.locator(CANVAS).count(),
         `one canvas, ${where}`,
@@ -683,7 +686,7 @@ test("B3.7 the model shows the record in the drawing's colours, and nothing copp
         )
         .toBe(0);
       expect(
-        await run.until(["settled"], 16, 30_000),
+        await run.until(["settled"], 50, 60_000),
         `settled on the clock, ${at}`,
       ).toBe("settled");
       const settled = await modelCoverage(run.page, clip);

@@ -13,14 +13,16 @@ const PAGE = "/__model-harness";
  * A known WebGL 2 scene: a red quad as drawArrays (2 triangles), then an instanced 18-index mesh
  * ten times (6 triangles each, the shape of a fat-line segment's quad with its caps: 60), one
  * frame of 2 draws and 62 triangles. Then, in a second task, one WEBGL_multi_draw call of three
- * 6-index draws: 1 draw and 6 triangles. `window.__scene` reports what the page itself drew.
+ * 6-index draws: 1 draw and 6 triangles. `window.__scene` reports what the page itself drew. The
+ * buffer is preserved: under load the compositor can present between the two tasks, and an
+ * unpreserved buffer then starts the second on transparent, so the screenshot read the body's white.
  */
 const SCENE = `<!doctype html><meta charset="utf-8"><title>harness</title>
 <body style="margin:0;background:#fff">
 <canvas id="c" width="64" height="64" style="display:block;width:64px;height:64px"></canvas>
 <script>
 const canvas = document.getElementById("c");
-const gl = canvas.getContext("webgl2", { premultipliedAlpha: true });
+const gl = canvas.getContext("webgl2", { premultipliedAlpha: true, preserveDrawingBuffer: true });
 const report = { granted: Boolean(gl), multi: false };
 window.__scene = report;
 if (gl) {
