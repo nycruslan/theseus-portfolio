@@ -13,13 +13,13 @@ import type { ModelRun } from "./webgl";
 /** The loft's duration (notes-iris.md 1; decision 7 keeps it). */
 export const DURATION = 2400;
 /** The framed height follows (1 + GROW × e) × frame 1's (notes-iris.md 3; decision 7). */
-export const GROW = 0.1;
+const GROW = 0.1;
 /**
  * The narrow drawing's growth: the framed height follows (1 + G_NARROW × e²) × frame 1's below
  * 768 px (sprint 26's contract, "The phone's loft"; Iris's call, .crew/sprint/26/notes-iris.md, 1;
  * on e², decision 9 of .crew/sprint/26/decisions.md, so the hull doesn't swell early and shrink).
  */
-export const G_NARROW = 0.25;
+const G_NARROW = 0.25;
 /**
  * The phone's settled turn, in degrees (spike S5's pose; notes-iris.md, 2), and how far a pose read
  * back from a frame may sit from it: Iris's tolerance for B3.2.
@@ -27,7 +27,7 @@ export const G_NARROW = 0.25;
 export const POSE_NARROW = { yaw: -36, pitch: 16 };
 export const POSE_TOLERANCE = 2;
 /** Below this width the page shows `.plan-narrow`, from it `.plan-wide` (48rem). */
-export const BREAK = 768;
+const BREAK = 768;
 /** The drawing shown at a viewport width, and its layout in lib/hull-layouts.ts. */
 export const drawingAt = (width: number) =>
   width < BREAK ? ".plan-narrow" : ".plan-wide";
