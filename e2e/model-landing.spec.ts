@@ -90,6 +90,19 @@ async function register(browser: Browser, shot: Shot) {
       };
     }),
   );
+  // The ink and the paper, for B3.1's ink count in the number boxes.
+  const tokens = await off.page.evaluate(() => {
+    const probe = document.createElement("div");
+    document.body.append(probe);
+    const read = (name: string) => {
+      probe.style.color = `var(${name})`;
+      const [r, g, b] = getComputedStyle(probe).color.match(/[\d.]+/g) ?? [];
+      return [Number(r), Number(g), Number(b)] as const;
+    };
+    const out = { ink: read("--foreground"), paper: read("--background") };
+    probe.remove();
+    return out;
+  });
   const regions = {
     title: await box(off.page, TITLE),
     revisions: await box(off.page, REVISIONS),
@@ -189,6 +202,7 @@ async function register(browser: Browser, shot: Shot) {
     onText,
     offText,
     numbers,
+    tokens,
     regions,
     motion,
     errors,
@@ -245,8 +259,7 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
     if (shot.width === 1440 && shot.dpr === 1 && shot.scheme === "light") {
       const changed = channelDelta(r.onView, r.offView);
       const at = (x: number, y: number) => changed[y * r.onView.width + x] ?? 0;
-      /** Pixels of `b`, outside `skip`, whose channel delta exceeds `floor` levels. */
-      const differing = (b: Box | null, skip?: Box, floor = 0) => {
+      const differing = (b: Box | null, skip?: Box) => {
         if (!b) return Number.NaN;
         const c = whole(b);
         let n = 0;
@@ -260,7 +273,7 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
               y < skip.y + skip.height
             )
               continue;
-            if (at(x, y) > floor) n++;
+            if (at(x, y) > 0) n++;
           }
         return n;
       };
@@ -289,16 +302,47 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
         r.numbers.length,
         "plank numbers in the wide drawing",
       ).toBeGreaterThan(0);
+      // Build note 6: the numbers paint above the canvas. Each number box's ink pixels, nearer
+      // --foreground's luminance than --background's, on frame 1 against the Off page. The spans
+      // are the only elements above the canvas, so Chromium composites them in their own
+      // transparent layer, and composited text loses LCD anti-aliasing on a runner that has it:
+      // every glyph edge shifts, so a pixel-identical box fails with nothing wrong. The count
+      // survives it; a covered or hidden number drops to near 0 (decision 14).
+      const luma = ([r0 = 0, g0 = 0, b0 = 0]: readonly number[]) =>
+        0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
+      const [inkL, paperL] = [luma(r.tokens.ink), luma(r.tokens.paper)];
+      const inked = (image: Image, b: Box) => {
+        const c = whole(b);
+        let n = 0;
+        for (let y = c.y; y < c.y + c.height; y++)
+          for (let x = c.x; x < c.x + c.width; x++) {
+            const l = luma(pixel(image, x, y));
+            if (Math.abs(l - inkL) < Math.abs(l - paperL)) n++;
+          }
+        return n;
+      };
+      const ink = r.numbers.map((n) => ({
+        text: n.text,
+        off: inked(r.offView, n),
+        on: inked(r.onView, n),
+      }));
+      note(
+        testInfo,
+        "number ink",
+        `ink pixels per number box, frame 1 / Off: ${ink.map((n) => `${n.text} ${n.on}/${n.off}`).join(", ")}.`,
+      );
       expect
         .soft(
-          // The number boxes lie over the canvas's flat card fill at frame 1, which a runner's
-          // SwiftShader can round a level off the SVG's; build note 6 is that the numbers paint
-          // above the canvas, and a hidden or covered digit (--foreground on the card) moves its
-          // box by far more than B3.7's 8 levels (decision 14).
-          r.numbers
-            .filter((n) => differing(n, undefined, 8) > 0)
-            .map((n) => n.text),
-          "plank numbers whose box changes by more than 8 levels at the hand-off (build note 6; B3.7's bound)",
+          ink.filter((n) => n.off === 0).map((n) => n.text),
+          "plank numbers with no ink on the Off page",
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          ink
+            .filter((n) => n.on === 0 || n.on < 0.8 * n.off)
+            .map((n) => `${n.text} ${n.on}/${n.off}`),
+          "plank numbers that keep under 80% of the Off page's ink at frame 1 (build note 6)",
         )
         .toEqual([]);
       expect
