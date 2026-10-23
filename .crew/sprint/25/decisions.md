@@ -153,3 +153,18 @@
     (an ink-pixel count against the Off page's), which a canvas painted over the spans fails (the
     mutant that flips the stacking rule) and anti-aliasing can't. Every other floor in the check
     stays 0, and the strong-change count against S4's 4,891 is reported as before.
+
+15. **Fix round 1, on Lens's second review** (`changes` on `20ad540`, one Important). A viewport
+    that dropped below 1024 px while the chunk downloaded or built was ignored: `refit` bailed on a
+    missing stage before reading the wide query, `open()` never re-read it, and the hollow rule had
+    no width condition, so the model settled in its hidden layer and the drawing lost its fills,
+    numbers and leaders at tablet widths (Pixel reproduced it: the chunk held, the viewport taken to
+    1000, released: 22 of 22 planks unfilled and 22 numbers hidden). Pixel's `dbe2cd6` reads the
+    query before the stage exists, again before frame 1, and on a bfcache restore marks a narrow
+    visit Off instead of rebuilding; `0beea2d` moves the hollow rule under
+    `screen and (width >= 64rem)` and the reduced-motion fade under the same width, with `screen`
+    added so the fade's number rule can't hide the numbers on paper; `dd01af8` is Lens's comment nit
+    on `loft.ts`. Probe adds the check Lens asked for (the chunk held, a resize to 1000, released:
+    no canvas, no `data-state`, filled planks) and his nit on B3.5's print fill (alpha 0 counts as
+    unfilled). Headless Chromium didn't restore `/` from the bfcache for the Back trigger, so the
+    `pageshow` guard is traced, not run.
