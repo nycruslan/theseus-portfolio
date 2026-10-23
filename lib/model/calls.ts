@@ -39,17 +39,20 @@ export const SETTLE = { dx: -30, dy: 40, yaw: -30, pitch: 15 };
 
 /**
  * Below 768 px, on the narrow drawing (.crew/sprint/26/contract.md, "The phone's loft"): the framed
- * height follows (1 + G_NARROW × e) × frame 1's. Iris sets it (the contract's "Needs decision");
- * until she rules it is the desktop's GROW.
+ * height follows (1 + G_NARROW × e) × frame 1's (Iris's call, .crew/sprint/26/notes-iris.md, 1).
+ * The turn to −36° foreshortens the hull to 0.80 of its length; 0.25 pays that back, so the model
+ * settles as long as the drawing it left (310 px at 390, 73.7 px framed).
  */
-export const G_NARROW = 0.1;
+export const G_NARROW = 0.25;
 
 /**
  * The phone's settled pose: spike S5's turn (yaw −36°, pitch 16°), and an offset in the narrow
- * drawing's own units (1 CSS px at 390). Until Iris rules, the desktop's SETTLE offset scaled by the
- * drawing, 0.5 / 1.3 (NARROW.s over WIDE.s), so it moves the hull as far for its size as at 1440.
+ * drawing's own units, 1 CSS px at 390 (Iris's call, notes-iris.md, 2). dx 0: the registered hull
+ * is already left of centre, and the stern stays on station 0. dy 26: the deck settles 15 px below
+ * the sheer, so the hollow profile's top plank shows above it, and the shadow lands on the
+ * half-breadth plan's crown.
  */
-export const SETTLE_NARROW = { dx: -11.5, dy: 15.4, yaw: -36, pitch: 16 };
+export const SETTLE_NARROW = { dx: 0, dy: 26, yaw: -36, pitch: 16 };
 
 /**
  * How far the settled model stands further off the sheet than the registered one, in hull units
