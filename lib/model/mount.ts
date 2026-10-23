@@ -21,7 +21,6 @@ const WIDE = "(min-width: 64rem)";
 /** Quality during the loft (S6): frames slower than these, in a row, step the DPR down or stop. */
 const SLOW_MS = 22;
 const STALL_MS = 33.4;
-const QUICK_MS = 12;
 
 /** Off for the rest of the visit once a resize took the page below 1024 px. */
 let narrowed = false;
@@ -63,8 +62,6 @@ function palette(): Palette {
 
 /** The DPR ladder, 2, 1.5, 1: a ratio between rungs steps to the rung below it (1.75 → 1.5). */
 const below = (ratio: number) => (ratio > 1.5 ? 1.5 : 1);
-const above = (ratio: number, cap: number) =>
-  Math.min(cap, ratio < 1.5 ? 1.5 : 2);
 
 /**
  * Mounts the model in `host`, `[data-model]`, over the drawing beside it, with the planks the
@@ -111,7 +108,6 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
   let last = 0;
   let slow = 0;
   let stall = 0;
-  let quick = 0;
   let skip = false;
   // The gates: drawn only on screen and with the tab shown; a redraw waits for both.
   let onScreen = true;
@@ -177,18 +173,22 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     }
   };
 
-  /** The settled frame, at rest: drawn once, then nothing. */
+  const step = (next: number) => {
+    ratio = next;
+    apply(measure(), true);
+  };
+
+  /**
+   * The settled frame, at rest: drawn once, then nothing. A still frame has no frame rate to
+   * keep, so it is drawn at min(devicePixelRatio, 2) whatever the move stepped down to.
+   */
   const rest = (kind: "settled" | "still") => {
     listen(false);
     cancelAnimationFrame(raf);
     raf = 0;
+    if (ratio < cap) step(cap);
     set(kind);
     draw(1);
-  };
-
-  const step = (next: number) => {
-    ratio = next;
-    apply(measure(), true);
   };
 
   const tick = (now: number) => {
@@ -199,10 +199,9 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
     const u = (now - begin) / DURATION;
     if (skip || u >= 1 || reduce.matches) return rest("settled");
     // Three frames in a row above 22 ms step the DPR down a rung; at DPR 1, six above 33.4 ms
-    // give up the move for the settled frame. Nothing steps up mid-move.
+    // give up the move for the settled frame. Nothing steps up mid-move; rest does.
     slow = interval > SLOW_MS ? slow + 1 : 0;
     stall = interval > STALL_MS ? stall + 1 : 0;
-    quick = interval < QUICK_MS ? quick + 1 : 0;
     if (ratio > 1 && slow >= 3) {
       slow = 0;
       stall = 0;
@@ -244,10 +243,6 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
       return;
     }
     pending = false;
-    if (quick >= 3 && ratio < cap) {
-      quick = 0;
-      step(above(ratio, cap));
-    }
     draw(1);
   };
 
@@ -259,15 +254,16 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
       stop();
       return;
     }
-    const fresh = Math.min(devicePixelRatio, 2);
-    if (ratio === cap || ratio > fresh) ratio = fresh;
-    cap = fresh;
+    // A refit is at rest or ends the move, so it is at the cap; a zoom may have moved the cap.
+    cap = Math.min(devicePixelRatio, 2);
+    ratio = cap;
     const next = measure();
     const same =
       fit &&
-      (
-        ["left", "top", "drawing", "viewport", "width", "height"] as const
-      ).every((key) => fit?.[key] === next[key]);
+      fit.buffer.join() === next.buffer.join() &&
+      (["left", "top", "drawing", "viewport"] as const).every(
+        (key) => fit?.[key] === next[key],
+      );
     if (same) return;
     apply(next);
     if (moving()) rest("settled");
