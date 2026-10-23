@@ -101,9 +101,9 @@ body {
 }
 
 /* The bar sticks to the top (components/bar.tsx), so a fragment link or a focused link scrolls in
-   below it rather than under it. Below 1024 px it is two rows, the links and the motion control. */
+   below it rather than under it. */
 html {
-  scroll-padding-top: 104px;
+  scroll-padding-top: 52px;
 }
 
 @media (width >= 64rem) {
@@ -113,38 +113,53 @@ html {
 }
 
 /*
- * The motion control (components/motion-control.tsx; .crew/sprint/27/contract.md, "The control"):
- * Full, Calm, Off in a 1 px ink frame with 1 px ink dividers, the pressed one ink with film text
- * (.crew/sprint/22/notes-iris.md, 9). The slot is the group's size with or without scripts, so the
- * buttons' arrival moves nothing; the width is set rather than the text's, so the fallback face
- * can't change it either. 44 px targets below 1024 px, 32 px from it. The bar isn't printed.
+ * The motion control (components/model.tsx; .crew/sprint/27/contract.md, "The control", and
+ * notes-iris.md, sections 2 to 5): Full, Calm, Off, each button in a 1 px ink frame whose shared
+ * edges make the dividers, the pressed one ink with film text. It has two slots, both in the
+ * server's HTML at the group's size, so the buttons' arrival moves nothing: the bar's from 768 px,
+ * and below it a row at the drawing's foot, since the phone bar is full. Exactly one is shown.
+ * Without scripts both are empty. Neither is printed.
  */
-[data-motion] {
+nav > [data-motion] {
+  display: none;
+}
+
+/* The drawing's foot: it borrows 12 px of the drawing's own margin, and paints over the model's
+   layer, which lies on the drawing's box. */
+main > [data-motion] {
+  position: relative;
   display: flex;
-  width: 183px;
+  justify-content: flex-end;
   height: 44px;
+  margin: -12px 0 12px;
+  padding: 0 16px;
 }
 
 [data-motion] fieldset {
-  display: flex;
-  flex: 1;
-  border: 1px solid var(--foreground);
+  display: inline-flex;
 }
 
 [data-motion] button {
-  flex: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
-  font-size: var(--step-sm);
+  border: 1px solid var(--foreground);
+  font-size: var(--step-base);
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
 }
 
 [data-motion] button + button {
-  border-left: 1px solid var(--foreground);
+  margin-left: -1px;
 }
 
+/* Its ink edges cover the neighbours' borders. No transition: the cell changes state, it doesn't
+   animate, in any mode. */
 [data-motion] [aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
   background: var(--foreground);
   color: var(--background);
 }
@@ -154,23 +169,22 @@ html {
   cursor: default;
 }
 
-/* The ring sits on the neighbours, a pressed one's ink included. */
-[data-motion] button:focus-visible {
-  z-index: 1;
-}
-
-/* Hover marks what a press would choose and moves nothing, as the bar's links do. */
+/* The selection tint: a full ink fill would look pressed, and an underline would say link. */
 @media (hover: hover) {
   [data-motion] [aria-pressed="false"]:enabled:hover {
-    text-decoration: underline 2px;
-    text-underline-offset: 4px;
+    background: var(--rule);
   }
 }
 
-@media (width >= 64rem) {
-  [data-motion] {
-    width: 148px;
-    height: 32px;
+/* The ring paints over both neighbours' borders, so each focused button shows one whole ring. */
+[data-motion] button:focus-visible {
+  position: relative;
+  z-index: 2;
+}
+
+@media (width < 22.5rem) {
+  main > [data-motion] {
+    margin-top: 0;
   }
 
   [data-motion] button {
@@ -178,11 +192,46 @@ html {
   }
 }
 
-/* Forced colours drop the ink ground, so the pressed button keeps a heavier rule above and below;
-   top and bottom only, so no button's width changes. */
+@media (width >= 48rem) {
+  main > [data-motion] {
+    display: none;
+  }
+
+  nav > [data-motion] {
+    display: flex;
+    justify-content: flex-end;
+    width: 186px;
+    height: 44px;
+  }
+}
+
+/* The approved frame's group: 32 px tall at the bar's right end, a step smaller than the links. */
+@media (width >= 64rem) {
+  nav > [data-motion] {
+    width: 142px;
+    height: 32px;
+  }
+
+  [data-motion] button {
+    padding: 0 12px;
+    font-size: var(--step-sm);
+  }
+}
+
+/* The system repaints the ink fill as the buttons' own ground, so pressed takes the selection's
+   colours, its frame included, which also sets it apart from the others' rules. Highlight rather
+   than SelectedItem: every forced-colours browser has it, and Chromium paints both alike. */
 @media (forced-colors: active) {
   [data-motion] [aria-pressed="true"] {
-    border-block: 3px solid;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+@media print {
+  main > [data-motion] {
+    display: none;
   }
 }
 
