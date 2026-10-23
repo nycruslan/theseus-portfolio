@@ -21,7 +21,8 @@
   "dependencies": {
     "next": "16.4.2",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -31,6 +32,7 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "0.186.0",
     "agent-browser": "0.39.0",
     "babel-plugin-react-compiler": "1.0.0",
     "knip": "6.41.0",
