@@ -177,7 +177,8 @@ export function makeLoft(frame: Frame, points: Vec3[]) {
     },
     /** The scale of the drawing: what the shadow's texels follow. */
     scale,
-    /** The camera's nearest 1/D: the depth range must stay in front of it. */
+    /** The camera's nearest distance D (1/D peaks at 1/lens): the depth range must stay in
+     * front of it. */
     lens,
   };
 }
