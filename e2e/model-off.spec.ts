@@ -127,9 +127,19 @@ test("B3.5 the Off paths download nothing: WebGL refused, 1023 px, forced colour
       plan: seen(plan),
       planks: planks.length,
       // On paper the drawing is the record: each seated plank's fill and number print as on main.
+      // Unfilled is none, or a colour or opacity that paints nothing: the hollow rule's
+      // `fill: transparent` computes to rgba(0, 0, 0, 0), not none.
       unfilled: planks
-        .filter((p) => getComputedStyle(p).fill === "none")
-        .map((p) => p.getAttribute("data-plank")),
+        .filter((p) => {
+          const s = getComputedStyle(p);
+          if (s.fill === "none" || s.fill === "transparent") return true;
+          const parts = s.fill.match(/^rgba?\((.*)\)$/)?.[1]?.split(/[\s,/]+/);
+          const alpha = parts?.length === 4 ? Number(parts[3]) : 1;
+          return alpha * Number(s.fillOpacity) * Number(s.opacity) === 0;
+        })
+        .map(
+          (p) => `${p.getAttribute("data-plank")} ${getComputedStyle(p).fill}`,
+        ),
       numbersHidden: [...(plan?.querySelectorAll(".plan-plank") ?? [])]
         .filter((n) => n.getClientRects().length > 0 && !seen(n))
         .map((n) => (n.textContent ?? "").trim()),
