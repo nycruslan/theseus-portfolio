@@ -21,7 +21,9 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         </p>
         <p className="text-step-sm text-muted">{profile.location}</p>
       </div>
-      <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5">
+      {/* From 1024 the one-line revisions (sprint 25, batch E) can leave this block the taller of
+          the pair, and the Contact row's auto margin is then 0: this margin is its floor. */}
+      <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5 lg:mb-3.5">
         {splitBio(profile.bio).lead}
       </p>
       {/* Pushed to the block's foot beside the revisions. No id: #contact is the Contact section. */}
