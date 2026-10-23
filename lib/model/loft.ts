@@ -4,7 +4,7 @@
 // straight down from the canvas's centre and only dolly-zooms: its frustum at z = 0 is the canvas
 // at every frame, so the sheet, the shadow on it and the page stay registered. The model lifts
 // toward the camera and turns to its three-quarter pose, its scale solved so its framed height
-// follows (1 + GROW × e) × frame 1's (G_NARROW on the narrow drawing).
+// follows (1 + GROW × e) × frame 1's, or (1 + G_NARROW × e²) on the narrow drawing.
 //
 // The camera's strength is carried as 1/D, the inverse of its distance: 0 is orthographic (frame
 // 1), and it runs linearly with the eased progress to the lens's 1/D (contract, "The loft").
@@ -84,21 +84,25 @@ export type Frame = {
 };
 
 /** Where the model settles on one drawing: its offset in the drawing's units, its turn in
- * degrees, and how much its framed height grows. */
+ * degrees, how much its framed height grows, and the curve the growth follows in e. */
 type Settle = {
   dx: number;
   dy: number;
   yaw: number;
   pitch: number;
   grow: number;
+  curve: (e: number) => number;
 };
 
 /** Each drawing's settled pose (lib/model/calls.ts): sprint 17's on the three views, S5's phone
- * pose on the profile and half-breadth plan (.crew/sprint/26/contract.md, "The phone's loft"). */
+ * pose on the profile and half-breadth plan (.crew/sprint/26/contract.md, "The phone's loft").
+ * The phone's growth rides on e², since the turn's foreshortening is flat near 0°: on e, the
+ * growth ran ahead of it and swelled the hull 24 px longer than its drawing at u 0.15 at 390
+ * (decision 9). */
 const settleOn = (layout: Layout): Settle =>
   layout === NARROW
-    ? { ...SETTLE_NARROW, grow: G_NARROW }
-    : { ...SETTLE, grow: GROW };
+    ? { ...SETTLE_NARROW, grow: G_NARROW, curve: (e) => e * e }
+    : { ...SETTLE, grow: GROW, curve: (e) => e };
 
 /**
  * The registered and settled poses for a drawing shown `drawing` CSS px wide: the registered pose
@@ -162,7 +166,7 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
       pitch: lerp(from.pitch, to.pitch, e),
     };
     const invD = e / lens;
-    const want = target * (1 + settle.grow * e);
+    const want = target * (1 + settle.grow * settle.curve(e));
     let s = scale;
     for (let i = 0; i < 4; i++) {
       s *=

@@ -39,9 +39,10 @@ export const SETTLE = { dx: -30, dy: 40, yaw: -30, pitch: 15 };
 
 /**
  * Below 768 px, on the narrow drawing (.crew/sprint/26/contract.md, "The phone's loft"): the framed
- * height follows (1 + G_NARROW × e) × frame 1's (Iris's call, .crew/sprint/26/notes-iris.md, 1).
- * The turn to −36° foreshortens the hull to 0.80 of its length; 0.25 pays that back, so the model
- * settles as long as the drawing it left (310 px at 390, 73.7 px framed).
+ * height follows (1 + G_NARROW × e²) × frame 1's (Iris's call, .crew/sprint/26/notes-iris.md, 1;
+ * the square by decision 9, so the growth arrives with the turn's foreshortening). The turn to
+ * −36° foreshortens the hull to 0.80 of its length; 0.25 pays that back, so the model settles as
+ * long as the drawing it left (310 px at 390, 73.7 px framed).
  */
 export const G_NARROW = 0.25;
 
