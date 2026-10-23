@@ -136,3 +136,15 @@
     narrow and calls `stop()`. No visitor reaches it, no spec takes a full-page shot, and the failure
     is the safe one (the whole drawing), so the code stands. If a capture tool ever needs it closed:
     act on a narrow reading only when it still holds two animation frames later. A follow-up.
+
+14. **B3.1's number boxes take B3.7's 8-level bound at the hand-off** (Probe, `b5f84f6`). On
+    `f6a5ff0` Lens shipped and the cloud's suite was 151 of 151 three times, but CI's `check` failed
+    B3.1 on one soft assertion, all 22 plank numbers' boxes "changing" at the hand-off, while the
+    hard `landed` hold, the regions, the drawing outside the profile and every text node's box
+    passed, and B3.7's fills-within-8-levels passed on the same runner. The number boxes sit over
+    the canvas's flat fill, and the assertion counted any channel delta above 0: CI's runner rounds
+    SwiftShader's flat fill a level off the SVG's where the cloud's rounds it exactly. The contract's
+    "pixel-identical" is over-strict on a WebGL fill; build note 6's intent, that the numbers paint
+    above the canvas, still fails under the bound (a mutant that lets the canvas paint over the
+    spans turns it red on 21 of 22 numbers, the 22nd sitting on its leader outside the hull). Every
+    other floor in the check stays 0.
