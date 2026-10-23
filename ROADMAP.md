@@ -26,22 +26,40 @@ page, and B3, the signature moment.
   contract lists which live checks it keeps, rewrites or retires, and the owner approves the
   retirements in that PR. (Sprint 22, PR #62, merged 2026-10-22 with batches A, B and C approved.)
 - [x] B2: the facts and `/read` ("Read as page"), and a not-found page in the site's style.
-  - Built in sprint 23, PR #67: Lens ship, Iris ship at 8.5/10, 141 of 141 checks. It waits for the
-    owner, who approves the one retired check (batch D, the cards' whole-surface link) on the PR.
-    Its B2.10 is amended for `/read` (`.crew/sprint/23/decisions.md`, item 7).
-- [ ] Next upgrade (S): Next's own build notice marks 16.4.0 as carrying a known security advisory.
-  One sprint, after B2 merges, before B3's spike. **It can't merge until the revision block's
-  height is settled:** the block grows a row per sprint, and at 1440 × 900 the title block's
-  contact links (B1.1) end 7 px above the fold with sprint 23's one-line row; one more row puts
-  them below it. Quill and Iris decide how the block holds its height (a cap on the rows shown,
-  with the rest in the Log, or the owner's call on B1.1), in that sprint's contract.
-- [ ] B3: the 3D card model and the registered loft. It starts with Pixel's spike of the 30 fps
-  phone budget, and Iris works beside Pixel on the loft's feel. Open decision for the spike:
-  a three.js r186 WebGPU build with the scene's materials, batched mesh and lights is about 245 KiB
-  gzip (about 251 kB, already at the limit), about 272 KiB with GSAP, so the brief's stack (WebGPU,
-  TSL, GSAP) can't meet the 250 KB gzip budget. Measure the options in research section D (WebGL at
-  about 140 KiB, or WebGPU counted as brotli at about 200 KiB) and take the choice to the owner
-  with the B3 demo.
+  - Sprint 23, PR #67, merged 2026-10-22 with batch D (the cards' whole-surface link) approved by
+    the owner: Lens ship, Iris ship at 8.5/10, 141 of 141 checks. Its B2.10 is amended for `/read`
+    (`.crew/sprint/23/decisions.md`, item 7).
+- [x] Next upgrade: 16.4.0 to 16.4.2, for three advisories (two critical RCEs and a DoS). Done by
+  the owner outside a sprint (PR #69, merged 2026-10-22), so it added no revision row. The revision
+  block's height, which this item said had to be settled first, turned out not to block it: the
+  block is capped at five rows and only a goal that wraps to two lines at 1440 adds height
+  (`.crew/sprint/24/decisions.md`, items 2 and 3). The rule is a one-line goal, at most 78
+  characters, in every retro; Iris's one-line descriptions with an ellipsis (her sprint 22 notes,
+  section 8) stay a proposal for the next PR that waits for the owner, since B1.5's check changes.
+- [ ] B3: the 3D card model and the registered loft, as Quill planned it in
+  `.crew/sprint/24/b3-plan.md`. Once the 3D exists, Full is the default (the canvas's
+  `Motion-Control.html`), and reduced motion starts at Calm.
+  - [x] Sprint 24 (M): Pixel's spike. The stack measured in Turbopack (A, WebGL, against B, WebGPU
+    with the WebGL 2 fallback), the hull's triangles and draws, the registered loft prototyped, CPU
+    frame time as a floor, and a recommendation (`.crew/sprint/24/contract.md`, S1 to S7). The
+    30 fps phone budget is checked on the owner's phone at the demos; the cloud has none.
+    (PR #71, merged 2026-10-23: Lens ship after one fix round; Pixel recommends A, WebGL, and the
+    report is `.crew/sprint/24/spike/spike.md`. Left open: the owner's stack call, on sprint 25's
+    PR.)
+  - [ ] Sprint 25 (M): the hull lifts off the drawing at 1024 px and up, once a visit, skippable,
+    settled under reduced motion, 0 frames at rest, with no control yet (contract draft:
+    `.crew/sprint/24/b3-first-contract.md`). **Its PR waits for the owner's stack call**, with the
+    loft on its preview: A departs from `design/brief.md`'s Technology section (the owner's file);
+    B misses the 250 KB budget in either encoding on Vercel's wire (spike S1: Vercel's brotli is
+    about gzip's size), fitting only at brotli 11, which Vercel doesn't serve. It also carries batch E, Iris's one-line
+    revision descriptions at 1024 px and up (B1.5's check changes), for the owner to approve.
+  - [ ] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
+    a still frame under 30 fps, scrolling through the canvas. The phone registers on the narrow
+    profile phones already draw (the narrow sheet has had no body plan since sprint 22, so the
+    canvas's `loft-390.webp` hand-off no longer applies); it opens with Iris's call on whether the
+    settled pose grows the model beyond its 59 px drawing (spike S4).
+  - [ ] Sprint 27 (S, or M if the phone strip moves): the Full/Calm/Off control, remembered on the
+    device; rewrites B2.3 and the keyboard Tab bound with the same assertions. **The B3 demo.**
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.
 - [ ] B5: `/log` and the ghost hull.
 
