@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-// The model's loader (.crew/sprint/25/contract.md, "Where" and "When"): `[data-model]`, the white
-// card model's layer over the drawing, empty until the 3D chunk fills it. It is the only client
-// code / ships with the model Off, so it stays this small (B2.10). After load, on idle, it checks
-// the page wants the model: 1024 px and up on a screen, no forced colours, no Save-Data, and
-// last, one throwaway WebGL 2 context. Only then does it import the scene. Otherwise the drawing
-// is the page and no 3D is downloaded.
+// The model's loader (.crew/sprint/25/contract.md, "Where" and "When"; .crew/sprint/26/contract.md
+// drops the width): `[data-model]`, the white card model's layer over the drawing, empty until the
+// 3D chunk fills it. It is the only client code / ships with the model Off, so it stays this small
+// (B2.10). After load, on idle, it checks the page wants the model: a screen at any width, no
+// forced colours, no Save-Data, and last, one throwaway WebGL 2 context. Only then does it import
+// the scene. Otherwise the drawing is the page and no 3D is downloaded.
 export function Model({ seated }: { seated: readonly string[] }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -22,8 +22,7 @@ export function Model({ seated }: { seated: readonly string[] }) {
         gone ||
         !host ||
         save ||
-        !matchMedia("screen and (min-width: 64rem) and (forced-colors: none)")
-          .matches
+        !matchMedia("screen and (forced-colors: none)").matches
       ) {
         return;
       }

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { note, pause, stats } from "./model";
 import { coverage, decodePng } from "./pixels";
 import { openModel } from "./webgl";
 
@@ -12,14 +13,16 @@ const PAGE = "/__model-harness";
  * A known WebGL 2 scene: a red quad as drawArrays (2 triangles), then an instanced 18-index mesh
  * ten times (6 triangles each, the shape of a fat-line segment's quad with its caps: 60), one
  * frame of 2 draws and 62 triangles. Then, in a second task, one WEBGL_multi_draw call of three
- * 6-index draws: 1 draw and 6 triangles. `window.__scene` reports what the page itself drew.
+ * 6-index draws: 1 draw and 6 triangles. `window.__scene` reports what the page itself drew. The
+ * buffer is preserved: under load the compositor can present between the two tasks, and an
+ * unpreserved buffer then starts the second on transparent, so the screenshot read the body's white.
  */
 const SCENE = `<!doctype html><meta charset="utf-8"><title>harness</title>
 <body style="margin:0;background:#fff">
 <canvas id="c" width="64" height="64" style="display:block;width:64px;height:64px"></canvas>
 <script>
 const canvas = document.getElementById("c");
-const gl = canvas.getContext("webgl2", { premultipliedAlpha: true });
+const gl = canvas.getContext("webgl2", { premultipliedAlpha: true, preserveDrawingBuffer: true });
 const report = { granted: Boolean(gl), multi: false };
 window.__scene = report;
 if (gl) {
@@ -207,4 +210,89 @@ test("B3.10 the harness checks itself: it counts a known two-draw scene's draws 
     )
     .toBeGreaterThanOrEqual(984);
   await timed.close();
+});
+
+/**
+ * The hog's test page: `[data-model]` with no state, landed at 300 ms, lofting at 600 ms, settled at
+ * 1,100 ms; `window.__ticks` holds every animation frame's timestamp, the real time its callback ran
+ * and the state it saw. A frame's timestamp is its vsync-aligned start, so under a 40 ms spin the
+ * timestamps step 33.4 and 50 ms apart while the callbacks run at least 40 ms apart: the hog's
+ * promise is in real time, and the timestamps keep it on average.
+ */
+const HOG = `<!doctype html><meta charset="utf-8"><title>hog</title>
+<div data-model></div>
+<script>
+const model = document.querySelector("[data-model]");
+window.__ticks = [];
+const tick = (t) => {
+  window.__ticks.push({ t, now: performance.now(), state: model.dataset.state ?? "" });
+  requestAnimationFrame(tick);
+};
+requestAnimationFrame(tick);
+setTimeout(() => { model.dataset.state = "landed"; }, 300);
+setTimeout(() => { model.dataset.state = "lofting"; }, 600);
+setTimeout(() => { model.dataset.state = "settled"; window.__settledAt = performance.now(); }, 1100);
+</script>`;
+
+test("B3.10 the frame hog checks itself: on a test page it holds every animation frame callback at least 40 ms apart in real time, 40 ms apart on average by their timestamps, from the first landed state through lofting, and stops at rest", async ({
+  browser,
+}, testInfo) => {
+  const run = await openModel(browser, { width: 320, height: 240, hog: 40 });
+  await run.page.route(`**${PAGE}`, (route) =>
+    route.fulfill({ contentType: "text/html", body: HOG }),
+  );
+  await run.page.goto(PAGE);
+  await pause(2000);
+  const { ticks, settledAt } = await run.page.evaluate(() => {
+    const w = window as Window & {
+      __ticks?: { t: number; now: number; state: string }[];
+      __settledAt?: number;
+    };
+    return { ticks: w.__ticks ?? [], settledAt: w.__settledAt ?? Number.NaN };
+  });
+  const spins = await run.hogged();
+  await run.close();
+  const gaps = (from: number, to: number, key: "t" | "now") =>
+    ticks
+      .filter((k) => k.now > from && k.now <= to)
+      .map((k, i, list) => k[key] - (list[i - 1]?.[key] ?? Number.NaN))
+      .slice(1);
+  const start = spins[0] ?? Number.POSITIVE_INFINITY;
+  const hoggedGaps = gaps(start, settledAt, "now");
+  const stamped = gaps(start, settledAt, "t");
+  const mean = stamped.reduce((a, b) => a + b, 0) / (stamped.length || 1);
+  const restGaps = gaps(settledAt + 200, Number.POSITIVE_INFINITY, "t");
+  note(
+    testInfo,
+    "hog",
+    `${spins.length} spins, the first at ${spins[0]?.toFixed(0)} ms, settled at ${settledAt.toFixed(0)} ms; real gaps between callbacks while hogged ${JSON.stringify(stats(hoggedGaps))} ms, timestamp gaps ${JSON.stringify(stats(stamped))} (mean ${mean.toFixed(1)}) ms, timestamp gaps at rest ${JSON.stringify(stats(restGaps))} ms.`,
+  );
+  expect(spins.length, "the hog's spins").toBeGreaterThan(0);
+  expect
+    .soft(
+      ticks.find((k) => k.now >= (spins[0] ?? 0))?.state,
+      "the state the hog's first spin saw",
+    )
+    .toBe("landed");
+  expect
+    .soft(hoggedGaps.length, "frames while hogged")
+    .toBeGreaterThanOrEqual(5);
+  expect
+    .soft(
+      Math.min(...hoggedGaps),
+      "the shortest real gap between frame callbacks while hogged (ms)",
+    )
+    .toBeGreaterThanOrEqual(39);
+  expect
+    .soft(mean, "the mean timestamp gap while hogged (ms)")
+    .toBeGreaterThanOrEqual(39);
+  expect
+    .soft(
+      spins.filter((t) => t > settledAt + 20).length,
+      "spins after the page settled",
+    )
+    .toBe(0);
+  expect
+    .soft(stats(restGaps).median, "the median frame gap at rest (ms)")
+    .toBeLessThan(25);
 });

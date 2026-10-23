@@ -62,13 +62,26 @@ page, and B3, the signature moment.
     on mid-visit keep the lit canvas and hollow the forced-colours drawing: hide `[data-model]` under
     `(forced-colors: active)` and add it to the hollow and fade queries, or a change listener that
     stops the model as a narrowing does), and the full-page-capture teardown (decision 13).
-  - [ ] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
-    a still frame under 30 fps, scrolling through the canvas. The phone registers on the narrow
-    profile phones already draw (the narrow sheet has had no body plan since sprint 22, so the
-    canvas's `loft-390.webp` hand-off no longer applies); it opens with Iris's call on whether the
-    settled pose grows the model beyond its 59 px drawing (spike S4).
+  - [x] Sprint 26 (M): phones and tablets at 30 fps: DPR ≤ 1.5, ≤ 12k triangles, quality stepping,
+    a still frame under 30 fps, scrolling through the canvas, the model on the drawing the page
+    shows at every width. (PR #73, built over two runs on 2026-10-23: Lens ship with no fix round, Iris ship at
+    8.8/10, 158 of 158 checks; the contract is `.crew/sprint/26/contract.md` with decisions 1 to 9
+    in `decisions.md`.) Iris's call: `G_NARROW` 0.25 and `SETTLE_NARROW { dx: 0, dy: 26 }`, the
+    settled hull its drawing's own length, and the phone's growth on e² so it arrives with the
+    turn (decision 9). Sprint 25's riders are taken. Left open, for the sheet with the owner: the
+    "Base" label straddling the shadow's tail on the narrow sheet (Iris's review); and the cold-
+    cache fallback face, which scrolls the page 21 px sideways at 320 and wraps the nav at 390 on
+    production today (`.rev`'s `td[data-label]::before` labels, likely), the next layout fix.
+    Riding with sprint 27, which touches the model: Lens's four nits on #73 (a 768 px crossing
+    during the build keeps the old cap, so `cross()` resets it before its early return; the canvas
+    keeps the old drawing's size for the two guarded frames and after a lost context, so
+    `[data-model]` gets `overflow: clip`; a phone's toolbar show/hide re-solves the loft at rest,
+    to check at the demo and, if it shows, refit only on width or box changes; a stray JSDoc above
+    `cardGeometry` in `lib/model/stage.ts`).
   - [ ] Sprint 27 (S, or M if the phone strip moves): the Full/Calm/Off control, remembered on the
-    device; rewrites B2.3 and the keyboard Tab bound with the same assertions. **The B3 demo.**
+    device; rewrites B2.3 and the keyboard Tab bound with the same assertions. **The B3 demo**, on
+    the owner's phone: 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel in
+    motion, the dark hull under the warm lamp; every number so far is SwiftShader's floor.
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.
 - [ ] B5: `/log` and the ghost hull.
 
