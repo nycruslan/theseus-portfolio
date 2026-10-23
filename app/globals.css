@@ -343,7 +343,9 @@ html {
 /*
  * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
  * folds: the number on the left, the description beside it, and the four signatures under it, each
- * with its column's head above it. The heads row is then read by assistive tech only.
+ * with its column's head above it. The heads row is then read by assistive tech only. From 1024 px
+ * each description is one line, cut with an ellipsis: it is the row's label, and the Log has the
+ * record (.crew/sprint/24/decisions.md, 7). The cell's text is still the whole goal.
  */
 .rev {
   width: 100%;
@@ -375,6 +377,17 @@ html {
 
 .rev tbody th {
   font-weight: 700;
+}
+
+/* A max-width of 0 keeps the description's text out of the columns' sizing: its column still takes
+   the room the other five leave, and theirs stay as they are. */
+@media (width >= 64rem) {
+  .rev tbody td:not([data-label]) {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 @media (width < 40rem) {
