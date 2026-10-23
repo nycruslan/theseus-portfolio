@@ -467,8 +467,9 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
         shown: 1,
         inNav: inBar,
         inMain: !inBar,
+        // The bar comes before main, so either slot precedes the title block.
         afterModel: !inBar,
-        beforeTitle: !inBar,
+        beforeTitle: true,
       });
     expect
       .soft(
