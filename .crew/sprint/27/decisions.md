@@ -45,3 +45,22 @@
 7. **Lens's four nits on #73:** three ride as code (the cap reset in `cross()`, `overflow: clip` on
    the layer, the stray JSDoc); the toolbar show/hide refit is a demo question, since only a real
    phone shows whether it re-solves the loft at rest.
+
+8. **Iris's placement, taken as amendment 1** (`.crew/sprint/27/notes-iris.md`): below 768 px the
+   group sits at the drawing's foot, a 44 px row of `main`'s grid between `[data-model]` and the
+   title block; from 768 in the bar after Read as page (44 tall to 1023, 32 from 1024). Her
+   measurements on production made the bar's three options one: 42 px of air at 390 against a
+   group of 183, a second sticky row costing 97 px of chrome at every scroll position, a fixed
+   strip covering the bio at 320 × 568. The cost is 44 px of the first screen at 390 (B1.1 holds
+   with 215 px to spare on her mock). It departs from `hero-390.webp`, whose strip held Read as
+   page too, so her paragraph goes to the owner on the PR with the preview, without waiting. The
+   DOM changes from the plan's below 768 (two sized slots, the group in the shown one), and the
+   Tab order doesn't: the group is `main`'s first focusable, so Contact's first link stays the 15th
+   stop at every width.
+
+9. **The bytes fit at 2,038 B decoded of B2.10's 2,048** (Forge): the store, the control and the
+   loader are one client module (`components/model.tsx`; a module boundary costs about 165 B),
+   both components `"use no memo"` (the React Compiler's memo cache and runtime were 633 B), a
+   WebGL refusal read as Off. The check sums decoded bodies, not gzip, which my contract first
+   said; corrected in `a80c6ab`. 10 B of headroom: any new client logic on `/` reopens the budget
+   with the owner.

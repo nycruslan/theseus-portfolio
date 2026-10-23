@@ -5,7 +5,9 @@ Atlas, 2026-10-23. B3's last build sprint, as Quill planned it (`.crew/sprint/24
 `.crew/sprint/26/contract.md`, their data rules and decisions; PRs #72 and #73). The control is the
 one the owner approved on sprint 17's canvas (`.crew/sprint/17/design/motion-control.webp`; Iris's
 sprint 22 notes, section 9, give its look). Sprints 25 and 26's data rules hold word for word except
-where this contract changes them below. Every GPU number is still SwiftShader's floor; the 30 fps
+where this contract changes them below. **Amendment 1** (Atlas, after Iris's part 1): the group's
+place below 768 px is the drawing's foot in `main`, not the bar, with two sized slots; "The
+control", B3.16 and the B2.3 rewrite say so. Every GPU number is still SwiftShader's floor; the 30 fps
 budget and the loft's feel are checked on the owner's phone at the B3 demo, on this PR's preview.
 
 ## Outcome
@@ -40,15 +42,19 @@ without scripts is the sheet it is today, with the control's place kept.
   server's HTML at the group's size at every width, so the buttons' arrival moves nothing (CLS 0),
   as Print's slot on `/read`. The page without scripts shows the slot empty, so its emptiness has
   to look intended (Iris).
-- **Desktop placement is the approved frame's; the phone's is Iris's call.** From 1024 px the group
-  sits at the bar's right end after Read as page (`main.webp`). Below 1024 px the canvas drew a
-  bottom strip (`hero-390.webp`) on a sheet that no longer exists as drawn (the phone bar carries
-  all four links since #62), so Iris decides where three 44 px buttons go and what the first screen
-  pays for them (`.crew/sprint/27/notes-iris.md`). Until she rules, the builder lays the group out as
-  a second row of the sticky bar below 1024 px, right-aligned. The DOM is fixed either way: the
-  group follows the four links inside the bar's `nav`, so the Tab order is skip, Work, Log, Contact,
-  Read as page, Full, Calm, Off, then the title block's links. If her placement needs another DOM
-  position, Atlas amends this contract and Probe's order with it.
+- **Desktop placement is the approved frame's; the phone's is Iris's call, taken** (amendment 1,
+  `.crew/sprint/27/notes-iris.md`). From 768 px the group sits in the bar after Read as page
+  (`main.webp`): 44 px tall to 1023, 32 from 1024. Below 768 px the bar is full (42 px of air at
+  390, 9 at 320, against a group of 183), a second sticky row would be 97 px of chrome at every
+  scroll position and a strip fixed to the viewport's bottom would cover the bio at 320 × 568, so
+  the group sits at the drawing's foot: a 44 px row of `main`'s grid after `[data-model]` and
+  before the title block, right-aligned 16 px in, 12 px above the title block's rule. It costs the
+  first screen 44 px at 390 × 844 (B1.1 holds with 215 px to spare on her mock) and departs
+  visibly from `hero-390.webp`, whose bottom strip held Read as page too; her paragraph for the
+  owner (notes, section 7) goes on the PR with the preview, as sprint 26's rest pose did. The Tab
+  order is the plan's at every width: skip, Work, Log, Contact, Read as page, Full, Calm, Off, then
+  the title block's links (below 768 the group is `main`'s first focusable), so Contact's first
+  link is the 15th stop either way.
 - **One store, two readers.** A small module holds the mode (`localStorage` under `theseus:motion`,
   every access inside try/catch), the default from the hints, and a subscription. The control in
   the bar and the loader in `main` both read it with `useSyncExternalStore`, whose server snapshot
@@ -78,18 +84,24 @@ without scripts is the sheet it is today, with the control's place kept.
   stores nothing.
 
 **The control.**
-- In the bar's `nav`, after the four links: a slot, `[data-motion]`, in the server's HTML at every
-  width. When scripts run it holds `<div role="group" aria-label="Motion">` with three
+- Two slots, both in the server's HTML at every width, each `[data-motion]` and sized to the
+  group at its width: one in the bar's `nav` after the four links (shown from 768 px, hidden
+  below), one in `main` after `[data-model]` and before `main > header` (shown below 768 px, hidden
+  from it). Exactly one is shown at any width, and only the shown one holds the group: when
+  scripts run it holds `<div role="group" aria-label="Motion">` with three
   `<button type="button" aria-pressed>` reading Full, Calm, Off in that order, exactly one
-  `aria-pressed="true"`, and the slot carries `data-mode` with the mode. Without scripts it is empty
-  and the same size.
+  `aria-pressed="true"`, and that slot carries `data-mode` with the mode (the builder renders the
+  group into the shown slot, or into both with the hidden one `display: none`, so its buttons are
+  never Tab stops). Without scripts both slots are empty and the same size.
 - Targets: at least 44 × 44 CSS px below 1024 px, at least 24 × 24 from it; every button inside
   the viewport at 320, 390, 768, 1024 and 1440; no horizontal overflow at 320. The pressed button is
   told apart without colour alone, so in forced colours its border or outline differs from the
   others'. Each focused button shows exactly one ring (B2.9's rule). The control isn't printed, as
   the bar isn't.
-- The group's size, placement and styling at every width are Iris's (`notes-iris.md`); the
-  placement below 1024 px is a second row of the bar until she rules.
+- The group's size, placement and styling at every width are Iris's (`notes-iris.md`, sections 2
+  to 5: the slot's box per width, the buttons' borders as the 1 px dividers, pressed in ink with
+  film text, hover on `--rule`, the ring over both neighbours by `z-index`, forced colours on
+  `Highlight`/`HighlightText`).
 
 **The modes and the model.**
 - **Full.** As sprints 25 and 26: the loft once a visit, skippable, settled on a second load,
@@ -119,7 +131,12 @@ without scripts is the sheet it is today, with the control's place kept.
 - A phone's toolbar show/hide re-solving the loft at rest is a demo question (Lens, #73): the
   owner looks for it on the preview; a refit only on width or box changes follows if it shows.
 - The fallback face: with the woff2 files refused, the bar's four links stay on one row at 390
-  and 320, and `scrollWidth` equals `clientWidth` at 320 and 390 on `/`, in both schemes.
+  and 320, and `scrollWidth` equals `clientWidth` at 320 and 390 on `/`, in both schemes. Iris
+  measured the cause (notes, section 8): the wordmark's Extra Condensed fallback is 113 px against
+  78 warm, which eats the bar's 42 px and wraps Read as page; the fix is the condensed fallback
+  fitted to its real width (`size-adjust` on `sofiaCondensed`'s fallback in `app/fonts.ts`) and
+  `white-space: nowrap` on the links, with B1.10 unedited. Lens's two comment nits on #67 (the
+  stale font comments in `app/fonts.ts` and `app/layout.tsx`) ride with that edit.
 
 ## Checks
 
@@ -127,13 +144,15 @@ Each is a Playwright test in `e2e/`, titled by its number and what it asserts. T
 continue from B3.15; the control's own checks go in a new `e2e/motion.spec.ts` (the harness in
 `e2e/webgl.ts` and `e2e/model.ts` is reused: `openModel`, `live()`, the frame recorder, the clock).
 
-**B3.16 The control.** At 320, 390, 768, 1024 and 1440: `[data-motion]` is in the bar's `nav`
-after the four links, holds a group named Motion with buttons Full, Calm, Off in order, exactly
-one pressed, Full by default; each a target of the width's size inside the viewport; at 1440 the
-group sits right of Read as page. With scripts off the slot is in the HTML, empty, and the boxes
-of the wordmark, every bar link, the h1 and the first fact heading are the same as with scripts
-on, within 0.5 px; no layout-shift entry over load + 2 s with the model loading (B3.9's method).
-No horizontal overflow at 320. B1.1's fold at 390 × 844 holds (unedited; run it).
+**B3.16 The control.** At 320, 390, 768, 1024 and 1440: exactly one `[data-motion]` is shown; from
+768 it is in the bar's `nav` after the four links and right of Read as page, below 768 it is in
+`main` between `[data-model]` and `main > header`; it holds a group named Motion with buttons
+Full, Calm, Off in order, exactly one pressed, Full by default; each a target of the width's
+size (44 below 1024, 24 from it) inside the viewport; the hidden slot's buttons, if any, are not
+Tab stops. With scripts off both slots are in the HTML, empty, and the boxes of the wordmark,
+every bar link, the h1 and the first fact heading are the same as with scripts on, within 0.5 px;
+no layout-shift entry over load + 2 s with the model loading (B3.9's method). No horizontal
+overflow at 320. B1.1's fold at 390 × 844 holds (unedited; run it).
 
 **B3.17 Full.** At 1440 and 390 × 844: Calm pressed at rest, then Full: `theseus:motion` is
 `full`, the model reaches `landed` then `lofting` then `settled` from frame 1 (registered within
@@ -171,11 +190,13 @@ Tab reaches Full, Calm and Off in order after Read as page; Space and Enter pres
 the bar's four links share one row (equal tops), `scrollWidth` equals `clientWidth` on `/`, and
 the fold (B1.1's items at 390 × 844) holds.
 
-**B2.3 rewritten, same assertions** (`e2e/sheet.spec.ts`, the first B2.3): the bar's controls are
-the four links then the three buttons; Read as page is the right-most link at 1440 and the group
-is right of it; each control a 24 px target inside the viewport at 320, 390 and 1440 (44 below
-1024 for the buttons); each link lands on its target. The second B2.3 (the bar above the facts)
-adds the buttons' centres to the points it hit-tests.
+**B2.3 rewritten, same assertions** (`e2e/sheet.spec.ts`, the first B2.3): at 1440 the bar's
+controls are the four links then the three buttons, Read as page the right-most link and the
+group right of it; at 320 and 390 the bar's controls are the four links alone and the group is
+`main`'s, between the drawing and the title block; each control a 24 px target inside the
+viewport at 320, 390 and 1440 (44 below 1024 for the buttons); each link lands on its target. The
+second B2.3 (the bar above the facts, at 1024) adds the buttons' centres to the points it
+hit-tests.
 
 **keyboard.spec.ts rewritten, same assertions:** Contact's first link is the 15th Tab stop: skip,
 the 4 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the project links, then
@@ -221,11 +242,11 @@ retires, no owner path changes, so the PR doesn't wait for the owner unless the 
 
 ## Needs decision (Iris)
 
-1. **Where the control sits below 1024 px, and its sizes at every width** (her brief, part 1):
-   the group's box, alignment and margins at 320, 390 and 768; what the first screen at 390 × 844
-   pays; whether it departs visibly from `hero-390.webp`.
-2. **The pressed state in forced colours and in the dark scheme**, and how the empty slot reads
-   without scripts.
+1. ~~Where the control sits below 1024 px, and its sizes at every width~~ **Taken** (amendment 1,
+   `notes-iris.md`): the drawing's foot below 768 px, the bar from it; the sizes in her sections 2
+   to 5.
+2. **The pressed state in forced colours and in the dark scheme on the running build**, and how
+   the empty slot reads without scripts (her part 2).
 
 ## For the owner: the B3 demo, on this PR's preview
 
