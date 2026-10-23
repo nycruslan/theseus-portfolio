@@ -36,7 +36,46 @@ settled under reduced motion, 0 frames at rest; the Off paths download no 3D. Sp
 `.crew/sprint/26/contract.md`; decisions in `.crew/sprint/26/decisions.md`; Iris's call in
 `.crew/sprint/26/notes-iris.md`, her review in `.crew/sprint/26/review-iris.md`.
 
-<!-- RESULTS -->
+Every check is a Playwright test in `e2e/model-*.spec.ts`; all 18 model tests pass on the head in
+Probe's, Pixel's and Atlas's runs (Atlas's full-suite count is in the last section). Every GPU
+number is headless Chromium's SwiftShader, a floor: 30 fps on a real phone is the B3 demo's
+question (sprint 27). Mutants: the desktop level kept below 768 px turned B3.11 red (25,267
+triangles against 12,000); the step removed turned B3.12 red (never 1×, ended `settled`); the
+redraw gates removed turned B3.6's off-screen and hidden windows red. B3.14, B3.15 and every 390
+case are red on main without a mutant.
+
+| Check | Bound | Read (SwiftShader) |
+|---|---|---|
+| B3.1 registration at 390 on `.plan-narrow` | ≤ 1.5 CSS px at DPR 1, ≤ 1.0 at DPR 2 | 1.00 and 0.50, both schemes; 320 and 768 at 0.50 (reported) |
+| B3.1 whole-pixel canvas at 320, 390, 768, 820 | buffer integer, CSS × ratio = buffer within layout's 1/64 px | holds; 390 DPR 2 is 585 × 390 on 390 × 260 |
+| B3.1 hand-off at 390, DPR 2 | nothing outside the profile changes | holds |
+| B3.2 the phone's loft | framed height within 2% of (1 + 0.25 e²) × frame 1's; yaw −36° pitch 16° ± 2°; inside the canvas; 2,400 ms ± a frame | drift ≤ 0.98% at every u; yaw −36.25°, pitch 17°; 0 edge pixels; 2,384 ms |
+| B3.3, B3.4 at 390 with touch | once a visit; tap, touch scroll, key settle within 2 frames; reduced motion settled | holds |
+| B3.5 the Off paths and the narrowing | no 3D on WebGL refused, forced colours, Save-Data, print, scripts off; 1440 → 700 lands on `.plan-narrow` | holds |
+| B3.6 at 390 | ≤ 8 draws, ≤ 12,000 triangles, backing store ≤ 1.5×, 0 frames at rest, off-screen, hidden | 4 draws, 7,891 triangles, 1.5× at DPR 2 and 3, 0 frames (1 once back) |
+| B3.6 the 3D chunk | ≤ 250,000 B gzip -9, one file for both levels, after load | 145,254 B; the loader 635 B (B2.10's 2,048 B) |
+| B3.7 at 390 | plank fills within 8 levels; nothing near `--accent`; a scheme switch draws exactly 1 frame | holds at 390 and 1440 |
+| B3.8 crossings | 1440 → 1000 refits; 1000 → 700 re-registers settled, no loft, CLS 0; no overflow 320 to 1920 | holds |
+| B3.9 at 390, 4× CPU | LCP ≤ 2,500 ms text; CLS 0 | LCP 268 to 384 ms; CLS 0; longest build task 287 to 387 ms; tap INP 24 to 64 ms |
+| B3.11 the level and the cap | phone mesh ≤ 12,000 at ratio 1.5 below 768; desktop ≤ 30,000 at 2 from it | 7,891 at 1.500; 25,267 at 2.000 |
+| B3.12 the stepping rule, driven | 40 ms hog: 1.5× → 1× within 3 moving frames, `still` within 12, drawn at the cap | 1× on the 2nd moving frame, `still` after 7, the still frame at 1.5 |
+| B3.13 the page scrolls through the canvas | a drag over the canvas scrolls the page, settles the loft within 2 frames | a 150 px drag scrolls 135 px (Chromium's 15 px touch slop), mid-loft and at rest |
+| B3.14 forced colours mid-visit | layer hidden, every plank filled; back with no loft | holds at 390 and 1440 |
+| B3.15 a lost context | `data-state` gone within 2 frames; a restore draws 1 frame | holds at 390 and 1440 |
+| Frame time at 390, 4× CPU (reported) | S6: 0.9 / 3.0 / 12.6 ms | median 3.8 to 14.1 ms, p95 81.6 ms, under readback |
+
+**Iris's review** (`.crew/sprint/26/review-iris.md`): ship at 8.8. Better than production at 390
+and 320, pixel-identical at 1440 and 1024 (0 differing pixels, settled, font warm), axe 0, no
+placeholder, LCP at 4× CPU and 400 kbps 1,712 ms light / 1,640 dark, no musts. Her early look
+found the phone's growth arriving before the turn's foreshortening (the hull swelled past both
+ends of its drawing for 600 ms); decision 9 put the narrow growth on e², and she frame-stepped the
+final head: the stern never leaves station 0, the bow never passes the stem by more than 1 px.
+
+**Riders taken:** Lens's six nits on #72 and the forced-colours nit, as "Riders (code)" in the
+contract and B3.6, B3.7, B3.14, B3.15 in the checks. **Follow-ups, not this sprint's** (in
+`ROADMAP.md`): on a cold cache the fallback face scrolls the page 21 px sideways at 320 and wraps
+the nav at 390 (production today; the sprint's diff doesn't touch it); the "Base" label straddling
+the shadow's tail on the narrow sheet, a composition call for the sheet with the owner.
 
 ## For the owner: the phone's rest pose against `rest-390.webp`
 
