@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { type Browser, expect, test } from "@playwright/test";
 import {
   canvasFit,
   capAt,
@@ -90,4 +90,88 @@ test("B3.11 the level and the cap follow the drawing: at 390 x 844, DPR 2, the p
       )
       .toBeLessThanOrEqual(2 * RATIO_EPSILON);
   }
+});
+
+/** One phone visit with the frame hog: the frames drawn, the hog's spins and how the move ended. */
+async function hogged(browser: Browser, ms: number) {
+  const run = await openModel(browser, {
+    width: 390,
+    height: 844,
+    dpr: 2,
+    hog: ms,
+  });
+  await run.goto();
+  const end = await run.waitFor([...REST], FIRST);
+  await pause(300);
+  const frames = await run.frames();
+  const spins = await run.hogged();
+  const errors = [...run.errors];
+  await run.close();
+  // The moving frames drawn after the hog's first spin: every one comes at least `ms` late.
+  const moving = frames.filter(
+    (f) =>
+      (f.state === "landed" || f.state === "lofting") &&
+      f.t > (spins[0] ?? Number.POSITIVE_INFINITY),
+  );
+  return { end, frames, spins, moving, errors };
+}
+
+const near = (ratio: number, rung: number) =>
+  Math.abs(ratio - rung) <= RATIO_EPSILON;
+
+test("B3.12 the stepping rule, driven: at 390 x 844, DPR 2, a frame hog spinning 40 ms a frame from the first landed frame steps the canvas's buffer from 1.5x to 1x its CSS size within 3 moving frames, ends the move still within 12, and draws the still frame at the cap of 1.5x; a 26 ms hog is reported", async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(240_000);
+  const run = await hogged(browser, 40);
+  const ratios = run.moving.map(ratioOf);
+  const first = run.frames[0];
+  const still = run.frames.find((f) => f.state === "still");
+  const stepped = ratios.findIndex((r) => near(r, 1));
+  note(
+    testInfo,
+    "stepping, 40 ms",
+    `ended ${run.end}; ${run.spins.length} spins; frame 1 at ${first && ratioOf(first).toFixed(3)}; the moving frames after the first spin at ${ratios.map((r) => r.toFixed(2)).join(", ")}; the still frame at ${still ? ratioOf(still).toFixed(3) : "none"}. ${SWIFTSHADER}.`,
+  );
+  expect(run.spins.length, "the hog's spins").toBeGreaterThan(0);
+  expect.soft(run.errors, "console errors, 40 ms hog").toEqual([]);
+  expect
+    .soft(
+      first && ratioOf(first),
+      "frame 1's ratio, before any slow frame (the cap)",
+    )
+    .toBeCloseTo(1.5, 3);
+  expect
+    .soft(
+      stepped,
+      `the first moving frame at 1x, counted from the hog's first spin (0-based; ratios ${ratios.map((r) => r.toFixed(2)).join(", ")})`,
+    )
+    .toBeGreaterThanOrEqual(0);
+  expect
+    .soft(stepped, "the first moving frame at 1x, within 3 (0-based)")
+    .toBeLessThanOrEqual(2);
+  expect
+    .soft(
+      ratios.slice(Math.max(0, stepped)).filter((r) => !near(r, 1)),
+      "moving frames after the step not at 1x (nothing steps up mid-move)",
+    )
+    .toEqual([]);
+  expect.soft(run.end, "how the hogged move ended").toBe("still");
+  expect
+    .soft(run.moving.length, "moving frames after the hog's first spin")
+    .toBeLessThanOrEqual(12);
+  expect(still, "a frame drawn still").toBeDefined();
+  expect
+    .soft(still && ratioOf(still), "the still frame's ratio (the cap)")
+    .toBeCloseTo(1.5, 3);
+
+  // 26 ms a frame: past the 22 ms step, under the 33.4 ms stall, so the move should step to 1x and
+  // end settled; reported, since SwiftShader's own frame cost can turn it into a stall.
+  const mild = await hogged(browser, 26);
+  note(
+    testInfo,
+    "stepping, 26 ms",
+    `ended ${mild.end}; ${mild.spins.length} spins; the moving frames after the first spin at ${mild.moving.map((f) => ratioOf(f).toFixed(2)).join(", ")}; the rest frame at ${mild.frames.at(-1) && ratioOf(mild.frames.at(-1) as (typeof mild.frames)[number]).toFixed(3)}. Reported, not asserted. ${SWIFTSHADER}.`,
+  );
+  expect.soft(mild.errors, "console errors, 26 ms hog").toEqual([]);
 });
