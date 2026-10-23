@@ -92,7 +92,9 @@ export function Revisions({
           ))}
         </tbody>
       </table>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm">
+      {/* At the cell's foot from 1024 px, on the title block's Contact line, when the row is
+          taller than this block (the bottom row's minimum height, app/globals.css). */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <PlankCount planks={planks} replaced={replaced} />
           <PlankLegend />
