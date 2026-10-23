@@ -205,10 +205,15 @@ the 4 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the pro
 it; `tabUntil`'s bound rises to 15 (a harness change). "Tab visits every link in DOM order" takes
 the three buttons as stops with one clear ring each.
 
+**B3.1's hand-off views mask the shown `[data-motion]` slot (amendment 3)**, same assertions:
+the hand-off compares the WebGL-refused page with frame 1, and the control differs between them
+by design (Off pressed with Full and Calm disabled on the refused page); below 768 the slot's top
+12 px also lie inside the drawing's box.
+
 **Live checks the build must keep unedited:** B1.1 (the fold at 390 and 1440, with the slot),
 B1.4, B1.8 (no script, nothing moves: the slot is empty and still), B1.9, B1.10, B2.9 (24 px
 targets for every link and button on a phone; one ring in forced colours), B2.10 (script bytes
-with WebGL refused, within 2,048 B decoded of `/sprints'`), the invariants, B3.1 to B3.15 (the default
+with WebGL refused, within 2,048 B decoded of `/sprints'`), the invariants, B3.1 (the hand-off's mask apart) to B3.15 (the default
 mode is Full, so each runs as today; B3.5's Save-Data case reads the default `off`). Nothing
 retires, no owner path changes, so the PR doesn't wait for the owner unless the bytes don't fit.
 
