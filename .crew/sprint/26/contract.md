@@ -76,10 +76,11 @@ Off, as before: no chunk, no context but the one refused probe, the page is main
 - The camera as before: straight down, a dolly-zoom from orthographic to a 30° lens over the
   viewport's height (D = 1,575 px at 844).
 - The settled pose is yaw −36° and pitch 16° (spike S5's phone pose), with Iris's offset and
-  growth: the framed height follows `(1 + G_NARROW × e(u)) × frame 1's`, `G_NARROW` and the settled
-  offset named constants in `lib/model/calls.ts` beside `GROW` and `SETTLE`. Until Iris rules,
-  `G_NARROW` is 0.1 and the offset the desktop's scaled by the drawing. The settled model lies
-  wholly inside the canvas.
+  growth: the framed height follows `(1 + G_NARROW × e(u)²) × frame 1's` (the growth on e², so it
+  arrives with the turn's foreshortening rather than before it; decision 9), `G_NARROW` and the
+  settled offset named constants in `lib/model/calls.ts` beside `GROW` and `SETTLE`: `G_NARROW`
+  0.25 and `{ dx: 0, dy: 26 }` (decision 7). The desktop's growth stays on e. The settled model
+  lies wholly inside the canvas, and so does every moving frame.
 - The duration, ease, once-a-visit flag, skip inputs (`touchstart` and `scroll` included), reduced
   motion (settled, with the 240 ms fade on screen at every width) and teardown are sprint 25's.
 
@@ -118,7 +119,7 @@ size within 1/ratio px of the shown drawing's box). The hand-off at 390, DPR 2: 
 the revision block, the bar and the drawing outside the profile pixel-identical, every text node's
 box unchanged, no transition.
 
-**B3.2 at 390 × 844.** The framed height within 2% of `(1 + G_NARROW × e(u)) × frame 1's` at u = 0,
+**B3.2 at 390 × 844.** The framed height within 2% of `(1 + G_NARROW × e(u)²) × frame 1's` at u = 0,
 0.25, 0.5, 0.75 and 1; `settled` at u = 1, the pose yaw −36° pitch 16° within Iris's tolerance,
 the settled frame wholly inside the canvas (no coverage on its edge rows or columns); the title
 block, revisions and bar unchanged throughout. The duration ± one frame.
@@ -193,7 +194,7 @@ with 1 frame drawn and the drawing hollow again.
 | Frame time | still frame after 6 frames above 33.4 ms at ratio 1; 390 at 4× CPU reported | A at 390: 0.9 / 3.0 / 12.6 ms (S6) |
 | Draws | ≤ 8 a frame | 4 and 5 (S3) |
 | Registration | ≤ 1.0 CSS px at 390, DPR 2 (canvas 1.5); ≤ 1.5 at DPR 1; 320 and 768 reported | 0.5 and 1.0 (S4) |
-| Loft at 390 | framed height within 2% of `(1 + G_NARROW × e)` × frame 1's; once a visit; skippable | 0.82% drift at 390 (S5) |
+| Loft at 390 | framed height within 2% of `(1 + G_NARROW × e²)` × frame 1's; once a visit; skippable | 0.82% drift at 390 (S5) |
 | LCP at 390 | ≤ 2,500 ms at 4× CPU, text | 372 ms light, 288 dark (Iris, sprint 25) |
 | CLS | 0 over load + 2 s, on resize across 768 and 1024 | B1.8; B3.8 |
 | 3D chunk | ≤ 250,000 B gzip -9, one file for both levels | 144,516 B (sprint 25) |
