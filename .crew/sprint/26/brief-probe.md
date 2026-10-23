@@ -60,3 +60,29 @@ B3.5 rewrite's first), what you did differently from the contract and why, and w
 check (SwiftShader's numbers are floors; say so). Then at most three memory lines in
 `.claude/agent-memory/qa-engineer/MEMORY.md` citing `.crew/sprint/26/`, committed in the worktree,
 and the commit's sha.
+
+## Resumed, run 2 (Atlas, 2026-10-23, from `sprint/26-phones` at `63956d8`)
+
+The first run ended with your B3.5 rewrite and B3.11 on the sprint branch (your `44f3a75` and
+`cdec914`, cherry-picked) and Pixel's whole build brought over after it: the model at every
+width, the levels, the loft on either drawing, Lens's riders and Iris's pose. Your worktree went
+with that run's container, so start again: `git worktree add -B probe/26 /home/user/wt-probe-26
+origin/sprint/26-phones`, `pnpm install --frozen-lockfile` there, and
+`git push --force-with-lease -u origin probe/26` once you've committed (every commit the old
+`probe/26` had is on the sprint branch, so resetting it loses nothing).
+
+What's owed, in the order of "The work" above, steps 2 to 5; step 1 is done. Three things changed:
+- **Iris ruled: `G_NARROW` is 0.25, `SETTLE_NARROW { dx: 0, dy: 26, yaw: −36, pitch: 16 }`**
+  (`.crew/sprint/26/notes-iris.md`; the constants in `lib/model/calls.ts`). `e2e/model.ts` still
+  says 0.1: set it to 0.25. Her pose tolerance for B3.2 is ±2° on yaw and pitch, and her table gives
+  the settled numbers at 390 and 320 (the framed height 73.7 and 60.5 px, the clearances) to check
+  your readings against.
+- **`pnpm verify` is red on the sprint head for knip alone:** `layoutOf` and `TRIANGLES_AT` in
+  `e2e/model.ts` are exported and unused. The checks you write use them; the branch you push must
+  pass `pnpm verify`.
+- **The build exists now**, so every check runs green or red against it in your worktree, and the
+  mutants of step 5 are due in this run: B3.11 (the desktop level kept below 768), B3.12 (the step
+  removed), and any check of yours that would pass on main. Say which mutant turned which check red.
+
+Pixel isn't running yet: Pixel takes your checks after you report, so your report is what Pixel
+builds against. Name every red check with its failing assertion and the number it read.

@@ -47,3 +47,20 @@ build is done, review it against `design/rubric.md` and production (pixel-identi
 your musts and your cheap changes apart, with frames in your scratchpad or `.crew/screenshots/`
 (git ignores it) and a line saying what each shows. Then at most three memory lines citing
 `.crew/sprint/26/`. Your ports, if you serve anything: 4720 to 4729.
+
+## Resumed, run 2 (Atlas, 2026-10-23): part 2, the early look, on your own served build
+
+Part 1 is done and taken (decision 7; `lib/model/calls.ts` carries your constants). The first run's
+container is gone with Pixel's served build, so serve your own: `git worktree add
+/home/user/wt-iris-26 origin/sprint/26-phones` (head `63956d8`, Pixel's whole build), `pnpm install
+--frozen-lockfile`, `pnpm build`, then `node node_modules/next/dist/bin/next start --port 4720 &`
+and note `$!` to kill it when you're done. Chromium's WebGL there is SwiftShader: what you see is
+the geometry, the shading and the composition, not a phone's frame rate.
+
+Do the early look now against the four items in your notes' "What the early look should check",
+at 390 and 320 (DPR 2), 768 and 1440, both schemes, reduced motion, against `rest-390.webp` and
+the rubric, and report what Pixel should change while it's cheap, each as a value or a file and
+line. Pixel starts after Probe reports and takes your list with Probe's checks. Keep the review
+(the verdict, `review-iris.md`, the score, the memory lines) for when Atlas messages you that the
+build is final; if the early look finds nothing to change, say so and the review follows on the
+same head.
