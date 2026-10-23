@@ -3,6 +3,7 @@
 // once; and from then on still, drawing only on a resize or a scheme change. Its one hook for
 // tests and CSS is `[data-model]`'s data-state; nothing is put on window.
 
+import { WIDE as WIDE_LAYOUT } from "@/lib/hull-layouts";
 import { DURATION, ease } from "./calls";
 import { buildHull, DESKTOP, type Hull } from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
@@ -164,7 +165,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
       height: `${next.height}px`,
     });
     stage.fit(next.buffer, [next.width, next.height]);
-    loft = makeLoft(next, hull.points);
+    loft = makeLoft(next, hull.points, WIDE_LAYOUT);
     if (!keep) stage.shade(shadowFor(hull, loft));
   };
 

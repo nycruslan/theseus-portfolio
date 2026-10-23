@@ -4,14 +4,14 @@
 // straight down from the canvas's centre and only dolly-zooms: its frustum at z = 0 is the canvas
 // at every frame, so the sheet, the shadow on it and the page stay registered. The model lifts
 // toward the camera and turns to its three-quarter pose, its scale solved so its framed height
-// follows (1 + GROW × e) × frame 1's.
+// follows (1 + GROW × e) × frame 1's (G_NARROW on the narrow drawing).
 //
 // The camera's strength is carried as 1/D, the inverse of its distance: 0 is orthographic (frame
 // 1), and it runs linearly with the eased progress to the lens's 1/D (contract, "The loft").
 
 import { HEIGHT, LENGTH } from "@/lib/half-model";
-import { WIDE } from "@/lib/hull-layouts";
-import { GROW, HOLD, LIFT, SETTLE } from "./calls";
+import { type Layout, NARROW } from "@/lib/hull-layouts";
+import { G_NARROW, GROW, HOLD, LIFT, SETTLE, SETTLE_NARROW } from "./calls";
 import type { Vec3 } from "./hull";
 
 /** Where the model stands on the canvas: its centre (CSS px from the top left), lift and turn. */
@@ -83,13 +83,30 @@ export type Frame = {
   viewport: number;
 };
 
+/** Where the model settles on one drawing: its offset in the drawing's units, its turn in
+ * degrees, and how much its framed height grows. */
+type Settle = {
+  dx: number;
+  dy: number;
+  yaw: number;
+  pitch: number;
+  grow: number;
+};
+
+/** Each drawing's settled pose (lib/model/calls.ts): sprint 17's on the three views, S5's phone
+ * pose on the profile and half-breadth plan (.crew/sprint/26/contract.md, "The phone's loft"). */
+const settleOn = (layout: Layout): Settle =>
+  layout === NARROW
+    ? { ...SETTLE_NARROW, grow: G_NARROW }
+    : { ...SETTLE, grow: GROW };
+
 /**
- * The registered and settled poses for the wide drawing shown `drawing` CSS px wide: the
- * registered pose is the drawing's own (lib/hull-layouts.ts WIDE), the settled one sprint 17's
- * turn and lift, both scaled by the drawing's width (call 7). The lens is 30° over the viewport.
+ * The registered and settled poses for a drawing shown `drawing` CSS px wide: the registered pose
+ * is the drawing's own (lib/hull-layouts.ts, WIDE or NARROW), the settled one its turn and lift,
+ * both scaled by the drawing's width (call 7). The lens is 30° over the viewport.
  */
-function poses({ drawing, viewport }: Frame) {
-  const { box, ox, oy, s } = WIDE;
+function poses({ drawing, viewport }: Frame, layout: Layout, settle: Settle) {
+  const { box, ox, oy, s } = layout;
   const k = drawing / box[2];
   const scale = s * k;
   const from: Screen = {
@@ -100,11 +117,11 @@ function poses({ drawing, viewport }: Frame) {
     pitch: 0,
   };
   const to: Screen = {
-    cx: from.cx + SETTLE.dx * k,
-    cy: from.cy + SETTLE.dy * k,
+    cx: from.cx + settle.dx * k,
+    cy: from.cy + settle.dy * k,
     lift: from.lift + LIFT * scale,
-    yaw: SETTLE.yaw,
-    pitch: SETTLE.pitch,
+    yaw: settle.yaw,
+    pitch: settle.pitch,
   };
   const lens = viewport / (2 * Math.tan(rad(15)));
   return { from, to, scale, lens };
@@ -112,10 +129,12 @@ function poses({ drawing, viewport }: Frame) {
 
 export type Loft = ReturnType<typeof makeLoft>;
 
-/** The loft for one canvas: the pose and the camera's 1/D at eased progress e. */
-export function makeLoft(frame: Frame, points: Vec3[]) {
+/** The loft for one canvas over `layout`'s drawing: the pose and the camera's 1/D at eased
+ * progress e. */
+export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
   const { width, height } = frame;
-  const { from, to, scale, lens } = poses(frame);
+  const settle = settleOn(layout);
+  const { from, to, scale, lens } = poses(frame, layout, settle);
   const lerp = (a: number, b: number, e: number) => a + (b - a) * e;
 
   // Unproject the wanted screen centre at the model's lift, so it appears where it was asked to.
@@ -143,7 +162,7 @@ export function makeLoft(frame: Frame, points: Vec3[]) {
       pitch: lerp(from.pitch, to.pitch, e),
     };
     const invD = e / lens;
-    const want = target * (1 + GROW * e);
+    const want = target * (1 + settle.grow * e);
     let s = scale;
     for (let i = 0; i < 4; i++) {
       s *=

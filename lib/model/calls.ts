@@ -25,7 +25,7 @@ export function ease(u: number) {
 
 /** What the loft holds as the model lifts: its framed height, never its width (call 3). */
 export const HOLD: "height" | "width" = "height";
-/** The framed height follows (1 + GROW × e) × frame 1's, as the approved main.webp (call 3). */
+/** From 768 px the framed height follows (1 + GROW × e) × frame 1's, as main.webp (call 3). */
 export const GROW = 0.1;
 
 /**
@@ -36,6 +36,20 @@ export const GROW = 0.1;
  * (Iris's early look; sprint 17's −6 put it at 9.5).
  */
 export const SETTLE = { dx: -30, dy: 40, yaw: -30, pitch: 15 };
+
+/**
+ * Below 768 px, on the narrow drawing (.crew/sprint/26/contract.md, "The phone's loft"): the framed
+ * height follows (1 + G_NARROW × e) × frame 1's. Iris sets it (the contract's "Needs decision");
+ * until she rules it is the desktop's GROW.
+ */
+export const G_NARROW = 0.1;
+
+/**
+ * The phone's settled pose: spike S5's turn (yaw −36°, pitch 16°), and an offset in the narrow
+ * drawing's own units (1 CSS px at 390). Until Iris rules, the desktop's SETTLE offset scaled by the
+ * drawing, 0.5 / 1.3 (NARROW.s over WIDE.s), so it moves the hull as far for its size as at 1440.
+ */
+export const SETTLE_NARROW = { dx: -11.5, dy: 15.4, yaw: -36, pitch: 16 };
 
 /**
  * How far the settled model stands further off the sheet than the registered one, in hull units
