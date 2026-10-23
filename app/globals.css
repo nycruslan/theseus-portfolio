@@ -382,8 +382,9 @@ html {
 }
 
 /* Under the lifted model the drawing goes hollow, as loft.webp's frames 2 to 5 draw it: from the
-   first lofting frame, no fills, numbers or leaders (notes-iris.md, call 5). On screen only:
-   on paper the drawing is the record, as on main. */
+   first lofting frame, no fills, numbers or leaders (notes-iris.md, call 5). Transparent rather
+   than none, which paints the same and can be faded. On screen only: on paper the drawing is the
+   record, as on main. */
 @media not print {
   [data-plan]:has(
     + [data-model]:is(
@@ -393,7 +394,7 @@ html {
       )
   ) {
     & path[data-plank] {
-      fill: none;
+      fill: transparent;
     }
     & .plan-plank,
     & .ln-leader {
@@ -403,8 +404,9 @@ html {
 }
 
 /* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the
-   plank numbers out, and the fills cut (notes-iris.md, call 8). Opacity isn't motion. The numbers'
-   visibility waits out the fade, so it can be seen. */
+   plank numbers and fills out together, so the hull never empties before the model shows
+   (notes-iris.md, call 8; Iris's early look). Opacity isn't motion. The numbers' visibility waits
+   out the fade, so it can be seen. */
 @media (prefers-reduced-motion: reduce) {
   [data-model] canvas {
     transition: opacity 240ms linear;
@@ -422,6 +424,10 @@ html {
 
   [data-plan]:has(+ [data-model][data-state]) .plan-plank {
     opacity: 0;
+  }
+
+  [data-plan]:has(+ [data-model]) path[data-plank] {
+    transition: fill 240ms linear;
   }
 }
 
