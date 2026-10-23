@@ -1,0 +1,47 @@
+{
+  "sprint": 24,
+  "pr": 71,
+  "goal": "The 3D stack is measured and the hull's lift-off rehearsed before B3 is built",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "pending",
+  "fixRounds": 0,
+  "minutes": 0,
+  "agents": [
+    { "role": "creative-engineer", "model": "opus", "tokens": 453042, "minutes": 46 },
+    { "role": "product-owner", "model": "opus", "tokens": 356708, "minutes": 12 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The roadmap blocked the Next upgrade on a revision block that never grows",
+      "evidence": "components/revisions.tsx caps the table at ROWS = 5 and B1.1 asserts five rows; the measured height moves 16.9 px per wrapped goal (.crew/sprint/24/measure.md), and the owner merged the upgrade as PR #69 outside a sprint"
+    },
+    {
+      "what": "Pixel's brief named a file that doesn't exist, lib/half-model-svg.ts, as the profile's source",
+      "evidence": "Quill's report caught it; the drawing is lib/lines-plan.ts since sprint 22, and Pixel's memory carried the stale name too (corrected in this PR)"
+    },
+    {
+      "what": "The research's brotli costing for option B doesn't hold on Vercel's wire",
+      "evidence": "spike.md S1: Vercel's brotli came out 1.6% to 4.6% above local gzip -9 on production's three largest scripts, so B is 285 to 294 kB on the wire against a 250 kB budget"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In .claude/skills/sprint/retro.md, give goal a length rule: one line at 1440 in the revision block, at most 78 characters",
+      "moves": "The 7 px margin under B1.1's fold check, which a wrapped goal eats by 16.9 px"
+    },
+    {
+      "change": "Before a roadmap item names a blocker, measure it on the build, as sprints 7 and 9 measured their spikes",
+      "moves": "One roadmap item (the Next upgrade) held a sprint behind a premise a five-line check disproved"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "The stack for B3, A (WebGLRenderer, Pixel's recommendation) or B (WebGPU, over the 250 kB budget): asked without blocking on PR #71, decided on sprint 25's PR with the loft on its preview" },
+    { "who": "Iris", "what": "Sprint 25's calls on the loft: the duration, an ease-in at the start, whether the move holds the hull's height or length (height leaves it 21% shorter), the shadow as the scene's one texture, the profile under the lifted model and the seam weights, the dark scheme" },
+    { "who": "Iris", "what": "Sprint 26: whether the phone's settled pose grows the model beyond its 59 px drawing" },
+    { "who": "Pixel", "what": "Sprint 25 builds on spike.md's notes: merged planks with a per-vertex index, a whole-pixel canvas, shared lift ends, no side-view offsets, precompiled programs, the plank numbers above the canvas, matched seam weights, the plank layouts exported from a module that draws no SVG" },
+    { "who": "Atlas", "what": "Batch E, Iris's one-line revision descriptions at 1024 px and up, rides sprint 25's PR for the owner" },
+    { "who": "Quill", "what": "If the owner picks A, propose the edit to design/brief.md's Technology section in sprint 25's retro" }
+  ]
+}
