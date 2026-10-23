@@ -30,8 +30,8 @@
   },
   "wentWrong": [
     {
-      "what": "Pixel's brief named a file that doesn't exist, lib/half-model-svg.ts, as the profile's source",
-      "evidence": "Quill's report caught it; the drawing is lib/lines-plan.ts since sprint 22, and Pixel's memory carried the stale name too (corrected in this PR)"
+      "what": "The roadmap blocked the Next upgrade on a revision block that never grows",
+      "evidence": "components/revisions.tsx caps the table at ROWS = 5 and B1.1 asserts five rows; the measured height moves 16.9 px per wrapped goal (.crew/sprint/24/measure.md), and the owner merged the upgrade as PR #69 outside a sprint"
     },
     {
       "what": "The research's brotli costing for option B doesn't hold on Vercel's wire",
