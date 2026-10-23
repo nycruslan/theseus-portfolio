@@ -1,5 +1,15 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { CANVAS, canvasFit, FIRST, MODEL, pause, REST, TITLE } from "./model";
+import {
+  CANVAS,
+  canvasFit,
+  type Drawing,
+  drawing,
+  FIRST,
+  MODEL,
+  pause,
+  REST,
+  TITLE,
+} from "./model";
 import { PLANK_IDS, SEATED } from "./retros";
 import { type ModelOptions, openModel } from "./webgl";
 
@@ -221,53 +231,6 @@ test("B3.5 the Off paths download nothing: WebGL refused, forced colours, Save-D
 
 /** Narrower than the wide drawing's 768 px, as a tablet turned or a window snapped. */
 const NARROW = { width: 700, height: 900 };
-
-/**
- * The drawing as a visitor sees it: each shown plank's fill and alpha, the shown plank numbers and
- * the shown leaders. The hollow rule (notes-iris.md call 5) makes the fills transparent and hides
- * the numbers and leaders, so a leak of it shows in all three.
- */
-function drawing(page: Page) {
-  return page.evaluate(() => {
-    const seen = (el: Element) =>
-      el.getClientRects().length > 0 &&
-      el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
-    const plan = document.querySelector("[data-plan]");
-    const geometry = (el: Element) =>
-      el instanceof SVGGeometryElement
-        ? el
-        : el.querySelector("path, polygon, rect, polyline, ellipse, circle");
-    // A fill paints nothing when it is none, or its colour or opacities make it transparent.
-    const alpha = (s: CSSStyleDeclaration) => {
-      if (s.fill === "none" || s.fill === "transparent") return 0;
-      const parts = s.fill.match(/^rgba?\((.*)\)$/)?.[1]?.split(/[\s,/]+/);
-      const a = parts?.length === 4 ? Number(parts[3]) : 1;
-      return a * Number(s.fillOpacity) * Number(s.opacity);
-    };
-    const planks = [...(plan?.querySelectorAll("[data-plank]") ?? [])]
-      .filter(seen)
-      .map((p) => {
-        const g = geometry(p);
-        const s = g ? getComputedStyle(g) : null;
-        return {
-          id: p.getAttribute("data-plank") ?? "",
-          fill: s?.fill ?? "",
-          alpha: s ? alpha(s) : 0,
-        };
-      });
-    return {
-      planks,
-      numbers: [...(plan?.querySelectorAll(".plan-plank") ?? [])]
-        .filter(seen)
-        .map((n) => (n.textContent ?? "").trim())
-        .sort(),
-      leaders: [...(plan?.querySelectorAll(".ln-leader") ?? [])].filter(seen)
-        .length,
-    };
-  });
-}
-
-type Drawing = Awaited<ReturnType<typeof drawing>>;
 
 /**
  * Each shown plank's fill at every `data-state` `[data-model]` takes, read in the mutation's own
