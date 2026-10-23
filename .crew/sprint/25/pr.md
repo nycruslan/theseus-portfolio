@@ -54,7 +54,7 @@ header). Every GPU number is from headless Chromium's SwiftShader, so a floor.
 | B3.10 the harness checks itself | Pass |
 | Loader bytes | 984 B raw, 648 B gzip -9 over `/sprints'` scripts with WebGL refused, within B2.10's 2,048 B: no owner decision needed |
 
-Whole suite: 151 of 151 in Pixel's worktree, and 151 of 151 on this branch (`PLAYWRIGHT_PORT=4660 pnpm test:e2e`, 5.2 min) after B1.4 moved to the Off path (decision 12), and again on the final head with the warm lamp; the first integrated run was 150 of 151, B1.4 losing the race decision 12 describes.
+Whole suite: 152 of 152 on this branch after fix round 1 (`PLAYWRIGHT_PORT=4660 pnpm test:e2e`, 5.2 min), 151 of 151 on each earlier integrated head, and CI's `check` green on the head `f5fa66f`; the first integrated run was 150 of 151, B1.4 losing the race decision 12 describes.
 
 ## Decisions
 
@@ -87,9 +87,10 @@ The loader is within 2,048 B, so the contract's second question doesn't arise.
 
 ## Evidence
 
-- Pixel's run in its worktree: `pnpm verify` passes; `PLAYWRIGHT_PORT=4621 pnpm test:e2e` 151 of
-  151. On this branch: `pnpm verify` passes (lint, typecheck, knip, build) and the whole suite is
-  151 of 151.
+- On this branch: `pnpm verify` passes (lint, typecheck, knip, build), and the whole suite is 152
+  of 152 on the fix round's code (`515b7c3`; the later `a2c6f9f` changes only B3.1's ink bound).
+  CI's `check` is green on the head, `f5fa66f`, after three red runs that decisions 14 and 16
+  explain. Pixel's own run in its worktree was 151 of 151 before the fix round.
 - Forge's chunk read: `next analyze` lists the 3D chunk's 13 sources (`lib/model/*`,
   `lib/half-model.ts`, `lib/hull-layouts.ts`, five three.js modules), and the shipped file carries
   none of the drawing's text; `/`'s six first-load chunks carry no three.js.
