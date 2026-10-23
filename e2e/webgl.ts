@@ -437,6 +437,48 @@ function saveData() {
   });
 }
 
+/**
+ * The motion mode stored on the device before the first load (sprint 27): set once per browser
+ * context, so a reload or a new tab reads what the page itself stored since.
+ */
+function seedMotion(mode: string) {
+  try {
+    if (localStorage.getItem("probe:seeded") === null) {
+      localStorage.setItem("theseus:motion", mode);
+      localStorage.setItem("probe:seeded", "1");
+    }
+  } catch {
+    // Storage the browser refuses can't be seeded; the check that needs it fails on its own.
+  }
+}
+
+/**
+ * localStorage throws on getItem and setItem, and on a read or write of a stored item by name, as
+ * with storage blocked (sprint 27, B3.20). Its other members still answer.
+ */
+function throwingLocalStorage() {
+  const real = window.localStorage;
+  const fail = () => {
+    throw new DOMException("The operation is insecure.", "SecurityError");
+  };
+  const blocked = new Proxy(real, {
+    get(target, prop) {
+      if (prop === "getItem" || prop === "setItem") return fail;
+      if (typeof prop === "string" && !(prop in Storage.prototype)) fail();
+      const value = Reflect.get(target, prop, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+    set() {
+      fail();
+      return false;
+    },
+  });
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    get: () => blocked,
+  });
+}
+
 export type ModelOptions = {
   width?: number;
   height?: number;
@@ -448,6 +490,10 @@ export type ModelOptions = {
   refuse?: boolean;
   saveData?: boolean;
   throwingStorage?: boolean;
+  /** localStorage throws on getItem and setItem (sprint 27). */
+  throwingLocalStorage?: boolean;
+  /** `localStorage["theseus:motion"]` before the first load (sprint 27). */
+  stored?: string;
   /** Scripts off. */
   noScript?: boolean;
   /** Emulated touch, for a tap. */
@@ -533,6 +579,12 @@ export async function openModel(
   });
   if (options.saveData) await context.addInitScript(saveData);
   if (options.throwingStorage) await context.addInitScript(throwingStorage);
+  if (options.stored !== undefined) {
+    await context.addInitScript(seedMotion, options.stored);
+  }
+  if (options.throwingLocalStorage) {
+    await context.addInitScript(throwingLocalStorage);
+  }
   if (options.refuse) await context.addInitScript(refuseWebGl);
   await context.addInitScript(recordStates);
   await context.addInitScript(recordMotion);
