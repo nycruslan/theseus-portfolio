@@ -112,3 +112,15 @@
       turns corners: 25,267 triangles a frame against the 30,000 budget.
     - **`LIFT` and `SHADOW_BLUR` live in `lib/model/calls.ts`** beside Iris's other constants, since
       her early look moved them.
+
+12. **B1.4 reads the drawing on the Off path, same assertions** (Probe, `e067ee6`). The contract's
+    disposition kept B1.4 "with the model loading" because the Off page, print and `/read` never
+    match call 5's hollow rule; it missed that B1.4 itself reads the lettering on the Full page at
+    1024 and 1440, where the rule hides the numbers and leaders from the first lofting frame, so its
+    reads raced the chunk's idle import (the integrated run lost the race once, at 1440 in dark:
+    "plank numbers" received 0; Pixel's run won it). B1.4 now opens its own context with WebGL
+    refused, as B1.8's pixel comparisons do, with every assertion the same; its plank-centre hit test
+    is stronger there, since the numbers show. Probe's sweep found no other kept check that reads
+    what the rule changes (C6 reads markup, C9's grid only gets easier, B2.5's lettering reads are on
+    `/read`, B2.9 runs in forced colours where the model never mounts). The disposition's count is
+    now 102 keep, 4 rewrite, 0 retire.
