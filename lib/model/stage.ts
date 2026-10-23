@@ -122,17 +122,33 @@ function cardMaterial() {
 }
 
 /** A batch of fat lines; `fit` sets their weight. */
-function lines(positions: Float32Array, quads: boolean) {
+/** The card's buffers at one level: every plank, the deck and the transom, with their slots. */
+function cardGeometry(hull: Hull) {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(hull.position, 3));
+  geometry.setAttribute("normal", new BufferAttribute(hull.normal, 3));
+  geometry.setAttribute("slot", new BufferAttribute(hull.slot, 1));
+  geometry.setIndex(new BufferAttribute(hull.index, 1));
+  return geometry;
+}
+
+/** A batch of fat lines' segments at one level. */
+function lineGeometry(positions: Float32Array, quads: boolean) {
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(positions);
   // S2's fix for the triangle budget: the seams are smooth polylines, so each segment is drawn as
   // its middle quad, two triangles, without the round caps' four. The outline keeps its caps,
   // since it turns corners at the stem, the counter and the transom.
   if (quads) geometry.setIndex([2, 4, 3, 4, 5, 3]);
+  return geometry;
+}
+
+/** A batch of fat lines; `fit` sets their weight. */
+function lines(positions: Float32Array, quads: boolean) {
   const material = new LineMaterial();
-  const line = new LineSegments2(geometry, material);
+  const line = new LineSegments2(lineGeometry(positions, quads), material);
   line.frustumCulled = false;
-  return { line, material, geometry };
+  return { line, material };
 }
 
 export type Stage = ReturnType<typeof createStage>;
@@ -147,13 +163,8 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
   const model = new Group();
   scene.add(model);
 
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new BufferAttribute(hull.position, 3));
-  geometry.setAttribute("normal", new BufferAttribute(hull.normal, 3));
-  geometry.setAttribute("slot", new BufferAttribute(hull.slot, 1));
-  geometry.setIndex(new BufferAttribute(hull.index, 1));
   const card = cardMaterial();
-  const mesh = new Mesh(geometry, card.material);
+  const mesh = new Mesh(cardGeometry(hull), card.material);
   mesh.frustumCulled = false;
 
   const seams = lines(hull.seams, true);
@@ -202,6 +213,24 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
       const ratio = buffer[0] / width;
       seams.material.linewidth = SEAM_PX * ratio;
       outline.material.linewidth = OUTLINE_PX * ratio;
+    },
+
+    /**
+     * Swaps the hull for another level's when the page crosses 768 px: the buffers change, the
+     * materials and so the compiled programs stay (.crew/sprint/26/contract.md, "Which drawing").
+     */
+    load(next: Hull) {
+      const hull = mesh.geometry;
+      mesh.geometry = cardGeometry(next);
+      hull.dispose();
+      for (const [part, positions, quads] of [
+        [seams, next.seams, true],
+        [outline, next.outline, false],
+      ] as const) {
+        const old = part.line.geometry;
+        part.line.geometry = lineGeometry(positions, quads);
+        old.dispose();
+      }
     },
 
     /** Lays the baked shadow on the sheet. */
@@ -266,10 +295,10 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
     },
 
     dispose() {
-      geometry.dispose();
+      mesh.geometry.dispose();
       card.material.dispose();
       for (const part of [seams, outline]) {
-        part.geometry.dispose();
+        part.line.geometry.dispose();
         part.material.dispose();
       }
       shadow.geometry.dispose();
