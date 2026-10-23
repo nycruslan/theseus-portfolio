@@ -55,9 +55,10 @@ without scripts is the sheet it is today, with the control's place kept.
   is "no scripts", so the server renders the empty slot and the first client render has the stored
   mode. Storage that throws gives the default and no error; the choice then holds for the visit.
 - **The bytes stay inside B2.10.** `/`'s first-load script with WebGL refused stays within 2,048 B
-  gzip of `/sprints'` (the loader is 635 B today), so the control and the store share about
-  1,400 B. Forge measures first; if it can't fit, the number goes under "Needs owner decision" and
-  nothing is widened quietly.
+  of `/sprints'` as the check measures it: the sum of the decoded script bodies, not gzip (the
+  loader is 961 B decoded today, 635 B gzip), so the control and the store share about 1,000 B
+  decoded. Forge measures first; if it can't fit, the number goes under "Needs owner decision"
+  (B2.10 is a live check, and widening it is the owner's) and nothing is widened quietly.
 - **The fallback face rides.** On a cold cache production's fallback font wraps the bar's nav at
   390 and scrolls the page 21 px sideways at 320 (`.crew/sprint/26/review-iris.md`; the `.rev`
   labels, likely). The bar is this sprint's code, so both are fixed here and checked with the fonts
@@ -184,7 +185,7 @@ the three buttons as stops with one clear ring each.
 **Live checks the build must keep unedited:** B1.1 (the fold at 390 and 1440, with the slot),
 B1.4, B1.8 (no script, nothing moves: the slot is empty and still), B1.9, B1.10, B2.9 (24 px
 targets for every link and button on a phone; one ring in forced colours), B2.10 (script bytes
-with WebGL refused, within 2,048 B of `/sprints'`), the invariants, B3.1 to B3.15 (the default
+with WebGL refused, within 2,048 B decoded of `/sprints'`), the invariants, B3.1 to B3.15 (the default
 mode is Full, so each runs as today; B3.5's Save-Data case reads the default `off`). Nothing
 retires, no owner path changes, so the PR doesn't wait for the owner unless the bytes don't fit.
 
@@ -192,7 +193,7 @@ retires, no owner path changes, so the PR doesn't wait for the owner unless the 
 
 | Measure | Budget | Today |
 |---|---|---|
-| First-load script on `/` with WebGL refused | within 2,048 B gzip of `/sprints'` (B2.10) | the loader, 635 B |
+| First-load script on `/` with WebGL refused | within 2,048 B decoded of `/sprints'` (B2.10 sums the bodies) | the loader, 961 B decoded (635 B gzip) |
 | CLS | 0 over load + 2 s, the control's arrival included | 0 (B3.9) |
 | Targets | ≥ 44 × 44 below 1024 px, ≥ 24 × 24 from it | the bar's links 44 and 24 |
 | Calm at rest | 0 frames; 1 on a scheme change or refit | sprint 25's rest |
