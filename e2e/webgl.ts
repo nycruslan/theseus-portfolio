@@ -15,21 +15,33 @@ import type { Browser, BrowserContext, Page } from "@playwright/test";
 // comes from requestAnimationFrame's timestamp or performance.now(), both of which Playwright's
 // clock drives, so a paused clock holds any state and `step` moves it one frame at a time.
 
-/** A frame the scene drew: the draw calls one task submitted, and the triangles they drew. */
+/**
+ * A frame the scene drew: the draw calls one task submitted, and the triangles they drew; the
+ * canvas's buffer and CSS size at its first draw, so a frame's pixel ratio is buffer / CSS
+ * (sprint 26: the stepping shows there, and the contract adds no hook for it).
+ */
 export type Frame = {
   t: number;
   draws: number;
   triangles: number;
   state: string | null;
+  buffer: [number, number];
+  css: [number, number];
 };
 type Recorded = {
   requests: { type: string; t: number }[];
   frames: Frame[];
   /** Granted contexts not lost that drew or sit in the document; a throwaway probe doesn't count. */
   live: () => number;
+  /**
+   * The model's context and its WEBGL_lose_context: the granted context whose canvas is in
+   * `[data-model]`, the one lost last if none is live.
+   */
+  model: () => { gl: WebGLRenderingContext; lose: WEBGL_lose_context } | null;
 };
 type HarnessWindow = Window & {
   __gl?: Recorded;
+  __hog?: number[];
   __states?: { state: string; t: number }[];
   __motion?: string[];
   __cls?: number;
@@ -74,8 +86,14 @@ function recordGl() {
     draws: number;
     triangles: number;
     state: string | null;
+    buffer: [number, number];
+    css: [number, number];
   }[] = [];
   const granted: { gl: Gl; drew: boolean }[] = [];
+  let lost: { gl: Gl; lose: WEBGL_lose_context } | null = null;
+  const inModel = (gl: Gl) =>
+    gl.canvas instanceof HTMLCanvasElement &&
+    Boolean(gl.canvas.closest("[data-model]"));
   w.__gl = {
     requests,
     frames,
@@ -87,11 +105,25 @@ function recordGl() {
             (c.gl.canvas instanceof HTMLCanvasElement &&
               c.gl.canvas.isConnected)),
       ).length,
+    model: () => {
+      const live = granted.find((c) => !c.gl.isContextLost() && inModel(c.gl));
+      if (live) {
+        const lose = live.gl.getExtension("WEBGL_lose_context");
+        if (lose) lost = { gl: live.gl, lose };
+        return lose ? { gl: live.gl as WebGLRenderingContext, lose } : null;
+      }
+      return lost && { gl: lost.gl as WebGLRenderingContext, lose: lost.lose };
+    },
   };
 
   let open: (typeof frames)[number] | null = null;
   const note = (gl: Gl, triangles: number) => {
     if (!open) {
+      const canvas = gl.canvas;
+      const r =
+        canvas instanceof HTMLCanvasElement
+          ? canvas.getBoundingClientRect()
+          : { width: canvas.width, height: canvas.height };
       open = {
         t: performance.now(),
         draws: 0,
@@ -99,6 +131,8 @@ function recordGl() {
         state:
           document.querySelector("[data-model]")?.getAttribute("data-state") ??
           null,
+        buffer: [canvas.width, canvas.height],
+        css: [r.width, r.height],
       };
       frames.push(open);
       queueMicrotask(() => {
@@ -342,6 +376,44 @@ function timeFrames() {
     });
 }
 
+/**
+ * A frame hog (sprint 26, B3.12): from the first frame `[data-model]` shows `landed`, its own
+ * requestAnimationFrame loop spins for `ms` of real time a frame, so every animation frame after
+ * it comes at least `ms` late, as on a phone that can't keep up. It stops once the model is at rest
+ * or gone, so the page answers the test again. `window.__hog` holds each spin's start.
+ */
+function frameHog(ms: number) {
+  const w = window as Window & { __hog?: number[] };
+  const hog: number[] = [];
+  w.__hog = hog;
+  let armed = false;
+  const spin = () => {
+    const state = document
+      .querySelector("[data-model]")
+      ?.getAttribute("data-state");
+    if (state !== "landed" && state !== "lofting") return;
+    const start = performance.now();
+    hog.push(start);
+    while (performance.now() - start < ms) {
+      // Busy: the main thread is the phone's, and it is slow.
+    }
+    requestAnimationFrame(spin);
+  };
+  new MutationObserver(() => {
+    const state = document
+      .querySelector("[data-model]")
+      ?.getAttribute("data-state");
+    if (armed || state !== "landed") return;
+    armed = true;
+    requestAnimationFrame(spin);
+  }).observe(document, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["data-state"],
+  });
+}
+
 /** sessionStorage throws on access, as it does with storage blocked. */
 function throwingStorage() {
   Object.defineProperty(window, "sessionStorage", {
@@ -386,6 +458,8 @@ export type ModelOptions = {
   timeFrames?: boolean;
   /** CPU slowdown through the protocol. */
   cpu?: number;
+  /** The frame hog: ms of real time spun each animation frame from the first `landed` frame. */
+  hog?: number;
 };
 
 export type Script = {
@@ -427,6 +501,14 @@ export type ModelRun = {
   step(ms: number): Promise<void>;
   /** Every script the page fetched, with its compressed sizes and when it was requested. */
   scripts(): Promise<{ loadEventEnd: number; list: Script[] }>;
+  /**
+   * WEBGL_lose_context on the model's own context, through the handle the recorder keeps: `lose`
+   * calls loseContext(), `restore` restoreContext(). False when there was no context to call it on.
+   */
+  lose(): Promise<boolean>;
+  restore(): Promise<boolean>;
+  /** The frame hog's spins, their start times (performance.now()). */
+  hogged(): Promise<number[]>;
   close(): Promise<void>;
 };
 
@@ -452,6 +534,7 @@ export async function openModel(
   await context.addInitScript(recordShift);
   await context.addInitScript(recordGl);
   if (options.timeFrames) await context.addInitScript(timeFrames);
+  if (options.hog) await context.addInitScript(frameHog, options.hog);
 
   const page = await context.newPage();
   const errors: string[] = [];
@@ -574,6 +657,22 @@ export async function openModel(
         })),
       };
     },
+    lose: () =>
+      page.evaluate(() => {
+        const model = (window as HarnessWindow).__gl?.model();
+        if (!model || model.gl.isContextLost()) return false;
+        model.lose.loseContext();
+        return true;
+      }),
+    restore: () =>
+      page.evaluate(() => {
+        const model = (window as HarnessWindow).__gl?.model();
+        if (!model?.gl.isContextLost()) return false;
+        model.lose.restoreContext();
+        return true;
+      }),
+    hogged: () =>
+      page.evaluate(() => [...((window as HarnessWindow).__hog ?? [])]),
     close: () => context.close(),
   };
 }
