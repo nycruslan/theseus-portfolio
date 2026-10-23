@@ -49,6 +49,9 @@ import { openModel } from "./webgl";
 // (spike.md, S4's table): the canvas's coverage at `landed` against `.ln-outline` filled, each the
 // hull plus the outline's outer half-stroke, at a 50% threshold, edge to edge.
 
+/** Layout's precision: Chromium keeps lengths in 1/64 CSS px (LayoutUnit). */
+const LAYOUT = 1 / 64;
+
 const SWIFTSHADER =
   "SwiftShader, headless Chromium's software WebGL: a floor, not a GPU's number";
 
@@ -424,7 +427,9 @@ test("B3.1 the first frame lands on the drawing shown: registered within 1.0 CSS
   }
 
   // The whole-pixel canvas, at eight widths and two DPRs: the buffer is the CSS size times the
-  // ratio, the cap (1.5 below 768 px, 2 from it), and the CSS size the shown drawing's box.
+  // ratio, the cap (1.5 below 768 px, 2 from it), and the CSS size the shown drawing's box. Layout
+  // keeps lengths in 1/64 px, so at 1.5 a buffer of 320 rows asks for 213.333 CSS px and gets
+  // 213.328: the product agrees to layout's own precision, a 64th of a CSS px times the ratio.
   for (const [width, height] of [
     [320, 568],
     [390, 844],
@@ -467,7 +472,7 @@ test("B3.1 the first frame lands on the drawing shown: registered within 1.0 CSS
       expect
         .soft(
           [Math.abs(cw * ratio - bw), Math.abs(ch * ratio - bh)].every(
-            (d) => d < 1e-3,
+            (d) => d <= LAYOUT * ratio + 1e-3,
           ),
           `the canvas's CSS size x the ratio equals its buffer (${cw} x ${ch} x ${ratio} against ${bw} x ${bh}), ${where}`,
         )
@@ -495,8 +500,11 @@ test("B3.1 the first frame lands on the drawing shown: registered within 1.0 CSS
  * A point inside each plank as the visitor sees it, in CSS px: the plank box's centre, or the
  * nearest point to it inside the hull, `margin` units clear of the outline and the leaders, and
  * clear of the plank numbers, so it reads the fill alone. On the narrow drawing, whose planks are 8
- * units deep, the point is also inside the plank itself, 2 units clear of its seams; the wide
- * drawing's 4-unit margin keeps it off them.
+ * units deep (CSS px at 390) and whose lowest boxes run past the keel, the point is also inside the
+ * plank itself, 1.5 units clear of its seams and 1.5 more clear of the outline (its half-stroke and
+ * anti-aliasing), on a half-unit grid; a plank with no such point (5.0, a sliver above the keel)
+ * takes 1 unit from its seams, and says so in `margin`. The wide drawing's 4-unit margin keeps the
+ * point off both.
  */
 function plankPoints(page: Page, drawing = ".plan-wide") {
   return page.evaluate((shown) => {
@@ -506,7 +514,7 @@ function plankPoints(page: Page, drawing = ".plan-wide") {
     const m = svg?.getScreenCTM();
     if (!svg || !hull || !m) return [];
     const narrow = shown === ".plan-narrow";
-    const margin = narrow ? 2 : 4;
+    const grid = narrow ? 0.5 : 1;
     const numbers = [...document.querySelectorAll(`${shown} .plan-plank`)].map(
       (n) => n.getBoundingClientRect(),
     );
@@ -514,18 +522,28 @@ function plankPoints(page: Page, drawing = ".plan-wide") {
       x: m.a * x + m.e,
       y: m.d * y + m.f,
     });
-    const clear = (plank: SVGPathElement, x: number, y: number) => {
-      for (const [dx, dy] of [
+    const around = (r: number) =>
+      [
         [0, 0],
-        [-margin, 0],
-        [margin, 0],
-        [0, -margin],
-        [0, margin],
-      ] as const) {
+        [-r, 0],
+        [r, 0],
+        [0, -r],
+        [0, r],
+      ] as const;
+    const clear = (
+      plank: SVGPathElement,
+      x: number,
+      y: number,
+      margin: number,
+    ) => {
+      const outline = narrow ? margin + 1.5 : margin;
+      for (const [dx, dy] of around(outline)) {
         const p = new DOMPoint(x + dx, y + dy);
         if (!hull.isPointInFill(p) || leader?.isPointInStroke(p)) return false;
-        if (narrow && !plank.isPointInFill(p)) return false;
       }
+      if (narrow)
+        for (const [dx, dy] of around(margin))
+          if (!plank.isPointInFill(new DOMPoint(x + dx, y + dy))) return false;
       const c = css(x, y);
       return !numbers.some(
         (r) =>
@@ -539,17 +557,27 @@ function plankPoints(page: Page, drawing = ".plan-wide") {
       (plank) => {
         const b = plank.getBBox();
         const [cx, cy] = [b.x + b.width / 2, b.y + b.height / 2];
-        let best: { x: number; y: number; d: number } | null = null;
-        for (let x = b.x + margin; x <= b.x + b.width - margin; x += 1)
-          for (let y = b.y + margin; y <= b.y + b.height - margin; y += 1) {
-            const d = Math.hypot(x - cx, y - cy);
-            if ((!best || d < best.d) && clear(plank, x, y)) best = { x, y, d };
-          }
+        let best: { x: number; y: number; d: number; margin: number } | null =
+          null;
+        for (const margin of narrow ? [1.5, 1] : [4]) {
+          for (let x = b.x + margin; x <= b.x + b.width - margin; x += grid)
+            for (
+              let y = b.y + margin;
+              y <= b.y + b.height - margin;
+              y += grid
+            ) {
+              const d = Math.hypot(x - cx, y - cy);
+              if ((!best || d < best.d) && clear(plank, x, y, margin))
+                best = { x, y, d, margin };
+            }
+          if (best) break;
+        }
         const at = best ? css(best.x, best.y) : null;
         return {
           id: plank.getAttribute("data-plank") ?? "",
           at,
           centre: best?.d === 0,
+          margin: best?.margin ?? null,
         };
       },
     );
@@ -607,6 +635,13 @@ test("B3.7 the model shows the record in the drawing's colours, and nothing copp
       const planBox = await box(off.page, drawing);
       await off.close();
       expect(points.length, `planks in ${drawing}, ${at}`).toBe(22);
+      const tight = points.filter((p) => p.margin === 1).map((p) => p.id);
+      if (tight.length)
+        note(
+          testInfo,
+          "plank points",
+          `${at}: read 1 unit from their seams (no point 1.5 clear): ${tight.join(", ")}.`,
+        );
       expect
         .soft(
           points.filter((p) => !p.at).map((p) => p.id),
