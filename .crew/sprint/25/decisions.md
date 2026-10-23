@@ -40,3 +40,27 @@
    once, Forge changes `lib/lines-plan.ts`, and B1.4, C6 and B2.5 hold as the contract's disposition
    says.
 
+
+7. **Iris's calls that change a number the contract names, taken** (`.crew/sprint/25/notes-iris.md`):
+   - **The ease** (call 2): `e(u) = (1 − 2^(−7u)) / (1 − 2^−7) × smoothstep(0, 0.05, u)` replaces
+     `1 − 2^(−10u)`, at the direction's 2.4 s. The first 60 fps steps are 0.2, 0.9, 2.1, 3.3, 4.2 and
+     4.5 px instead of 4.1 from the first frame, so the move no longer starts with the pop the
+     direction rules out, and the dead creep at the end halves (405 ms against 805). B3.2's timing
+     bound (duration ± one frame) is unchanged.
+   - **The hull grows 10% as it lifts** (call 3): the framed height follows `(1 + 0.10·e) ×` frame
+     1's, which matches the approved `main.webp` (0.87 of the drawing's length, 1.10 of its height)
+     where a pure height hold reads as the hull shrinking. B3.2's bound becomes "within 2% of
+     `(1 + 0.10·e(u)) ×` frame 1's framed height" at each step; the page and Probe's check implement
+     the same formula word for word.
+   - **The drawing goes hollow under the lifted model** (call 5, option c): from the first lofting
+     frame the planks' fills, numbers and leaders are hidden by a `:has()` rule on `[data-model]`'s
+     state in "The model" CSS, so the drawing's markup and the Off page don't change. Landed keeps
+     the numbers above the canvas (build note 6). The model's seams stay 0.9 px and the SVG is
+     untouched: the two carry the same ink within 1%, so Forge's step 3 doesn't happen.
+   - **Reduced motion fades in over 240 ms** (call 8), under `prefers-reduced-motion: reduce` only,
+     as the contract's item 8 allows; B1.8 emulates `no-preference` and counts nothing.
+   - **The bottom row keeps the frame** (call 9): Forge's 14 px floor under the bio stays, and both
+     bottom-row cells take `min-height: min(21rem, calc(100svh - 88px - (100vw - 34px) * 0.3381))`
+     from 1024 px, so the sheet ends at 883 px in the 1440 × 900 frame as `main.webp` does, and the
+     facts' rule stays below the fold. Measured by Iris: 1024 × 768, 1280 × 800 and 1920 × 1080
+     unchanged or fitting. B1.1 holds.
