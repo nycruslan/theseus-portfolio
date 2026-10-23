@@ -4,15 +4,36 @@
   "goal": "The card hull lofts on phones and tablets, quality stepping to a still frame",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "OUTCOME",
-  "fixRounds": FIXROUNDS,
-  "minutes": MINUTES,
+  "outcome": "merged: Lens ship on 4e04b82 with no fix round (five nits riding with sprint 27), Iris ship 8.8/10 with her early-look change (the phone's growth on e²) in the build, CI check green and 158 e2e tests passed",
+  "fixRounds": 0,
+  "minutes": 87,
   "agents": [
-    { "role": "creative-engineer", "model": "opus", "tokens": 226500, "minutes": 38 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 341994, "minutes": 57 },
-    { "role": "design-director", "model": "fable", "tokens": 525222, "minutes": 33 }
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 226500,
+      "minutes": 38
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 341994,
+      "minutes": 57
+    },
+    {
+      "role": "design-director",
+      "model": "fable",
+      "tokens": 525222,
+      "minutes": 33
+    }
   ],
-  "lens": LENS,
+  "lens": {
+    "runs": 1,
+    "tokens": 4926309,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 5
+  },
   "wentWrong": [
     {
       "what": "The first run ended with the build on a role branch, three commits short of the sprint branch",
