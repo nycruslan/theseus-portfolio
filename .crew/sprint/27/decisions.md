@@ -64,3 +64,10 @@
    WebGL refusal read as Off. The check sums decoded bodies, not gzip, which my contract first
    said; corrected in `a80c6ab`. 10 B of headroom: any new client logic on `/` reopens the budget
    with the owner.
+
+10. **B3.19's sheet compare masks the shown control (amendment 2).** On Forge's `b82dbe5` the
+    compare at 390 read 309 px of difference, all in the foot slot: with `off` stored Full and Calm
+    are enabled in ink, on the WebGL-refused page they are disabled in `--muted`, and amendment 1
+    put the slot below the bar, inside the compare. The compare is about the sheet, and the
+    disabled state has its own data rule, so Probe masks the shown slot rather than Iris dropping
+    the muted style, which would have buttons pretend (her sprint 22 note).

@@ -167,7 +167,9 @@ frames over 2 s, 1 on a scheme switch; from Off, Calm requests the chunk and ope
 `data-state`, no canvas in `[data-model]`, every plank filled and the numbers shown as on the Off
 page, 0 live contexts, `off` stored; with `off` stored before load: no WebGL context requested at
 all (the probe included), no script beyond the WebGL-refused page's, Off pressed, and the sheet
-below the bar pixel-identical to the WebGL-refused page's in both schemes. With WebGL refused and
+below the bar pixel-identical to the WebGL-refused page's in both schemes, the shown
+`[data-motion]` slot masked (amendment 2: below 768 the slot is in the sheet, and on the refused
+page its Full and Calm are disabled by their own rule). With WebGL refused and
 nothing stored: Off pressed, Full and Calm `disabled`, nothing stored.
 
 **B3.20 Storage.** Each mode survives a reload (and a new tab, since `localStorage` is shared);
