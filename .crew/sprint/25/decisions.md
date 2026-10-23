@@ -92,3 +92,23 @@
       `transition: fill` under `reduce` only), since in dark the hull emptied a frame before the model
       faded in. B1.8 counts motion under `no-preference` only; `.plan` is `pointer-events: none`, so
       `transparent` changes no hit-test.
+
+11. **Where the build departs from the spike or the contract, and why** (Pixel's report; the
+    checks hold on each):
+    - **One camera with a hand-set projection,** orthographic at 1/D = 0 and the spike's dolly-zoom
+      after, the frustum at z = 0 always the canvas. The spike's perspective camera sat at
+      D = lens/e, about 10^6 px from the sheet in the first frames, where float32 would z-fight the
+      seams against the card. The maths is the spike's; Iris saw nothing of it beside the spike's
+      last frame.
+    - **Still frames return to min(dpr, 2)** after a move that stepped down, in place of the
+      contract's "stepping up below 12 ms happens only at the next redraw": the rest frame is what a
+      visitor looks at, and B3.1's whole-pixel rule reads it.
+    - **Line weights are multiplied by the buffer's ratio:** `LineSegments2` resets its resolution
+      every draw, so DPR 2 drew the seams at half weight until this (B3.1's 0.71 px at DPR 2 came
+      with it).
+    - **The hollow rule sits inside `@media not print`,** so a page printed after the model settled
+      prints the filled drawing (B3.5).
+    - **S2's triangle fix is two-triangle quads on the seams,** round caps kept on the outline, which
+      turns corners: 25,267 triangles a frame against the 30,000 budget.
+    - **`LIFT` and `SHADOW_BLUR` live in `lib/model/calls.ts`** beside Iris's other constants, since
+      her early look moved them.
