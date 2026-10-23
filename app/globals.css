@@ -428,6 +428,9 @@ html {
   inset: 0;
   grid-area: 1 / 1 / 2 / -1;
   pointer-events: none;
+  /* The canvas can keep the old drawing's size for the frames a crossing waits, or after a lost
+     context: it never shows past the layer (Lens, #73). */
+  overflow: clip;
 }
 
 main:has(> [data-model]) {
