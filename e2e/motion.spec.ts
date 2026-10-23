@@ -258,6 +258,18 @@ function expectWhole(seen: Drawing, off: Drawing, when: string) {
     .toBe(off.leaders);
 }
 
+/** The loft played from frame 1 to rest: landed, lofting, then settled or still. */
+function expectPlayed(states: string[], when: string) {
+  expect
+    .soft(
+      states.slice(0, 2),
+      `the first states ${when} (all: ${states.join(" > ")})`,
+    )
+    .toEqual(["landed", "lofting"]);
+  expect.soft(states, `states ${when}`).toHaveLength(3);
+  expect.soft(REST, `the last state ${when}`).toContain(states.at(-1));
+}
+
 /** Opens `/` on the clock and holds it at the first `lofting` frame (B3.3's method). */
 async function atLofting(run: ModelRun, where: string) {
   await run.goto();
@@ -779,9 +791,9 @@ test("B3.17 Full: at 1440 and 390 x 844, Calm pressed at rest then Full stores f
     await visit.waitFor(["lofting", ...REST], 20_000);
     await visit.waitFor([...REST], 30_000);
     const replay = await statesSince(visit, since);
-    expect
-      .soft(replay, `states after Off then Full, ${where}`)
-      .toEqual(["landed", "lofting", "settled"]);
+    // In real time the move may end still rather than settled (sprint 26's stepping rule on a slow
+    // frame): either is the loft played to rest.
+    expectPlayed(replay, `after Off then Full, ${where}`);
     expect
       .soft(
         (await modelLeft(visit.page)).canvases,
@@ -1198,9 +1210,7 @@ test("B3.20 storage: at 1440 each mode survives a reload and a new tab; with loc
     await press(run.page, "Full");
     await run.waitFor(["lofting", ...REST], 20_000);
     await run.waitFor([...REST], 30_000);
-    expect
-      .soft(await statesSince(run, since), `states after Full, ${where}`)
-      .toEqual(["landed", "lofting", "settled"]);
+    expectPlayed(await statesSince(run, since), `after Full, ${where}`);
     expect
       .soft((await control(run.page)).pressed, `pressed after Full, ${where}`)
       .toEqual(["Full"]);
