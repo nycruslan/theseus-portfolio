@@ -3,6 +3,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { Facts } from "@/components/facts";
 import { LinesPlan } from "@/components/lines-plan";
+import { Model } from "@/components/model";
 import { Revisions } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { TitleBlock } from "@/components/title-block";
@@ -63,6 +64,7 @@ export default function Home() {
           seats={seats}
           className="lg:col-span-2 lg:border-x lg:border-foreground"
         />
+        <Model seated={[...seats.keys()]} />
         <TitleBlock className="lg:col-start-2 lg:row-start-2" />
         <Revisions
           entries={entries}
