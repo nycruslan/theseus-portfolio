@@ -352,7 +352,10 @@ function start(
     const next = shownSheet();
     if (next === sheet) return refit();
     sheet = next;
-    // Mid-build, frame 1 registers on it; with the context lost, the restore does.
+    // Mid-build, frame 1 registers on it; with the context lost, the restore does. The cap is the
+    // new drawing's now, so the build's own fit doesn't lay the old one's on it (Lens, #73).
+    cap = Math.min(devicePixelRatio, sheet.cap);
+    ratio = cap;
     if (!state) return;
     register();
     rest("settled");

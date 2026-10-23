@@ -121,7 +121,6 @@ function cardMaterial() {
   return { material, uniforms };
 }
 
-/** A batch of fat lines; `fit` sets their weight. */
 /** The card's buffers at one level: every plank, the deck and the transom, with their slots. */
 function cardGeometry(hull: Hull) {
   const geometry = new BufferGeometry();
