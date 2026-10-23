@@ -57,3 +57,9 @@ export const OUTLINE_PX = 1.6;
 /** Every light's intensity × DARK_GAIN in the dark scheme, so the lit card isn't darker than its
  * own token (call 6). */
 export const DARK_GAIN = 4;
+/**
+ * The lamp's colour in the dark scheme: warm, so the card's blue-grey token lit × 4 reads as card
+ * under a lamp, as night-1440.webp does (upper strake about 159, 169, 168), not blue steel
+ * (Iris's review). Light is white in the light scheme; frame 1 is the flat token in either.
+ */
+export const DARK_LIGHT = "#fff4e7";

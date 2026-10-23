@@ -32,6 +32,7 @@ import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js
 import { PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
+  DARK_LIGHT,
   OUTLINE_PX,
   SEAM_PX,
   SHADOW_DARK,
@@ -234,6 +235,9 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
       seams.material.color.set(palette.ink);
       outline.material.color.set(palette.ink);
       const gain = palette.dark ? DARK_GAIN : 1;
+      for (const light of [sky, fill, sun]) {
+        light.color.set(palette.dark ? DARK_LIGHT : 0xffffff);
+      }
       sky.intensity = SKY * gain;
       sky.groundColor.set(palette.dark ? palette.ground : GROUND_LIGHT);
       fill.intensity = FILL * gain;
