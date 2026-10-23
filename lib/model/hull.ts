@@ -21,9 +21,16 @@ import { PLANKS, type Plank } from "@/lib/hull-layouts";
 
 export type Vec3 = [number, number, number];
 
-/** Stations along the whole length (cosine-spaced) and rows across each lift: S2's desktop level. */
-const STATIONS = 120;
-const ROWS = 8;
+/** A level of detail: stations along the whole length (cosine-spaced) and rows across each lift. */
+export type Level = { stations: number; rows: number };
+
+/**
+ * S2's two levels (.crew/sprint/26/contract.md, "Quality"): the desktop's from 768 px, about 25,000
+ * triangles a frame with the lines; the phone's below, about a quarter of that. The level follows
+ * the drawing shown, never the device.
+ */
+export const DESKTOP: Level = { stations: 120, rows: 8 };
+export const PHONE: Level = { stations: 56, rows: 4 };
 
 /** The state lookup's slot for the deck and the transom, after the 22 planks: always card. */
 export const DECK = PLANKS.length;
@@ -97,7 +104,13 @@ class Card {
 }
 
 /** One plank, both sides, into the card mesh with its slot. */
-function plankMesh(card: Card, plank: Plank, slot: number, stations: number[]) {
+function plankMesh(
+  card: Card,
+  plank: Plank,
+  slot: number,
+  stations: number[],
+  rows: number,
+) {
   // Where a lift runs out against the stem, the counter or the keel its band closes to a point:
   // keep that point, or the card stops a station short and leaves a notch in the silhouette (S4).
   const band = (x: number): [number, number] | null => {
@@ -111,16 +124,16 @@ function plankMesh(card: Card, plank: Plank, slot: number, stations: number[]) {
     const base = card.count;
     for (const x of xs) {
       const [top, bottom] = band(x) ?? [0, 0];
-      for (let j = 0; j <= ROWS; j++) {
-        const { p, n } = surface(x, top + ((bottom - top) * j) / ROWS, side);
+      for (let j = 0; j <= rows; j++) {
+        const { p, n } = surface(x, top + ((bottom - top) * j) / rows, side);
         card.vertex(p, n, slot);
       }
     }
     // Front faces point out of the hull on either side, so back faces can be culled.
     for (let i = 0; i < xs.length - 1; i++) {
-      for (let j = 0; j < ROWS; j++) {
-        const a = base + i * (ROWS + 1) + j;
-        const b = a + ROWS + 1;
+      for (let j = 0; j < rows; j++) {
+        const a = base + i * (rows + 1) + j;
+        const b = a + rows + 1;
         const [c, d] = [a + 1, b + 1];
         if (side === 1) card.index.push(a, c, b, c, d, b);
         else card.index.push(a, b, c, c, b, d);
@@ -133,16 +146,16 @@ const deckBreadth = (x: number) =>
   profile(x) - sheer(x) > 0 ? halfBreadth(x, sheer(x)) : 0;
 
 /** The transom's rows, from the sheer to the keel at the stern. */
-const transomRows = () => {
+const transomRows = (rows: number) => {
   const [top, bottom] = [sheer(0), profile(0)];
   return Array.from(
-    { length: ROWS * 2 + 1 },
-    (_, i) => top + ((bottom - top) * i) / (ROWS * 2),
+    { length: rows * 2 + 1 },
+    (_, i) => top + ((bottom - top) * i) / (rows * 2),
   );
 };
 
 /** The deck and the transom into the card mesh: they close the model's top and stern. */
-function deckMesh(card: Card, stations: number[]) {
+function deckMesh(card: Card, stations: number[], rows: number) {
   const base = card.count;
   stations.forEach((x, i) => {
     const y = sheer(x);
@@ -158,7 +171,7 @@ function deckMesh(card: Card, stations: number[]) {
       card.index.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
     }
   });
-  const ys = transomRows();
+  const ys = transomRows(rows);
   const ring = [
     ...ys.map((y) => toLocal(0, y, halfBreadth(0, y))),
     ...ys
@@ -190,7 +203,7 @@ const lift = (plank: Plank) => Number(plank.id.split(".")[0]);
  * every plank's edge. On the surface itself: the card's polygon offset lets them win the depth
  * test, where a lift along the normal would move the lower seams down in the side view (S4).
  */
-function seamLines(stations: number[]) {
+function seamLines(stations: number[], rows: number) {
   const out: number[] = [];
   const on = (x: number, y: number, side: number) => surface(x, y, side).p;
   for (let k = 1; k < BUTTS.length; k++) {
@@ -209,8 +222,8 @@ function seamLines(stations: number[]) {
     const band = bandAt(plank, plank.x0);
     if (!band) return;
     const ys = Array.from(
-      { length: ROWS + 1 },
-      (_, j) => band[0] + ((band[1] - band[0]) * j) / ROWS,
+      { length: rows + 1 },
+      (_, j) => band[0] + ((band[1] - band[0]) * j) / rows,
     );
     for (const side of [1, -1])
       segments(
@@ -222,7 +235,7 @@ function seamLines(stations: number[]) {
 }
 
 /** The outline in heavier ink: the sheer on both sides, the stem and keel, the transom. */
-function outlineLines(stations: number[]) {
+function outlineLines(stations: number[], rows: number) {
   const out: number[] = [];
   const deck = stations.filter((x) => deckBreadth(x) > 0 || x >= LENGTH);
   for (const side of [1, -1]) {
@@ -235,7 +248,7 @@ function outlineLines(stations: number[]) {
     stations.map((x) => toLocal(x, profile(x), 0)),
     out,
   );
-  const ys = transomRows();
+  const ys = transomRows(rows);
   for (const side of [1, -1]) {
     segments(
       ys.map((y) => toLocal(0, y, side * halfBreadth(0, y))),
@@ -267,29 +280,29 @@ export type Hull = ReturnType<typeof buildHull>;
 /**
  * Everything the scene draws. The card is one mesh, every plank, the deck and the transom, with
  * a per-vertex slot into the state lookup (contract, build note 1), so the planks are one draw on
- * every stack (S3).
+ * every stack (S3), at either level.
  */
-export function buildHull() {
+export function buildHull({ stations: count, rows }: Level) {
   // Every lift's ends join the stations, so the card and the outline turn the stem and the counter
   // at the same points (S4, rule 2; build note 3).
   const liftEnds = Array.from({ length: BUTTS.length - 1 }, (_, k) =>
     ends(seamDepth(k + 1)),
   ).flat();
-  const stations = [...spaced(0, LENGTH, STATIONS), ...liftEnds].sort(
+  const stations = [...spaced(0, LENGTH, count), ...liftEnds].sort(
     (a, b) => a - b,
   );
   const card = new Card();
   PLANKS.forEach((plank, slot) => {
-    plankMesh(card, plank, slot, stations);
+    plankMesh(card, plank, slot, stations, rows);
   });
-  deckMesh(card, stations);
+  deckMesh(card, stations, rows);
   return {
     position: new Float32Array(card.position),
     normal: new Float32Array(card.normal),
     slot: new Float32Array(card.slot),
     index: new Uint16Array(card.index),
-    seams: seamLines(stations),
-    outline: outlineLines(stations),
+    seams: seamLines(stations, rows),
+    outline: outlineLines(stations, rows),
     points: skeleton(),
   };
 }

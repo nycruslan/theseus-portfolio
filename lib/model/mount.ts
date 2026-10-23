@@ -4,7 +4,7 @@
 // tests and CSS is `[data-model]`'s data-state; nothing is put on window.
 
 import { DURATION, ease } from "./calls";
-import { buildHull, type Hull } from "./hull";
+import { buildHull, DESKTOP, type Hull } from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
 import { bakeShadow } from "./shadow";
 import { createStage, type Palette, type Stage } from "./stage";
@@ -349,7 +349,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>) {
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = buildHull();
+    hull = buildHull(DESKTOP);
     await pause();
     if (!alive) return;
     stage = createStage(canvas, hull);
