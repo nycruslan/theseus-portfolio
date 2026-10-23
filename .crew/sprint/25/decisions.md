@@ -124,3 +124,15 @@
     what the rule changes (C6 reads markup, C9's grid only gets easier, B2.5's lettering reads are on
     `/read`, B2.9 runs in forced colours where the model never mounts). The disposition's count is
     now 102 keep, 4 rewrite, 0 retire.
+
+13. **Iris's review: ship at 8.8, her one cheap change taken, her watch item left as a capture
+    artefact** (`review-iris.md`; Pixel's `f0addcf`). The dark hull takes a warm lamp,
+    `DARK_LIGHT #fff4e7` on the sky, fill and sun in dark only: lit ×4 under white light the
+    `--card` token's blue-grey read as a CAD viewer's steel hull (upper strake 159,177,186, blue −
+    red 27, where `night-1440.webp` has 8); warmed it samples 150,160,159. Frame 1 (mix 0), the
+    hand-off and B3.7 don't move. Her watch item, the model torn down at rest once in seven headless
+    loads, is Playwright's full-page capture: `captureBeyondViewport` gives the page a 1 × 1 viewport
+    for about 14 ms, the wide query flips, and a `refit` that lands in that window marks the visit
+    narrow and calls `stop()`. No visitor reaches it, no spec takes a full-page shot, and the failure
+    is the safe one (the whole drawing), so the code stands. If a capture tool ever needs it closed:
+    act on a narrow reading only when it still holds two animation frames later. A follow-up.
