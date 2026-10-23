@@ -33,17 +33,21 @@ import { channelDelta, crop, decodePng, edges, hausdorff } from "./pixels";
 import { bioParts } from "./retros";
 import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 
-// Sprint 27, B3.16 to B3.23 (.crew/sprint/27/contract.md): the Full, Calm and Off control in the
-// bar, remembered on the device, with Calm's settled rest, Off's no-3D guarantee and the hints
-// setting the default. Written before the build, against the contract's data rules and these hooks
-// alone: `[data-motion]` in the bar's nav with `data-mode`, its `[role="group"][aria-label="Motion"]`
-// and three `button[aria-pressed]` reading Full, Calm, Off; `localStorage["theseus:motion"]`;
-// `[data-model]` and its `data-state`; the Off page's plank fills and numbers. A press is a real
-// click at the button's centre (it works with Playwright's clock paused) or a key on the focused
-// button; a mode is only ever set by script through localStorage before a load (`stored`).
+// Sprint 27, B3.16 to B3.23 (.crew/sprint/27/contract.md, with amendment 1): the Full, Calm and
+// Off control, remembered on the device, with Calm's settled rest, Off's no-3D guarantee and the
+// hints setting the default. Written before the build, against the contract's data rules and these
+// hooks alone: two `[data-motion]` slots, the bar's nav's (shown from 768 px) and main's (shown
+// below, before the title block), the shown one with `data-mode` and the group,
+// a group named Motion (a `<fieldset aria-label="Motion">`, found by its role), with three `button[aria-pressed]` reading Full, Calm, Off;
+// `localStorage["theseus:motion"]`; `[data-model]` and its `data-state`; the Off page's plank fills
+// and numbers. A press is a real click at the shown button's centre (it works with Playwright's
+// clock paused) or a key on the focused button; a mode is only ever set by script through
+// localStorage before a load (`stored`).
 
 const KEY = "theseus:motion";
-const GROUP = `${MOTION} [role="group"][aria-label="Motion"]`;
+/** The group named Motion: a fieldset, whose role is group (or an element with that role). */
+const NAMED = ':is(fieldset, [role="group"])[aria-label="Motion"]';
+const GROUP = `${MOTION} ${NAMED}`;
 const SIZES = [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },
@@ -65,16 +69,21 @@ type Label = (typeof MODES)[number];
 const at = (size: { width: number; height: number }) =>
   `at ${size.width} x ${size.height}`;
 
-/** The control as the page shows it: the slot's mode and each button, in DOM order. */
+/**
+ * The control as the page shows it: the shown slot's mode and the buttons of its group, in DOM
+ * order. The shown slot is the one with a box (amendment 1: the bar's from 768 px, main's below).
+ */
 function control(page: Page) {
   return page.evaluate(
     ({ slot, group }) => {
-      const el = document.querySelector(slot);
-      const buttons = [...document.querySelectorAll(`${group} button`)];
+      const el = [...document.querySelectorAll(slot)].find(
+        (s) => s.getClientRects().length > 0,
+      );
+      const buttons = [...(el?.querySelectorAll(`${group} button`) ?? [])];
       const text = (b: Element) =>
         (b.textContent ?? "").replace(/\s+/g, " ").trim();
       return {
-        slot: el !== null,
+        slot: el !== undefined,
         mode: el?.getAttribute("data-mode") ?? null,
         buttons: buttons.map((b) => ({
           text: text(b),
@@ -90,7 +99,7 @@ function control(page: Page) {
           .map(text),
       };
     },
-    { slot: MOTION, group: GROUP },
+    { slot: MOTION, group: NAMED },
   );
 }
 
@@ -110,7 +119,9 @@ async function press(page: Page, label: Label) {
   const centre = await page.evaluate(
     ({ group, label }) => {
       const b = [...document.querySelectorAll(`${group} button`)].find(
-        (el) => (el.textContent ?? "").trim() === label,
+        (el) =>
+          (el.textContent ?? "").trim() === label &&
+          el.getClientRects().length > 0,
       );
       if (!b) return null;
       const r = b.getBoundingClientRect();
@@ -348,11 +359,15 @@ function layoutBoxes(page: Page) {
       ),
       ["the h1", document.querySelector("main h1")],
       ["the first fact heading", document.getElementById("work")],
-      ["the slot", document.querySelector(slot)],
+      ...[...document.querySelectorAll(slot)].map(
+        (el, i) => [`slot ${i + 1}`, el] as [string, Element],
+      ),
     ];
     return Object.fromEntries(
       named.map(([name, el]) => {
         if (!el) return [name, null];
+        // A hidden slot has no box: "none", the same with scripts on and off.
+        if (el.getClientRects().length === 0) return [name, []];
         const r = el.getBoundingClientRect();
         return [
           name,
@@ -367,7 +382,7 @@ function layoutBoxes(page: Page) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows the four links in the bar's nav and holds a group named Motion with Full, Calm and Off in order, Full alone pressed, each a target of the width's size inside the viewport, the group right of Read as page at 1440; with scripts off the slot is in the HTML, empty, and the wordmark, bar links, h1, first fact heading and slot sit as with scripts on; no layout shift over load + 2 s with the model loading; no overflow at 320; axe is clean on the bar", async ({
+test("B3.16 the control: at 320, 390, 768, 1024 and 1440 exactly one of the two [data-motion] slots is shown, from 768 in the bar's nav after the four links and right of Read as page, below 768 in main between [data-model] and the title block, holding a group named Motion with Full, Calm and Off in order, Full alone pressed, each a target of the width's size inside the viewport, the hidden slot's buttons no Tab stops; with scripts off both slots are in the HTML, empty, and the wordmark, bar links, h1, first fact heading and slots sit as with scripts on; no layout shift over load + 2 s with the model loading; no overflow at 320; axe is clean on the bar and the control", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -380,33 +395,54 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows t
     await motionReady(run.page);
     const page = run.page;
 
+    const inBar = width >= 768;
     const placed = await page.evaluate(
       ({ slot, group }) => {
-        const el = document.querySelector(slot);
-        const nav = el?.closest("header nav");
+        const slots = [...document.querySelectorAll(slot)];
+        const shown = slots.filter((el) => el.getClientRects().length > 0);
+        const el = shown[0];
+        const nav = document.querySelector("header nav");
         const links = [...(nav?.querySelectorAll("a") ?? [])];
         const cw = document.documentElement.clientWidth;
         const ch = document.documentElement.clientHeight;
+        const follows = (
+          a: Element | null | undefined,
+          b: Element | null | undefined,
+        ) =>
+          Boolean(
+            a &&
+              b &&
+              a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+          );
         const read = links
           .find((a) => (a.textContent ?? "").trim() === "Read as page")
           ?.getBoundingClientRect();
-        const g = document.querySelector(group)?.getBoundingClientRect();
+        const g = el?.querySelector(group)?.getBoundingClientRect();
+        // A hidden slot's buttons, if it has any, must not take focus: no Tab stop there.
+        const focusable = slots
+          .filter((s) => s !== el)
+          .flatMap((s) => [...s.querySelectorAll("button")])
+          .filter((b) => {
+            b.focus();
+            const took = document.activeElement === b;
+            b.blur();
+            return took;
+          })
+          .map((b) => (b.textContent ?? "").trim());
         return {
-          inNav: Boolean(nav),
+          slots: slots.length,
+          shown: shown.length,
+          inNav: Boolean(el && nav?.contains(el)),
+          inMain: Boolean(el?.closest("main")),
           links: links.map((a) => (a.textContent ?? "").trim()),
-          afterLinks:
-            links.length > 0 &&
-            links.every((a) =>
-              Boolean(
-                el &&
-                  a.compareDocumentPosition(el) &
-                    Node.DOCUMENT_POSITION_FOLLOWING,
-              ),
-            ),
-          groups: el?.querySelectorAll('[role="group"]').length ?? 0,
+          afterLinks: links.length > 0 && links.every((a) => follows(a, el)),
+          afterModel: follows(document.querySelector("main [data-model]"), el),
+          beforeTitle: follows(el, document.querySelector("main > header")),
+          groups: el?.querySelectorAll('fieldset, [role="group"]').length ?? 0,
           readRight: read?.right ?? null,
           groupLeft: g?.left ?? null,
-          targets: [...document.querySelectorAll(`${group} button`)].map(
+          focusable,
+          targets: [...(el?.querySelectorAll(`${group} button`) ?? [])].map(
             (b) => {
               const r = b.getBoundingClientRect();
               return {
@@ -423,18 +459,49 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows t
           ),
         };
       },
-      { slot: MOTION, group: GROUP },
+      { slot: MOTION, group: NAMED },
     );
     expect
-      .soft(placed.inNav, `[data-motion] inside the bar's nav ${where}`)
-      .toBe(true);
+      .soft(
+        [placed.slots, placed.shown],
+        `[data-motion] slots in the page and shown ${where}`,
+      )
+      .toEqual([2, 1]);
     expect
-      .soft(placed.links, `the bar's links before the slot ${where}`)
+      .soft(
+        { inNav: placed.inNav, inMain: placed.inMain },
+        `the shown slot in the bar's nav from 768 px, in main below ${where}`,
+      )
+      .toEqual({ inNav: inBar, inMain: !inBar });
+    expect
+      .soft(placed.links, `the bar's links ${where}`)
       .toEqual(["Work", "Log", "Contact", "Read as page"]);
+    if (inBar) {
+      expect
+        .soft(placed.afterLinks, `the shown slot after the four links ${where}`)
+        .toBe(true);
+      expect
+        .soft(
+          (placed.groupLeft ?? Number.NEGATIVE_INFINITY) -
+            (placed.readRight ?? Number.POSITIVE_INFINITY),
+          `the group's left (${placed.groupLeft}) past Read as page's right (${placed.readRight}) ${where}`,
+        )
+        .toBeGreaterThanOrEqual(-0.5);
+    } else {
+      expect
+        .soft(
+          { afterModel: placed.afterModel, beforeTitle: placed.beforeTitle },
+          `the shown slot between [data-model] and main > header ${where}`,
+        )
+        .toEqual({ afterModel: true, beforeTitle: true });
+    }
     expect
-      .soft(placed.afterLinks, `the slot after the four links ${where}`)
-      .toBe(true);
-    expect.soft(placed.groups, `groups in the slot ${where}`).toBe(1);
+      .soft(
+        placed.focusable,
+        `buttons in the hidden slot that take focus ${where}`,
+      )
+      .toEqual([]);
+    expect.soft(placed.groups, `groups in the shown slot ${where}`).toBe(1);
     await expect
       .soft(
         page.getByRole("group", { name: "Motion", exact: true }),
@@ -493,15 +560,6 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows t
         `motion buttons not wholly inside the viewport ${where}`,
       )
       .toEqual([]);
-    if (width === 1440) {
-      expect
-        .soft(
-          (placed.groupLeft ?? Number.NEGATIVE_INFINITY) -
-            (placed.readRight ?? Number.POSITIVE_INFINITY),
-          `the group's left (${placed.groupLeft}) past Read as page's right (${placed.readRight}) at 1440`,
-        )
-        .toBeGreaterThanOrEqual(-0.5);
-    }
     if (width === 320) {
       expect
         .soft(await horizontalOverflow(page), "page overflow at 320")
@@ -529,26 +587,31 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows t
     ) {
       await pause(100);
     }
-    const empty = await bare.page.evaluate((slot) => {
-      const el = document.querySelector(slot);
-      return el
-        ? {
-            elements: el.children.length,
-            text: (el.textContent ?? "").trim(),
-          }
-        : null;
-    }, MOTION);
+    // Both slots, the bar's and main's (amendment 1), each empty.
+    const empty = await bare.page.evaluate(
+      (slot) =>
+        [...document.querySelectorAll(slot)].map((el) => ({
+          where: el.closest("header nav")
+            ? "nav"
+            : el.closest("main")
+              ? "main"
+              : "elsewhere",
+          elements: el.children.length,
+          text: (el.textContent ?? "").trim(),
+        })),
+      MOTION,
+    );
     expect
-      .soft(empty, `the slot in the bar's nav with scripts off ${where}`)
-      .not.toBeNull();
-    expect
-      .soft(empty, `the slot's content with scripts off ${where}`)
-      .toEqual({ elements: 0, text: "" });
+      .soft(empty, `the slots and their content with scripts off ${where}`)
+      .toEqual([
+        { where: "nav", elements: 0, text: "" },
+        { where: "main", elements: 0, text: "" },
+      ]);
     const off = await layoutBoxes(bare.page);
     await bare.close();
     const moved = Object.keys(on).flatMap((name) => {
       const [a, b] = [on[name], off[name]];
-      if (!a || !b)
+      if (!a || !b || a.length !== b.length)
         return [`${name}: ${JSON.stringify(a)} vs ${JSON.stringify(b)}`];
       return a.some((v, i) => Math.abs(v - (b[i] ?? Number.NaN)) > 0.5)
         ? [`${name}: on ${a.join(" ")}, off ${b.join(" ")}`]
@@ -573,6 +636,7 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 [data-motion] follows t
         await pause(300);
         const results = await new AxeBuilder({ page: run.page })
           .include("header")
+          .include(MOTION)
           .withTags(AXE_TAGS)
           .analyze();
         expect
@@ -1339,20 +1403,22 @@ test("B3.22 forced colours and the keyboard: at 1440 and 390 in forced colours, 
     const edgesOf = () =>
       page.evaluate((group) => {
         (document.activeElement as HTMLElement | null)?.blur?.();
-        return [...document.querySelectorAll(`${group} button`)].map((b) => {
-          const s = getComputedStyle(b);
-          return {
-            text: (b.textContent ?? "").trim(),
-            pressed: b.getAttribute("aria-pressed") === "true",
-            look: [
-              ...["Top", "Right", "Bottom", "Left"].map(
-                (side) =>
-                  `${s.getPropertyValue(`border-${side.toLowerCase()}-style`)} ${s.getPropertyValue(`border-${side.toLowerCase()}-width`)} ${s.getPropertyValue(`border-${side.toLowerCase()}-color`)}`,
-              ),
-              `outline ${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} ${s.outlineOffset}`,
-            ].join(" | "),
-          };
-        });
+        return [...document.querySelectorAll(`${group} button`)]
+          .filter((b) => b.getClientRects().length > 0)
+          .map((b) => {
+            const s = getComputedStyle(b);
+            return {
+              text: (b.textContent ?? "").trim(),
+              pressed: b.getAttribute("aria-pressed") === "true",
+              look: [
+                ...["Top", "Right", "Bottom", "Left"].map(
+                  (side) =>
+                    `${s.getPropertyValue(`border-${side.toLowerCase()}-style`)} ${s.getPropertyValue(`border-${side.toLowerCase()}-width`)} ${s.getPropertyValue(`border-${side.toLowerCase()}-color`)}`,
+                ),
+                `outline ${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} ${s.outlineOffset}`,
+              ].join(" | "),
+            };
+          });
       }, GROUP);
     const looks = await edgesOf();
     const pressedLook = looks.find((l) => l.pressed);

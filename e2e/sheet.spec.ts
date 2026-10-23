@@ -30,10 +30,11 @@ import { bioParts, MERGED, ROWS } from "./retros";
 // Read as page, and stays above every fact and Detail A), B1.6 runs on /read and the 404 too, and
 // B2.9's two riders (forced-colours plank fills, the folded table's labels) are here.
 //
-// Sprint 27 (.crew/sprint/27/contract.md): both B2.3 tests are rewritten with the same assertions
-// for the motion control, `[data-motion]` after the four links in the bar's nav: its three buttons
-// are bar controls (44 px below 1024), its group sits right of Read as page at 1440, and the second
-// test hit-tests the buttons' centres too.
+// Sprint 27 (.crew/sprint/27/contract.md, with amendment 1): both B2.3 tests are rewritten with the
+// same assertions for the motion control. Its two `[data-motion]` slots are in the HTML; the shown
+// one is in the bar's nav after the four links from 768 px, its group right of Read as page at
+// 1440, and in main between `[data-model]` and the title block below 768. Its buttons are 44 px
+// targets below 1024, and the second test hit-tests their centres too.
 
 const REVISIONS = 'section[aria-labelledby="revisions"]';
 const SPRINTS_ENTRIES = "main section ol > li";
@@ -293,7 +294,7 @@ test("B1.2 the title block is the owner's words, verbatim, and the bio's last pa
     .toBe(true);
 });
 
-test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Contact and Read as page, then the buttons Full, Calm and Off, each a target inside the viewport at 320, 390 and 1440 (24 px; 44 px for the buttons below 1024), Read as page the right-most link at 1440 with the group right of it, each link landing on its target", async ({
+test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Contact and Read as page, then at 1440 the buttons Full, Calm and Off right of Read as page, at 320 and 390 the four links alone with the group in main between the drawing and the title block; each a target inside the viewport at 320, 390 and 1440 (24 px; 44 px for the buttons below 1024), Read as page the right-most link at 1440, each link landing on its target", async ({
   page,
 }) => {
   const readBar = () =>
@@ -315,18 +316,34 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
         .split(/\s+/)
         .map((id) => squashed(document.getElementById(id)))
         .join(" ");
+      // What the visitor sees: a slot hidden at this width (display: none) holds no control.
       const controls = [
         ...(header?.querySelectorAll(
           'a, button, input, select, [role="button"], [role="link"]',
         ) ?? []),
-      ].filter((el) => el.getAttribute("href") !== "#main");
+      ].filter(
+        (el) =>
+          el.getAttribute("href") !== "#main" && el.getClientRects().length > 0,
+      );
+      // The shown slot, the one with a box: in the bar from 768 px, in main below (amendment 1).
+      const shown = [...document.querySelectorAll(slot)].find(
+        (el) => el.getClientRects().length > 0,
+      );
+      const model = document.querySelector("main [data-model]");
+      const title = document.querySelector("main > header");
+      const follows = (a: Element | null | undefined, b: Element | null) =>
+        Boolean(
+          a &&
+            b &&
+            a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
       const wordmark = [...(header?.querySelectorAll("*") ?? [])].find(
         (el) => squashed(el) === "Theseus",
       );
       const first = nav?.querySelector("a") ?? null;
       const cw = document.documentElement.clientWidth;
       const ch = document.documentElement.clientHeight;
-      const group = document.querySelector(slot)?.getBoundingClientRect();
+      const group = shown?.getBoundingClientRect();
       return {
         header: header !== undefined,
         name: (nav?.getAttribute("aria-label") ?? labelledBy).trim(),
@@ -344,7 +361,20 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
             wordmark.compareDocumentPosition(first) &
               Node.DOCUMENT_POSITION_FOLLOWING,
         ),
-        targets: [...(nav?.querySelectorAll("a, button") ?? [])].map((a) => {
+        place: {
+          slots: document.querySelectorAll(slot).length,
+          shown: [...document.querySelectorAll(slot)].filter(
+            (el) => el.getClientRects().length > 0,
+          ).length,
+          inNav: Boolean(shown && nav?.contains(shown)),
+          inMain: Boolean(shown?.closest("main")),
+          afterModel: follows(model, shown ?? null),
+          beforeTitle: follows(shown, title),
+        },
+        targets: [
+          ...(nav?.querySelectorAll("a") ?? []),
+          ...(shown?.querySelectorAll("button") ?? []),
+        ].map((a) => {
           const r = a.getBoundingClientRect();
           return {
             text: squashed(a),
@@ -395,23 +425,23 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
       };
     }, MOTION);
 
+  const LINKS = [
+    { tag: "a", text: "Work", href: "#work", inNav: true },
+    { tag: "a", text: "Log", href: "/sprints", inNav: true },
+    { tag: "a", text: "Contact", href: "#contact", inNav: true },
+    { tag: "a", text: "Read as page", href: "/read", inNav: true },
+  ];
+  const BUTTONS = MODES.map((text) => ({
+    tag: "button",
+    text,
+    href: null,
+    inNav: true,
+  }));
   await open(page, 390);
   await motionReady(page);
   const bar = await readBar();
   expect(bar.header, "a <header> with a <nav>, before main").toBe(true);
   expect.soft(bar.name, "the nav's accessible name").not.toBe("");
-  expect.soft(bar.controls, "the bar's links and buttons, in order").toEqual([
-    { tag: "a", text: "Work", href: "#work", inNav: true },
-    { tag: "a", text: "Log", href: "/sprints", inNav: true },
-    { tag: "a", text: "Contact", href: "#contact", inNav: true },
-    { tag: "a", text: "Read as page", href: "/read", inNav: true },
-    ...MODES.map((text) => ({
-      tag: "button",
-      text,
-      href: null,
-      inNav: true,
-    })),
-  ]);
   expect.soft(bar.wordmark, 'the wordmark "Theseus"').toBe(true);
   expect.soft(bar.wordmarkLinked, "the wordmark is a link").toBe(false);
   expect
@@ -425,6 +455,21 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
     await open(page, width);
     await motionReady(page);
     const at = await readBar();
+    // From 768 px the group is the bar's; below it, main's, between the drawing and the title block.
+    const inBar = width >= 768;
+    expect
+      .soft(at.controls, `the bar's links and buttons, in order, at ${width}`)
+      .toEqual(inBar ? [...LINKS, ...BUTTONS] : LINKS);
+    expect
+      .soft(at.place, `the motion slots and the shown one's place at ${width}`)
+      .toEqual({
+        slots: 2,
+        shown: 1,
+        inNav: inBar,
+        inMain: !inBar,
+        afterModel: !inBar,
+        beforeTitle: !inBar,
+      });
     expect
       .soft(
         at.targets.filter(
@@ -440,7 +485,7 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
         at.targets
           .filter(({ button }) => button)
           .map(({ text, width, height }) => ({ text, width, height })),
-        `the bar's buttons at ${width}`,
+        `the motion buttons at ${width}`,
       )
       .toHaveLength(MODES.length);
     expect
@@ -449,13 +494,13 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
           ({ button, width, height }) =>
             button && (width < floor - 0.05 || height < floor - 0.05),
         ),
-        `bar buttons smaller than ${floor} x ${floor} px at ${width}`,
+        `motion buttons smaller than ${floor} x ${floor} px at ${width}`,
       )
       .toEqual([]);
     expect
       .soft(
         at.targets.filter(({ inside }) => !inside).map(({ text }) => text),
-        `bar links and buttons not wholly inside the viewport at ${width}`,
+        `bar links and motion buttons not wholly inside the viewport at ${width}`,
       )
       .toEqual([]);
     expect
@@ -584,15 +629,17 @@ test("B2.3 the bar stays above the facts (B1.3, sprint 27): at 1024, with each f
         barBottom: b.bottom,
         box: { top: t.top, bottom: t.bottom, left: t.left, right: t.right },
         // The motion buttons' centres are hit-tested too (sprint 27); only links have landings.
-        links: [...bar.querySelectorAll("nav a, nav button")].map((a) => {
-          const r = a.getBoundingClientRect();
-          return {
-            text: (a.textContent ?? "").trim(),
-            link: a.tagName === "A",
-            x: r.left + r.width / 2,
-            y: r.top + r.height / 2,
-          };
-        }),
+        links: [...bar.querySelectorAll("nav a, nav button")]
+          .filter((a) => a.getClientRects().length > 0)
+          .map((a) => {
+            const r = a.getBoundingClientRect();
+            return {
+              text: (a.textContent ?? "").trim(),
+              link: a.tagName === "A",
+              x: r.left + r.width / 2,
+              y: r.top + r.height / 2,
+            };
+          }),
       };
     }, selector);
     if (!at) return null;

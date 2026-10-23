@@ -341,19 +341,28 @@ export async function watchLayoutShift(page: Page) {
   });
 }
 
-/** The motion control's slot in the bar (.crew/sprint/27/contract.md, "The control"). */
-export const MOTION = "header nav [data-motion]";
+/**
+ * The motion control's slots (.crew/sprint/27/contract.md, "The control", amendment 1): one in the
+ * bar's nav, shown from 768 px, one in main before the title block, shown below it. The shown one
+ * is the slot with a box; only it holds the group a visitor sees.
+ */
+export const MOTION = "[data-motion]";
 /** Its buttons, in the order the contract fixes. */
 export const MODES = ["Full", "Calm", "Off"] as const;
 
 /**
- * Waits up to `timeout` for the control's three buttons, which arrive with scripts. It asserts
+ * Waits up to `timeout` for the shown slot's three buttons, which arrive with scripts. It asserts
  * nothing: a page without them fails the assertions that follow, not this wait.
  */
 export async function motionReady(page: Page, timeout = 5000) {
   await page
     .waitForFunction(
-      (slot) => document.querySelectorAll(`${slot} button`).length === 3,
+      (slot) =>
+        [...document.querySelectorAll(slot)].some(
+          (el) =>
+            el.getClientRects().length > 0 &&
+            el.querySelectorAll("button").length === 3,
+        ),
       MOTION,
       { timeout },
     )
