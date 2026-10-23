@@ -116,15 +116,15 @@ function cardMaterial() {
   return { material, uniforms };
 }
 
-/** A batch of fat lines, `px` CSS px wide. */
-function lines(positions: Float32Array, px: number, quads: boolean) {
+/** A batch of fat lines; `fit` sets their weight. */
+function lines(positions: Float32Array, quads: boolean) {
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(positions);
   // S2's fix for the triangle budget: the seams are smooth polylines, so each segment is drawn as
   // its middle quad, two triangles, without the round caps' four. The outline keeps its caps,
   // since it turns corners at the stem, the counter and the transom.
   if (quads) geometry.setIndex([2, 4, 3, 4, 5, 3]);
-  const material = new LineMaterial({ linewidth: px });
+  const material = new LineMaterial();
   const line = new LineSegments2(geometry, material);
   line.frustumCulled = false;
   return { line, material, geometry };
@@ -151,8 +151,8 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
   const mesh = new Mesh(geometry, card.material);
   mesh.frustumCulled = false;
 
-  const seams = lines(hull.seams, SEAM_PX, true);
-  const outline = lines(hull.outline, OUTLINE_PX, false);
+  const seams = lines(hull.seams, true);
+  const outline = lines(hull.outline, false);
   model.add(mesh, seams.line, outline.line);
 
   const sky = new HemisphereLight(0xffffff, GROUND_LIGHT, SKY);
@@ -184,8 +184,11 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
     fit(buffer: readonly [number, number], css: readonly [number, number]) {
       renderer.setSize(buffer[0], buffer[1], false);
       [width, height] = css;
-      seams.material.resolution.set(width, height);
-      outline.material.resolution.set(width, height);
+      // LineSegments2 sets each line's resolution to the viewport before it draws, and the
+      // viewport is in buffer pixels here, so the weights are too: the drawing's CSS px × ratio.
+      const ratio = buffer[0] / width;
+      seams.material.linewidth = SEAM_PX * ratio;
+      outline.material.linewidth = OUTLINE_PX * ratio;
     },
 
     /** Lays the baked shadow on the sheet. */
