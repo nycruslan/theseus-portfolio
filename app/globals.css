@@ -346,8 +346,8 @@ html {
  * drawing's, and takes no layout space; the scene lays its canvas on the box of the drawing shown
  * (.plan-wide from 768 px, .plan-narrow below) in whole buffer pixels. Nothing in it is hit, so a
  * touch drag over it scrolls the page. Nothing here is a CSS animation or transition but the
- * reduced-motion fade, which B1.8 (motion allowed) never sees. The Off page has the layer empty,
- * and print doesn't show it.
+ * reduced-motion fade, which B1.8 (motion allowed) never sees. The Off page has the layer empty;
+ * print and forced colours don't show it.
  */
 [data-model] {
   position: absolute;
@@ -358,6 +358,14 @@ html {
 
 main:has(> [data-model]) {
   position: relative;
+}
+
+/* Forced colours switched on mid-visit: a canvas bitmap can't take the system's colours, so the
+   layer goes and the system-colour drawing is whole (Lens's nit on #72). */
+@media (forced-colors: active) {
+  [data-model] {
+    display: none;
+  }
 }
 
 [data-model] canvas {
@@ -378,9 +386,9 @@ main:has(> [data-model]) {
 /* Under the lifted model the drawing goes hollow, as loft.webp's frames 2 to 5 draw it: from the
    first lofting frame, no fills, numbers or leaders (notes-iris.md, call 5); the narrow drawing has
    only fills. Transparent rather than none, which paints the same and can be faded. On screen
-   only, at every width, where the layer can show: on paper the drawing is the record, as on
-   main. */
-@media screen {
+   only, and never in forced colours, where the layer is hidden: on paper and in the system's
+   colours the drawing is the record, as on main. */
+@media screen and (forced-colors: none) {
   [data-plan]:has(
     + [data-model]:is(
         [data-state="lofting"],
@@ -401,8 +409,8 @@ main:has(> [data-model]) {
 /* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the
    plank numbers and fills out together, so the hull never empties before the model shows
    (notes-iris.md, call 8; Iris's early look). Opacity isn't motion. The numbers' visibility waits
-   out the fade, so it can be seen. On screen at every width, as the hollow rule above. */
-@media screen and (prefers-reduced-motion: reduce) {
+   out the fade, so it can be seen. On screen without forced colours, as the hollow rule above. */
+@media screen and (prefers-reduced-motion: reduce) and (forced-colors: none) {
   [data-model] canvas {
     transition: opacity 240ms linear;
   }
@@ -554,7 +562,10 @@ main:has(> [data-model]) {
  * a 16 px margin like the gutters (.crew/sprint/25/notes-iris.md, section 9). 88 px is the bar (72)
  * and that margin, 34 px the two gutters and the frame's 2 px of borders, 0.3381 the wide drawing's
  * height over its width (lib/hull-layouts.ts, WIDE.box: 476 / 1408). 21rem caps it, so a tall
- * window keeps the canvas's proportions instead of stretching the row.
+ * window keeps the canvas's proportions instead of stretching the row. 100vw counts a classic
+ * scrollbar (Windows, or macOS set to always show them) as drawing width, about 17 px the drawing
+ * doesn't have, so there the row ends about 6 px short of that margin; the facts' rule still stays
+ * under the fold, behind 40 px of film (Lens's nit on #72).
  */
 @media (width >= 64rem) {
   .sheet-row {

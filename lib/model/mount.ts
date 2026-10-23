@@ -125,6 +125,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)");
   const scheme = matchMedia("(prefers-color-scheme: dark)");
+  const forced = matchMedia("(forced-colors: active)");
   let sheet = shownSheet();
   let cap = Math.min(devicePixelRatio, sheet.cap);
   let ratio = cap;
@@ -137,17 +138,23 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
   let fit: Fit | null = null;
   /** The drawing the stage is laid on: behind `sheet` while a crossing waits for the build. */
   let on: Sheet | null = null;
+  /** The programs' compile, while it runs: a teardown waits for it before disposing (Lens). */
+  let compiling: Promise<unknown> | null = null;
+  /** Frame 1 can be drawn: the build is done. */
+  let built = false;
   // The loft's clock and its quality counters.
   let begin = 0;
   let last = 0;
   let slow = 0;
   let stall = 0;
   let skip = false;
-  // The gates: drawn only on screen and with the tab shown; a redraw waits for both.
-  let onScreen = true;
+  // A redraw waits for the tab to be shown and the model to be near the screen.
   let pending = false;
   // A crossing of 768 px waits two frames for its reading to hold (sprint 25's decision 13).
   let crossing = 0;
+  // A lost context: nothing can be drawn, and the state to come back to once it is restored.
+  let blank = false;
+  let resume: Rest = "settled";
 
   const moving = () => state === "landed" || state === "lofting";
 
@@ -156,8 +163,19 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     host.dataset.state = next;
   };
 
-  /** The layer's box against the viewport. */
+  /** The layer's box against the viewport. Under forced colours the layer has none. */
   const box = () => host.getBoundingClientRect();
+  /** On screen now: the loft plays only to someone who can see it. */
+  const visible = () => {
+    const r = box();
+    return r.width > 0 && r.bottom > 0 && r.top < innerHeight;
+  };
+  /** Within a viewport of the screen, as the observer's margin is: a redraw waiting for that is
+   * drawn before the model scrolls into view (Lens's nit on #72). */
+  const near = () => {
+    const r = box();
+    return r.width > 0 && r.bottom > -innerHeight && r.top < 2 * innerHeight;
+  };
 
   const measure = (): Fit => {
     const p = sheet.drawing.getBoundingClientRect();
@@ -266,11 +284,11 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
   /** Frame 1, or the settled frame: reduced motion, a second load, a Back, or nobody to see it. */
   const open = (now: number) => {
     raf = 0;
-    if (!alive) return;
+    if (!alive || blank) return;
     // The page may have crossed 768 px while the chunk downloaded or the scene built.
     if (on !== sheet) register();
     flush(canvas);
-    if (back || reduce.matches || played() || !onScreen || document.hidden) {
+    if (back || reduce.matches || played() || !visible() || document.hidden) {
       return rest("settled");
     }
     remember();
@@ -286,10 +304,10 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     skip = true;
   };
 
-  /** A redraw at rest, for a new size or scheme: now if it can be seen, or once it can. */
+  /** A redraw at rest, for a new size or scheme: now if it can be seen soon, or once it can. */
   const redraw = () => {
     if (!stage || !state || moving()) return;
-    if (document.hidden || !onScreen) {
+    if (document.hidden || !near()) {
       pending = true;
       return;
     }
@@ -308,7 +326,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     const next = shownSheet();
     if (next === sheet) return refit();
     sheet = next;
-    // Mid-build, frame 1 registers on it.
+    // Mid-build, frame 1 registers on it; with the context lost, the restore does.
     if (!state) return;
     register();
     rest("settled");
@@ -323,7 +341,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
       });
       return;
     }
-    // Nothing is laid out to fit: a layer or a drawing with no box.
+    // Nothing is laid out to fit: the layer under forced colours, or a drawing with no box.
     if (!stage || !box().width) return;
     // A refit is at rest or ends the move, so it is at the cap; a zoom may have moved the cap.
     cap = Math.min(devicePixelRatio, sheet.cap);
@@ -353,6 +371,11 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     if (reduce.matches) skip = true;
   };
 
+  /** Forced colours hide the layer (app/globals.css); turned off again, the frame is drawn anew. */
+  const unforced = () => {
+    if (!forced.matches) redraw();
+  };
+
   const shown = () => {
     if (document.hidden) {
       // The tab went away mid-move: stop asking for frames, and settle when it's back.
@@ -367,20 +390,44 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     else if (pending) redraw();
   };
 
-  // A lost context comes back blank: three rebuilds its state, and the still frame is drawn again.
-  const restored = () => redraw();
-  canvas.addEventListener("webglcontextrestored", restored);
+  /**
+   * A lost context leaves a blank canvas over a hollow drawing, and the browser may never give it
+   * back: the state goes, so the whole drawing returns, as with the model Off (Lens's nit on #72).
+   */
+  const lost = () => {
+    blank = true;
+    // A move cut short comes back settled; a still frame stays still.
+    if (state) resume = state === "still" ? "still" : "settled";
+    cancelAnimationFrame(raf);
+    raf = 0;
+    listen(false);
+    pending = false;
+    state = null;
+    delete host.dataset.state;
+  };
 
-  const seen = new IntersectionObserver((entries) => {
-    onScreen = entries.some((entry) => entry.isIntersecting);
-    if (onScreen && pending) redraw();
-  });
+  /** three rebuilds its state first (its listener was added before this one); the settled frame
+   * is drawn again and the state comes back with it. */
+  const restored = () => {
+    blank = false;
+    if (!alive || !built) return;
+    if (on !== sheet) register();
+    rest(resume);
+  };
+
+  const seen = new IntersectionObserver(
+    (entries) => {
+      if (pending && entries.some((entry) => entry.isIntersecting)) redraw();
+    },
+    { rootMargin: "100% 0px" },
+  );
   seen.observe(host);
   const sized = new ResizeObserver(refit);
   for (const element of [wide, narrow, host]) sized.observe(element);
   addEventListener("resize", refit);
   scheme.addEventListener("change", recolour);
   reduce.addEventListener("change", reduced);
+  forced.addEventListener("change", unforced);
   document.addEventListener("visibilitychange", shown);
 
   function stop() {
@@ -393,8 +440,15 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     removeEventListener("resize", refit);
     scheme.removeEventListener("change", recolour);
     reduce.removeEventListener("change", reduced);
+    forced.removeEventListener("change", unforced);
     document.removeEventListener("visibilitychange", shown);
-    stage?.dispose();
+    canvas.removeEventListener("webglcontextlost", lost);
+    canvas.removeEventListener("webglcontextrestored", restored);
+    // three's compile polls the programs on a timer: disposing under it is left until it settles.
+    const done = stage;
+    const dispose = () => done?.dispose();
+    if (compiling !== null) compiling.then(dispose, dispose);
+    else dispose();
     stage = null;
     canvas.remove();
     delete host.dataset.state;
@@ -409,6 +463,8 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     await pause();
     if (!alive) return;
     stage = createStage(canvas, hull);
+    canvas.addEventListener("webglcontextlost", lost);
+    canvas.addEventListener("webglcontextrestored", restored);
     await pause();
     if (!alive || !stage) return;
     stage.paint(palette(), seated);
@@ -418,11 +474,15 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     stage.shade(shadowFor(hull, loft));
     await pause();
     if (!alive || !stage || !loft) return;
-    await stage.compile(loft);
-    if (alive) raf = requestAnimationFrame(open);
+    compiling = stage.compile(loft);
+    await compiling;
+    compiling = null;
+    built = true;
+    if (alive && !blank) raf = requestAnimationFrame(open);
   };
   build().catch(() => {
     // No WebGL after all, or the build failed: the drawing is the page, as with the model Off.
+    compiling = null;
     stop();
   });
 
