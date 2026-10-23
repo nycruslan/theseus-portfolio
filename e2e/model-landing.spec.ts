@@ -307,7 +307,9 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
       // are the only elements above the canvas, so Chromium composites them in their own
       // transparent layer, and composited text loses LCD anti-aliasing on a runner that has it:
       // every glyph edge shifts, so a pixel-identical box fails with nothing wrong. The count
-      // survives it; a covered or hidden number drops to near 0 (decision 14).
+      // survives it; a covered or hidden number drops to near 0 (decision 14). The bound is half:
+      // CI's LCD-to-grayscale shift took the smallest glyph, "7", from 22 ink pixels to 17 (77%),
+      // and a covered number falls to 0, so half still bites.
       const luma = ([r0 = 0, g0 = 0, b0 = 0]: readonly number[]) =>
         0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
       const [inkL, paperL] = [luma(r.tokens.ink), luma(r.tokens.paper)];
@@ -340,9 +342,9 @@ test("B3.1 the first frame lands on the drawing: registered within 1.0 CSS px at
       expect
         .soft(
           ink
-            .filter((n) => n.on === 0 || n.on < 0.8 * n.off)
+            .filter((n) => n.on === 0 || n.on < 0.5 * n.off)
             .map((n) => `${n.text} ${n.on}/${n.off}`),
-          "plank numbers that keep under 80% of the Off page's ink at frame 1 (build note 6)",
+          "plank numbers that keep under half the Off page's ink at frame 1 (build note 6; composited text loses LCD anti-aliasing, which took CI's smallest glyph from 22 ink pixels to 17)",
         )
         .toEqual([]);
       expect
