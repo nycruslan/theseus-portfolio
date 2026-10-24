@@ -153,8 +153,12 @@ nav > [data-motion] {
   padding: 0 16px;
 }
 
+/* The slot takes the rest of the row, so its box is the same before the buttons arrive, with scripts
+   off, and after. */
 .foot > [data-motion] {
   display: flex;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 [data-motion] fieldset {
