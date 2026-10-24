@@ -15,12 +15,10 @@ const OWNER = profile.name;
 const RULES =
   "Only real events from the crew's sessions, as they happen. Its briefs and words are public; credentials are masked before anything is stored. Visitors watch: they can't start or steer the crew.";
 
-/** Which run is told, and the record the build holds of the newest merged sprint. */
-type Props = {
-  crew: Crew;
-  record: SprintEntry | undefined;
-  entries: SprintEntry[];
-};
+const PENDING = `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; anything they reserve waits for him.`;
+
+/** The told state, and the build's merged retros, newest first: the first is the record. */
+type Props = { crew: Crew; entries: SprintEntry[] };
 
 function status(crew: Crew): string {
   switch (crew.state) {
@@ -44,11 +42,7 @@ function status(crew: Crew): string {
 }
 
 /** The owner's word: still to come on an open run; at rest, how the merge was approved. */
-function approval(
-  crew: Crew,
-  record: SprintEntry | undefined,
-  entries: SprintEntry[],
-): string {
+function approval(crew: Crew, entries: SprintEntry[]): string {
   const merged = (entry: SprintEntry | undefined) =>
     !entry
       ? "Merged."
@@ -60,18 +54,14 @@ function approval(
       if (crew.run.health.state === "waiting") {
         return `${OWNER}, on the pull request. Not given yet.`;
       }
-      return pending();
+      return PENDING;
     case "live":
-      return pending();
+      return PENDING;
     case "resting":
       return merged(entries.find((entry) => entry.sprint === crew.run.sprint));
     case "down":
-      return merged(record);
+      return merged(entries[0]);
   }
-}
-
-function pending(): string {
-  return `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; anything they reserve waits for him.`;
 }
 
 function Chip({
@@ -195,7 +185,8 @@ function Evidence({
   );
 }
 
-export function CrewPanel({ crew, record, entries }: Props) {
+export function CrewPanel({ crew, entries }: Props) {
+  const [record] = entries;
   const run = crew.state === "down" ? null : crew.run;
   return (
     <section
@@ -227,7 +218,7 @@ export function CrewPanel({ crew, record, entries }: Props) {
         <dt>Evidence</dt>
         <Evidence crew={crew} record={record} />
         <dt>Approval</dt>
-        <dd data-approval="">{approval(crew, record, entries)}</dd>
+        <dd data-approval="">{approval(crew, entries)}</dd>
         <dt>Rules</dt>
         <dd data-rules="">{RULES}</dd>
       </dl>

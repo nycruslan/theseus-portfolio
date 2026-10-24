@@ -56,7 +56,7 @@ export default async function Crew() {
       >
         <LinesPlan seats={seats} view="page" />
         <Foot />
-        <CrewPanel crew={crew} record={entries[0]} entries={entries} />
+        <CrewPanel crew={crew} entries={entries} />
       </main>
     </>
   );
