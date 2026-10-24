@@ -25,7 +25,7 @@ preview.
 
 B4.1 to B4.14, which Probe wrote first and which failed on main, now pass. #77's checks have been
 rewritten for the new bar. After the merge with main, `pnpm verify` passes and the full e2e suite
-passes 180 of 180 (74dd3fd). The fix round's head is run again before review.
+passes 180 of 180 (74dd3fd). RESULT_PLACEHOLDER
 
 ### Merged with #77
 
@@ -39,7 +39,9 @@ neither of them weaker: `expectSkeleton`'s Crew count and C9.4's hidden link
 
 Her verdict was `changes` (7.0). The fix round took her two musts (crew-table names breaking
 mid-word, and Evidence's target overlapping Approval below 1024), her two cheap CSS changes and her
-two tightened sentences. With both musts fixed she would say ship (7.9). The axe scan found 0
+two tightened sentences. With both musts fixed she would say ship (7.9). Forge also dropped
+Evidence's 24 px row gap, which only offset the negative margins Must 2 removed; without that
+change, a wrapped Evidence read as two groups at 320. Atlas took this as part of the must. The axe scan found 0
 violations, CLS is 0, nothing moves, nothing scrolls sideways at 320, and phone LCP is 1.6 s.
 
 What departs from the approved frames:
