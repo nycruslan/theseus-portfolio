@@ -252,8 +252,10 @@ export async function startSite(
     if (entry === ".next") continue;
     symlinkSync(join(ROOT, entry), join(dir, entry));
   }
+  // The build's times kept: the prerender's age decides when the first regeneration reads the feed.
   cpSync(join(ROOT, ".next"), join(dir, ".next"), {
     recursive: true,
+    preserveTimestamps: true,
     filter: (source) => !source.startsWith(join(ROOT, ".next", "cache")),
   });
   const port = await freePort();

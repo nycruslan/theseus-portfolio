@@ -57,30 +57,55 @@ const SKIP = 'a[href="#main"]';
 
 type Crew = {
   feed: Feed;
-  /** A site reading the channel `name`, set to `answer`; one per name in a worker. */
+  /**
+   * A site reading the channel `name`, set to `answer`. The three fixtures' sites are kept for the
+   * worker; a variant's site replaces the worker's previous variant site, so a worker runs at most
+   * four `next start`s at once (CI's runner is small).
+   */
   site(name: string, answer?: Partial<Answer>): Promise<Site>;
 };
 
-// One fixture server per worker, and one site per channel, shared by the tests that only read it.
+const KEPT = ["live", "open", "resting"];
+
+// One fixture server per worker, a site per fixture, and one variant site at a time.
 const test = base.extend<object, { crew: Crew }>({
   crew: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern, and this one has none.
     async ({}, use) => {
       const feed = await startFeed();
       const sites = new Map<string, Promise<Site>>();
+      let variant: Promise<Site> | null = null;
+      const stop = (site: Promise<Site> | null) =>
+        site?.then((s) => s.stop()).catch(() => undefined);
       await use({
         feed,
         site(name, answer) {
-          const known = sites.get(name);
-          if (known !== undefined) return known;
-          const started = startSite(feed.set(name, answer), feed.ca);
-          sites.set(name, started);
-          return started;
+          if (KEPT.includes(name)) {
+            const known = sites.get(name);
+            if (known !== undefined) return known;
+            const started = startSite(feed.set(name, answer), feed.ca);
+            sites.set(name, started);
+            return started;
+          }
+          const previous = variant;
+          // A fresh answer for the channel: nothing carried over from an earlier switch.
+          const fresh: Partial<Answer> = {
+            fixture: "live",
+            status: 200,
+            ageMs: 0,
+            delayMs: 0,
+            patch: undefined,
+            raw: undefined,
+            ...answer,
+          };
+          variant = (async () => {
+            await stop(previous);
+            return startSite(feed.set(name, fresh), feed.ca);
+          })();
+          return variant;
         },
       });
-      for (const site of sites.values()) {
-        await site.then((s) => s.stop()).catch(() => undefined);
-      }
+      for (const site of [...sites.values(), variant]) await stop(site);
       await feed.stop();
     },
     { scope: "worker" },

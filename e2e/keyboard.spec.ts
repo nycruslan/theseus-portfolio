@@ -190,9 +190,15 @@ test("the skip link moves focus to main, and the next Tab goes on from there", a
   ).toBe(true);
 
   await page.keyboard.press("Tab");
+  // The first shown one: from 768 px main's Read as page (the phone's, at the drawing's foot) is
+  // display: none and takes no focus (sprint 31, .crew/sprint/31/contract.md).
   expect(
     await page.evaluate(
-      () => document.activeElement === document.querySelector("main a"),
+      () =>
+        document.activeElement ===
+        [...document.querySelectorAll("main a")].find(
+          (a) => a.getClientRects().length > 0,
+        ),
     ),
     "the next Tab focuses the first link inside main",
   ).toBe(true);
