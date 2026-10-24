@@ -1344,9 +1344,11 @@ main:has(> [data-model]) {
   align-content: start;
 }
 
+/* The feed's words are never cut: a long token (a path, a URL) breaks rather than widen the page. */
 .crew {
   padding: 16px 16px 40px;
   border-top: 2px solid var(--foreground);
+  overflow-wrap: anywhere;
 }
 
 .crew-head {
@@ -1617,11 +1619,12 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
+/* Side by side where they fit; wrapped, a row gap keeps the two 44 px targets from overlapping. */
 [data-evidence] {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  column-gap: 16px;
+  gap: 24px 16px;
 }
 
 /* A 44 px target on a phone whose line box stays the text's, 24 px from 1024. */
@@ -1679,6 +1682,10 @@ main:has(> [data-model]) {
   .crew-link {
     min-height: 24px;
     margin-block: 0;
+  }
+
+  [data-evidence] {
+    row-gap: 0;
   }
 }
 
