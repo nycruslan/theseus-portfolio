@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { signatures } from "@/components/revisions";
 import { PLANKS } from "@/lib/hull-layouts";
 import { REPO_URL } from "@/lib/site";
@@ -85,14 +85,22 @@ export function LogRecord({
 
   return (
     <section aria-labelledby="record" className="record">
-      <p className="record-rev">Rev {sprint}</p>
+      {/* The revision's number, and Close back to the Log at the row's right. Plain links, no
+        boxes (.crew/sprint/30/notes-iris.md, section 2.3); the one list in the record is what
+        went wrong. */}
+      <div className="record-top">
+        <p className="record-rev">Rev {sprint}</p>
+        <a href="/log" className="record-close">
+          Close<span className="sr-only"> revision {sprint}</span>
+        </a>
+      </div>
       <h2 id="record">{entry.goal}</h2>
       <dl>
         {pairs.map(({ term, detail, names }) => (
-          <div key={term}>
+          <Fragment key={term}>
             <dt>{term}</dt>
             <dd translate={names ? "no" : undefined}>{detail}</dd>
-          </div>
+          </Fragment>
         ))}
       </dl>
       {items.length > 0 ? (
@@ -105,23 +113,17 @@ export function LogRecord({
           </ul>
         </>
       ) : null}
-      <ul className="record-links">
-        <li className="record-close">
-          <a href="/log">
-            Close<span className="sr-only"> revision {sprint}</span>
-          </a>
-        </li>
+      {/* Earlier at the left, later at the right, by merged order; each left out at its end. */}
+      <div className="record-foot">
         {previous === undefined ? null : (
-          <li className="record-previous">
-            <a href={`/log/${previous}`}>Rev {previous}</a>
-          </li>
+          <a href={`/log/${previous}`}>Rev {previous}</a>
         )}
         {next === undefined ? null : (
-          <li className="record-next">
-            <a href={`/log/${next}`}>Rev {next}</a>
-          </li>
+          <a href={`/log/${next}`} className="record-next">
+            Rev {next}
+          </a>
         )}
-      </ul>
+      </div>
     </section>
   );
 }

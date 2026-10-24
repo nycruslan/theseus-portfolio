@@ -12,9 +12,9 @@ import {
 // never hit or focused (app/globals.css, "The lines plan"), and static. On the sheet, two drawings,
 // one shown per width: the three views from 768 px, the profile and half-breadth plan below it.
 // On /read's narrow column, the profile and half-breadth plan alone, numbered from 768 px. On the
-// Log, the ghost hull (.crew/sprint/29/b5-first-contract.md): the same views with only the
-// originals the crew has taken out, in vellum, each numbered by its first holder; `current` marks
-// the seat a record's sprint took.
+// Log, the ghost hull (.crew/sprint/29/b5-first-contract.md; .crew/sprint/30/notes-iris.md): the
+// profile alone, with only the originals the crew has taken out, in vellum, each numbered by its
+// first holder; `current` marks the seat a record's sprint took.
 export function LinesPlan({
   seats,
   view = "sheet",
@@ -81,11 +81,16 @@ function Drawing({
             <path d={plan.hull} />
           </clipPath>
         </defs>
-        {/* Construction first: the planks cover it where it crosses the hull. */}
-        <path className="ln-construction" d={lines.construction} />
-        <path className="ln-waterline" d={lines.waterlines} />
-        <path className="ln-base" d={lines.base} />
-        <path className="ln-centreline" d={lines.centrelines} />
+        {/* Construction first: the planks cover it where it crosses the hull. The ghost is the
+          profile alone, with none. */}
+        {ghost ? null : (
+          <>
+            <path className="ln-construction" d={lines.construction} />
+            <path className="ln-waterline" d={lines.waterlines} />
+            <path className="ln-base" d={lines.base} />
+            <path className="ln-centreline" d={lines.centrelines} />
+          </>
+        )}
         <g clipPath={`url(#${id}-hull)`}>
           {planks.map((plank) => (
             <path
@@ -104,15 +109,19 @@ function Drawing({
             />
           ))}
         </g>
-        <path className="ln-section" d={lines.sections} />
-        <path className="ln-deck" d={lines.deck} />
+        {ghost ? null : (
+          <>
+            <path className="ln-section" d={lines.sections} />
+            <path className="ln-deck" d={lines.deck} />
+          </>
+        )}
         <path className="ln-leader" d={lines.leaders} />
         <path className="ln-outline" d={lines.outline} />
       </svg>
       {plan.lettering.map((letter) => (
         <span
           key={`${letter.kind}-${letter.text}-${letter.left}-${letter.top}`}
-          className={letterClass(letter)}
+          className={letterClass(letter, current)}
           style={{ left: `${letter.left}%`, top: `${letter.top}%` }}
         >
           {letter.text}
@@ -122,5 +131,9 @@ function Drawing({
   );
 }
 
-const letterClass = ({ kind, align, wideOnly }: Lettering) =>
-  `plan-${kind} plan-${align}${wideOnly ? " plan-wide-only" : ""}`;
+/** The current seat's number takes a class, not data-current, which marks the one plank. */
+const letterClass = (
+  { kind, align, wideOnly, plank }: Lettering,
+  current?: string,
+) =>
+  `plan-${kind} plan-${align}${wideOnly ? " plan-wide-only" : ""}${plank !== undefined && plank === current ? " plan-current" : ""}`;

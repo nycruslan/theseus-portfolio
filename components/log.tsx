@@ -55,14 +55,17 @@ export function Log({ entries, open }: LogProps) {
         tabIndex={-1}
         className={`log${record ? " log-open" : ""} ${sofiaCondensed.variable}`}
       >
-        <header className="log-head">
+        {/* The header, then the record, then the drawing: below 1024 px CSS sets the drawing
+          between the h1 and the caption, as the frame does; it is hidden from assistive tech, so
+          the reading order is the DOM's (.crew/sprint/30/notes-iris.md, section 1.2). */}
+        <div className="log-head">
           <h1>Log</h1>
           <p data-ghost-caption="">
             The ghost hull: the original planks the crew has taken out, each
             numbered by the sprint that replaced it.
           </p>
           <p data-ghost-count="">{countLine(merged)}</p>
-        </header>
+        </div>
 
         {record && seat ? (
           <LogRecord
@@ -87,6 +90,11 @@ export function Log({ entries, open }: LogProps) {
             A crew of AI agents rebuilds this site one sprint at a time.{" "}
             {entries.length} revisions, newest first: choose one to open its
             record.
+          </p>
+          {/* The key to Approved, which the table and the records share (notes-iris.md, 3.2). */}
+          <p className="log-lede log-key">
+            Under Approved, Gate is CI, the owner's rules and Lens's review;
+            Owner is the owner's own decision.
           </p>
           <table className="rev rev-log">
             <thead>

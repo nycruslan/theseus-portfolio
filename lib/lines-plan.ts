@@ -19,7 +19,14 @@ import {
   seamDepth,
   sheer,
 } from "./half-model";
-import { type Layout, NARROW, PLANKS, type Plank, WIDE } from "./hull-layouts";
+import {
+  GHOST,
+  type Layout,
+  NARROW,
+  PLANKS,
+  type Plank,
+  WIDE,
+} from "./hull-layouts";
 
 type Point = readonly [number, number];
 
@@ -203,6 +210,8 @@ export type Lettering = {
   kind: "caption" | "figure" | "plank";
   /** Shown only where the drawing is wide enough to keep it clear of its neighbours. */
   wideOnly?: boolean;
+  /** A plank number's seat, "k.j". */
+  plank?: string;
 };
 
 /** Sets one piece of lettering at a point of the drawing, in its viewBox's units. */
@@ -211,7 +220,7 @@ type Letter = (
   at: Point,
   align: Lettering["align"],
   kind: Lettering["kind"],
-  wideOnly?: boolean,
+  extra?: Pick<Lettering, "wideOnly" | "plank">,
 ) => void;
 
 type PlankShape = { id: string; d: string; sprint?: number };
@@ -233,8 +242,9 @@ const SEAMS = Array.from({ length: BUTTS.length - 1 }, (_, i) =>
 );
 
 /**
- * Draws one layout. The ghost pass draws only the seats in `seats`, each numbered, and leaves a gap
- * where a seat has none; otherwise a plank missing from `seats` is drawn as an original.
+ * Draws one layout. The ghost pass draws the profile alone, the outline, the planks in `seats`,
+ * each numbered, and its leader, and leaves a gap where a seat has none (.crew/sprint/30/
+ * notes-iris.md, section 1.1); otherwise a plank missing from `seats` is drawn as an original.
  */
 function draw(
   layout: Layout,
@@ -246,14 +256,15 @@ function draw(
   const H = (x: number, z: number): Point => [ox + x * s, hbY - z * s];
   const X = (x: number) => num(ox + x * s);
   const lettering: Lettering[] = [];
-  const letter: Letter = (text, [x, y], align, kind, wideOnly) =>
+  const letter: Letter = (text, [x, y], align, kind, extra) =>
     lettering.push({
       text,
       left: Math.round(((x - box[0]) / box[2]) * 10000) / 100,
       top: Math.round(((y - box[1]) / box[3]) * 10000) / 100,
       align,
       kind,
-      ...(wideOnly ? { wideOnly } : {}),
+      ...(extra?.wideOnly ? { wideOnly: true } : {}),
+      ...(extra?.plank ? { plank: extra.plank } : {}),
     });
 
   const lines: Lines = {
@@ -267,21 +278,23 @@ function draw(
     outline: "",
   };
 
-  // The profile. Stations 0 to 10 run down through the half-breadth plan too.
-  for (let i = 0; i <= 10; i++) {
-    const [x] = P((LENGTH * i) / 10, 0);
-    lines.construction += `M${num(x)} ${num(oy - 14)}V${num(hbY + 6)}`;
-    letter(String(i), [x, oy + BASE * s + 12], "middle", "figure");
+  // The profile's construction. Stations 0 to 10 run down through the half-breadth plan too.
+  if (!ghost) {
+    for (let i = 0; i <= 10; i++) {
+      const [x] = P((LENGTH * i) / 10, 0);
+      lines.construction += `M${num(x)} ${num(oy - 14)}V${num(hbY + 6)}`;
+      letter(String(i), [x, oy + BASE * s + 12], "middle", "figure");
+    }
+    for (const y of SEAMS) {
+      const [a, b] = ends(y);
+      lines.waterlines += `M${pt(P(a - 18, y))}H${X(b + 18)}`;
+    }
+    lines.base += `M${pt(P(-30, BASE))}H${X(LENGTH + 30)}`;
+    lines.centrelines += `M${pt(P(-30, DWL))}H${X(LENGTH + 30)}`;
+    letter("DWL", P(LENGTH + 34, DWL), "start", "figure");
+    letter("Base", P(LENGTH + 34, BASE), "start", "figure");
+    letter("Profile", [ox, oy - 30], "start", "caption");
   }
-  for (const y of SEAMS) {
-    const [a, b] = ends(y);
-    lines.waterlines += `M${pt(P(a - 18, y))}H${X(b + 18)}`;
-  }
-  lines.base += `M${pt(P(-30, BASE))}H${X(LENGTH + 30)}`;
-  lines.centrelines += `M${pt(P(-30, DWL))}H${X(LENGTH + 30)}`;
-  letter("DWL", P(LENGTH + 34, DWL), "start", "figure");
-  letter("Base", P(LENGTH + 34, BASE), "start", "figure");
-  letter("Profile", [ox, oy - 30], "start", "caption");
 
   // The outline: the sheer from the transom to the bow tip, then the stem and keel back, and the
   // transom closes it.
@@ -302,13 +315,14 @@ function draw(
       const stations = depths(plank);
       const at = plankBody(stations);
       const band = at && bandAt(plank, (at[0] + at[1]) / 2);
+      const seat = { plank: plank.id };
       if (ledOut(stations)) {
         const yMid = (plank.yTop + plank.yBot) / 2;
-        letter(String(sprint), P(plank.x0 - 22, yMid), "end", "plank");
+        letter(String(sprint), P(plank.x0 - 22, yMid), "end", "plank", seat);
         lines.leaders += `M${pt(P(plank.x0 - 20, yMid))}H${X(plank.x1 - 2)}`;
       } else if (at && band) {
         const mid: Point = [(at[0] + at[1]) / 2, (band[0] + band[1]) / 2];
-        letter(String(sprint), P(...mid), "middle", "plank");
+        letter(String(sprint), P(...mid), "middle", "plank", seat);
       }
     }
     return {
@@ -319,20 +333,22 @@ function draw(
   });
 
   // The half-breadth plan: each seam's breadth along the hull, the deck line and the transom.
-  lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 30)}`;
-  for (const y of SEAMS) {
-    const [a, b] = ends(y);
-    lines.construction += curve(
-      spaced(a, b, 16).map((x) => H(x, halfBreadth(x, y))),
-    );
-  }
-  const deck = (x: number) => halfBreadth(x, sheer(x));
-  lines.deck += `${curve(spaced(0, LENGTH, 20).map((x) => H(x, deck(x))))}M${pt(
-    H(0, 0),
-  )}V${num(H(0, deck(0))[1])}`;
-  letter("Half-breadth plan", [ox, hbY + 16], "start", "caption");
+  if (!ghost) {
+    lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 30)}`;
+    for (const y of SEAMS) {
+      const [a, b] = ends(y);
+      lines.construction += curve(
+        spaced(a, b, 16).map((x) => H(x, halfBreadth(x, y))),
+      );
+    }
+    const deck = (x: number) => halfBreadth(x, sheer(x));
+    lines.deck += `${curve(spaced(0, LENGTH, 20).map((x) => H(x, deck(x))))}M${pt(
+      H(0, 0),
+    )}V${num(H(0, deck(0))[1])}`;
+    letter("Half-breadth plan", [ox, hbY + 16], "start", "caption");
 
-  if (body) drawBody(body, lines, letter);
+    if (body) drawBody(body, lines, letter);
+  }
 
   return {
     viewBox: box.join(" "),
@@ -379,7 +395,7 @@ function drawBody(
         [px + sign * 6, py - 8],
         sign < 0 ? "end" : "start",
         "figure",
-        true,
+        { wideOnly: true },
       );
     }
   }
@@ -397,9 +413,9 @@ export function pagePlan(seats: ReadonlyMap<string, number>) {
 }
 
 /**
- * The Log's ghost hull: /read's views (contract, "The ghost hull"; Iris sets which views at which
- * widths), with only the originals the crew has taken out, from `ghostPlanks`.
+ * The Log's ghost hull: the profile alone, with only the originals the crew has taken out, from
+ * `ghostPlanks` (.crew/sprint/30/notes-iris.md, section 1).
  */
 export function ghostPlan(seats: ReadonlyMap<string, number>) {
-  return draw(PAGE, seats, true);
+  return draw(GHOST, seats, true);
 }
