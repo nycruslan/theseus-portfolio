@@ -285,12 +285,17 @@ test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first 
   request,
 }) => {
   await openCrew(page, DEFAULT);
+  // Each plank once, with its seat: / draws the plan twice (the wide and the narrow drawing).
   const plankList = () =>
     page.evaluate(() =>
-      [...document.querySelectorAll("[data-plan] path[data-plank]")].map(
-        (p) =>
-          `${p.getAttribute("data-plank")} ${p.id} ${p.getAttribute("data-sprint")}`,
-      ),
+      [
+        ...new Set(
+          [...document.querySelectorAll("[data-plan] path[data-plank]")].map(
+            (p) =>
+              `${p.getAttribute("data-plank")} ${p.getAttribute("data-sprint") ?? "original"}`,
+          ),
+        ),
+      ].sort(),
     );
   const crew = await page.evaluate(() => {
     const squashed = (el: Element | null | undefined) =>
@@ -853,6 +858,7 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
     href.startsWith("/") && !href.startsWith("//")
       ? true
       : href.startsWith("#") ||
+        href.startsWith(`${SITE_URL}/`) ||
         /^https:\/\/github\.com\/nycruslan\/theseus-portfolio\/pull\/\d+$/.test(
           href,
         ) ||
@@ -860,6 +866,7 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
           !href.includes(".."));
   for (const shown of [live, open, DEFAULT]) {
     await openCrew(page, shown);
+    // Every href, the head's links included: the canonical names the site's own production URL.
     const hrefs = await page.evaluate(() =>
       [...document.querySelectorAll("[href]")].map(
         (a) => a.getAttribute("href") ?? "",

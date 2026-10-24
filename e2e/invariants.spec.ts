@@ -222,8 +222,12 @@ test("B2.9 one main, each section a region named by its heading, and no skipped 
     }
     for (const section of await sections.all()) {
       // textContent, not innerText: CSS may upper-case the h2, and the accessible name isn't.
+      // Its first heading of any level: /crew's panel is named by its h1 (sprint 31, B4.13).
       const heading = (
-        (await section.locator("h2").first().textContent()) ?? ""
+        (await section
+          .locator("h1, h2, h3, h4, h5, h6")
+          .first()
+          .textContent()) ?? ""
       ).trim();
       await expect(section, `the ${heading} section on ${route}`).toHaveRole(
         "region",
