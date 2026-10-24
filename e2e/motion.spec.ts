@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import {
+  contrast,
   horizontalOverflow,
   MODES,
   MOTION,
@@ -1477,6 +1478,66 @@ test("B3.22 forced colours and the keyboard: at 1440 and 390 in forced colours, 
     expect
       .soft(looks, `the motion buttons in forced colours, ${where}`)
       .toHaveLength(3);
+
+    // Each label reads (Iris, sprint 27): Chromium can paint a Canvas backplate behind the pressed
+    // button's HighlightText, a solid block that keeps every ring and border rule. Inside each
+    // label's text box the darkest and lightest pixels must differ, as ink on a ground does; and
+    // the pressed button's computed colour isn't its background's.
+    const labels = await page.evaluate((group) => {
+      const range = document.createRange();
+      return [...document.querySelectorAll(`${group} button`)]
+        .filter((b) => b.getClientRects().length > 0)
+        .map((b) => {
+          range.selectNodeContents(b);
+          const r = range.getBoundingClientRect();
+          const s = getComputedStyle(b);
+          return {
+            text: (b.textContent ?? "").trim(),
+            pressed: b.getAttribute("aria-pressed") === "true",
+            color: s.color,
+            background: s.backgroundColor,
+            box: { x: r.left, y: r.top, width: r.width, height: r.height },
+          };
+        });
+    }, GROUP);
+    const pressedLabel = labels.find((l) => l.pressed);
+    expect
+      .soft(
+        pressedLabel?.color,
+        `the pressed button's colour against its background (${pressedLabel?.background}), ${where}`,
+      )
+      .not.toBe(pressedLabel?.background);
+    const unread: string[] = [];
+    for (const label of labels) {
+      const clip = whole(label.box);
+      if (clip.width < 1 || clip.height < 1) {
+        unread.push(`${label.text}: no text box`);
+        continue;
+      }
+      const image = decodePng(await page.screenshot({ clip }));
+      let dark: [number, number, number] = [255, 255, 255];
+      let light: [number, number, number] = [0, 0, 0];
+      const luma = ([r, g, b]: [number, number, number]) =>
+        0.2126 * r + 0.7152 * g + 0.0722 * b;
+      for (let i = 0; i < image.data.length; i += 4) {
+        const rgb: [number, number, number] = [
+          image.data[i] ?? 0,
+          image.data[i + 1] ?? 0,
+          image.data[i + 2] ?? 0,
+        ];
+        if (luma(rgb) < luma(dark)) dark = rgb;
+        if (luma(rgb) > luma(light)) light = rgb;
+      }
+      const ratio = contrast(dark, light);
+      if (ratio < 3) {
+        unread.push(
+          `${label.text}${label.pressed ? " (pressed)" : ""}: darkest ${dark.join(",")} against lightest ${light.join(",")}, ${ratio.toFixed(2)}:1`,
+        );
+      }
+    }
+    expect
+      .soft(unread, `labels with no readable ink in their text box, ${where}`)
+      .toEqual([]);
 
     // The Tab order after Read as page, one ring at each button.
     const stops: string[] = [];

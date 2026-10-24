@@ -1,5 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { profile as keelAt, LENGTH, sheer } from "../lib/half-model";
+import { MOTION } from "./helpers";
 import {
   attach,
   BAR,
@@ -49,6 +50,10 @@ import { openModel } from "./webgl";
 // compares silhouettes, S4's second measure, which read the same as its outline at every size
 // (spike.md, S4's table): the canvas's coverage at `landed` against `.ln-outline` filled, each the
 // hull plus the outline's outer half-stroke, at a 50% threshold, edge to edge.
+//
+// Sprint 27 (.crew/sprint/27/contract.md, amendment 3, decision 11): the hand-off views leave out
+// the shown motion slot's box, whose buttons differ between the refused page and the model's by
+// the control's own rules; the assertions are the same.
 
 /** Layout's precision: Chromium keeps lengths in 1/64 CSS px (LayoutUnit). */
 const LAYOUT = 1 / 64;
@@ -62,6 +67,17 @@ type Shot = {
   dpr: number;
   scheme: "light" | "dark";
 };
+
+/** The shown `[data-motion]` slot's box (the one with client rects), CSS px, or null. */
+function shownSlot(page: Page) {
+  return page.evaluate((slot) => {
+    const el = [...document.querySelectorAll(slot)].find(
+      (s) => s.getClientRects().length > 0,
+    );
+    const r = el?.getBoundingClientRect();
+    return r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null;
+  }, MOTION);
+}
 
 /**
  * One registration: the refused page's outline against the model's frame 1, held on the clock,
@@ -121,6 +137,10 @@ async function register(browser: Browser, shot: Shot) {
     revisions: await box(off.page, REVISIONS),
     bar: await box(off.page, BAR),
   };
+  // The shown motion slot (sprint 27, amendment 3): Off pressed with Full and Calm disabled on the
+  // refused page, Full pressed with the model, by the control's own rules; below 768 px its top
+  // 12 px lie inside the drawing's box. The hand-off views leave its box out.
+  const slot = await shownSlot(off.page);
   await off.close();
 
   const on = await openModel(browser, {
@@ -217,6 +237,7 @@ async function register(browser: Browser, shot: Shot) {
     numbers,
     tokens,
     regions,
+    slot,
     motion,
     errors,
   };
@@ -292,20 +313,22 @@ test("B3.1 the first frame lands on the drawing shown: registered within 1.0 CSS
       const [vw, vh] = [r.onView.width, r.onView.height];
       const at = (x: number, y: number) =>
         x < vw && y < vh ? (changed[y * vw + x] ?? 0) : 0;
+      const within = (x: number, y: number, b: Box | null | undefined) =>
+        Boolean(
+          b &&
+            x >= b.x * dpr &&
+            x < (b.x + b.width) * dpr &&
+            y >= b.y * dpr &&
+            y < (b.y + b.height) * dpr,
+        );
+      const masked = r.slot ? whole(r.slot) : null;
       const differing = (b: Box | null, skip?: Box) => {
         if (!b) return Number.NaN;
         const c = whole(b);
         let n = 0;
         for (let y = c.y * dpr; y < (c.y + c.height) * dpr; y++)
           for (let x = c.x * dpr; x < (c.x + c.width) * dpr; x++) {
-            if (
-              skip &&
-              x >= skip.x * dpr &&
-              x < (skip.x + skip.width) * dpr &&
-              y >= skip.y * dpr &&
-              y < (skip.y + skip.height) * dpr
-            )
-              continue;
+            if (within(x, y, skip) || within(x, y, masked)) continue;
             if (at(x, y) > 0) n++;
           }
         return n;
