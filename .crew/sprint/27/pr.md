@@ -41,7 +41,30 @@ with the same assertions. Lens's nits on #73 and the cold-cache fallback face ri
 `.crew/sprint/27/contract.md` (amendment 1 is Iris's placement); decisions in
 `.crew/sprint/27/decisions.md`; Iris's call in `notes-iris.md`, her review in `review-iris.md`.
 
-RESULTS
+Every check is a Playwright test; the control's are `e2e/motion.spec.ts` (B3.16 to B3.23), the
+rewrites in `e2e/sheet.spec.ts` and `e2e/keyboard.spec.ts`, the two masks in
+`e2e/model-landing.spec.ts` (amendment 3) and `motion.spec.ts` (amendment 2). On the integrated head
+`098d731` Atlas's full run is **166 of 166 passed** (10.9 min) with `pnpm verify` green; Forge's
+full run on `4167284` was 164 of 166 with the two reds the two compares that amendments 2 and 3
+mask. Every B3.16 to B3.22 check is red on main (no control); B3.23's mutant (the fallback face
+reverted) turns it red at 320 and 390. `expect(` counts per rewritten file are unchanged (sheet 46,
+keyboard 39, model-landing 14; motion 22 new).
+
+| Check | Bound | Read |
+|---|---|---|
+| B3.16 the control | one shown slot per width, the group in place, Full default, 44/24 px targets, slots empty and same-sized without scripts, CLS 0 | holds at 320, 390, 768, 1024, 1440; group 191 to 374 × 300 to 344 at 390, 1258 to 1400 at 1440; axe clean |
+| B3.17 Full | a press from Calm or Off lofts from frame 1 within B3.1's bound; Full while Full does nothing | frame 1 within 1.00 CSS px at 1440 and 390 (bound 1.5); a real-time replay may rest `still` under SwiftShader's load, the clock run ends `settled` at 2,400 ms ± a frame |
+| B3.18 Calm | settles within 2 frames mid-loft; a new tab opens settled; 0 frames at rest, 1 on a scheme switch | holds |
+| B3.19 Off | `data-state`, canvas and context gone within 2 frames; `off` stored loads no chunk and requests no context; the sheet pixel-identical to the refused page (the control masked) | Off clears the model 1 frame after the press; 0 live contexts; 0 pixels differ in both schemes at 390 and 1440 |
+| B3.20 storage | each mode survives a reload and a new tab; storage throwing gives the default and a press holds for the visit | holds, no console or page error |
+| B3.21 the hints | reduce → Calm pressed, settled; `full` stored under reduce lofts; reduce on mid-loft settles within 2 frames and Calm becomes pressed; Save-Data → Off and nothing downloaded; `full` stored under Save-Data lofts | holds; B3.4 and B3.5's cases unedited |
+| B3.22 forced colours and the keyboard | one ring per focused button; the pressed label reads (≥ 3:1 inside its text box); Tab order; Space and Enter press | holds after `f9a1b6c` (before it: "Full (pressed): 1.00:1", the backplate Iris found) |
+| B3.23 the fallback face | woff2 refused: four links on one row, each label one line, no sideways scroll at 320 and 390, the fold holds | holds; mutant red: +30 px at 320, +3 at 390 |
+| B2.3 and the keyboard rewrites | four links then the group at 1440, the group `main`'s below 768; Contact's first link the 15th stop | holds |
+| B2.10 script bytes | within 2,048 B decoded of `/sprints'` | 2,038 B (the loader alone was 961) |
+| B1.1 the fold at 390 × 844 | the title block's items in the first viewport | holds; title block top 356, Contact links' bottom 629, Revisions head on screen |
+
+IRIS
 
 ## For the owner: the control's place on phones, against `hero-390.webp`
 
