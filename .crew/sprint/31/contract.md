@@ -137,12 +137,12 @@ decision, Iris, below).
   `^https://github\.com/nycruslan/theseus-portfolio/pull/(\d+)$` and that number equals
   `pr.number`; otherwise the same words as text. In `down`, the record's `pr`, linked to
   `https://github.com/nycruslan/theseus-portfolio/pull/{pr}`. No PR, no pull request item.
-- In `live` or `open` with no PR: "The pull request opens at the close-out."
+- In `live` or `open` with no PR: "The pull request opens at the end of the sprint."
 
 **Approval,** `[data-approval]`, `{owner}` being `profile.name`:
 - `open` with "Waiting on the owner": "{owner}, on the pull request. Not given yet."
 - `live`, and `open` "Paused": "Not given yet. The pull request merges only after the checks,
-  Lens's review and {owner}'s rules pass; anything they reserve waits for him."
+  Lens's review and {owner}'s rules pass; what his rules leave to him waits for him."
 - `resting`, when the build's retros hold `last.sprint`, and `down` (the record): "{owner}, on the
   pull request." when that retro's `ownersCall` is true, else "Merged behind the checks, Lens's
   review and {owner}'s rules."
