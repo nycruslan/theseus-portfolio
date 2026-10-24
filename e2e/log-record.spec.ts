@@ -314,7 +314,9 @@ test.describe("B5.6 A record per revision", () => {
                   const style = getComputedStyle(el);
                   const clamp = style.getPropertyValue("-webkit-line-clamp");
                   return (
-                    style.textOverflow === "ellipsis" ||
+                    // An ellipsis shows only where the box clips its overflow.
+                    (style.textOverflow === "ellipsis" &&
+                      style.overflowX !== "visible") ||
                     (clamp !== "none" && clamp !== "")
                   );
                 })
