@@ -1429,6 +1429,13 @@ main:has(> [data-model]) {
   );
 }
 
+/* Forced colours drop the hatch, so the pencil's dashed edge says "in progress" there. */
+@media (forced-colors: active) {
+  :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
+    border-style: dashed;
+  }
+}
+
 .crew-goal {
   flex: 1;
   min-width: 0;
@@ -1613,6 +1620,7 @@ main:has(> [data-model]) {
 [data-evidence] {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   column-gap: 16px;
 }
 
