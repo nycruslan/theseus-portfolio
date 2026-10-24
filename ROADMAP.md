@@ -110,18 +110,25 @@ page, and B3, the signature moment.
     Rules copy, the proxy rule, the Studio link). Once approved, B4.1 may start against the
     contract's fixtures before the feed is deployed, and merges only once the feed answers on its
     preview.
-  - [ ] B4.1 (M): `/crew` from the feed, server-rendered, the four states (live, open, resting,
-    feed down), the Crew link, the phone bar re-laid as `rest-390.webp` draws it. Waits for the
-    owner (Read as page moves below 768 px; `CREW_FEED_URL`). Iris: Read as page's place on `/crew`
-    below 768, the moment kinds' wording.
-  - [ ] B4.2 (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
+  - [x] B4a (M, the plan's B4.1): `/crew` from the feed, server-rendered, the four states (live,
+    open, resting, feed down), the Crew link on every page, Read as page at the drawing's foot below
+    768 on `/`, `/crew` and `/log`. (Sprint 31, PR #78, built over two runs on 2026-10-24: Quill's
+    contract B4.1 to B4.14, Probe's checks red first against fixtures, Forge's build, main's #77
+    merged in with both sides kept; Iris changes at 7.0, both musts taken in one round; Lens ship
+    with no Important; 180 of 180 checks; `decisions.md` 1 to 11.) B4's sprints now take letters
+    (B4a to B4e). **Its PR waits for the owner:** `CREW_FEED_URL` on Vercel, the feed deployed and
+    answering `live` or `open` on the preview, and the six calls in the PR body. Riding with the
+    next sprint that touches `/crew`: Lens's four nits on #78 (the `lib/sprint-log.ts` and
+    `next.config.ts` comments now miss `/crew`'s request-time read of the retros; `crew.spec.ts`
+    serial, its 40 s deadline, and skipping under `PLAYWRIGHT_BASE_URL`).
+  - [ ] B4b (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
     rest line with the merge time, 0 B of new script. Iris: the fold trade at 1440 × 900. The B4
     demo.
-  - [ ] B4.3 (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
+  - [ ] B4c (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
     "Pause updates" (WCAG 2.2.2) and its own script budget.
-  - [ ] B4.4 (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
-    joins `/crew`'s bar. Lens's nit on #74 rides here, or with B4.2 if it touches the loader.
-  - [ ] B4.5 (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
+  - [ ] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
+    joins `/crew`'s bar. Lens's nit on #74 rides here, or with B4b if it touches the loader.
+  - [ ] B4e (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
     the pace.
 - [ ] B5: `/log` and the ghost hull.
   - [x] Sprint 29 (M, notes only): Quill's plan, B5 as three M sprints
@@ -155,16 +162,14 @@ page, and B3, the signature moment.
     Vercel's build has `.git`. Owner calls: closed sprints' rows; a public `design` retro field
     for Iris's score.
   - [ ] B5c (M): the ghost hull in 3D on `/log` under Full/Calm/Off, the control in `/log`'s bar,
-    a plank opening its record (Pixel). Whichever of B4.4 and B5c comes first mounts the model on a
-    second route. Lens's nit on #74 rides here if B4.4 hasn't taken it.
+    a plank opening its record (Pixel). Whichever of B4d and B5c comes first mounts the model on a
+    second route. Lens's nit on #74 rides here if B4d hasn't taken it.
 
 Riding along with the sprints that touch the same code:
 - With the next sprint that touches the facts or the fonts: the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's
   Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
   rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
   (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).
-- B4.1's contract re-lays the phone bar: a fifth link (Crew) doesn't fit the row at 16 px (Iris,
-  sprint 23); `rest-390.webp` moves Read as page to the drawing's foot (`.crew/sprint/28/b4-plan.md`).
 
 ## Done
 

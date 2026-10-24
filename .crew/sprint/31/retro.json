@@ -1,0 +1,50 @@
+{
+  "sprint": 31,
+  "pr": 78,
+  "goal": "B4a: /crew from the Studio's feed, in four honest states, and Crew in the bar",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner: Lens ship on e7fb17c with four nits riding with the next sprint that touches /crew; Iris changes at 7.0, both musts taken in one fix round (7.9 with them, her ship); 180 of 180 checks after merging #77; the PR waits for the owner's six calls, CREW_FEED_URL and the real feed on the preview first",
+  "fixRounds": 1,
+  "minutes": 170,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 424698, "minutes": 17 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 231168, "minutes": 24 },
+    { "role": "design-director", "model": "opus", "tokens": 246358, "minutes": 19 }
+  ],
+  "lens": { "runs": 1, "tokens": 4712589, "important": 0, "actedOn": 0, "nits": 4 },
+  "wentWrong": [
+    {
+      "what": "The first run stopped after the build, with the work on the roles' branches and not on the sprint's, and Iris's first notes never saved",
+      "evidence": "The last sprint commit was at 20:02 and forge/31 ended at 21:13; the second run began at 22:26 and merged both branches (decisions.md 9)"
+    },
+    {
+      "what": "Iris's first review hit the weekly Fable limit, because this branch's agent file predated the switch to Opus",
+      "evidence": "A rate_limit 429 for claude-fable-5-1; it was re-run on Opus, as main's design-director.md has set since #81 (decisions.md 11)"
+    },
+    {
+      "what": "The review label's Lens run was cancelled within a second by a queued label event, and it was re-run by hand",
+      "evidence": "Run 40142428097 was cancelled at 23:21:51 while lens-runner skipped on the other events, then re-run as attempt 2, which said ship"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Add the review label in its own call, a minute after the push and other labels, or have lens.yml's concurrency keep a labeled-review run, not only the newest pending one",
+      "moves": "Lens runs lost to cancellation (1 this sprint)"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "On #78: set CREW_FEED_URL on Vercel (Preview and Production), deploy the feed, and check that /crew shows live or open on the preview and changes after the deploy (Lens's note); the six calls in the PR body"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens's nit on #78 with the next sprint that touches /crew, joining #77's: the comments in lib/sprint-log.ts and next.config.ts say no request reads the sprint folders, but /crew's revalidation reads the retros, so they must stay traced"
+    },
+    {
+      "who": "Probe",
+      "what": "Lens's three spec nits on #78: crew.spec.ts should run serially as the contract says, STATE_WAIT should be 40 s (or the 45 explained), and the default-server and fixture checks should skip with a reason under PLAYWRIGHT_BASE_URL"
+    }
+  ]
+}
