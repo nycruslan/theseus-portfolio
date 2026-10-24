@@ -885,6 +885,26 @@ main:has(> [data-model]) {
   overflow-wrap: break-word;
 }
 
+/* Folded, the heads row is read by assistive tech only; it is kept to the table's width, wrapping,
+   so nothing on the page lies past its right edge, seen or not. */
+@media (width < 40rem) {
+  .rev-log {
+    position: relative;
+  }
+
+  .rev-log thead {
+    inset-inline: 0;
+    width: auto;
+    white-space: normal;
+  }
+
+  /* The columns' widths are the unfolded table's. */
+  .rev-log thead th {
+    width: auto;
+    padding: 0;
+  }
+}
+
 /* Each number opens its record: ink and underlined like every link off the bar, and as tall as
    its row, so no two targets overlap. Folded, the number spans the row's two lines. */
 .rev-link {
@@ -954,6 +974,7 @@ main:has(> [data-model]) {
   .rev-log tbody td:not([data-label]) {
     max-width: none;
     overflow: visible;
+    text-overflow: clip;
     white-space: normal;
   }
 

@@ -308,7 +308,10 @@ function draw(
   // it has its number set aft of the hull, at its lift's mid-depth, with a leader to the plank.
   const drawn = ghost ? PLANKS.filter((plank) => seats.has(plank.id)) : PLANKS;
   const planks = drawn.map((plank): PlankShape => {
-    const [x0, y0] = P(plank.x0, plank.yTop);
+    // The deck lift's box starts above the hull for the outline to cut. The ghost's box hugs the
+    // hull, so there it starts at the hull's top, the bow tip (y = 0): the cut plank is the same,
+    // and the path stays inside the drawing.
+    const [x0, y0] = P(plank.x0, ghost ? Math.max(plank.yTop, 0) : plank.yTop);
     const [x1, y1] = P(plank.x1, plank.yBot);
     const sprint = seats.get(plank.id);
     if (layout.numbers && sprint !== undefined) {
