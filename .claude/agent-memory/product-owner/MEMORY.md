@@ -10,7 +10,7 @@
 - An "axe pass" contract targets what axe can't see (keyboard order, the skip link, forced colors), since axe was already clean (sprint 4).
 - A redesign's first sprint leaves out controls and links whose targets don't exist yet: a control that changes nothing, or a link into a 404, costs the visitor (sprint 22, `.crew/sprint/22/contract.md`).
 - Fixed Tab bounds in specs (`keyboard.spec.ts`'s `tabUntil` of 12) cap how many links a new header can add, so count the stops in the contract (sprint 22).
-- Retros hold no dates, so anything dated needs the sprint skill (an owner path) or GitHub (sprint 22).
+- A retro can't carry its own merge time: it's written in the PR before the merge and the crew never pushes main, so a date is recorded afterward by the next run; the squash commit's date equals GitHub's `merged_at` (`.crew/sprint/29/b5-plan.md`, "The dates").
 - A budget no spec measures goes unenforced: B1's script-bytes budget had no check until B2.10, so give every budget a named check or mark it reported (`.crew/sprint/23/contract.md`).
 - Guards read source as well as pages: B1.10 wants each next/font import exactly once in `app/`, so a second route on the display face shares one declaration (`.crew/sprint/23/contract.md`).
 - Specs that select by structure (`section li`, its `h3`, one link) survive a card-to-row redesign when the contract states those hooks as data rules; only the tests about the old object retire (1 of 93 in `.crew/sprint/23/contract.md`).
@@ -20,3 +20,5 @@
 - A live layer that is server-rendered from a cached read adds no script bytes, because B2.10 counts only script files: `/` can show the crew's state without reopening its 10 B, as long as nothing new is hydrated (`.crew/sprint/28/b4-plan.md`).
 - The default e2e server has no feed URL, so every guard on `/` keeps passing unedited in the feed-down state; feed-dependent states get new checks from fixtures of the contract's shape instead of rewritten guards (`.crew/sprint/28/b4-plan.md`).
 - Check an approved frame's copy against what the source really publishes: `crew-1440.webp`'s "Never prompts" is false of the Studio, which publishes briefs, so honesty copy goes to the owner before the build (`.crew/sprint/28/feed-contract.md`, decision 5).
+- Count a spec's tests with `playwright test --list` before sorting them into keep, rewrite and retire: the brief said 50 and Atlas 54 for `/sprints`, and there were 60 plus 5 (`.crew/sprint/29/b5-first-contract.md`).
+- Settle a routing question with a scratch build of main before the contract, in a worktree with its own `pnpm install` (Turbopack refuses symlinked `node_modules`): it showed static records with a 404 for unknowns, and a 308 redirect, under `cacheComponents` (`.crew/sprint/29/b5-plan.md`).

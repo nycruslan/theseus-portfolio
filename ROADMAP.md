@@ -124,6 +124,26 @@ page, and B3, the signature moment.
   - [ ] B4.5 (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
     the pace.
 - [ ] B5: `/log` and the ghost hull.
+  - [x] Sprint 29 (M, notes only): Quill's plan, B5 as three M sprints
+    (`.crew/sprint/29/b5-plan.md`), and B5a's contract ready for Probe and Forge
+    (`.crew/sprint/29/b5-first-contract.md`). Taken beside B4 while #75 waits for the owner, since
+    B5 reads the retros on main, not the Studio, and no B5 sprint waits for B4
+    (`.crew/sprint/29/decisions.md`, 2). (PR #76, built in one run on 2026-10-24.) Answered here:
+    the "group the build log past about 30 entries" rider (one table, 89 px a row at 390, no
+    paging; day groups with B5b) and Lens's C9.5 selector nit (rides B5a).
+  - [ ] B5a (M): `/log` in 2D: the ghost hull in vellum (the 22 originals, each numbered by the
+    first sprint that took it out), "Every revision" as a table of every merged sprint, a record
+    per revision at `/log/<n>`, `/sprints` answering 308 to `/log`. **Waits for the owner:** batch
+    F retires 23 tests and two assertions about `/sprints`' old column. Iris first: the ghost's
+    composition and `--vellum`, the record's place, the lede.
+  - [ ] B5b (M): the merge record, `.crew/sprint/<n>/merge.json`, written by a crew script after
+    each merge (owner path, with the skill's step, so its PR waits for the owner): the Merged
+    column grouped by day, the time on each record, the lines figure. Opens by measuring whether
+    Vercel's build has `.git`. Owner calls: closed sprints' rows; a public `design` retro field
+    for Iris's score.
+  - [ ] B5c (M): the ghost hull in 3D on `/log` under Full/Calm/Off, the control in `/log`'s bar,
+    a plank opening its record (Pixel). Whichever of B4.4 and B5c comes first mounts the model on a
+    second route. Lens's nit on #74 rides here if B4.4 hasn't taken it.
 
 Riding along with the sprints that touch the same code:
 - With the next sprint that touches the facts or the fonts: Lens's nit on PR #67 still open (the
