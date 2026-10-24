@@ -25,7 +25,7 @@ preview.
 
 B4.1 to B4.14, which Probe wrote first and which failed on main, now pass. #77's checks have been
 rewritten for the new bar. After the merge with main, `pnpm verify` passes and the full e2e suite
-passes 180 of 180 (74dd3fd). RESULT_PLACEHOLDER
+passes 180 of 180 (74dd3fd). After the fix round, verify passes and the suite passes 180 of 180 again (e389e1a, with only notes after it).
 
 ### Merged with #77
 
