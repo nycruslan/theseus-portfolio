@@ -1,0 +1,335 @@
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
+import {
+  cpSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
+import type { IncomingMessage } from "node:http";
+import { createServer, type Server } from "node:https";
+import { createServer as createNetServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// The crew feed's harness (.crew/sprint/31/contract.md, "Data rules"; the feed's shape is
+// .crew/sprint/28/feed-contract.md). Nothing in the cloud or in CI can reach the Studio, so the
+// checks serve fixtures of the feed's shape from a server of their own and point a `next start` of
+// their own at it through CREW_FEED_URL. The suite's one webServer has no feed URL: it is the down
+// state.
+//
+// - The feed is served over https with a certificate made for the run (openssl), since the run's
+//   link "This run on the Studio" is shown only for an https URL on the feed's own origin. The
+//   fixtures name the Studio's production origin and the server swaps in its own as it answers.
+// - Each site runs from a temporary folder: a copy of the checkout's `.next` and links to
+//   everything else, so a page it regenerates from a fixture never lands in the `.next` the suite's
+//   webServer serves, and two sites never share a cache.
+// - The fixtures' edge cases, each one a data rule: in live.json a quoted now line, a role entry
+//   with an unknown key, one with an unknown state and a second entry for a key (all dropped), a
+//   moment of an unknown kind, one whose `at` doesn't parse and one with no text (dropped), one
+//   whose `who` isn't a roster key (kept), one with markup in its text, and one on the day before
+//   the newest; in open.json a working role (Waiting when not live), a PR of another repository and
+//   a run URL on another origin (neither linked), moments out of order; in resting.json a waiting
+//   and a working role (Done at rest) and a PR whose URL's number isn't its own (not linked).
+
+/** The feed's three fixture states (e2e/fixtures/crew). */
+export type Fixture = "live" | "open" | "resting";
+
+/** What a channel answers: a fixture, as it is or patched, or an error, fresh or late or stale. */
+export type Answer = {
+  fixture: Fixture;
+  /** 200 serves the fixture; anything else answers `{ "error": … }` with no-store, as the Studio. */
+  status: number;
+  /** How old `asOf` is when served, in ms: over 600,000 is stale (the contract's down rule). */
+  ageMs: number;
+  /** How long the answer waits before it is sent, in ms: over 2,000 is down. */
+  delayMs: number;
+  /** Shallow merges applied to the fixture, by top-level key, then by `current`'s and `last`'s. */
+  patch?: {
+    top?: Record<string, unknown>;
+    current?: Record<string, unknown>;
+    last?: Record<string, unknown>;
+  };
+  /** A body sent instead of the fixture, verbatim (bad JSON, a wrong shape). */
+  raw?: string;
+};
+
+/** The origin the fixtures name for the Studio's run pages; the server answers with its own. */
+const FIXTURE_STUDIO = "https://theseus-studio.vercel.app";
+const ROOT = process.cwd();
+const OPENSSL = process.env.OPENSSL_BIN || "openssl";
+const FIXTURES = join(ROOT, "e2e", "fixtures", "crew");
+
+/** A free TCP port on this machine, from the OS. */
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createNetServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      const port = typeof address === "object" && address ? address.port : 0;
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+export type Feed = {
+  origin: string;
+  /** The CA file a site trusts the feed's certificate through (NODE_EXTRA_CA_CERTS). */
+  ca: string;
+  /** Sets a channel's answer (a new channel starts as the live fixture) and returns its URL. */
+  set(channel: string, answer?: Partial<Answer>): string;
+  /** The body a channel would answer now, as JSON, for the oracle (the fixture after its patch). */
+  body(channel: string): Record<string, unknown>;
+  /** How many reads the channel has answered. */
+  reads(channel: string): number;
+  stop(): Promise<void>;
+};
+
+/**
+ * Starts the fixture server: `GET /<channel>/api/crew` answers as the channel is set, with the
+ * Studio's headers; `POST /<channel>/control` with a JSON `Answer` sets it from outside the run.
+ */
+export async function startFeed(): Promise<Feed> {
+  const dir = mkdtempSync(join(tmpdir(), "crew-feed-"));
+  const key = join(dir, "key.pem");
+  const cert = join(dir, "cert.pem");
+  // openssl is on every machine the suite runs on (CI's Ubuntu, the cloud's sessions, macOS).
+  execFileSync(
+    OPENSSL,
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "ec",
+      "-pkeyopt",
+      "ec_paramgen_curve:prime256v1",
+      "-nodes",
+      "-days",
+      "2",
+      "-subj",
+      "/CN=127.0.0.1",
+      "-addext",
+      "subjectAltName=IP:127.0.0.1",
+      "-keyout",
+      key,
+      "-out",
+      cert,
+    ],
+    { stdio: "ignore" },
+  );
+  const port = await freePort();
+  const origin = `https://127.0.0.1:${port}`;
+  const channels = new Map<string, Answer>();
+  const counts = new Map<string, number>();
+
+  const body = (channel: string) => {
+    const answer = channels.get(channel);
+    if (!answer) throw new Error(`no channel ${channel}`);
+    const text = readFileSync(
+      join(FIXTURES, `${answer.fixture}.json`),
+      "utf8",
+    ).replaceAll(FIXTURE_STUDIO, origin);
+    const feed = JSON.parse(text) as Record<string, unknown>;
+    feed.asOf = new Date(Date.now() - answer.ageMs).toISOString();
+    for (const part of ["current", "last"] as const) {
+      const value = feed[part];
+      const patch = answer.patch?.[part];
+      if (patch && value && typeof value === "object") {
+        feed[part] = { ...value, ...patch };
+      }
+    }
+    return { ...feed, ...answer.patch?.top };
+  };
+
+  const readBody = (request: IncomingMessage) =>
+    new Promise<string>((resolve) => {
+      let data = "";
+      request.on("data", (chunk: Buffer) => {
+        data += chunk;
+      });
+      request.on("end", () => resolve(data));
+    });
+
+  const server: Server = createServer(
+    { key: readFileSync(key), cert: readFileSync(cert) },
+    async (request, response) => {
+      const match = (request.url ?? "").match(
+        /^\/([\w-]+)\/(api\/crew|control)$/,
+      );
+      const channel = match?.[1] ?? "";
+      if (match?.[2] === "control" && request.method === "POST") {
+        const answer = JSON.parse(await readBody(request)) as Partial<Answer>;
+        set(channel, answer);
+        response.writeHead(204).end();
+        return;
+      }
+      const answer = channels.get(channel);
+      if (!match || request.method !== "GET" || !answer) {
+        response.writeHead(404, { "content-type": "application/json" });
+        response.end('{"error":"Not found"}');
+        return;
+      }
+      counts.set(channel, (counts.get(channel) ?? 0) + 1);
+      if (answer.delayMs > 0) await pause(answer.delayMs);
+      if (answer.status !== 200) {
+        response.writeHead(answer.status, {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+        });
+        response.end('{"error":"The telling failed"}');
+        return;
+      }
+      response.writeHead(200, {
+        "content-type": "application/json",
+        "cache-control":
+          "public, max-age=0, s-maxage=15, stale-while-revalidate=45",
+      });
+      response.end(answer.raw ?? JSON.stringify(body(channel)));
+    },
+  );
+  await new Promise<void>((resolve) =>
+    server.listen(port, "127.0.0.1", resolve),
+  );
+
+  function set(channel: string, answer: Partial<Answer> = {}) {
+    const was = channels.get(channel) ?? {
+      fixture: "live",
+      status: 200,
+      ageMs: 0,
+      delayMs: 0,
+    };
+    channels.set(channel, { ...was, ...answer });
+    return `${origin}/${channel}/api/crew`;
+  }
+
+  return {
+    origin,
+    ca: cert,
+    set,
+    body,
+    reads: (channel) => counts.get(channel) ?? 0,
+    stop: () =>
+      new Promise((resolve) => {
+        server.closeAllConnections();
+        server.close(() => {
+          rmSync(dir, { recursive: true, force: true });
+          resolve();
+        });
+      }),
+  };
+}
+
+export type Site = {
+  baseURL: string;
+  /** What the server printed, for a failure's message. */
+  log(): string;
+  stop(): Promise<void>;
+};
+
+/**
+ * Starts `next start` on the checkout's build from a folder of its own, with CREW_FEED_URL set
+ * (unset when `feedUrl` is null) and the server's clock in New York, so a time shown in the
+ * server's zone instead of UTC is off by hours and, near midnight, by a day.
+ */
+export async function startSite(
+  feedUrl: string | null,
+  ca?: string,
+): Promise<Site> {
+  const dir = mkdtempSync(join(tmpdir(), "crew-site-"));
+  for (const entry of readdirSync(ROOT)) {
+    if (entry === ".next") continue;
+    symlinkSync(join(ROOT, entry), join(dir, entry));
+  }
+  cpSync(join(ROOT, ".next"), join(dir, ".next"), {
+    recursive: true,
+    filter: (source) => !source.startsWith(join(ROOT, ".next", "cache")),
+  });
+  const port = await freePort();
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    TZ: "America/New_York",
+    NODE_ENV: "production",
+  };
+  delete env.CREW_FEED_URL;
+  if (feedUrl !== null) env.CREW_FEED_URL = feedUrl;
+  if (ca) env.NODE_EXTRA_CA_CERTS = ca;
+  let output = "";
+  // Its own process group, so stopping it stops the next-server child too (.crew/STATE.md).
+  const child: ChildProcess = spawn(
+    process.execPath,
+    [
+      join(ROOT, "node_modules", "next", "dist", "bin", "next"),
+      "start",
+      "--port",
+      String(port),
+    ],
+    { cwd: dir, env, detached: true, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  child.stdout?.on("data", (chunk) => {
+    output += chunk;
+  });
+  child.stderr?.on("data", (chunk) => {
+    output += chunk;
+  });
+  const baseURL = `http://127.0.0.1:${port}`;
+  const stop = async () => {
+    if (child.pid && child.exitCode === null) {
+      const exited = new Promise((done) => child.once("exit", done));
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch {
+        // Already gone.
+      }
+      await Promise.race([exited, pause(5000)]);
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        // Gone after SIGTERM, as it should be.
+      }
+    }
+    rmSync(dir, { recursive: true, force: true });
+  };
+  const started = Date.now();
+  while (Date.now() - started < 60_000) {
+    if (child.exitCode !== null) break;
+    const up = await fetch(`${baseURL}/robots.txt`)
+      .then((r) => r.ok)
+      .catch(() => false);
+    if (up) return { baseURL, log: () => output, stop };
+    await pause(200);
+  }
+  await stop();
+  throw new Error(`next start didn't answer on ${baseURL}:\n${output}`);
+}
+
+/** The state `/crew` shows: `[data-crew-state]` in its HTML, or what answered instead. */
+async function servedState(baseURL: string) {
+  const response = await fetch(`${baseURL}/crew`).catch(() => null);
+  if (!response) return "no answer";
+  const html = await response.text();
+  const state = html.match(/data-crew-state="([^"]*)"/)?.[1];
+  return state ?? `${response.status} without [data-crew-state]`;
+}
+
+/**
+ * Reads `/crew` until it shows `expected`, at most `timeout` ms: a site built without a feed URL
+ * serves the build's prerender (down) until the cached read revalidates (the contract's harness).
+ * Returns how long it took and what it showed last.
+ */
+export async function untilState(
+  baseURL: string,
+  expected: string,
+  timeout = 45_000,
+) {
+  const started = Date.now();
+  let seen = await servedState(baseURL);
+  while (seen !== expected && Date.now() - started < timeout) {
+    await pause(1000);
+    seen = await servedState(baseURL);
+  }
+  return { seen, ms: Date.now() - started };
+}
