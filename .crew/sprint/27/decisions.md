@@ -79,3 +79,22 @@
     (the foot slot's top 12 px, which Iris's −12 px margin puts inside the drawing's box). The
     control isn't the hand-off, so the compare masks the shown `[data-motion]` slot with the
     assertions unchanged; Probe makes the edit, since builders don't edit `e2e/`.
+
+12. **Iris's early look: one must, taken; Forge's three departures, accepted.** In forced colours
+    Chromium painted its Canvas backplate behind the pressed button's `HighlightText` label, so
+    "Full" was a solid block at every width in both system themes; her rule, `forced-color-adjust:
+    none` with `Highlight` on the background, border and outline, is in as written (`f9a1b6c`).
+    Accepted: `Highlight`/`HighlightText` without the `SelectedItem` pair (biome refuses duplicate
+    declarations and Chromium paints both alike); disabled Full and Calm in `--muted` with their
+    ink frames (unavailable without hiding the choice); `<fieldset aria-label="Motion">` for the
+    group, rendered into both slots with the hidden one `display: none`. Her loft-band measurement
+    stands: the hull and shadow stay 47 px clear of the foot slot at 390 and 320 over the whole
+    loft, so the slot's −12 px margin costs nothing.
+
+13. **The fallback face's cause was next/font's one-source fallback, not a fit.** Forge found the
+    condensed face's fallback had `local(Arial)` as its only source, which Linux and Android don't
+    have, so a cold first paint there drew the wordmark and the name in the generic sans at full
+    size; the fix is an explicit face carrying next/font's metrics over Arial, Liberation Sans,
+    Arimo and Roboto (`624a149`), plus `white-space: nowrap` on the bar's links. Iris's section 8
+    (a `size-adjust` fitted to "Theseus") is corrected in her review. The text face's fallback has
+    the same one source and fit anyway (its links ran 7 px wider): a follow-up.
