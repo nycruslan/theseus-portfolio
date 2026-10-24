@@ -3,19 +3,19 @@
   "asOf": "2026-10-24T05:00:00.000Z",
   "current": null,
   "last": {
-    "sprint": 31,
-    "goal": "The crew's page, /crew, from the Studio's feed",
+    "sprint": 29,
+    "goal": "B5's plan, and B5a's contract: /log, the ghost hull and a record per revision",
     "live": false,
     "startedAt": "2026-10-24T00:05:03.000Z",
     "lastEventAt": "2026-10-24T02:55:30.000Z",
     "pr": {
-      "number": 78,
-      "url": "https://github.com/nycruslan/theseus-portfolio/pull/77"
+      "number": 76,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/75"
     },
     "health": {
       "state": "shipped",
-      "label": "Shipped · PR #78",
-      "line": "The owner merged PR #78 on GitHub.",
+      "label": "Shipped · PR #76",
+      "line": "The owner merged PR #76 on GitHub.",
       "quote": false
     },
     "now": null,
@@ -23,7 +23,7 @@
       {
         "role": "lead",
         "state": "done",
-        "line": "Merged PR #78"
+        "line": "Merged PR #76"
       },
       {
         "role": "product-owner",
@@ -67,7 +67,7 @@
         "kind": "merge",
         "at": "2026-10-24T02:47:00.000Z",
         "who": null,
-        "text": "PR #78 merged"
+        "text": "PR #76 merged"
       },
       {
         "kind": "gate",
@@ -103,7 +103,7 @@
         "kind": "pr",
         "at": "2026-10-24T00:46:55.000Z",
         "who": "lead",
-        "text": "PR #78 opened"
+        "text": "PR #76 opened"
       },
       {
         "kind": "ticket",
@@ -118,7 +118,7 @@
         "text": "Sprint started"
       }
     ],
-    "url": "https://theseus-studio.vercel.app/studio/runs/run-31",
+    "url": "https://theseus-studio.vercel.app/studio/runs/run-29",
     "endedAt": "2026-10-24T02:55:30.000Z",
     "mergedAt": "2026-10-24T02:47:00.000Z"
   }

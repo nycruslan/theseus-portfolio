@@ -8,14 +8,14 @@
     "startedAt": "2026-10-23T23:55:03.000Z",
     "lastEventAt": "2026-10-24T01:58:40.000Z",
     "pr": {
-      "number": 78,
-      "url": "https://github.com/nycruslan/theseus-portfolio/pull/78"
+      "number": 76,
+      "url": "https://github.com/someone/else/pull/76"
     },
     "health": {
       "state": "working",
       "label": "Working",
       "line": "Briefing Probe on the fixtures, then the harness.",
-      "quote": true
+      "quote": false
     },
     "now": "Briefing Probe on the fixtures, then the harness.",
     "roles": [
@@ -88,7 +88,7 @@
         "kind": "report",
         "at": "2026-10-24T01:40:02.000Z",
         "who": "engineer",
-        "text": "Forge measured the cache: <b>bold</b> &amp; more"
+        "text": "<b>bold</b> &amp; more"
       },
       {
         "kind": "decision",

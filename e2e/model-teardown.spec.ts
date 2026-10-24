@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { horizontalOverflow } from "./helpers";
 import {
-  BAR,
   CANVAS,
   canvasFit,
   capAt,
@@ -19,6 +18,7 @@ import { type ModelRun, openModel } from "./webgl";
 // loading; this adds what's new: nothing in `[data-model]` is hit, Read as page and Back leave one
 // context and a settled model, at 1440 and at 390, and a resize refits the canvas within a drawing
 // and re-registers the model, settled, on the other drawing across 768 px, with no layout shift.
+// Sprint 31 (.crew/sprint/31/contract.md): Read as page is followed where it is shown.
 
 /** Points over `[data-model]`'s box, inside the viewport, whose hit element is inside it. */
 function hitsInModel(run: ModelRun) {
@@ -94,7 +94,11 @@ async function visitAndBack(run: ModelRun, where: string) {
   const requestsBefore = (await run.requests()).length;
   const framesBefore = (await run.frames()).length;
   const statesBefore = (await run.states()).length;
-  await run.page.locator(`${BAR} a[href="/read"]`).click();
+  // Sprint 31 (.crew/sprint/31/contract.md, B4a): below 768 Read as page is shown at the drawing's
+  // foot, not in the bar; the one shown is the one a visitor follows (the bar's at 1440).
+  const read = run.page.locator('a[href="/read"]:visible');
+  await expect(read, `the shown Read as page, ${where}`).toHaveCount(1);
+  await read.click();
   await run.page.waitForURL("**/read");
   await pause(2000);
   const same = await run.page.evaluate(
