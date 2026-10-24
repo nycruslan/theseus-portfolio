@@ -73,10 +73,12 @@ function press(mode: Mode) {
 const LABELS = ["Full", "Calm", "Off"];
 
 /**
- * Full, Calm, Off (.crew/sprint/27/contract.md, "The control"): three pressed-or-not buttons in the
- * bar's slot. They only exist where scripts run, since without them none could do anything: the
- * server and the hydrating render draw the slot empty, at the group's size, so nothing moves when
- * they arrive (app/globals.css, "The motion control").
+ * Full, Calm, Off (.crew/sprint/27/contract.md, "The control"): three pressed-or-not buttons in a
+ * slot. There are two, the bar's (from 768 px) and the drawing's foot (below it, app/page.tsx), and
+ * each renders this; CSS shows one, and the other's buttons, display: none, are no Tab stops. They
+ * only exist where scripts run, since without them none could do anything: the server and the
+ * hydrating render draw the slot empty, at the group's size, so nothing moves when they arrive
+ * (app/globals.css, "The motion control").
  */
 export function MotionControl() {
   "use no memo";
