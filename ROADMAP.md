@@ -98,7 +98,31 @@ page, and B3, the signature moment.
     the next sprint that touches the fonts); in forced colours with the model refused the control shows Full
     or Calm pressed while nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client
     code reopens the script budget with the owner.
-- [ ] B4: `/crew`, the crew at work, from the Studio's data.
+- [ ] B4: `/crew`, the crew at work, from the Studio's data. **It waits for the owner's feed:**
+  the Studio serves no read a third party can use (its own roadmap lists the API as unbuilt), so
+  nothing of B4 ships before it (`.crew/sprint/28/b4-plan.md`, "Before the feed"; decision 7).
+  - [x] Sprint 28 (M, notes only): Quill's plan, B4 as five M sprints
+    (`.crew/sprint/28/b4-plan.md`), and the feed's contract for the owner to build in the Studio,
+    one endpoint `GET /api/crew` with every field traced to a Studio derivation
+    (`.crew/sprint/28/feed-contract.md`). (PR #75, built in one run on 2026-10-24.) **Its PR waits
+    for the owner:** approving its head means "build the feed to this contract", with the
+    contract's seven calls (the URL, `CREW_FEED_URL` on Vercel, no CORS, the now line's quotes, the
+    Rules copy, the proxy rule, the Studio link). Once approved, B4.1 may start against the
+    contract's fixtures before the feed is deployed, and merges only once the feed answers on its
+    preview.
+  - [ ] B4.1 (M): `/crew` from the feed, server-rendered, the four states (live, open, resting,
+    feed down), the Crew link, the phone bar re-laid as `rest-390.webp` draws it. Waits for the
+    owner (Read as page moves below 768 px; `CREW_FEED_URL`). Iris: Read as page's place on `/crew`
+    below 768, the moment kinds' wording.
+  - [ ] B4.2 (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
+    rest line with the merge time, 0 B of new script. Iris: the fold trade at 1440 × 900. The B4
+    demo.
+  - [ ] B4.3 (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
+    "Pause updates" (WCAG 2.2.2) and its own script budget.
+  - [ ] B4.4 (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
+    joins `/crew`'s bar. Lens's nit on #74 rides here, or with B4.2 if it touches the loader.
+  - [ ] B4.5 (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
+    the pace.
 - [ ] B5: `/log` and the ghost hull.
   - [x] Sprint 29 (M, notes only): Quill's plan, B5 as three M sprints
     (`.crew/sprint/29/b5-plan.md`), and B5a's contract ready for Probe and Forge
@@ -139,8 +163,8 @@ Riding along with the sprints that touch the same code:
   Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
   rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
   (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).
-- B4's contract re-lays the phone bar: a fifth link (Crew) doesn't fit the row at 16 px (Iris,
-  sprint 23).
+- B4.1's contract re-lays the phone bar: a fifth link (Crew) doesn't fit the row at 16 px (Iris,
+  sprint 23); `rest-390.webp` moves Read as page to the drawing's foot (`.crew/sprint/28/b4-plan.md`).
 
 ## Done
 

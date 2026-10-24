@@ -1,0 +1,63 @@
+{
+  "sprint": 28,
+  "pr": 75,
+  "goal": "B4's plan, and the feed the Studio has to serve for /crew",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "needs-owner: Lens ship on e169cfd with no fix round and two nits taken in the close-out; the PR waits for the owner to approve the feed's contract, which is their work in the Studio; nothing of B4 ships before the feed",
+  "fixRounds": 0,
+  "minutes": 29,
+  "agents": [
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 214778,
+      "minutes": 15
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 501481,
+    "important": 0,
+    "actedOn": 2,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "B4's roadmap line assumed a Studio feed that was never specified or built, so the sprint became a plan",
+      "evidence": "The Studio's public reads are /api/runs/<id>/stream (one run by id) and /api/site?run=; nothing lists runs or names the live one, and its ROADMAP.md lists 'Serve the portfolio's /crew (redesign B4)' as unbuilt; read from a read-only clone at 64347d6 (decisions 2 and 3)"
+    },
+    {
+      "what": "The approved crew frame's Rules row says 'Never prompts', which isn't true of what the Studio publishes",
+      "evidence": "The Studio's lib/redact.ts says hook payloads carry the crew's commands, briefs and errors, and its run pages show briefs; the copy goes to the owner as the feed contract's decision 5"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In the cloud environment's network policy, allow the crew's sessions GET on theseus-studio.vercel.app/api/crew once it exists (today only /api/ingest is allowed)",
+      "moves": "A session could check the feed's real shape against the fixtures, which today only the owner can see on a preview; every B4 sprint would otherwise ship its checks on fixtures alone"
+    },
+    {
+      "change": "Sprint 27's proposals stand (ci.yml's timeout-minutes, scope.mjs's wrapped expects, the commit author rule, sprint 26's four): none is applied yet",
+      "moves": "Unchanged"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "Build GET /api/crew in the Studio to .crew/sprint/28/feed-contract.md and take its seven calls (URL, CREW_FEED_URL on Vercel for Production and Preview, no CORS, the now line's quotes, the Rules copy, the proxy rule, the Studio link); approving #75's head is 'build this'"
+    },
+    {
+      "who": "Atlas",
+      "what": "B4.1 starts on the contract's approval against its fixtures and merges only once the feed answers on its preview (decision 7); its contract re-lays the phone bar and rewrites B2.3 and the keyboard's 15th stop"
+    },
+    {
+      "who": "Iris",
+      "what": "In B4.1, Read as page's place on /crew below 768 px and plain wording of the moment kinds; in B4.2 the fold trade at 1440 × 900 (a revision row for the rest line, or the rest line in the footer row); in B4.3 the Pause updates toggle; in B4.5 the replay's pace"
+    },
+    {
+      "who": "Atlas",
+      "what": ".crew/STATE.md is 124 lines against its 'about 100': fold the older environment and browser lessons at the next close-out"
+    }
+  ]
+}

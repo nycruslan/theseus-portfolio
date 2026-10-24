@@ -36,3 +36,10 @@
    `probe/30`; Iris 4720 to 4729 in `/home/user/wt-iris-30`; Forge 4730 to 4739 in
    `/home/user/wt-forge-30` on `forge/30`. Roles push after every commit; Atlas cherry-picks onto
    `sprint/30-b5a-log` as commits land and pushes, so nothing is lost with the container.
+
+7. **Main merged into the branch after the owner's approval.** #75 (sprint 28, notes only) merged
+   at 19:3x UTC on 2026-10-24 and conflicted with this sprint's `ROADMAP.md` tick in the riders
+   list. Resolved keeping main's B4.1 line (the newer wording) and this sprint's deletion of the
+   `/sprints` rider, which B5a answered (the B5a tick records it). No product code was on either
+   side, so Lens's ship and the suite's result hold; the head changed, so `gate` asks the owner
+   again.

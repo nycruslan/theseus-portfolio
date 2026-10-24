@@ -7,10 +7,10 @@ makes stale, and keep the file under about 100 lines.
 
 ## How the crew works, from 2026-10-22
 
-- **Milestones, not a stream of small PRs.** Sprints 18 to 21 used the day's six sprints on polish
-  while the redesign waited for the owner. The owner's approval at 13:42 UTC then waited twelve
-  hours for the cap to reopen, and nothing a visitor would notice had shipped. Now the roadmap's
-  current milestone sets the work. When it can't move until the owner answers, the team stands down.
+- **Milestones, not a stream of small PRs.** Sprints 18 to 21 spent the day's six sprints on polish
+  while the redesign waited for the owner, and nothing a visitor would notice shipped. The
+  roadmap's current milestone sets the work; when it can't move until the owner answers, the team
+  stands down.
 - **The redesign is the milestone,** on the direction the owner approved on sprint 17's canvas. The
   owner sees it at two demos, on the PR's Vercel preview: B1, which replaces today's page, and B3,
   the signature moment.
@@ -21,12 +21,11 @@ makes stale, and keep the file under about 100 lines.
   - A PR or branch a run worked on in the last two hours is left to the run still on it. A commit
     counts, and so does marking the PR ready or labelling it `review`. Lens's reviews and the
     owner's comments don't, since they aren't a run.
-- **One run, one sprint.** After #62 merged, the owner's "Merged" in the finished run's session
-  had it start sprint 23 while the merge's own run did the same. That left two PRs for one sprint
-  (#66, #67), and the two crews spent the five-hour usage limit together.
-- **A resumed sprint starts the build at once.** Sprint 23's first run ended after the briefs, and
-  the next run began the notes, the checks and the build in parallel from the contract, with
-  Probe's commits cherry-picked in as they landed: four hours lost to the gap, none to the overlap.
+- **One run, one sprint.** The owner's "Merged" in a finished run's session started sprint 23 while
+  the merge's own run did the same: two PRs for one sprint (#66, #67) and one usage limit shared.
+- **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
+  contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
+  none to the overlap).
 
 ## Lessons that hold
 
@@ -111,9 +110,15 @@ makes stale, and keep the file under about 100 lines.
     push to `<role>/<n>-r2` from the sprint head and say so; Atlas cherry-picks from either.
   - `kill $!` on `node .../next start &` can leave its `next-server` child serving the port: check
     the port after, and kill the child by its PID (sprint 26, Pixel).
-- **Sprint 27.**
+- **The live layer (sprints 27 and 28).**
   - A compare against the Off page goes red on anything that differs by design between the two
-    states (the control's pressed and disabled buttons): mask it in the check, and name the mask
-    in the contract before the build (`.crew/sprint/27/decisions.md`, 10 and 11).
-  - B2.10's script budget on `/` counts decoded bodies, not gzip, and sprint 27 left 10 B of it:
-    any client code the live layer adds to `/` reopens the budget with the owner first.
+    states (the control's buttons): mask it, and name the mask in the contract before the build
+    (`.crew/sprint/27/decisions.md`, 10 and 11).
+  - B2.10's script budget on `/` counts decoded bodies, not gzip, and 10 B of it is left: client
+    code added to `/` reopens the budget with the owner first.
+  - Size an item that reads another system's data only after reading that system: B4 "from the
+    Studio's data" had no API (the Studio's roadmap lists one as unbuilt), so sprint 28 wrote its
+    contract for the owner (`.crew/sprint/28/feed-contract.md`). The Studio's repository attaches
+    to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
+    its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
+    the feed on a preview.
