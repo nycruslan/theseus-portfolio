@@ -64,3 +64,10 @@
    composition and `--vellum` in both schemes, the record's place at 1440 and below 1024, the
    lede and an Approved key): the next run brings her in with Probe, before Forge, as the plan
    says.
+
+9. **Lens's nit, taken as a note.** Lens shipped 26706e0 with one nit: B5b's plan said B5a's checks
+   run unedited apart from B5.5's columns, while B5.6 carries C4.4's ban on the word "Merged"
+   outside the crew's own words, which B5b's Merged column and record line would break. The plan
+   now names B5.6 as B5b's second rewrite, allowing "Merged" as the column's head and the record's
+   label only, and says that loosening it is the owner's to approve on B5b's PR, which waits for
+   them anyway.

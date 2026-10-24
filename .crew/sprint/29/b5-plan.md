@@ -216,8 +216,11 @@ merge records; not in B5.
 - **Checks it adds:** each Merged cell and record time against `merge.json` (and the `HEAD` rule);
   blank, never "—", for a merged row without one; the day groups in order with their counts; the
   lines words against the newest record; the column at 1440 keeps every description on its row
-  (`/log` doesn't cut); B5a's checks unedited except B5.5's six columns, which become seven (a
-  rewrite, same assertions).
+  (`/log` doesn't cut); B5a's checks unedited except two rewrites with the same assertions:
+  B5.5's six columns become seven, and B5.6's status-word rule (C4.4: no "Merged", "Shipped" or
+  "Failed" outside the crew's own words) allows "Merged" as the column's head and the record's
+  label and nowhere else. Loosening an assertion is a weakened test under `scope.mjs`, so it is
+  the owner's to approve, on a PR that waits for them anyway (Lens's nit on sprint 29).
 - **What the owner decides on its PR:** the script and the skill step (owner paths); and whether
   closed sprints get a row (the frame's struck-through 16, "Closed unmerged"): the script can record
   closed sprint PRs, but showing their titles publishes team-written text, which is the owner's

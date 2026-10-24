@@ -50,6 +50,10 @@ There is no `contract.md`: a plan with no product code and no visitor-visible ch
 against `brief-quill.md` (decision 3). No product code changes: `pnpm verify` and the suite run as
 on main (the only files are `.crew/sprint/29/*` and Quill's memory).
 
+**Lens: ship** on `26706e0` with no fix round and one nit, taken as a note in the close-out
+(`decisions.md`, 9): B5.6's status-word rule is named as B5b's second rewrite, since its Merged
+column would otherwise break it.
+
 ## Next
 
 The next run starts B5a from `b5-first-contract.md`: Iris's notes and Probe's checks first, then
