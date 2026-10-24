@@ -15,7 +15,7 @@ const OWNER = profile.name;
 const RULES =
   "Only real events from the crew's sessions, as they happen. Its briefs and words are public; credentials are masked before anything is stored. Visitors watch: they can't start or steer the crew.";
 
-const PENDING = `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; anything they reserve waits for him.`;
+const PENDING = `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; what his rules leave to him waits for him.`;
 
 /** The told state, and the build's merged retros, newest first: the first is the record. */
 type Props = { crew: Crew; entries: SprintEntry[] };
@@ -178,7 +178,7 @@ function Evidence({
         )
       ) : (
         state !== "resting" && (
-          <span>The pull request opens at the close-out.</span>
+          <span>The pull request opens at the end of the sprint.</span>
         )
       )}
     </dd>
