@@ -111,3 +111,9 @@ makes stale, and keep the file under about 100 lines.
     push to `<role>/<n>-r2` from the sprint head and say so; Atlas cherry-picks from either.
   - `kill $!` on `node .../next start &` can leave its `next-server` child serving the port: check
     the port after, and kill the child by its PID (sprint 26, Pixel).
+- **Sprint 27.**
+  - A compare against the Off page goes red on anything that differs by design between the two
+    states (the control's pressed and disabled buttons): mask it in the check, and name the mask
+    in the contract before the build (`.crew/sprint/27/decisions.md`, 10 and 11).
+  - B2.10's script budget on `/` counts decoded bodies, not gzip, and sprint 27 left 10 B of it:
+    any client code the live layer adds to `/` reopens the budget with the owner first.

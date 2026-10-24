@@ -78,6 +78,22 @@
   --font-cond: var(--font-sofia-cond), sans-serif;
 }
 
+/* The display face's fallback (app/fonts.ts): next/font's metrics for Sofia Sans Extra Condensed over
+   Arial, taken from Arial or its metric-compatible twins (Liberation Sans on Linux, Arimo on
+   ChromeOS), else Android's Roboto, a little narrower, so the first paint without the face keeps
+   its lines on every system, not only those with Arial. */
+@font-face {
+  font-family: "Sofia Sans Extra Condensed Local";
+  src:
+    local("Arial"), local("ArialMT"), local("Liberation Sans"),
+    local("LiberationSans"), local("Arimo"), local("Arimo-Regular"),
+    local("Roboto"), local("Roboto-Regular");
+  ascent-override: 147.51%;
+  descent-override: 49.17%;
+  line-gap-override: 0%;
+  size-adjust: 61.01%;
+}
+
 /* Night watch: the same sheet under one cool lamp. The address-bar colors in app/layout.tsx repeat
    both backgrounds. A seated plank stays the brightest thing in the drawing but dark enough for its
    ink number to read on it (4.5:1 and more, contract B1.4). */
@@ -109,6 +125,133 @@ html {
 @media (width >= 64rem) {
   html {
     scroll-padding-top: 56px;
+  }
+}
+
+/*
+ * The motion control (components/model.tsx; .crew/sprint/27/contract.md, "The control", and
+ * notes-iris.md, sections 2 to 5): Full, Calm, Off, each button in a 1 px ink frame whose shared
+ * edges make the dividers, the pressed one ink with film text. It has two slots, both in the
+ * server's HTML at the group's size, so the buttons' arrival moves nothing: the bar's from 768 px,
+ * and below it a row at the drawing's foot, since the phone bar is full. Exactly one is shown.
+ * Without scripts both are empty. Neither is printed.
+ */
+nav > [data-motion] {
+  display: none;
+}
+
+/* The drawing's foot: it borrows 12 px of the drawing's own margin, and paints over the model's
+   layer, which lies on the drawing's box. */
+main > [data-motion] {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  height: 44px;
+  margin: -12px 0 12px;
+  padding: 0 16px;
+}
+
+[data-motion] fieldset {
+  display: inline-flex;
+}
+
+[data-motion] button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--foreground);
+  font-size: var(--step-base);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+[data-motion] button + button {
+  margin-left: -1px;
+}
+
+/* Its ink edges cover the neighbours' borders. No transition: the cell changes state, it doesn't
+   animate, in any mode. */
+[data-motion] [aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+[data-motion] button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* The selection tint: a full ink fill would look pressed, and an underline would say link. */
+@media (hover: hover) {
+  [data-motion] [aria-pressed="false"]:enabled:hover {
+    background: var(--rule);
+  }
+}
+
+/* The ring paints over both neighbours' borders, so each focused button shows one whole ring. */
+[data-motion] button:focus-visible {
+  position: relative;
+  z-index: 2;
+}
+
+@media (width < 22.5rem) {
+  main > [data-motion] {
+    margin-top: 0;
+  }
+
+  [data-motion] button {
+    padding: 0 12px;
+  }
+}
+
+@media (width >= 48rem) {
+  main > [data-motion] {
+    display: none;
+  }
+
+  nav > [data-motion] {
+    display: flex;
+    justify-content: flex-end;
+    width: 186px;
+    height: 44px;
+  }
+}
+
+/* The approved frame's group: 32 px tall at the bar's right end, a step smaller than the links. */
+@media (width >= 64rem) {
+  nav > [data-motion] {
+    width: 142px;
+    height: 32px;
+  }
+
+  [data-motion] button {
+    padding: 0 12px;
+    font-size: var(--step-sm);
+  }
+}
+
+/* The system repaints the ink fill as the buttons' own ground, so pressed takes the selection's
+   colours, its frame included, which also sets it apart from the others' rules. Highlight rather
+   than SelectedItem: every forced-colours browser has it, and Chromium paints both alike. Left to
+   the system, Chromium backs the label with a Canvas plate, white under white HighlightText, so
+   the button sets its own system colours, its focus ring's included (else var(--foreground)). */
+@media (forced-colors: active) {
+  [data-motion] [aria-pressed="true"] {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+    outline-color: Highlight;
+  }
+}
+
+@media print {
+  main > [data-motion] {
+    display: none;
   }
 }
 
@@ -354,6 +497,9 @@ html {
   inset: 0;
   grid-area: 1 / 1 / 2 / -1;
   pointer-events: none;
+  /* The canvas can keep the old drawing's size for the frames a crossing waits, or after a lost
+     context: it never shows past the layer (Lens, #73). */
+  overflow: clip;
 }
 
 main:has(> [data-model]) {

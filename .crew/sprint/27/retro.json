@@ -1,0 +1,87 @@
+{
+  "sprint": 27,
+  "pr": 74,
+  "goal": "The Full, Calm, Off control, remembered on the device; Off downloads no 3D",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 83a23dd with no fix round (one nit riding with the next sprint that touches the loader), after its first run died with no verdict and CI's 15-minute cap cancelled the suite, both re-run under the owner's login three hours later; Iris ship 9.0/10 with her early-look must in the build; 166 of 166 checks",
+  "fixRounds": 0,
+  "minutes": 261,
+  "agents": [
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 352890,
+      "minutes": 71
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 296074,
+      "minutes": 81
+    },
+    {
+      "role": "design-director",
+      "model": "fable",
+      "tokens": 373997,
+      "minutes": 56
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 4468249,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 1
+  },
+  "wentWrong": [
+    {
+      "what": "The contract read B2.10's script budget as gzip; the check sums decoded bodies",
+      "evidence": "e2e/read.spec.ts sums response.body() lengths against 2,048 B; Forge's first measure was 2,395 B decoded over /sprints' (1,212 B gzip), so the store, control and loader were cut from 3,028 to 2,038 B (one module, no React Compiler memo cache) before the layout started; decision 9"
+    },
+    {
+      "what": "Two pixel compares against the WebGL-refused page went red on the control, which differs by design",
+      "evidence": "B3.19 read 309 px at 390 (Full and Calm disabled in --muted on the refused page, enabled in ink with off stored) and B3.1's hand-off 2,738 bar px at 1440 and 4,884 device px at 390 once Iris's placement put the slot inside the sheet; amendments 2 and 3 mask the shown slot, one extra Probe round"
+    },
+    {
+      "what": "The head's Lens run died with no verdict and CI's 15-minute cap cancelled its suite; both waited three hours for a re-run",
+      "evidence": "lens attempt 1 on 83a23dd failed at 00:19 UTC after 12 turns and 1.7 min with \"no verdict\"; CI attempt 1 started 00:17:28 and was cancelled at 00:32:59 by ci.yml's timeout-minutes 15 (Atlas's own run of the same suite took 10.9 min); the owner re-ran both at 03:12, and Lens shipped at 03:22 in 47 turns"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In .github/workflows/ci.yml, raise the check job's timeout-minutes from 15 to 25, or shard the e2e step across two runners (sprint 26's proposal, repeated)",
+      "moves": "Sprint 27's head lost three hours to a cancelled 15-minute run that the same code passes in 8 to 11 minutes elsewhere; it has now cancelled a close-out head in two sprints running"
+    },
+    {
+      "change": "In .crew/scope.mjs, count Biome's wrapped assertions: EXPECT becomes /\\bexpect(\\s*\\.\\s*\\w+)*\\s*\\(/gu, with a case in .crew/test/scope.test.mjs (Lens's pre-existing finding on #74)",
+      "moves": "The gate sees 580 of 1,082 assertions in e2e/ (motion.spec.ts: 22 of 145), so a wrapped `expect\\n  .soft(` deleted from a spec passes the count without a note"
+    },
+    {
+      "change": "In the sprint skill's brief rules, a role that commits in the main checkout commits as Claude <noreply@anthropic.com>, or Atlas resets the author before pushing",
+      "moves": "Iris's 9ee48c5 carried the owner's email as author and committer, and the stop hook refused the push until Atlas ran commit --amend --reset-author"
+    },
+    {
+      "change": "Sprint 26's other proposals stand (design/brief.md's Technology section as built, AGENTS.md's next-server child, the <role>/<n>-r2 branches, the PR number in ready-pr.mjs and merge.mjs): none is applied yet",
+      "moves": "This sprint's roles pushed to probe/27-r2 and killed a surviving next-server by PID by following STATE.md rather than the skill"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "The B3 demo on a phone and at 1440 on #74's preview: 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel, the dark hull under the warm lamp, the control (Calm, Off, a reload, reduced motion, a press of Full replaying), the toolbar show/hide at rest, the control's place under the drawing against hero-390.webp, and the Base label on the narrow sheet"
+    },
+    {
+      "who": "Forge",
+      "what": "The text face's fallback has the same one local(Arial) source as the condensed face had (its links ran 7 px wider with the fonts refused and fit): declare it over Arial's metric twins too, with the next sprint that touches the fonts"
+    },
+    {
+      "who": "Quill",
+      "what": "B4's contract: B2.10 has 10 B of headroom on /, so the live layer's client code reopens the script budget with the owner; the phone bar's fifth link; every compare against the Off page masks what the live layer changes by design"
+    },
+    {
+      "who": "Iris",
+      "what": "Forced colours with the model refused still shows Full or Calm pressed while nothing can play (the no-WebGL state, Off pressed and the others disabled, would be truthful); whether the three words need a visible noun, from the demo"
+    }
+  ]
+}

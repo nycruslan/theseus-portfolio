@@ -36,7 +36,7 @@ page, and B3, the signature moment.
   (`.crew/sprint/24/decisions.md`, items 2 and 3). The rule is a one-line goal, at most 78
   characters, in every retro; Iris's one-line descriptions with an ellipsis (her sprint 22 notes,
   section 8) stay a proposal for the next PR that waits for the owner, since B1.5's check changes.
-- [ ] B3: the 3D card model and the registered loft, as Quill planned it in
+- [x] B3: the 3D card model and the registered loft, as Quill planned it in
   `.crew/sprint/24/b3-plan.md`. Once the 3D exists, Full is the default (the canvas's
   `Motion-Control.html`), and reduced motion starts at Calm.
   - [x] Sprint 24 (M): Pixel's spike. The stack measured in Turbopack (A, WebGL, against B, WebGPU
@@ -78,17 +78,33 @@ page, and B3, the signature moment.
     `[data-model]` gets `overflow: clip`; a phone's toolbar show/hide re-solves the loft at rest,
     to check at the demo and, if it shows, refit only on width or box changes; a stray JSDoc above
     `cardGeometry` in `lib/model/stage.ts`).
-  - [ ] Sprint 27 (S, or M if the phone strip moves): the Full/Calm/Off control, remembered on the
-    device; rewrites B2.3 and the keyboard Tab bound with the same assertions. **The B3 demo**, on
-    the owner's phone: 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel in
-    motion, the dark hull under the warm lamp; every number so far is SwiftShader's floor.
+  - [x] Sprint 27 (M): the Full/Calm/Off control, remembered on the device; B2.3 and the keyboard
+    Tab bound rewritten with the same assertions. (PR #74, built in one run on 2026-10-23: Lens ship with no fix round, after its first run died and CI's cap cancelled the suite until the owner re-ran both,
+    Iris ship at 9.0/10, 166 of 166 checks; the contract is `.crew/sprint/27/contract.md` with
+    amendments 1 to 3 and decisions 1 to 13 in `decisions.md`.) The hints set the default (`off`
+    under Save-Data, `calm` under reduced motion, else `full`) and a press wins (decision 3); a
+    press of Full replays the loft (decision 4). Iris's call: below 768 px the control sits at the
+    drawing's foot, not the canvas's bottom strip, which the sheet no longer has (decision 8; her
+    paragraph for the owner is on the PR). Riders taken: Lens's three code nits on #73, the two
+    comment nits on #67, and the cold-cache fallback face at its cause (next/font's one-source
+    fallback; decision 13). **The B3 demo is the owner's**, on #74's preview and then production:
+    30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel, the dark hull under the
+    warm lamp, the control, the toolbar show/hide at rest (Lens's nit on #73), the control's place
+    against `hero-390.webp`, and the "Base" label under the shadow's tail on the narrow sheet.
+    Riding with the next sprint that touches the loader (`components/model.tsx`): Lens's nit on
+    #74 (with the WebGL 2 probe refused, pressing the already-pressed Off stores `off`, so a device
+    that gains WebGL later stays Off unasked; `onClick={() => refused || press(value)}`, about
+    3 B). Left open: the text face's fallback has the same one `local(Arial)` source (Forge, with
+    the next sprint that touches the fonts); in forced colours with the model refused the control shows Full
+    or Calm pressed while nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client
+    code reopens the script budget with the owner.
 - [ ] B4: `/crew`, the crew at work, from the Studio's data.
 - [ ] B5: `/log` and the ghost hull.
 
 Riding along with the sprints that touch the same code:
-- With the next sprint that touches the facts or the fonts: Lens's two nits on PR #67 (the stale
-  font comments in `app/fonts.ts` and `app/layout.tsx`, and the focus-ring comment in
-  `app/globals.css` that cites the deleted card link); Iris's cheap changes (the dark scheme's
+- With the next sprint that touches the facts or the fonts: Lens's nit on PR #67 still open (the
+  focus-ring comment in `app/globals.css` that cites the deleted card link; the font comments were
+  fixed in sprint 27); the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's
   Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
   rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
   (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).

@@ -14,6 +14,11 @@ import { createStage, type Palette, type Stage } from "./stage";
 
 type State = "landed" | "lofting" | "settled" | "still";
 type Rest = "settled" | "still";
+/**
+ * How the model opens (.crew/sprint/27/contract.md): `auto`, the loft once a visit (Full); `settled`
+ * (Calm); `loft`, the loft whatever the visit has seen (a press of Full).
+ */
+export type Open = "auto" | "settled" | "loft";
 type Fit = Frame & { left: number; top: number; buffer: [number, number] };
 
 /** One of the sheet's two drawings, and what the model is on it: its layout, level and ratio cap. */
@@ -86,32 +91,46 @@ const below = (ratio: number) => (ratio > 1.5 ? 1.5 : 1);
 
 /**
  * Mounts the model in `host`, `[data-model]`, over the drawing beside it, with the planks the
- * record seats. Returns the teardown. A page put in the back/forward cache is torn down on
- * pagehide and built again, settled, when it is shown, at whatever width it is shown at.
+ * record seats, opening as `open` says. Returns the teardown and `settle`, which ends a loft at its
+ * settled frame (Calm pressed, or reduced motion asked for with no mode stored). A page put in the
+ * back/forward cache is torn down on pagehide and built again, settled, when it is shown, at
+ * whatever width it is shown at.
  */
-export function mount(host: HTMLElement, seated: readonly string[]) {
+export function mount(
+  host: HTMLElement,
+  seated: readonly string[],
+  open: Open,
+) {
   const seats = new Set(seated);
-  let stop = start(host, seats, false);
-  const hide = () => stop();
+  let model = start(host, seats, open, false);
+  const hide = () => model.stop();
   const show = (event: PageTransitionEvent) => {
     if (!event.persisted) return;
-    stop();
-    stop = start(host, seats, true);
+    model.stop();
+    model = start(host, seats, open, true);
   };
   addEventListener("pagehide", hide);
   addEventListener("pageshow", show);
-  return () => {
-    removeEventListener("pagehide", hide);
-    removeEventListener("pageshow", show);
-    stop();
+  return {
+    stop() {
+      removeEventListener("pagehide", hide);
+      removeEventListener("pageshow", show);
+      model.stop();
+    },
+    settle: () => model.settle(),
   };
 }
 
-function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
+function start(
+  host: HTMLElement,
+  seated: ReadonlySet<string>,
+  open: Open,
+  back: boolean,
+) {
   const plan = host.previousElementSibling;
   const wide = plan?.querySelector(".plan-wide");
   const narrow = plan?.querySelector(".plan-narrow");
-  if (!wide || !narrow) return () => {};
+  if (!wide || !narrow) return { stop() {}, settle() {} };
   // The level and the cap follow the drawing, not the device (.crew/sprint/26/contract.md, "The
   // calls I made"): the three views from 768 px, the profile and half-breadth plan below.
   const sheets: Record<"wide" | "narrow", Sheet> = {
@@ -123,7 +142,6 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
   const canvas = document.createElement("canvas");
   host.append(canvas);
 
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
   let sheet = shownSheet();
@@ -264,7 +282,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     const interval = now - last;
     last = now;
     const u = (now - begin) / DURATION;
-    if (skip || u >= 1 || reduce.matches) return rest("settled");
+    if (skip || u >= 1) return rest("settled");
     // Three frames in a row above 22 ms step the DPR down a rung; at DPR 1, six above 33.4 ms
     // give up the move for the settled frame. Nothing steps up mid-move; rest does.
     slow = interval > SLOW_MS ? slow + 1 : 0;
@@ -281,14 +299,22 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     raf = requestAnimationFrame(tick);
   };
 
-  /** Frame 1, or the settled frame: reduced motion, a second load, a Back, or nobody to see it. */
-  const open = (now: number) => {
+  /** Frame 1, or the settled frame: Calm, a second load, a Back, or nobody to see it. */
+  const first = (now: number) => {
     raf = 0;
     if (!alive || blank) return;
     // The page may have crossed 768 px while the chunk downloaded or the scene built.
     if (on !== sheet) register();
     flush(canvas);
-    if (back || reduce.matches || played() || !visible() || document.hidden) {
+    // A press of Full asked for the loft: it counts as this visit's, shown or not.
+    if (open === "loft") remember();
+    if (
+      open === "settled" ||
+      back ||
+      (open === "auto" && played()) ||
+      !visible() ||
+      document.hidden
+    ) {
       return rest("settled");
     }
     remember();
@@ -326,7 +352,10 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     const next = shownSheet();
     if (next === sheet) return refit();
     sheet = next;
-    // Mid-build, frame 1 registers on it; with the context lost, the restore does.
+    // Mid-build, frame 1 registers on it; with the context lost, the restore does. The cap is the
+    // new drawing's now, so the build's own fit doesn't lay the old one's on it (Lens, #73).
+    cap = Math.min(devicePixelRatio, sheet.cap);
+    ratio = cap;
     if (!state) return;
     register();
     rest("settled");
@@ -367,8 +396,10 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     redraw();
   };
 
-  const reduced = () => {
-    if (reduce.matches) skip = true;
+  /** Ends a loft at its settled frame within 2 frames, or opens the model settled (Calm). */
+  const settle = () => {
+    open = "settled";
+    skip = true;
   };
 
   /** Forced colours hide the layer (app/globals.css); turned off again, the frame is drawn anew. */
@@ -426,7 +457,6 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
   for (const element of [wide, narrow, host]) sized.observe(element);
   addEventListener("resize", refit);
   scheme.addEventListener("change", recolour);
-  reduce.addEventListener("change", reduced);
   forced.addEventListener("change", unforced);
   document.addEventListener("visibilitychange", shown);
 
@@ -439,7 +469,6 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     sized.disconnect();
     removeEventListener("resize", refit);
     scheme.removeEventListener("change", recolour);
-    reduce.removeEventListener("change", reduced);
     forced.removeEventListener("change", unforced);
     document.removeEventListener("visibilitychange", shown);
     canvas.removeEventListener("webglcontextlost", lost);
@@ -478,7 +507,7 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     await compiling;
     compiling = null;
     built = true;
-    if (alive && !blank) raf = requestAnimationFrame(open);
+    if (alive && !blank) raf = requestAnimationFrame(first);
   };
   build().catch(() => {
     // No WebGL after all, or the build failed: the drawing is the page, as with the model Off.
@@ -486,5 +515,5 @@ function start(host: HTMLElement, seated: ReadonlySet<string>, back: boolean) {
     stop();
   });
 
-  return stop;
+  return { stop, settle };
 }
