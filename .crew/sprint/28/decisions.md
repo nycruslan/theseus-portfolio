@@ -26,7 +26,8 @@
    (nothing moves, and the owner's Studio item stays unspecified) or building a `/crew` that can't
    be live (a stand-in, which sprint 22's rule forbids, and a page that would be rebuilt to the
    feed's real shape). A plan the owner can build against moves the milestone; the rest waits on
-   them either way.
+   them either way. There is no `contract.md`: the sprint is a plan with no product code and no
+   visitor-visible check, so it is judged against `brief-quill.md`, as Lens did.
 
 4. **The PR waits for the owner, under `needs-owner`.** The contract asks for the owner's work in
    the Studio, and every B4 sprint builds on it, so the crew takes no next sprint while it waits
@@ -57,3 +58,8 @@
    B4.1's PR waits for the owner anyway (Read as page moves on phones, `CREW_FEED_URL` on Vercel)
    and merges only once the real feed answers on its preview. If the owner changes the contract
    in a comment instead, the next run revises it here first.
+
+8. **Lens's two nits, taken as notes.** The contract's example gave `last` an empty roster against
+   the type's seven roles: the example now carries the seven, and the type says `last` has them
+   too (`done` or `not-called`), so Probe's fixtures and B4.1's shape check agree. And decision 3
+   now says why the sprint has no `contract.md`.

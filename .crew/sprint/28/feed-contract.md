@@ -39,7 +39,7 @@ type CrewRun = {
   health: { state: HealthState; label: string; line: string | null; quote: boolean };
   /** What is happening now, in the status line's words. Null when nothing is. */
   now: string | null;
-  /** The seven roster roles, in roster order. */
+  /** The seven roster roles, in roster order, on `last` as on `current` (`done` or `not-called` there). */
   roles: { role: RosterRole; state: AgentState; line: string | null }[];
   /** At most 10, newest first. */
   moments: { kind: MomentKind; at: string; who: RosterRole | null; text: string }[];
@@ -176,8 +176,19 @@ needs only the role key.
     "pr": { "number": 75, "url": "https://github.com/nycruslan/theseus-portfolio/pull/75" },
     "health": { "state": "shipped", "label": "Shipped · PR #75", "line": "The owner merged PR #75 on GitHub.", "quote": false },
     "now": null,
-    "roles": [],
-    "moments": [],
+    "roles": [
+      { "role": "lead", "state": "done", "line": "Merged PR #75" },
+      { "role": "product-owner", "state": "done", "line": "Wrote the plan and the feed contract" },
+      { "role": "engineer", "state": "not-called", "line": null },
+      { "role": "creative-engineer", "state": "not-called", "line": null },
+      { "role": "code-reviewer", "state": "done", "line": "Ship, two nits" },
+      { "role": "qa-engineer", "state": "not-called", "line": null },
+      { "role": "design-director", "state": "not-called", "line": null }
+    ],
+    "moments": [
+      { "kind": "merge", "at": "…", "who": null, "text": "PR #75 merged" },
+      { "kind": "verdict", "at": "…", "who": "code-reviewer", "text": "Lens: ship" }
+    ],
     "url": "https://theseus-studio.vercel.app/studio/runs/<runId>"
   }
 }

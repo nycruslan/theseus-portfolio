@@ -47,7 +47,8 @@ its preview.
 
 ## Checks
 
-No product code changed: `pnpm verify` and the suite run as on main (the only files are
+There is no `contract.md`: a plan with no product code and no visitor-visible check is judged
+against `brief-quill.md` (decision 3). No product code changed: `pnpm verify` and the suite run as on main (the only files are
 `.crew/sprint/28/*` and Quill's memory). Everything else was read, not run: the Studio's functions
 are cited from its code at `64347d6`, and the `cacheLife` prerendering rule from
 `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/cacheLife.md`.
@@ -71,6 +72,10 @@ contract". The contract's own list, `feed-contract.md` "What the owner decides":
 7. **The Studio link.** `/crew`'s Evidence row links each run's page on the Studio (recommended).
 
 A comment changes the contract; the next run revises it here before B4.1 starts.
+
+**Lens: ship** on `e169cfd` with no fix round and two nits, both taken as notes in the close-out
+(`decisions.md`, 8): the contract's example now gives `last` its seven roles, and decision 3 says
+why the sprint has no contract.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
