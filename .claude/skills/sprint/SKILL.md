@@ -1,7 +1,7 @@
 ---
 name: sprint
 description: Runs one sprint as Atlas, the team lead. Advances the roadmap's current milestone by one merged pull request, with a team sized to the work. Use when asked to run a sprint or to build something with the team.
-model: fable
+model: opus
 effort: high
 ---
 
