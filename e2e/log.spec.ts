@@ -1202,7 +1202,9 @@ test.describe("B5.5 Every revision", () => {
           return {
             text: squashed(cell),
             cut: {
-              ellipsis: s?.textOverflow === "ellipsis",
+              // An ellipsis shows only where the cell clips its overflow; text-overflow alone is inert.
+              ellipsis:
+                s?.textOverflow === "ellipsis" && s.overflowX !== "visible",
               clamped: clamp !== "none" && clamp !== "",
               wide: cell ? cell.scrollWidth > cell.clientWidth + 1 : true,
               tall: cell ? cell.scrollHeight > cell.clientHeight + 1 : true,
@@ -1357,8 +1359,18 @@ for (const scheme of SCHEMES) {
             return [...document.body.querySelectorAll("*")].flatMap((el) => {
               const r = el.getBoundingClientRect();
               if (r.width === 0 && r.height === 0) return [];
-              const left = el.closest("main") && r.left < -1.5;
-              return r.right > view + 0.5 || left
+              // What is painted: an ancestor that clips (overflow or clip-path, as a visually
+              // hidden table head does) cuts the box to its own.
+              let [from, to] = [r.left, r.right];
+              for (let a = el.parentElement; a; a = a.parentElement) {
+                const s = getComputedStyle(a);
+                if (s.overflowX !== "visible" || s.clipPath !== "none") {
+                  const c = a.getBoundingClientRect();
+                  [from, to] = [Math.max(from, c.left), Math.min(to, c.right)];
+                }
+              }
+              const left = el.closest("main") && from < -1.5;
+              return to > view + 0.5 || left
                 ? [
                     `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}": ${r.left} to ${r.right} of ${view}`,
                   ]
