@@ -110,9 +110,9 @@
     --pencil: #6a7377;
     --card: #58646a;
     --card-old: #222d31;
-    /* The light vellum's tint of its card-old (-10, -4, 0) on this card-old, at 0.7 over the film:
-       as faint on the night sheet as by day. */
-    --vellum: #16242b;
+    /* The night sheet lit, between the old card and the seated one: a translucent sheet over the
+       dark film would read darker, not lighter (.crew/sprint/30/notes-iris.md, section 1.4). */
+    --vellum: #3f4d52;
   }
 }
 
@@ -490,45 +490,69 @@ main > [data-motion] {
 }
 
 /*
- * The ghost hull (LinesPlan view="ghost"; .crew/sprint/29/b5-first-contract.md): the Log's drawing
- * of the original planks the crew has taken out, in vellum, each numbered by the sprint that took
- * it out; a seat whose original still sails is a gap. /read's views and lettering: the numbers 11
- * px from 768 px, and hidden below it with the one leader, where a lift is too shallow for them.
- * Inert like the lines plan (`.plan`). Nothing in it is copper, hatched or seated.
+ * The ghost hull (LinesPlan view="ghost"; .crew/sprint/29/b5-first-contract.md, .crew/sprint/30/
+ * notes-iris.md, section 1): the Log's drawing of the original planks the crew has taken out, in
+ * vellum, each numbered by the sprint that took it out; a seat whose original still sails is a
+ * gap. The profile alone, drawn lighter than the sheet: a graphite outline, pencil seams, and the
+ * numbers the only ink, so the record reads first and the hull second. The numbers are 11 px from
+ * 768 px and 13 from 1280, hidden below 768 with the one leader, where a lift is too shallow for
+ * them. Inert like the lines plan (`.plan`). Nothing in it is copper, hatched or seated.
  */
+[data-ghost] .ln-outline {
+  stroke: var(--muted);
+  stroke-width: 1.4px;
+}
+
 .plank-ghost {
   fill: var(--vellum);
   stroke: var(--pencil);
-  stroke-width: 0.9px;
+  stroke-width: 0.75px;
 }
 
-/* On a record, the seat its sprint took: a 2 px ink edge, drawn last so it is whole. */
-.plank-ghost[data-current] {
+/* On a record, the seat its sprint took: an ink edge and a bolder number, the fill unchanged. The
+   plank is drawn last, so its edge is whole. */
+[data-ghost] path[data-current] {
   stroke: var(--foreground);
-  stroke-width: 2px;
+  stroke-width: 1.4px;
 }
 
 .plan-view.plan-ghost > .plan-plank {
   font-size: var(--step-xs);
 }
 
+.plan-view.plan-ghost > .plan-current {
+  font-weight: 700;
+}
+
 @media (width < 48rem) {
-  .plan-ghost > .plan-plank,
-  .plan-ghost .ln-leader {
+  [data-ghost] .plan-plank,
+  [data-ghost] .ln-leader {
     display: none;
   }
 }
 
+@media (width >= 80rem) {
+  .plan-view.plan-ghost > .plan-plank {
+    font-size: var(--step-sm);
+  }
+}
+
 /* Forced colours drop the vellum: each plank is its edge in the system's text colour on the
-   system's ground, the current one's edge thicker. */
+   system's ground, 1 px so it shows, the current one's 2.5 px. `.plan` already keeps the system's
+   colours from being forced over these, and sets every line and number in CanvasText. */
 @media (forced-colors: active) {
   .plan .plank-ghost {
     fill: Canvas;
+    stroke-width: 1px;
   }
 
-  .plan .plank-ghost[data-current] {
+  [data-ghost] .ln-outline,
+  [data-ghost] path[data-current] {
     stroke: CanvasText;
-    stroke-width: 3px;
+  }
+
+  [data-ghost] path[data-current] {
+    stroke-width: 2.5px;
   }
 }
 
@@ -770,46 +794,64 @@ main:has(> [data-model]) {
 
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
- * log-390.webp): the Log's header, then on a record the record, then the ghost hull and Every
- * revision, stacked in that order below 1024 px. From 1024 a 12-column grid, as the frame lays it
- * out: the drawing on the left and the header on the right, then the table under the drawing, with
- * the record beside it in the right column when one is open. Nothing on it moves.
+ * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3). Below 1024 px one column:
+ * the h1, the drawing, the caption, the count line, the record when one is open, then Every
+ * revision, its 2 px rule edge to edge as the facts' are. The drawing follows the count line in the
+ * DOM and is set after the h1 here; it is hidden from assistive tech, so the reading order is the
+ * DOM's. From 1024 the sheet's inset box as a two-column grid: the drawing beside the header, then
+ * Every revision beside the record, or across both columns on /log. Nothing on it moves.
  */
 .log {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 16px 48px;
+  padding: 0 16px;
+}
+
+.log-head {
+  display: contents;
 }
 
 .log h1 {
+  order: 1;
+  margin-top: 20px;
   font-family: var(--font-sofia-cond), sans-serif;
   font-size: var(--step-2xl);
   font-weight: 700;
-  line-height: 0.9;
+  line-height: 0.95;
   letter-spacing: -0.01em;
+}
+
+.log-ghost {
+  order: 2;
+  margin-top: 16px;
 }
 
 .log-head p {
   max-width: 66ch;
-  margin-top: 12px;
-  line-height: 1.55;
+  line-height: 1.45;
   text-wrap: pretty;
 }
 
-.log-head [data-ghost-count] {
+[data-ghost-caption] {
+  order: 3;
+  margin-top: 14px;
+}
+
+[data-ghost-count] {
+  order: 4;
   margin-top: 8px;
   color: var(--muted);
 }
 
-/* The drawing's height holds the table's first row in the first screen. */
-.log-ghost {
-  width: 100%;
-  max-width: 44rem;
+.record {
+  order: 5;
+  margin-top: 24px;
 }
 
 .log-revs {
-  padding-top: 14px;
+  order: 6;
+  margin: 24px -16px 0;
+  padding: 14px 16px 32px;
   border-top: 2px solid var(--foreground);
 }
 
@@ -820,36 +862,35 @@ main:has(> [data-model]) {
   line-height: 1.05;
 }
 
+/* The lede and the key to Approved: one line each beside the table from 1024, two on a phone. */
 .log-lede {
-  max-width: 66ch;
-  margin: 8px 0 14px;
-  line-height: 1.55;
+  margin-top: 8px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
   color: var(--muted);
   text-wrap: pretty;
 }
 
-/* The Log is where the whole goal lives: a description is never cut, on as many lines as it takes
-   (the sheet's rule above cuts it from 1024 px). */
+.log-key {
+  margin-top: 4px;
+}
+
+/* The revision table as / folds and sets it (`.rev`), but the Log is where the whole goal lives: a
+   description is never cut, on as many lines as it takes. */
+.rev-log {
+  margin-top: 14px;
+}
+
 .rev-log tbody td:not([data-label]) {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
-@media (width >= 64rem) {
-  .rev-log tbody td:not([data-label]) {
-    max-width: none;
-    overflow: visible;
-    white-space: normal;
-  }
-}
-
-/* Each number opens its record: a 24 px target, ink and underlined like every link off the bar.
-   The negative margin keeps the row's height. */
+/* Each number opens its record: ink and underlined like every link off the bar, and as tall as
+   its row, so no two targets overlap. Folded, the number spans the row's two lines. */
 .rev-link {
-  display: inline-flex;
-  align-items: center;
-  min-width: 24px;
-  min-height: 24px;
-  margin-block: -3.5px;
+  display: flex;
+  min-width: 36px;
+  min-height: 44px;
   color: var(--foreground);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
@@ -862,56 +903,134 @@ main:has(> [data-model]) {
   }
 }
 
-/* The open record's row, boxed in ink as the frame draws row 13. A shadow, not an outline: the
-   only ring on the page is focus's. */
-.rev-log tbody tr:has([aria-current]) {
-  box-shadow: inset 0 0 0 1px var(--foreground);
+/* The open record's row: a 1 px ink box, as the frame draws row 13, and no fill. Folded, the row
+   is one grid box and takes an outline; unfolded, its cells' inset shadows draw it, so no row's
+   height changes. */
+@media (width < 40rem) {
+  .rev-log tbody tr:has(a[aria-current="page"]) {
+    outline: 1px solid var(--foreground);
+    outline-offset: -1px;
+  }
+}
+
+@media (width >= 40rem) {
+  .rev-log tbody tr:has(a[aria-current="page"]) > * {
+    box-shadow:
+      inset 0 1px 0 var(--foreground),
+      inset 0 -1px 0 var(--foreground);
+  }
+
+  .rev-log tbody tr:has(a[aria-current="page"]) > :first-child {
+    box-shadow:
+      inset 1px 0 0 var(--foreground),
+      inset 0 1px 0 var(--foreground),
+      inset 0 -1px 0 var(--foreground);
+  }
+
+  .rev-log tbody tr:has(a[aria-current="page"]) > :last-child {
+    box-shadow:
+      inset -1px 0 0 var(--foreground),
+      inset 0 1px 0 var(--foreground),
+      inset 0 -1px 0 var(--foreground);
+  }
+}
+
+/* 640 to 1023 px, rows of 44 px for touch, the link the whole row's height. */
+@media (40rem <= width < 64rem) {
+  .rev-log tbody :is(th, td) {
+    padding-block: 13px;
+  }
+
+  .rev-link {
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    margin-block: -13px;
+    padding-block: 13px;
+  }
 }
 
 @media (width >= 64rem) {
+  .rev-log tbody td:not([data-label]) {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  /* /'s 31.9 px rows, the link a 25 px target inside its row. */
+  .rev-link {
+    display: inline-block;
+    min-width: 24px;
+    min-height: 0;
+    margin-block: -4px;
+    padding-block: 4px;
+  }
+
   .log {
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    column-gap: 24px;
-    row-gap: 40px;
-    align-items: start;
-    padding: 40px 40px 72px;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 40px;
+    margin: 0 16px;
+    padding: 0;
+  }
+
+  /* The header's text edge is the record box's below it; the drawing's transom stands on the
+     sheet's 40 px text edge, centred on the header's height. */
+  .log-head {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
+    padding: 32px 24px 0;
+  }
+
+  .log h1 {
+    margin-top: 0;
   }
 
   .log-ghost {
-    grid-column: 1 / span 8;
+    grid-column: 1;
     grid-row: 1;
+    align-self: center;
+    margin: 32px 0 0 24px;
   }
 
-  .log-head {
-    grid-column: 9 / span 4;
-    grid-row: 1;
+  .record {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 40px;
   }
 
   .log-revs {
     grid-column: 1 / -1;
     grid-row: 2;
+    margin: 40px 0 0;
+    padding: 18px 24px 40px;
   }
 
   .log-open .log-revs {
-    grid-column: 1 / span 8;
+    grid-column: 1;
+    padding-right: 0;
   }
+}
 
-  .record {
-    grid-column: 9 / span 4;
-    grid-row: 2;
+@media (width >= 80rem) {
+  .log {
+    grid-template-columns: minmax(0, 1fr) 444px;
   }
 }
 
 /*
- * The record (components/log-record.tsx), on /log/<n>: in a 1 px ink frame, as the frame draws it,
- * Close at its top right and the previous and next revisions at its foot. Its list's terms in
- * graphite; what went wrong as the crew wrote it, whole, each item with a drawn dot.
+ * The record (components/log-record.tsx), on /log/<n> (notes-iris.md, section 2.3): on the film in
+ * a 1 px ink frame in both schemes, as the frame draws it (its white card fails graphite text on
+ * the night sheet). Its number with Close at the right, the goal, the list with its terms in
+ * graphite, what went wrong as the crew wrote it, each item with a drawn dot, and the previous and
+ * next revisions at its foot. Plain underlined links, no boxes. Nothing in it sticks or moves.
  */
 .record {
-  position: relative;
-  padding: 12px 16px 16px;
+  padding: 16px;
   border: 1px solid var(--foreground);
+  background: var(--background);
 }
 
 .record a {
@@ -927,33 +1046,41 @@ main:has(> [data-model]) {
   }
 }
 
-/* The row Close shares: as tall as its target, and clear of it. */
-.record-rev {
+.record-top {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding-right: 96px;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.record-rev {
+  font-size: var(--step-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
+.record-close {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--step-sm);
+  font-weight: 600;
+}
+
 .record h2 {
   margin-top: 4px;
-  line-height: 1.05;
   text-wrap: balance;
   overflow-wrap: break-word;
 }
 
+/* 88 px holds "Pull request" at 16 px, and leaves a 320 px phone's detail room for the pull
+   request's link on one line. */
 .record dl {
-  margin-top: 16px;
-}
-
-.record dl > div {
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr);
-  column-gap: 16px;
-  padding: 3px 0;
-  line-height: 1.5;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 6px 12px;
+  margin-top: 14px;
+  line-height: 1.45;
 }
 
 .record dt {
@@ -976,8 +1103,8 @@ main:has(> [data-model]) {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--rule);
-  font-weight: 650;
-  line-height: 1.35;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .record-wrong {
@@ -986,12 +1113,11 @@ main:has(> [data-model]) {
   gap: 8px;
   margin-top: 8px;
   padding-left: 14px;
+  line-height: 1.5;
 }
 
 .record-wrong li {
   position: relative;
-  max-width: 66ch;
-  line-height: 1.55;
   text-wrap: pretty;
   overflow-wrap: break-word;
 }
@@ -1007,13 +1133,16 @@ main:has(> [data-model]) {
   background: var(--muted);
 }
 
-.record-links {
+/* Earlier at the left, later at the right, the later one at the right when it is alone too. */
+.record-foot {
   display: flex;
-  gap: 16px;
-  margin-top: 16px;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
 }
 
-.record-links a {
+.record-foot a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -1021,39 +1150,22 @@ main:has(> [data-model]) {
   font-variant-numeric: tabular-nums;
 }
 
-.record-close {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-}
-
 .record-next {
   margin-left: auto;
 }
 
-/* On a phone the terms go over their details, so a pull request's number keeps its line. */
-@media (width < 30rem) {
-  .record dl > div {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (width >= 64rem) {
   .record {
-    padding: 16px 24px 24px;
+    padding: 20px 24px 24px;
   }
 
-  .record-close {
-    top: 16px;
-    right: 24px;
+  .record h2 {
+    margin-top: 8px;
   }
 
-  .record-links a {
+  .record-close,
+  .record-foot a {
     min-height: 24px;
-  }
-
-  .record-rev {
-    min-height: 32px;
   }
 }
 

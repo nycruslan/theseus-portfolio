@@ -79,3 +79,17 @@ export const NARROW: Layout = {
   hbY: 190,
   numbers: false,
 };
+
+/**
+ * The Log's ghost hull at every width: the profile alone, at unit scale, with 4 units of margin for
+ * the strokes; the ghost pass draws no half-breadth or body plan, so `hbY` is unused
+ * (.crew/sprint/30/notes-iris.md, section 1.1).
+ */
+export const GHOST: Layout = {
+  box: [0, 0, 632, 126],
+  ox: 4,
+  oy: 4,
+  s: 1,
+  hbY: 0,
+  numbers: true,
+};
