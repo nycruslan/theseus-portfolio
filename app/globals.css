@@ -140,15 +140,21 @@ nav > [data-motion] {
   display: none;
 }
 
-/* The drawing's foot: it borrows 12 px of the drawing's own margin, and paints over the model's
-   layer, which lies on the drawing's box. */
-main > [data-motion] {
+/* The drawing's foot below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
+   Read as page at the left and, on the sheet, the control at the right, in one 44 px row. It
+   borrows 12 px of the drawing's own margin, and paints over the model's layer, which lies on the
+   drawing's box. */
+.foot {
   position: relative;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   height: 44px;
   margin: -12px 0 12px;
   padding: 0 16px;
+}
+
+.foot > [data-motion] {
+  display: flex;
 }
 
 [data-motion] fieldset {
@@ -199,7 +205,7 @@ main > [data-motion] {
 }
 
 @media (width < 22.5rem) {
-  main > [data-motion] {
+  .foot {
     margin-top: 0;
   }
 
@@ -209,7 +215,7 @@ main > [data-motion] {
 }
 
 @media (width >= 48rem) {
-  main > [data-motion] {
+  .foot {
     display: none;
   }
 
@@ -250,7 +256,7 @@ main > [data-motion] {
 }
 
 @media print {
-  main > [data-motion] {
+  .foot {
     display: none;
   }
 }
@@ -1321,6 +1327,248 @@ main:has(> [data-model]) {
 
   .lost {
     padding: 40px 0 72px;
+  }
+}
+
+/*
+ * The crew (app/crew/page.tsx, components/crew.tsx; .crew/sprint/31/contract.md; crew-1440.webp and
+ * crew-390.webp): the drawing, then the panel. Below 1024 px one above the other; from 1024 side by
+ * side as the sheet's grid, the drawing 4fr and the panel 3fr behind an ink rule, inside the
+ * sheet's frame 16 px in. Copper is a Working row's dot and word and the now line, nothing else,
+ * and both exist only while the crew is live (the contract's "Copper").
+ */
+.crew-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+.crew {
+  padding: 20px 16px 48px;
+  border-top: 1px solid var(--foreground);
+}
+
+.crew-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.crew h1 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+/* The frame's ×, boxed in ink: a 44 px target at every width. */
+.crew-close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--foreground);
+  color: var(--foreground);
+}
+
+.crew-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+}
+
+@media (hover: hover) {
+  .crew-close:hover {
+    background: var(--rule);
+  }
+}
+
+/* The sprint's number hatched in graphite, as a plank still in pencil, then its goal. */
+.crew-chip {
+  margin-top: 8px;
+  font-size: var(--step-base);
+  text-wrap: pretty;
+}
+
+.crew-chip-number {
+  padding: 0 4px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--muted) 0 1px,
+    transparent 1px 4px
+  );
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 0 2px var(--background),
+    0 0 2px var(--background);
+}
+
+.crew-status {
+  margin-top: 4px;
+  font-size: var(--step-base);
+  font-weight: 600;
+}
+
+.crew-table {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  font-size: var(--step-base);
+}
+
+.crew-row {
+  border-bottom: 1px solid var(--rule);
+}
+
+.crew-name,
+.crew-word,
+.crew-state,
+.crew-line {
+  padding: 10px 16px 10px 0;
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.crew-line {
+  padding-right: 0;
+}
+
+.crew-name {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-xl);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.crew-state {
+  white-space: nowrap;
+}
+
+.crew-absent > .crew-state {
+  color: var(--muted);
+}
+
+/* Working: filled, in copper. Waiting: an open ring. Done: filled, in ink. */
+.crew-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.crew-dot-working,
+.crew-dot-done {
+  background: currentColor;
+}
+
+.crew-working {
+  color: var(--accent);
+}
+
+.crew-activity {
+  margin-top: 24px;
+  font-size: var(--step-base);
+  font-weight: 700;
+}
+
+.crew-now,
+.crew-moments li {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.crew-now {
+  margin-top: 4px;
+  color: var(--accent);
+}
+
+.crew-time {
+  flex: none;
+  min-width: 3.25em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.crew-now .crew-time {
+  color: inherit;
+}
+
+.crew-facts {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid var(--foreground);
+  font-size: var(--step-sm);
+}
+
+.crew-facts > div {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr);
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.crew-facts dt {
+  color: var(--muted);
+}
+
+/* Below 768 px the role word goes and the roles not on this sprint fold into one line, as
+   crew-390.webp draws it. */
+@media (width < 48rem) {
+  .crew-word,
+  .crew-absent {
+    display: none;
+  }
+
+  [data-absent] {
+    margin-top: 12px;
+    color: var(--muted);
+  }
+}
+
+@media (width >= 48rem) {
+  .crew {
+    padding: 24px 24px 48px;
+  }
+
+  [data-absent] {
+    display: none;
+  }
+}
+
+@media (width >= 64rem) {
+  .crew-page {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
+    align-items: stretch;
+    padding: 0 16px;
+  }
+
+  .crew {
+    border-top: 0;
+    border-left: 1px solid var(--foreground);
+  }
+
+  .crew-table,
+  .crew-moments,
+  .crew-now {
+    font-size: var(--step-sm);
+  }
+
+  .crew-close {
+    width: 40px;
+    height: 40px;
   }
 }
 
