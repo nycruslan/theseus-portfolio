@@ -64,7 +64,21 @@ keyboard 39, model-landing 14; motion 22 new).
 | B2.10 script bytes | within 2,048 B decoded of `/sprints'` | 2,038 B (the loader alone was 961) |
 | B1.1 the fold at 390 × 844 | the title block's items in the first viewport | holds; title block top 356, Contact links' bottom 629, Revisions head on screen |
 
-IRIS
+**Iris's review** (`.crew/sprint/27/review-iris.md`): **ship at 9.0**. Better than production at
+390, 1024 and 1440; the sheet pixel-identical to production at every width in both schemes with
+the control and the fallback face apart (0 differing pixels in 46 captures); axe 0, no placeholder,
+LCP at 4× CPU and 400 kbps 1,684 ms light / 1,756 dark, CLS 0; no musts and no cheap changes left.
+Her early look found one must, the pressed label vanishing behind Chromium's forced-colours
+backplate, fixed as she wrote it (`f9a1b6c`, decision 12). Her roadmap notes: forced colours with
+the model refused still shows Full or Calm pressed while nothing can play (the no-WebGL state
+would be truthful); the three words carry no visible noun, if the demo shows hesitation; the
+"Base" label on the narrow sheet, unchanged.
+
+**Riders taken:** Lens's three code nits on #73 and the two comment nits on #67; the cold-cache
+fallback face at its cause (decision 13). **Follow-ups, not this sprint's** (`ROADMAP.md`): the
+text face's fallback has the same one `local(Arial)` source (its links ran 7 px wider and fit);
+B2.10 has 10 B of headroom, so new client code on `/` reopens the budget with the owner; Iris's
+three notes above.
 
 ## For the owner: the control's place on phones, against `hero-390.webp`
 
