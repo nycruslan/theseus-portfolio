@@ -176,7 +176,17 @@ async function skeleton(page: Page) {
         })),
       buttons: header?.querySelectorAll("button").length ?? -1,
       motion: header?.querySelectorAll("[data-motion]").length ?? -1,
-      crew: /\bcrew\b/i.test(squashed(header ?? null)),
+      // Per text node: the links' text runs together ("WorkCrewLog"), so a \b on the header's
+      // whole text never matches.
+      crew: (() => {
+        if (!header) return 0;
+        const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT);
+        let count = 0;
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          count += node.textContent?.match(/\bcrew\b/gi)?.length ?? 0;
+        }
+        return count;
+      })(),
     };
   }, EVERY);
 }
@@ -203,10 +213,14 @@ function expectSkeleton(found: Skeleton, how: string, current: string) {
     ]);
   expect.soft(found.buttons, `buttons in the bar (${how})`).toBe(0);
   expect.soft(found.motion, `[data-motion] in the bar (${how})`).toBe(0);
-  expect.soft(found.crew, `"Crew" in the bar (${how})`).toBe(false);
+  // Sprint 31: the bar names the crew once, in its Crew link (the controls above), and nowhere else.
+  expect.soft(found.crew, `"Crew" in the bar's text (${how})`).toBe(1);
 }
 
-/** The bar's five targets at the current width: boxes, and each label's lines of text. */
+/**
+ * The bar's shown targets at the current width, and below 768 px the foot's Read as page, which
+ * stands in for the bar's hidden one (sprint 31): boxes, and each label's lines of text.
+ */
 function readBarTargets(page: Page) {
   return page.evaluate(() => {
     const main = document.querySelector("main");
@@ -220,8 +234,16 @@ function readBarTargets(page: Page) {
     );
     const cw = document.documentElement.clientWidth;
     const ch = document.documentElement.clientHeight;
+    const shown = (a: Element) => a.getClientRects().length > 0;
     const targets = [
-      ...(header?.querySelectorAll('a[href]:not([href="#main"])') ?? []),
+      ...[
+        ...(header?.querySelectorAll('a[href]:not([href="#main"])') ?? []),
+      ].filter(shown),
+      ...(innerWidth < 768
+        ? [
+            ...document.querySelectorAll('main [data-foot] a[href="/read"]'),
+          ].filter(shown)
+        : []),
     ];
     return targets.map((a) => {
       const r = a.getBoundingClientRect();
@@ -230,6 +252,7 @@ function readBarTargets(page: Page) {
       const rects = [...range.getClientRects()].filter((x) => x.width > 0);
       return {
         text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+        inBar: header?.contains(a) ?? false,
         width: r.width,
         height: r.height,
         inside:
@@ -260,7 +283,7 @@ function clearOfTheBar(page: Page, id: string) {
 }
 
 test.describe("B5.1 The route and the bar", () => {
-  test("B5.1 (C1.1) /log is 200 with scripts on and off: one main#main, the skip link first, one h1 Log, and the bar's wordmark and four links with Log current and no button; a record's bar the same with Log its parent", async ({
+  test("B5.1 (C1.1) /log is 200 with scripts on and off: one main#main, the skip link first, one h1 Log, and the bar's wordmark and five links with Log current and no button; a record's bar the same with Log its parent", async ({
     page,
     browser,
   }) => {
@@ -297,7 +320,7 @@ test.describe("B5.1 The route and the bar", () => {
     }
   });
 
-  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), and the wordmark, Work, Contact and Read as page land", async ({
+  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), below 768 with Read as page at the page's foot, exactly one Read as page shown on /log and a record, and the wordmark, Work, Contact and Read as page land", async ({
     page,
   }) => {
     test.setTimeout(150_000);
@@ -320,9 +343,11 @@ test.describe("B5.1 The route and the bar", () => {
           `bar targets under 24 px wide or ${tall} px tall ${at}`,
         )
         .toEqual([]);
+      // The foot's place below 768 is Iris's (the header's end today), so only the bar's own
+      // targets must sit inside the first viewport.
       expect
         .soft(
-          targets.filter((t) => !t.inside).map((t) => t.text),
+          targets.filter((t) => t.inBar && !t.inside).map((t) => t.text),
           `bar targets not wholly inside the viewport ${at}`,
         )
         .toEqual([]);
@@ -336,22 +361,44 @@ test.describe("B5.1 The route and the bar", () => {
           `bar labels on more than one line ${at}`,
         )
         .toEqual([]);
+      const inBar = targets.filter((t) => t.inBar);
       expect
         .soft(
-          Math.max(...targets.map((t) => t.top)) <
-            Math.min(...targets.map((t) => t.bottom)),
-          `the bar's labels share one line ${at}: ${JSON.stringify(targets.map((t) => [t.text, Math.round(t.top), Math.round(t.bottom)]))}`,
+          Math.max(...inBar.map((t) => t.top)) <
+            Math.min(...inBar.map((t) => t.bottom)),
+          `the bar's labels share one line ${at}: ${JSON.stringify(inBar.map((t) => [t.text, Math.round(t.top), Math.round(t.bottom)]))}`,
         )
         .toBe(true);
       expect
         .soft(await horizontalOverflow(page), `page overflow ${at}`)
         .toBe(0);
+      for (const url of [LOG, recordOf(13)]) {
+        if (url !== LOG) await open(page, url, width);
+        expect
+          .soft(
+            await page.evaluate(
+              () =>
+                [...document.querySelectorAll('a[href="/read"]')].filter(
+                  (a) => a.getClientRects().length > 0,
+                ).length,
+            ),
+            `Read as page links shown on ${url} ${at}`,
+          )
+          .toBe(1);
+      }
 
-      // From the bar: the wordmark and Read as page land on their pages, Work and Contact on /'s
-      // sections, in view and clear of /'s bar.
+      // From the bar: the wordmark and Read as page (the foot's below 768) land on their pages,
+      // Work and Contact on /'s sections, in view and clear of /'s bar.
       for (const href of ["/", "/read"]) {
         await open(page, LOG, width);
-        await page.locator(`header a[href="${href}"]`).first().click();
+        await page
+          .locator(
+            href === "/read" && width < 768
+              ? `main [data-foot] a[href="${href}"]`
+              : `header a[href="${href}"]`,
+          )
+          .first()
+          .click();
         await page.waitForURL((url) => url.pathname === href);
         await expect(
           page.locator("h1"),
@@ -390,7 +437,14 @@ test("B5.2 (C2.2) /sprints answers 308 to /log; no page links to /sprints; the s
   expect(new URL(page.url()).pathname, "where /sprints lands").toBe(LOG);
   await expect(page.locator("h1"), "the h1 after /sprints").toHaveText("Log");
 
-  for (const route of ["/", "/read", LOG, recordOf(13), "/no-such-page"]) {
+  for (const route of [
+    "/",
+    "/read",
+    "/crew",
+    LOG,
+    recordOf(13),
+    "/no-such-page",
+  ]) {
     const html = await (await request.get(route)).text();
     expect
       .soft(
@@ -1499,22 +1553,38 @@ test.describe("B5.9 Accessibility", () => {
     }
   });
 
-  test("B5.9 (C9.4) every link but the skip link is at least 24 x 24 px at 390, on /log and /log/13", async ({
+  test("B5.9 (C9.4) every shown link but the skip link is at least 24 x 24 px at 390, on /log and /log/13, and the one link not shown is the bar's Read as page", async ({
     page,
   }) => {
     for (const url of SWEPT) {
       await open(page, url, 390);
-      const small = await page.evaluate(() =>
-        [...document.querySelectorAll("a")]
-          .filter((a) => a.getAttribute("href") !== "#main")
-          .flatMap((a) => {
+      const found = await page.evaluate(() => {
+        const links = [...document.querySelectorAll("a")].filter(
+          (a) => a.getAttribute("href") !== "#main",
+        );
+        const shown = (a: Element) => a.getClientRects().length > 0;
+        return {
+          // Sprint 31: below 768 the bar's Read as page is not rendered; the foot's stands in.
+          hidden: links
+            .filter((a) => !shown(a))
+            .map(
+              (a) =>
+                `${a.closest("header") ? "header" : "page"} ${a.getAttribute("href")}`,
+            ),
+          small: links.filter(shown).flatMap((a) => {
             const r = a.getBoundingClientRect();
             return r.width >= 24 - 0.05 && r.height >= 24 - 0.05
               ? []
               : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
           }),
+        };
+      });
+      expect
+        .soft(found.hidden, `links not rendered on ${url}`)
+        .toEqual(["header /read"]);
+      expect(found.small, `links smaller than 24 x 24 px on ${url}`).toEqual(
+        [],
       );
-      expect(small, `links smaller than 24 x 24 px on ${url}`).toEqual([]);
     }
   });
 
@@ -1565,7 +1635,7 @@ test.describe("B5.9 Accessibility", () => {
 
 test.describe("B5.9 Keyboard", () => {
   for (const scheme of SCHEMES) {
-    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's five links, the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
+    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's wordmark and five links, the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
       page,
     }) => {
       test.setTimeout(120_000);

@@ -36,8 +36,8 @@ import {
 // keyboard's in keyboard.spec.ts. The one place exact colors appear is the check that
 // lib/site.ts, which feeds the meta tags, the social card and the icons, still agrees with the CSS
 // tokens: a consistency check, so a new palette changes both. Sprint 23 (B2.9) holds the page-wide
-// checks on /read and the 404 as on / (.crew/sprint/23/contract.md), and sprint 30 (B5.9) on /log
-// and a record, through ROUTES.
+// checks on /read and the 404 as on / (.crew/sprint/23/contract.md), sprint 30 (B5.9) on /log
+// and a record, and sprint 31 (B4.13) on /crew, through ROUTES.
 
 type Scheme = (typeof SCHEMES)[number];
 type ColorToken = (typeof COLOR_TOKENS)[number];
@@ -79,7 +79,7 @@ for (const scheme of SCHEMES) {
   test.describe(`in the ${scheme} scheme`, () => {
     test.use({ colorScheme: scheme });
 
-    test("B2.9 every text color and size comes from a token, and body text is at least 16 px, on /, /read, /log, /log/13 and the 404", async ({
+    test("B2.9 every text color and size comes from a token, and body text is at least 16 px, on /, /read, /crew, /log, /log/13 and the 404", async ({
       page,
     }) => {
       for (const route of ROUTES) await textFromTokens(page, scheme, route);
@@ -88,14 +88,14 @@ for (const scheme of SCHEMES) {
     test("text meets its contrast thresholds", ({ page }) =>
       meetsContrast(page, scheme));
 
-    test("B2.9 axe finds no violation of any impact, with the strict tags, with or without the skip link showing, on /, /read, /log, /log/13 and the 404", async ({
+    test("B2.9 axe finds no violation of any impact, with the strict tags, with or without the skip link showing, on /, /read, /crew, /log, /log/13 and the 404", async ({
       page,
     }) => {
       test.setTimeout(90_000);
       for (const route of ROUTES) await axeClean(page, route);
     });
 
-    test("B2.9 with JavaScript off, the first paint already has this scheme's background, on /, /read, /log, /log/13 and the 404", async ({
+    test("B2.9 with JavaScript off, the first paint already has this scheme's background, on /, /read, /crew, /log, /log/13 and the 404", async ({
       browser,
       baseURL,
       page,
@@ -160,7 +160,7 @@ test("the type scale is fluid: no step shrinks from 320 to 1440 px, and the larg
 test.describe("on a 320 px wide phone", () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
-  test("B2.9 nothing overflows horizontally, on /, /read, /log, /log/13 and the 404", async ({
+  test("B2.9 nothing overflows horizontally, on /, /read, /crew, /log, /log/13 and the 404", async ({
     page,
   }) => {
     for (const route of ROUTES) {
@@ -173,7 +173,7 @@ test.describe("on a 320 px wide phone", () => {
   });
 });
 
-test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, the skip link and the project links included, on /, /read, /log, /log/13 and the 404", async ({
+test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, the skip link and the project links included, on /, /read, /crew, /log, /log/13 and the 404", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -200,7 +200,7 @@ test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, 
   }
 });
 
-test("B2.9 one main, each section a region named by its heading, and no skipped heading level, on /, /read, /log, /log/13 and the 404", async ({
+test("B2.9 one main, each section a region named by its heading, and no skipped heading level, on /, /read, /crew, /log, /log/13 and the 404", async ({
   page,
 }) => {
   for (const route of ROUTES) {
@@ -222,8 +222,12 @@ test("B2.9 one main, each section a region named by its heading, and no skipped 
     }
     for (const section of await sections.all()) {
       // textContent, not innerText: CSS may upper-case the h2, and the accessible name isn't.
+      // Its first heading of any level: /crew's panel is named by its h1 (sprint 31, B4.13).
       const heading = (
-        (await section.locator("h2").first().textContent()) ?? ""
+        (await section
+          .locator("h1, h2, h3, h4, h5, h6")
+          .first()
+          .textContent()) ?? ""
       ).trim();
       await expect(section, `the ${heading} section on ${route}`).toHaveRole(
         "region",
@@ -252,7 +256,7 @@ test("B2.9 one main, each section a region named by its heading, and no skipped 
   }
 });
 
-test("B2.9 nothing animates on /read, /log, /log/13 or the 404: no animation at load, 2 s later, or after a scroll to the bottom and back", async ({
+test("B2.9 nothing animates on /read, /crew, /log, /log/13 or the 404: no animation at load, 2 s later, or after a scroll to the bottom and back", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });

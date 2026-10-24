@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { Facts } from "@/components/facts";
+import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { Model, MotionControl } from "@/components/model";
 import { Revisions } from "@/components/revisions";
@@ -65,9 +66,10 @@ export default function Home() {
           className="lg:col-span-2 lg:border-x lg:border-foreground"
         />
         <Model seated={[...seats.keys()]} />
-        {/* Below 768 px the motion control sits here, at the drawing's foot: after the model, whose
-          adjacency to the drawing app/globals.css keys the planks on, and before the title block. */}
-        <MotionControl />
+        {/* Below 768 px Read as page and the motion control sit here, at the drawing's foot: after
+          the model, whose adjacency to the drawing app/globals.css keys the planks on, and before
+          the title block. */}
+        <Foot control={<MotionControl />} />
         <TitleBlock className="lg:col-start-2 lg:row-start-2" />
         <Revisions
           entries={entries}

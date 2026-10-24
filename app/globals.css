@@ -146,15 +146,25 @@ nav > [data-motion] {
   display: none;
 }
 
-/* The drawing's foot: it borrows 12 px of the drawing's own margin, and paints over the model's
-   layer, which lies on the drawing's box. */
-main > [data-motion] {
+/* The drawing's foot below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
+   Read as page at the left and, on the sheet, the control at the right, in one 44 px row. It
+   borrows 12 px of the drawing's own margin, and paints over the model's layer, which lies on the
+   drawing's box. */
+.foot {
   position: relative;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   height: 44px;
   margin: -12px 0 12px;
   padding: 0 16px;
+}
+
+/* The slot takes the rest of the row, so its box is the same before the buttons arrive, with scripts
+   off, and after. */
+.foot > [data-motion] {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 [data-motion] fieldset {
@@ -205,7 +215,7 @@ main > [data-motion] {
 }
 
 @media (width < 22.5rem) {
-  main > [data-motion] {
+  .foot {
     margin-top: 0;
   }
 
@@ -215,7 +225,7 @@ main > [data-motion] {
 }
 
 @media (width >= 48rem) {
-  main > [data-motion] {
+  .foot {
     display: none;
   }
 
@@ -256,7 +266,7 @@ main > [data-motion] {
 }
 
 @media print {
-  main > [data-motion] {
+  .foot {
     display: none;
   }
 }
@@ -850,6 +860,14 @@ main:has(> [data-model]) {
   order: 4;
   margin-top: 8px;
   color: var(--muted);
+}
+
+/* Read as page below 768 px (components/log.tsx says why here): the count line's order, which it
+   follows in the DOM, on the Log's own 16 px text edge rather than the drawing's foot. */
+.log > .foot {
+  order: 4;
+  margin: 4px 0 0;
+  padding: 0;
 }
 
 .record {
@@ -1825,6 +1843,389 @@ main:has(> [data-model]) {
 
   .lost {
     padding: 40px 0 72px;
+  }
+}
+
+/*
+ * The crew (app/crew/page.tsx, components/crew.tsx; .crew/sprint/31/contract.md, notes-iris.md,
+ * crew-1440.webp and crew-390.webp): the drawing, then the panel. Below 1024 px one above the other,
+ * the panel under a 2 px ink rule as the title block opens on /; from 1024 side by side inside the
+ * sheet's frame 16 px in, the panel at most 600 px behind an ink rule and the drawing held under the
+ * bar while the panel scrolls. Copper is a Working row's dot and word and the now line, nothing
+ * else, and both exist only while the crew is live (the contract's "Copper").
+ */
+.crew-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+/* The feed's words are never cut: a long token (a path, a URL) breaks rather than widen the page. */
+.crew {
+  padding: 16px 16px 40px;
+  border-top: 2px solid var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.crew-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.crew h1 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+/* The frame's ×, boxed in ink, a 44 px target at every width: the one link here with no underline,
+   since the box is its affordance. */
+.crew-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--foreground);
+  color: var(--foreground);
+}
+
+.crew-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+  stroke-linecap: square;
+}
+
+@media (hover: hover) {
+  .crew-close:hover {
+    background: var(--rule);
+  }
+}
+
+/* The sprint's number boxed as a plank: in pencil while the sprint is in progress, seated (ink on
+   the card) once it has merged, and with the feed down, where the record is a merged sprint. */
+.crew-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.crew-chip-number {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--foreground);
+  background: var(--card);
+  /* On the goal's first line (the row's baseline), as the frame boxes its 17: centred, it floated
+     between the lines of a wrapped goal. */
+  align-self: auto;
+  color: var(--foreground);
+  font-size: var(--step-sm);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  print-color-adjust: exact;
+}
+
+:is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
+  border-color: var(--pencil);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+/* Forced colours drop the hatch, so the pencil's dashed edge says "in progress" there. */
+@media (forced-colors: active) {
+  :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
+    border-style: dashed;
+  }
+}
+
+.crew-goal {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--step-base);
+  line-height: 1.5;
+}
+
+.crew-status {
+  margin-top: 8px;
+  font-size: var(--step-base);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.crew-table {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: var(--step-base);
+  line-height: 1.35;
+}
+
+.crew-name,
+.crew-word,
+.crew-state,
+.crew-line {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.crew-name {
+  width: 68px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.crew-word {
+  width: 60px;
+  color: var(--muted);
+}
+
+/* The panel's `overflow-wrap: anywhere` drops every cell's min-content to one character, so the
+   table would squeeze the name and role-word columns to their widths and split the words
+   ("Revie / w"). These are the portfolio's own words, never the feed's: they don't wrap. */
+.crew-name,
+.crew-word,
+.crew-state {
+  white-space: nowrap;
+}
+
+.crew-line,
+.crew-absent {
+  padding-right: 0;
+}
+
+/* The state's dot, drawn as a border so forced colours paint it: Working filled in copper, Waiting
+   an open ring, Done filled in ink; no dot for a role not on this sprint. */
+.crew-working::before,
+.crew-waiting::before,
+.crew-done::before {
+  content: "";
+  display: inline-block;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border: 1px solid var(--foreground);
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.crew-done::before {
+  border-width: 4px;
+}
+
+.crew-working {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.crew-working::before {
+  border: 4px solid var(--accent);
+}
+
+.crew-absent {
+  color: var(--muted);
+}
+
+/* The fold, where the panel is under about 500 px wide: the role word goes, and the roles not on
+   this sprint become one sentence, as crew-390.webp draws them. With the feed down the table is the
+   roster, so its role words stay. */
+[data-absent] {
+  display: none;
+}
+
+@media (width < 48rem), (64rem <= width < 80rem) {
+  .crew-name {
+    width: 48px;
+  }
+
+  .crew-word,
+  .crew-row-absent {
+    display: none;
+  }
+
+  [data-crew-state="down"] .crew-word {
+    display: table-cell;
+  }
+
+  [data-absent] {
+    display: block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--step-base);
+    line-height: 1.5;
+  }
+}
+
+.crew-activity {
+  margin-top: 16px;
+  font-size: var(--step-base);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.crew-now,
+.crew-moments li {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.crew-now {
+  margin-top: 6px;
+  color: var(--accent);
+}
+
+.crew-time {
+  color: var(--muted);
+  font-size: var(--step-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.crew-now .crew-time {
+  color: inherit;
+  font-weight: 600;
+}
+
+.crew-text {
+  font-size: var(--step-base);
+  line-height: 1.5;
+}
+
+.crew-now .crew-text,
+.crew-who {
+  font-weight: 600;
+}
+
+.crew-now q {
+  font-weight: 400;
+  quotes: "\201C" "\201D";
+}
+
+/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot, under ink. Each
+   term sits on its fact's first baseline, Evidence on its link's. */
+.crew-facts {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--foreground);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.crew-facts dt {
+  color: var(--muted);
+}
+
+/* From 768 to 1023 the panel runs the page's width; the measure stays a reading one. */
+.crew-facts dd {
+  max-width: 66ch;
+}
+
+/* Side by side where they fit; wrapped, one under the other with no row gap: each target is its
+   own 44 px row, so they don't overlap, and the pair reads as one fact. */
+[data-evidence] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 16px;
+}
+
+/* A 44 px target below 1024 that takes its own row's height, so its box and its focus ring clear
+   Approval below it (pulled back into the text's line box, both crossed Approval's first line);
+   24 px from 1024. */
+.crew-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+@media (width >= 48rem) and (width < 64rem) {
+  .crew-page > [data-plan] {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+@media (width >= 64rem) {
+  .crew-page {
+    grid-template-columns: minmax(0, 1fr) min(600px, 42.86%);
+    align-items: start;
+    margin: 0 16px;
+  }
+
+  .crew-page > [data-plan] {
+    position: sticky;
+    top: 72px;
+    padding-top: 24px;
+  }
+
+  .crew {
+    align-self: stretch;
+    padding: 24px 24px 40px;
+    border-top: 0;
+    border-left: 1px solid var(--foreground);
+  }
+
+  .crew-chip {
+    margin-top: 12px;
+  }
+
+  .crew-table {
+    margin-top: 16px;
+  }
+
+  .crew-activity {
+    margin-top: 20px;
+  }
+
+  .crew-facts {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .crew-link {
+    min-height: 24px;
+  }
+}
+
+/* The page's drawing carries 13 px plank numbers once its lifts are 13.9 px deep. */
+@media (width >= 80rem) {
+  .crew-page .plan-page > .plan-plank {
+    font-size: var(--step-sm);
+  }
+}
+
+@media print {
+  .crew-close {
+    display: none;
   }
 }
 

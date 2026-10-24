@@ -39,6 +39,11 @@ import { bioParts, MERGED, ROWS } from "./retros";
 // Sprint 30 (.crew/sprint/29/b5-first-contract.md, B5a): /log replaces /sprints, so B2.3's Log lands
 // on /log's h1 "Log", B1.5 counts /log's rows, B1.6 runs on /log and a record, and B1.10's
 // "/sprints: Sofia Sans only" retires with the old column (batch F; B5.10 checks /log's two faces).
+//
+// Sprint 31 (.crew/sprint/31/contract.md, B4a): both B2.3 tests are rewritten with the same
+// assertions over five links, Crew after Work. The nav keeps all five in the DOM at every width;
+// below 768 Read as page isn't shown in the bar but in main at the drawing's foot, before the
+// control's slot and in its row, a 44 px target (the moved assertion, for the owner).
 
 const REVISIONS = 'section[aria-labelledby="revisions"]';
 const LOG_ROWS = 'section[aria-labelledby="every-revision"] table tbody tr';
@@ -298,7 +303,7 @@ test("B1.2 the title block is the owner's words, verbatim, and the bio's last pa
     .toBe(true);
 });
 
-test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Contact and Read as page, then at 1440 the buttons Full, Calm and Off right of Read as page, at 320 and 390 the four links alone with the group in main between the drawing and the title block; each a target inside the viewport at 320, 390 and 1440 (24 px; 44 px for the buttons below 1024), Read as page the right-most link at 1440, each link landing on its target", async ({
+test("B2.3 the labelled bar (B1.3, sprints 27 and 31): the wordmark, then Work, Crew, Log, Contact and Read as page, then at 1440 the buttons Full, Calm and Off right of Read as page, at 320 and 390 Work, Crew, Log and Contact alone with Read as page and the group in main between the drawing and the title block, Read as page before the group's slot, in its row and a 44 px target; each a target inside the viewport at 320, 390 and 1440 (24 px; 44 px for the buttons below 1024), Read as page the right-most link at 1440, each link landing on its target", async ({
   page,
 }) => {
   const readBar = () =>
@@ -375,8 +380,11 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
           afterModel: follows(model, shown ?? null),
           beforeTitle: follows(shown, title),
         },
+        // The shown links only, as `controls` reads them: the bar's hidden Read as page has no box.
         targets: [
-          ...(nav?.querySelectorAll("a") ?? []),
+          ...[...(nav?.querySelectorAll("a") ?? [])].filter(
+            (a) => a.getClientRects().length > 0,
+          ),
           ...(shown?.querySelectorAll("button") ?? []),
         ].map((a) => {
           const r = a.getBoundingClientRect();
@@ -426,11 +434,35 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
           id,
           exists: document.getElementById(id) !== null,
         })),
+        // Read as page at the drawing's foot, below 768: in main, before the shown slot, in its row.
+        foot: [...document.querySelectorAll('main a[href="/read"]')]
+          .filter((a) => a.getClientRects().length > 0)
+          .map((a) => {
+            const r = a.getBoundingClientRect();
+            return {
+              text: squashed(a),
+              beforeSlot: follows(a, shown ?? null),
+              inRow: Boolean(
+                group && r.top < group.bottom && r.bottom > group.top,
+              ),
+              leftOfGroup: Boolean(group && r.right <= group.left + 0.5),
+              underlined:
+                getComputedStyle(a).textDecorationLine.includes("underline"),
+              width: r.width,
+              height: r.height,
+              inside:
+                r.left >= -0.5 &&
+                r.top >= -0.5 &&
+                r.right <= cw + 0.5 &&
+                r.bottom <= ch + 0.5,
+            };
+          }),
       };
     }, MOTION);
 
   const LINKS = [
     { tag: "a", text: "Work", href: "#work", inNav: true },
+    { tag: "a", text: "Crew", href: "/crew", inNav: true },
     { tag: "a", text: "Log", href: "/log", inNav: true },
     { tag: "a", text: "Contact", href: "#contact", inNav: true },
     { tag: "a", text: "Read as page", href: "/read", inNav: true },
@@ -463,7 +495,30 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
     const inBar = width >= 768;
     expect
       .soft(at.controls, `the bar's links and buttons, in order, at ${width}`)
-      .toEqual(inBar ? [...LINKS, ...BUTTONS] : LINKS);
+      .toEqual(inBar ? [...LINKS, ...BUTTONS] : LINKS.slice(0, 4));
+    // Below 768 Read as page is main's, at the drawing's foot (the moved assertion, sprint 31).
+    expect.soft(at.foot, `Read as page shown in main at ${width}`).toEqual(
+      inBar
+        ? []
+        : [
+            expect.objectContaining({
+              text: "Read as page",
+              beforeSlot: true,
+              inRow: true,
+              leftOfGroup: true,
+              underlined: true,
+              inside: true,
+            }),
+          ],
+    );
+    expect
+      .soft(
+        at.foot.filter(
+          ({ width, height }) => width < 44 - 0.05 || height < 44 - 0.05,
+        ),
+        `Read as page in main smaller than 44 x 44 px at ${width}`,
+      )
+      .toEqual([]);
     expect
       .soft(at.place, `the motion slots and the shown one's place at ${width}`)
       .toEqual({
@@ -558,12 +613,26 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
         .toBe("in view");
     }
     await open(page, width);
+    await page.locator("header nav a", { hasText: "Crew" }).first().click();
+    await page.waitForURL((url) => url.pathname === "/crew");
+    await expect(page.locator("h1"), `after Crew at ${width}`).toHaveText(
+      "Crew",
+    );
+    await open(page, width);
     await page.locator("header nav a", { hasText: "Log" }).first().click();
     await page.waitForURL((url) => url.pathname === "/log");
     await expect(page.locator("h1"), `after Log at ${width}`).toHaveText("Log");
     await open(page, width);
-    const read = page.locator("header nav a", { hasText: "Read as page" });
-    await expect(read, `Read as page in the bar at ${width}`).toHaveCount(1);
+    // From the bar at 1440, from the drawing's foot at 390: the one shown.
+    const read = page.locator(
+      width >= 768
+        ? 'header nav a:visible:has-text("Read as page")'
+        : 'main a[href="/read"]:visible',
+    );
+    await expect(
+      read,
+      `Read as page ${width >= 768 ? "in the bar" : "in main"} at ${width}`,
+    ).toHaveCount(1);
     await read.click();
     await page.waitForURL("**/read");
     await expect(
@@ -573,7 +642,7 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
   }
 });
 
-test("B2.3 the bar stays above the facts (B1.3, sprint 27): at 1024, with each fact section or Detail A under the bar and hovered, the element at every bar link's and motion button's centre is in the bar, and each link lands", async ({
+test("B2.3 the bar stays above the facts (B1.3, sprints 27 and 31): at 1024, with each fact section or Detail A under the bar and hovered, the element at every bar link's and motion button's centre is in the bar, and each link lands", async ({
   page,
   baseURL,
 }) => {
@@ -599,6 +668,7 @@ test("B2.3 the bar stays above the facts (B1.3, sprint 27): at 1024, with each f
   ];
   const LANDINGS: Record<string, string> = {
     Work: "#work",
+    Crew: "/crew",
     Log: "/log",
     Contact: "#contact",
     "Read as page": "/read",

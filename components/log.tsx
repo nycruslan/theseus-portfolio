@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
+import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { LogRecord } from "@/components/log-record";
 import { signatures } from "@/components/revisions";
@@ -77,6 +78,12 @@ export function Log({ entries, open }: LogProps) {
           </p>
           <p data-ghost-count="">{countLine(merged)}</p>
         </div>
+
+        {/* Below 768 px the bar's Read as page is hidden (components/bar.tsx), so it closes the
+          header here, after the count line: under the drawing it would part the ghost hull from
+          its caption, and on a record it would sit above the record's links yet follow them in
+          Tab order, since the record precedes the drawing in the DOM. */}
+        <Foot />
 
         {record && seat ? (
           <LogRecord
