@@ -44,8 +44,8 @@ const STATUS_DOWN =
   "The live feed isn't answering. Here is the latest revision on record.";
 export const RULES =
   "Only real events from the crew's sessions, as they happen. Its briefs and words are public; credentials are masked before anything is stored. Visitors watch: they can't start or steer the crew.";
-const CLOSE_OUT = "The pull request opens at the close-out.";
-const APPROVAL_LIVE = `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; anything they reserve waits for him.`;
+const CLOSE_OUT = "The pull request opens at the end of the sprint.";
+const APPROVAL_LIVE = `Not given yet. The pull request merges only after the checks, Lens's review and ${OWNER}'s rules pass; what his rules leave to him waits for him.`;
 
 type Json = Record<string, unknown>;
 const isObject = (value: unknown): value is Json =>
