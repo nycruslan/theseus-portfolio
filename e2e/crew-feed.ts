@@ -25,13 +25,14 @@ import { join } from "node:path";
 // - Each site runs from a temporary folder: a copy of the checkout's `.next` and links to
 //   everything else, so a page it regenerates from a fixture never lands in the `.next` the suite's
 //   webServer serves, and two sites never share a cache.
-// - The fixtures' edge cases, each one a data rule: in live.json a quoted now line, a role entry
-//   with an unknown key, one with an unknown state and a second entry for a key (all dropped), a
-//   moment of an unknown kind, one whose `at` doesn't parse and one with no text (dropped), one
-//   whose `who` isn't a roster key (kept), one with markup in its text, and one on the day before
-//   the newest; in open.json a working role (Waiting when not live), a PR of another repository and
-//   a run URL on another origin (neither linked), moments out of order; in resting.json a waiting
-//   and a working role (Done at rest) and a PR whose URL's number isn't its own (not linked).
+// - The fixtures' edge cases, each one a data rule: in live.json a role entry with an unknown key,
+//   one with an unknown state and a second entry for a key (all dropped), a moment of an unknown
+//   kind, one whose `at` doesn't parse and one with no text (dropped), one whose `who` isn't a
+//   roster key (kept), one whose text is markup, one on the UTC day before the newest, and another
+//   repository's PR (not linked); in open.json a working role (Waiting when not live), this
+//   repository's PR (linked), a run URL on another origin (not linked) and moments out of order;
+//   in resting.json sprint 29 (a merged retro), a waiting and a working role (Done at rest) and a
+//   PR whose URL's number isn't its own (not linked).
 
 /** The feed's three fixture states (e2e/fixtures/crew). */
 export type Fixture = "live" | "open" | "resting";
@@ -97,30 +98,37 @@ export async function startFeed(): Promise<Feed> {
   const dir = mkdtempSync(join(tmpdir(), "crew-feed-"));
   const key = join(dir, "key.pem");
   const cert = join(dir, "cert.pem");
-  // openssl is on every machine the suite runs on (CI's Ubuntu, the cloud's sessions, macOS).
-  execFileSync(
-    OPENSSL,
-    [
-      "req",
-      "-x509",
-      "-newkey",
-      "ec",
-      "-pkeyopt",
-      "ec_paramgen_curve:prime256v1",
-      "-nodes",
-      "-days",
-      "2",
-      "-subj",
-      "/CN=127.0.0.1",
-      "-addext",
-      "subjectAltName=IP:127.0.0.1",
-      "-keyout",
-      key,
-      "-out",
-      cert,
-    ],
-    { stdio: "ignore" },
-  );
+  // openssl is on CI's Ubuntu, the cloud's sessions and macOS; where it isn't, say so plainly.
+  try {
+    execFileSync(
+      OPENSSL,
+      [
+        "req",
+        "-x509",
+        "-newkey",
+        "ec",
+        "-pkeyopt",
+        "ec_paramgen_curve:prime256v1",
+        "-nodes",
+        "-days",
+        "2",
+        "-subj",
+        "/CN=127.0.0.1",
+        "-addext",
+        "subjectAltName=IP:127.0.0.1",
+        "-keyout",
+        key,
+        "-out",
+        cert,
+      ],
+      { stdio: "ignore" },
+    );
+  } catch (error) {
+    rmSync(dir, { recursive: true, force: true });
+    throw new Error(
+      `The crew feed's fixture server needs openssl (or OPENSSL_BIN) to make its https certificate: ${String(error)}`,
+    );
+  }
   const port = await freePort();
   const origin = `https://127.0.0.1:${port}`;
   const channels = new Map<string, Answer>();
@@ -232,7 +240,7 @@ export type Site = {
 
 /**
  * Starts `next start` on the checkout's build from a folder of its own, with CREW_FEED_URL set
- * (unset when `feedUrl` is null) and the server's clock in New York, so a time shown in the
+ * (unset when `feedUrl` is null) and the server's clock at UTC+14 (B4.7), so a time shown in the
  * server's zone instead of UTC is off by hours and, near midnight, by a day.
  */
 export async function startSite(
@@ -251,7 +259,7 @@ export async function startSite(
   const port = await freePort();
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    TZ: "America/New_York",
+    TZ: "Pacific/Kiritimati",
     NODE_ENV: "production",
   };
   delete env.CREW_FEED_URL;
