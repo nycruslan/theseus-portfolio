@@ -1923,13 +1923,15 @@ main:has(> [data-model]) {
   display: inline-flex;
   flex: none;
   align-items: center;
-  align-self: center;
   justify-content: center;
   min-width: 28px;
   height: 20px;
   padding: 0 6px;
   border: 1px solid var(--foreground);
   background: var(--card);
+  /* On the goal's first line (the row's baseline), as the frame boxes its 17: centred, it floated
+     between the lines of a wrapped goal. */
+  align-self: auto;
   color: var(--foreground);
   font-size: var(--step-sm);
   font-weight: 700;
@@ -1999,6 +2001,11 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
+/* The panel's `overflow-wrap: anywhere` drops every cell's min-content to one character, so the
+   table would squeeze the name and role-word columns to their widths and split the words
+   ("Revie / w"). These are the portfolio's own words, never the feed's: they don't wrap. */
+.crew-name,
+.crew-word,
 .crew-state {
   white-space: nowrap;
 }
@@ -2119,10 +2126,12 @@ main:has(> [data-model]) {
   quotes: "\201C" "\201D";
 }
 
-/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot, under ink. */
+/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot, under ink. Each
+   term sits on its fact's first baseline, Evidence on its link's. */
 .crew-facts {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
+  align-items: baseline;
   gap: 8px 12px;
   margin-top: 24px;
   padding-top: 14px;
@@ -2135,20 +2144,27 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
-/* Side by side where they fit; wrapped, a row gap keeps the two 44 px targets from overlapping. */
+/* From 768 to 1023 the panel runs the page's width; the measure stays a reading one. */
+.crew-facts dd {
+  max-width: 66ch;
+}
+
+/* Side by side where they fit; wrapped, one under the other with no row gap: each target is its
+   own 44 px row, so they don't overlap, and the pair reads as one fact. */
 [data-evidence] {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 24px 16px;
+  gap: 0 16px;
 }
 
-/* A 44 px target on a phone whose line box stays the text's, 24 px from 1024. */
+/* A 44 px target below 1024 that takes its own row's height, so its box and its focus ring clear
+   Approval below it (pulled back into the text's line box, both crossed Approval's first line);
+   24 px from 1024. */
 .crew-link {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-block: -12px;
 }
 
 @media (width >= 48rem) and (width < 64rem) {
@@ -2197,11 +2213,6 @@ main:has(> [data-model]) {
 
   .crew-link {
     min-height: 24px;
-    margin-block: 0;
-  }
-
-  [data-evidence] {
-    row-gap: 0;
   }
 }
 
