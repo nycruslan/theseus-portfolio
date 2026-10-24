@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "asOf": "2026-10-24T02:00:11.000Z",
+  "current": {
+    "sprint": 31,
+    "goal": "The crew's page, /crew, from the Studio's feed",
+    "live": true,
+    "startedAt": "2026-10-23T23:55:03.000Z",
+    "lastEventAt": "2026-10-24T01:58:40.000Z",
+    "pr": {
+      "number": 78,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/78"
+    },
+    "health": {
+      "state": "working",
+      "label": "Working",
+      "line": "Briefing Probe on the fixtures, then the harness.",
+      "quote": true
+    },
+    "now": "Briefing Probe on the fixtures, then the harness.",
+    "roles": [
+      {
+        "role": "lead",
+        "state": "working",
+        "line": "Briefing Probe"
+      },
+      {
+        "role": "product-owner",
+        "state": "done",
+        "line": "Wrote the contract: 14 checks"
+      },
+      {
+        "role": "engineer",
+        "state": "working",
+        "line": "Building the feed reader"
+      },
+      {
+        "role": "creative-engineer",
+        "state": "not-called",
+        "line": null
+      },
+      {
+        "role": "code-reviewer",
+        "state": "waiting",
+        "line": "Reviews the pull request"
+      },
+      {
+        "role": "qa-engineer",
+        "state": "working",
+        "line": "Writing the tests"
+      },
+      {
+        "role": "design-director",
+        "state": "sleeping",
+        "line": "A state the page drops"
+      },
+      {
+        "role": "stowaway",
+        "state": "working",
+        "line": "A guest the page drops"
+      },
+      {
+        "role": "lead",
+        "state": "done",
+        "line": "A second entry the page drops"
+      }
+    ],
+    "moments": [
+      {
+        "kind": "report",
+        "at": "2026-10-24T01:58:40.000Z",
+        "who": "qa-engineer",
+        "text": "Probe pushed the fixtures and the harness"
+      },
+      {
+        "kind": "meeting",
+        "at": "2026-10-24T01:52:07.000Z",
+        "who": "lead",
+        "text": "A meeting the page drops"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-24T01:47:30.000Z",
+        "who": "stowaway",
+        "text": "Lens: changes on the bar"
+      },
+      {
+        "kind": "report",
+        "at": "2026-10-24T01:40:02.000Z",
+        "who": "engineer",
+        "text": "Forge measured the cache: <b>bold</b> &amp; more"
+      },
+      {
+        "kind": "decision",
+        "at": "not a time",
+        "who": "lead",
+        "text": "A decision with no time the page drops"
+      },
+      {
+        "kind": "contract",
+        "at": "2026-10-24T01:31:40.000Z",
+        "who": "product-owner",
+        "text": "Done means 14 checks"
+      },
+      {
+        "kind": "ticket",
+        "at": "2026-10-24T01:25:00.000Z",
+        "who": "lead",
+        "text": ""
+      },
+      {
+        "kind": "decision",
+        "at": "2026-10-24T01:20:15.000Z",
+        "who": "lead",
+        "text": "Probe owns the fixtures"
+      },
+      {
+        "kind": "pr",
+        "at": "2026-10-24T00:46:55.000Z",
+        "who": "lead",
+        "text": "PR #78 opened"
+      },
+      {
+        "kind": "gate",
+        "at": "2026-10-24T00:45:12.000Z",
+        "who": null,
+        "text": "The owner's paths are untouched"
+      },
+      {
+        "kind": "ticket",
+        "at": "2026-10-24T00:44:09.000Z",
+        "who": "lead",
+        "text": "Briefed Forge, Probe, Quill and Iris"
+      },
+      {
+        "kind": "kickoff",
+        "at": "2026-10-23T23:55:03.000Z",
+        "who": null,
+        "text": "Sprint started"
+      }
+    ],
+    "url": "https://theseus-studio.vercel.app/studio/runs/run-31"
+  },
+  "last": {
+    "sprint": 30,
+    "goal": "The Log, /log, as the drawing's revision table",
+    "live": false,
+    "startedAt": "2026-10-23T18:02:00.000Z",
+    "lastEventAt": "2026-10-23T23:58:10.000Z",
+    "pr": {
+      "number": 77,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/77"
+    },
+    "health": {
+      "state": "shipped",
+      "label": "Shipped · PR #77",
+      "line": "The owner merged PR #77 on GitHub.",
+      "quote": false
+    },
+    "now": null,
+    "roles": [
+      {
+        "role": "lead",
+        "state": "done",
+        "line": "Merged PR #77"
+      },
+      {
+        "role": "product-owner",
+        "state": "done",
+        "line": "Wrote the contract"
+      },
+      {
+        "role": "engineer",
+        "state": "done",
+        "line": "Built /log"
+      },
+      {
+        "role": "creative-engineer",
+        "state": "not-called",
+        "line": null
+      },
+      {
+        "role": "code-reviewer",
+        "state": "done",
+        "line": "Ship, two nits"
+      },
+      {
+        "role": "qa-engineer",
+        "state": "done",
+        "line": "Wrote the checks"
+      },
+      {
+        "role": "design-director",
+        "state": "done",
+        "line": "Reviewed the table"
+      }
+    ],
+    "moments": [
+      {
+        "kind": "end",
+        "at": "2026-10-23T23:58:10.000Z",
+        "who": null,
+        "text": "Sprint ended"
+      },
+      {
+        "kind": "merge",
+        "at": "2026-10-23T23:52:00.000Z",
+        "who": null,
+        "text": "PR #77 merged"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-23T23:30:00.000Z",
+        "who": "code-reviewer",
+        "text": "Lens: ship"
+      },
+      {
+        "kind": "pr",
+        "at": "2026-10-23T22:10:00.000Z",
+        "who": "lead",
+        "text": "PR #77 opened"
+      },
+      {
+        "kind": "kickoff",
+        "at": "2026-10-23T18:02:00.000Z",
+        "who": null,
+        "text": "Sprint started"
+      }
+    ],
+    "url": "https://theseus-studio.vercel.app/studio/runs/run-30",
+    "endedAt": "2026-10-23T23:58:10.000Z",
+    "mergedAt": "2026-10-23T23:52:00.000Z"
+  }
+}
