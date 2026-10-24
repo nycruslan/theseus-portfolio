@@ -1331,11 +1331,12 @@ main:has(> [data-model]) {
 }
 
 /*
- * The crew (app/crew/page.tsx, components/crew.tsx; .crew/sprint/31/contract.md; crew-1440.webp and
- * crew-390.webp): the drawing, then the panel. Below 1024 px one above the other; from 1024 side by
- * side as the sheet's grid, the drawing 4fr and the panel 3fr behind an ink rule, inside the
- * sheet's frame 16 px in. Copper is a Working row's dot and word and the now line, nothing else,
- * and both exist only while the crew is live (the contract's "Copper").
+ * The crew (app/crew/page.tsx, components/crew.tsx; .crew/sprint/31/contract.md, notes-iris.md,
+ * crew-1440.webp and crew-390.webp): the drawing, then the panel. Below 1024 px one above the other,
+ * the panel under a 2 px ink rule as the title block opens on /; from 1024 side by side inside the
+ * sheet's frame 16 px in, the panel at most 600 px behind an ink rule and the drawing held under the
+ * bar while the panel scrolls. Copper is a Working row's dot and word and the now line, nothing
+ * else, and both exist only while the crew is live (the contract's "Copper").
  */
 .crew-page {
   display: grid;
@@ -1344,13 +1345,13 @@ main:has(> [data-model]) {
 }
 
 .crew {
-  padding: 20px 16px 48px;
-  border-top: 1px solid var(--foreground);
+  padding: 16px 16px 40px;
+  border-top: 2px solid var(--foreground);
 }
 
 .crew-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
@@ -1359,13 +1360,14 @@ main:has(> [data-model]) {
   font-family: var(--font-sofia-cond), sans-serif;
   font-size: var(--step-display);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 0.95;
   letter-spacing: -0.01em;
 }
 
-/* The frame's ×, boxed in ink: a 44 px target at every width. */
+/* The frame's ×, boxed in ink, a 44 px target at every width: the one link here with no underline,
+   since the box is its affordance. */
 .crew-close {
-  display: flex;
+  display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
@@ -1381,6 +1383,7 @@ main:has(> [data-model]) {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.5px;
+  stroke-linecap: square;
 }
 
 @media (hover: hover) {
@@ -1389,186 +1392,298 @@ main:has(> [data-model]) {
   }
 }
 
-/* The sprint's number hatched in graphite, as a plank still in pencil, then its goal. */
+/* The sprint's number boxed as a plank: in pencil while the sprint is in progress, seated (ink on
+   the card) once it has merged, and with the feed down, where the record is a merged sprint. */
 .crew-chip {
-  margin-top: 8px;
-  font-size: var(--step-base);
-  text-wrap: pretty;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .crew-chip-number {
-  padding: 0 4px;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--muted) 0 1px,
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--foreground);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: var(--step-sm);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  print-color-adjust: exact;
+}
+
+:is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
+  border-color: var(--pencil);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
     transparent 1px 4px
   );
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-shadow:
-    0 0 2px var(--background),
-    0 0 2px var(--background);
+}
+
+.crew-goal {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--step-base);
+  line-height: 1.5;
 }
 
 .crew-status {
-  margin-top: 4px;
+  margin-top: 8px;
   font-size: var(--step-base);
   font-weight: 600;
+  line-height: 1.5;
 }
 
 .crew-table {
   width: 100%;
-  margin-top: 16px;
+  margin-top: 14px;
   border-collapse: collapse;
   font-size: var(--step-base);
-}
-
-.crew-row {
-  border-bottom: 1px solid var(--rule);
+  line-height: 1.35;
 }
 
 .crew-name,
 .crew-word,
 .crew-state,
 .crew-line {
-  padding: 10px 16px 10px 0;
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: baseline;
 }
 
-.crew-line {
-  padding-right: 0;
+.crew-name {
+  width: 68px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-lg);
+  font-weight: 700;
+  line-height: 1;
 }
 
-.crew-name {
-  font-family: var(--font-sofia-cond), sans-serif;
-  font-size: var(--step-xl);
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
+.crew-word {
+  width: 60px;
+  color: var(--muted);
 }
 
 .crew-state {
   white-space: nowrap;
 }
 
-.crew-absent > .crew-state {
-  color: var(--muted);
+.crew-line,
+.crew-absent {
+  padding-right: 0;
 }
 
-/* Working: filled, in copper. Waiting: an open ring. Done: filled, in ink. */
-.crew-dot {
+/* The state's dot, drawn as a border so forced colours paint it: Working filled in copper, Waiting
+   an open ring, Done filled in ink; no dot for a role not on this sprint. */
+.crew-working::before,
+.crew-waiting::before,
+.crew-done::before {
+  content: "";
   display: inline-block;
+  box-sizing: border-box;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
-  border: 1px solid currentColor;
+  margin-right: 8px;
+  border: 1px solid var(--foreground);
   border-radius: 50%;
   vertical-align: 1px;
 }
 
-.crew-dot-working,
-.crew-dot-done {
-  background: currentColor;
+.crew-done::before {
+  border-width: 4px;
 }
 
 .crew-working {
   color: var(--accent);
+  font-weight: 600;
+}
+
+.crew-working::before {
+  border: 4px solid var(--accent);
+}
+
+.crew-absent {
+  color: var(--muted);
+}
+
+/* The fold, where the panel is under about 500 px wide: the role word goes, and the roles not on
+   this sprint become one sentence, as crew-390.webp draws them. With the feed down the table is the
+   roster, so its role words stay. */
+[data-absent] {
+  display: none;
+}
+
+@media (width < 48rem), (64rem <= width < 80rem) {
+  .crew-name {
+    width: 48px;
+  }
+
+  .crew-word,
+  .crew-row-absent {
+    display: none;
+  }
+
+  [data-crew-state="down"] .crew-word {
+    display: table-cell;
+  }
+
+  [data-absent] {
+    display: block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--step-base);
+    line-height: 1.5;
+  }
 }
 
 .crew-activity {
-  margin-top: 24px;
+  margin-top: 16px;
   font-size: var(--step-base);
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .crew-now,
 .crew-moments li {
-  display: flex;
-  gap: 12px;
-  padding: 6px 0;
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
   border-bottom: 1px solid var(--rule);
 }
 
 .crew-now {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--accent);
 }
 
 .crew-time {
-  flex: none;
-  min-width: 3.25em;
   color: var(--muted);
+  font-size: var(--step-sm);
   font-variant-numeric: tabular-nums;
 }
 
 .crew-now .crew-time {
   color: inherit;
+  font-weight: 600;
 }
 
+.crew-text {
+  font-size: var(--step-base);
+  line-height: 1.5;
+}
+
+.crew-now .crew-text,
+.crew-who {
+  font-weight: 600;
+}
+
+.crew-now q {
+  font-weight: 400;
+  quotes: "\201C" "\201D";
+}
+
+/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot under an ink rule. */
 .crew-facts {
-  margin-top: 32px;
-  padding-top: 12px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin-top: 24px;
+  padding-top: 14px;
   border-top: 1px solid var(--foreground);
   font-size: var(--step-sm);
-}
-
-.crew-facts > div {
-  display: grid;
-  grid-template-columns: 6.5em minmax(0, 1fr);
-  gap: 16px;
-  padding: 4px 0;
+  line-height: 1.5;
 }
 
 .crew-facts dt {
   color: var(--muted);
 }
 
-/* Below 768 px the role word goes and the roles not on this sprint fold into one line, as
-   crew-390.webp draws it. */
-@media (width < 48rem) {
-  .crew-word,
-  .crew-absent {
-    display: none;
-  }
-
-  [data-absent] {
-    margin-top: 12px;
-    color: var(--muted);
-  }
+[data-evidence] {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
 }
 
-@media (width >= 48rem) {
-  .crew {
-    padding: 24px 24px 48px;
-  }
+/* A 44 px target on a phone whose line box stays the text's, 24 px from 1024. */
+.crew-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
+}
 
-  [data-absent] {
-    display: none;
+@media (width >= 48rem) and (width < 64rem) {
+  .crew-page > [data-plan] {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
   }
 }
 
 @media (width >= 64rem) {
   .crew-page {
-    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
-    align-items: stretch;
-    padding: 0 16px;
+    grid-template-columns: minmax(0, 1fr) min(600px, 42.86%);
+    align-items: start;
+    margin: 0 16px;
+  }
+
+  .crew-page > [data-plan] {
+    position: sticky;
+    top: 72px;
+    padding-top: 24px;
   }
 
   .crew {
+    align-self: stretch;
+    padding: 24px 24px 40px;
     border-top: 0;
     border-left: 1px solid var(--foreground);
   }
 
-  .crew-table,
-  .crew-moments,
-  .crew-now {
-    font-size: var(--step-sm);
+  .crew-chip {
+    margin-top: 12px;
   }
 
+  .crew-table {
+    margin-top: 16px;
+  }
+
+  .crew-activity {
+    margin-top: 20px;
+  }
+
+  .crew-facts {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .crew-link {
+    min-height: 24px;
+    margin-block: 0;
+  }
+}
+
+/* The page's drawing carries 13 px plank numbers once its lifts are 13.9 px deep. */
+@media (width >= 80rem) {
+  .crew-page .plan-page > .plan-plank {
+    font-size: var(--step-sm);
+  }
+}
+
+@media print {
   .crew-close {
-    width: 40px;
-    height: 40px;
+    display: none;
   }
 }
 

@@ -82,11 +82,13 @@ function Chip({
   goal: string | null;
 }) {
   if (sprint === null && goal === null) return null;
+  // The number boxed as a plank (hatched while in progress, seated at rest: app/globals.css), the
+  // goal beside it, wrapping under itself.
   return (
     <p data-chip="" className="crew-chip">
       {sprint !== null && <span className="crew-chip-number">{sprint}</span>}
       {sprint !== null && goal !== null && " "}
-      {goal}
+      {goal !== null && <span className="crew-goal">{goal}</span>}
     </p>
   );
 }
@@ -100,11 +102,11 @@ function Now({ run }: { run: Run }) {
     <p data-now="" className="crew-now">
       <span className="crew-time">now</span>{" "}
       {quoted ? (
-        <span>
-          Atlas: <q>{now}</q>
+        <span className="crew-text">
+          <span className="crew-who">Atlas:</span> <q>{now}</q>
         </span>
       ) : (
-        <span>{now}</span>
+        <span className="crew-text">{now}</span>
       )}
     </p>
   );
@@ -135,7 +137,7 @@ function Activity({ run, live }: { run: Run; live: boolean }) {
               <time dateTime={at.toISOString()} className="crew-time">
                 {time}
               </time>{" "}
-              <span>{moment.text}</span>
+              <span className="crew-text">{moment.text}</span>
             </li>
           );
         })}
@@ -144,9 +146,9 @@ function Activity({ run, live }: { run: Run; live: boolean }) {
   );
 }
 
-// inline-flex, so each link is a target at least 24 px tall.
+// Ink, underlined, a target 44 px tall below 1024 and 24 from it (app/globals.css, ".crew-link").
 const LINK =
-  "inline-flex min-h-6 items-center text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
+  "crew-link text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
 
 function Evidence({
   crew,
@@ -171,27 +173,22 @@ function Evidence({
   return (
     <dd data-evidence="">
       {run.studio && (
-        <span className="block">
-          <a href={run.studio} className={LINK}>
-            This run on the Studio
-          </a>
-        </span>
+        <a href={run.studio} className={LINK}>
+          This run on the Studio
+        </a>
       )}
+      {run.studio && " "}
       {run.pr ? (
-        <span className="block">
-          {href ? (
-            <a href={href} className={LINK}>
-              Pull request #{run.pr.number}
-            </a>
-          ) : (
-            `Pull request #${run.pr.number}`
-          )}
-        </span>
+        href ? (
+          <a href={href} className={LINK}>
+            Pull request #{run.pr.number}
+          </a>
+        ) : (
+          <span>Pull request #{run.pr.number}</span>
+        )
       ) : (
         state !== "resting" && (
-          <span className="block">
-            The pull request opens at the close-out.
-          </span>
+          <span>The pull request opens at the close-out.</span>
         )
       )}
     </dd>
@@ -212,7 +209,7 @@ export function CrewPanel({ crew, record, entries }: Props) {
         <a data-close="" href="/" className="crew-close">
           <span className="sr-only">Close</span>
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <path d="M2 2 14 14M14 2 2 14" />
+            <path d="M3 3 13 13M13 3 3 13" />
           </svg>
         </a>
       </div>
@@ -227,18 +224,12 @@ export function CrewPanel({ crew, record, entries }: Props) {
       <CrewTable crew={crew} />
       {run && <Activity run={run} live={crew.state === "live"} />}
       <dl className="crew-facts">
-        <div>
-          <dt>Evidence</dt>
-          <Evidence crew={crew} record={record} />
-        </div>
-        <div>
-          <dt>Approval</dt>
-          <dd data-approval="">{approval(crew, record, entries)}</dd>
-        </div>
-        <div>
-          <dt>Rules</dt>
-          <dd data-rules="">{RULES}</dd>
-        </div>
+        <dt>Evidence</dt>
+        <Evidence crew={crew} record={record} />
+        <dt>Approval</dt>
+        <dd data-approval="">{approval(crew, record, entries)}</dd>
+        <dt>Rules</dt>
+        <dd data-rules="">{RULES}</dd>
       </dl>
     </section>
   );

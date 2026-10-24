@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 // DOM, so Tab reaches it first, as the eye does.
 export function Foot({ control }: { control?: ReactNode }) {
   return (
-    <div className="foot">
+    <div data-foot="" className="foot">
       <a
         href="/read"
         className="flex items-center text-step-base whitespace-nowrap font-semibold text-foreground underline decoration-1 underline-offset-[6px] hover:decoration-2 max-[359px]:text-step-sm"

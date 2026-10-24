@@ -54,7 +54,7 @@ export default async function Crew() {
         tabIndex={-1}
         className={`crew-page ${sofiaCondensed.variable}`}
       >
-        <LinesPlan seats={seats} />
+        <LinesPlan seats={seats} view="page" />
         <Foot />
         <CrewPanel crew={crew} record={entries[0]} entries={entries} />
       </main>

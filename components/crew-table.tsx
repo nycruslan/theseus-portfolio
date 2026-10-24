@@ -18,6 +18,14 @@ const CREW: Record<RosterRole, { name: string; word: string }> = {
 const WORDS = ["Working", "Waiting", "Done", "Not on this sprint"] as const;
 type Word = (typeof WORDS)[number];
 
+/** Each word's class: its dot, and copper for Working (app/globals.css, "The crew"). */
+const SLUGS: Record<Word, string> = {
+  Working: "working",
+  Waiting: "waiting",
+  Done: "done",
+  "Not on this sprint": "absent",
+};
+
 type Told = Exclude<Crew["state"], "down">;
 
 /**
@@ -65,31 +73,33 @@ export function CrewTable({ crew }: { crew: Crew }) {
     <>
       <table className="crew-table">
         <tbody>
-          {rows.map(({ role, word, line }) => (
-            <tr
-              key={role}
-              data-role={role}
-              className={`crew-row${word === "Not on this sprint" ? " crew-absent" : ""}`}
-            >
-              <th scope="row" translate="no" className="crew-name">
-                {CREW[role].name}
-              </th>
-              <td className="crew-word">{CREW[role].word}</td>
-              <td
-                data-state=""
-                className={`crew-state${word === "Working" ? " crew-working" : ""}`}
+          {rows.map(({ role, word, line }) => {
+            const notCalled = word === "Not on this sprint";
+            return (
+              <tr
+                key={role}
+                data-role={role}
+                className={`crew-row${notCalled ? " crew-row-absent" : ""}`}
               >
-                {word && word !== "Not on this sprint" && (
-                  <span
-                    aria-hidden="true"
-                    className={`crew-dot crew-dot-${word.toLowerCase()}`}
-                  />
+                <th scope="row" translate="no" className="crew-name">
+                  {CREW[role].name}
+                </th>
+                <td className="crew-word">{CREW[role].word}</td>
+                {/* "Not on this sprint" runs into the empty line column, as the frame draws it,
+                  so the state column is as wide as Working, Waiting and Done need. */}
+                <td
+                  data-state=""
+                  colSpan={notCalled && line === null ? 2 : undefined}
+                  className={`crew-state${word ? ` crew-${SLUGS[word]}` : ""}`}
+                >
+                  {word}
+                </td>
+                {notCalled && line === null ? null : (
+                  <td className="crew-line">{line}</td>
                 )}
-                {word}
-              </td>
-              <td className="crew-line">{line}</td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {/* Below 768 px the roles not on this sprint fold into one line, as crew-390.webp draws it;
