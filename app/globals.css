@@ -236,12 +236,16 @@ main > [data-motion] {
 
 /* The system repaints the ink fill as the buttons' own ground, so pressed takes the selection's
    colours, its frame included, which also sets it apart from the others' rules. Highlight rather
-   than SelectedItem: every forced-colours browser has it, and Chromium paints both alike. */
+   than SelectedItem: every forced-colours browser has it, and Chromium paints both alike. Left to
+   the system, Chromium backs the label with a Canvas plate, white under white HighlightText, so
+   the button sets its own system colours, its focus ring's included (else var(--foreground)). */
 @media (forced-colors: active) {
   [data-motion] [aria-pressed="true"] {
+    forced-color-adjust: none;
     border-color: Highlight;
     background: Highlight;
     color: HighlightText;
+    outline-color: Highlight;
   }
 }
 
