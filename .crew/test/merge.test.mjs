@@ -322,6 +322,20 @@ test("refuses when the branch moves or the PR isn't open", () => {
     github({ pulls: pr({ state: "closed", merged: true }) }),
   );
   assert.match(closed.stderr, /already merged/);
+  // A closed PR whose checks never settled, as an old sprint's PR under a mistaken number, is
+  // refused on the first read: there is nothing to wait for.
+  const stale = merge(
+    github({
+      pulls: pr({ state: "closed", mergeable_state: "unknown" }),
+      checks: [done("check", "failure"), done("gate")],
+    }),
+  );
+  assert.equal(stale.code, 1);
+  assert.match(stale.stderr, /the PR is closed/);
+  assert.equal(
+    stale.calls.filter((call) => call.includes(`${R}/pulls/12`)).length,
+    1,
+  );
 });
 
 test("fails closed, with the reason, when GitHub can't be read", () => {

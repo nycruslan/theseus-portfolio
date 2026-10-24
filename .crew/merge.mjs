@@ -86,13 +86,15 @@ if (merged) {
   process.exitCode = 1;
 }
 
-// Done once the branch moved, or every required check reported, every check finished and GitHub
-// knows if the PR merges cleanly. Rules that require nothing leave nothing to wait for.
+// Done once the branch moved or the PR isn't open, or every required check reported, every check
+// finished and GitHub knows if the PR merges cleanly. Rules that require nothing leave nothing to
+// wait for, and a closed PR (a wrong number: sprint 30's run passed its sprint's) has nothing to.
 function settled() {
   const known = pr.mergeable_state && pr.mergeable_state !== "unknown";
   return (
     !required.length ||
     pr.head.sha !== head ||
+    pr.state !== "open" ||
     (known &&
       !unreported().length &&
       checks.every(({ state }) => state !== "pending"))
