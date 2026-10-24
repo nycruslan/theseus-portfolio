@@ -130,9 +130,10 @@ test("every role and the lead run on a strong model at a stated effort", () => {
     assert.ok(["opus", "fable"].includes(model), `${role}: ${model}`);
     assert.ok(["high", "xhigh", "max"].includes(effort), `${role}: ${effort}`);
   }
-  assert.equal(front(join(agents, "design-director.md")).model, "fable");
+  // Opus until the weekly Fable limit resets on 2026-10-30; reverting this change restores Fable.
+  assert.equal(front(join(agents, "design-director.md")).model, "opus");
   const lead = front(
     join(CREW, "..", ".claude", "skills", "sprint", "SKILL.md"),
   );
-  assert.deepEqual(lead, { model: "fable", effort: "high" });
+  assert.deepEqual(lead, { model: "opus", effort: "high" });
 });

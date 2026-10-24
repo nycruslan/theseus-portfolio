@@ -843,7 +843,7 @@ async function scriptBytes(browser: Browser, url: string, refuse = false) {
   };
 }
 
-test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on / (WebGL refused), /read, /crew and the 404 within 2,048 B of /sprints'", async ({
+test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on / (WebGL refused), /read, /crew and the 404 within 2,048 B of /log's", async ({
   page,
   browser,
 }, testInfo) => {
@@ -968,9 +968,12 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the draw
     )
     .not.toEqual([]);
 
-  // Script bytes against /sprints' in the same run.
-  const sprints = await scriptBytes(browser, "/sprints");
-  expect(sprints.files, "script files /sprints requests").toBeGreaterThan(0);
+  // Script bytes against /log's in the same run: the framework's alone (sprint 30, B5.10, which
+  // moved the baseline from /sprints with the route).
+  const log = await scriptBytes(browser, "/log");
+  // Today a missing /log is the 404, whose files are the same: the baseline must be the page.
+  expect(log.status, "status of /log").toBe(200);
+  expect(log.files, "script files /log requests").toBeGreaterThan(0);
   // Sprint 31 (.crew/sprint/31/contract.md, B4.14): /crew ships no client code of its own.
   for (const route of ["/", READ, "/crew", "/no-such-page"]) {
     const route_ = await scriptBytes(browser, route, route === "/");
@@ -980,15 +983,15 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the draw
       .toBe(route === "/no-such-page" ? 404 : 200);
     testInfo.annotations.push({
       type: "script-bytes",
-      description: `${route}${route === "/" ? " (WebGL refused)" : ""}: ${route_.bytes} B in ${route_.files} files; /sprints: ${sprints.bytes} B in ${sprints.files}`,
+      description: `${route}${route === "/" ? " (WebGL refused)" : ""}: ${route_.bytes} B in ${route_.files} files; /log: ${log.bytes} B in ${log.files}`,
     });
     expect
       .soft(route_.bytes, `script bytes on ${route} are a number`)
       .not.toBeNaN();
     expect
       .soft(
-        route_.bytes - sprints.bytes,
-        `script bytes on ${route} beyond /sprints' (${sprints.bytes} B)`,
+        route_.bytes - log.bytes,
+        `script bytes on ${route} beyond /log's (${log.bytes} B)`,
       )
       .toBeLessThanOrEqual(2_048);
   }

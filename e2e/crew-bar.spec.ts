@@ -119,14 +119,7 @@ test("B4.9 the bar on /crew: at 320, 390, 768, 1024 and 1440 the wordmark links 
       .toEqual([
         { text: "Work", href: "/#work", current: null },
         { text: "Crew", href: "/crew", current: "page" },
-        {
-          text: "Log",
-          // /sprints today, /log once #77 merges (the contract's bar table).
-          href: ["/sprints", "/log"].includes(bar.links[2]?.href ?? "")
-            ? bar.links[2]?.href
-            : "/sprints",
-          current: null,
-        },
+        { text: "Log", href: "/log", current: null },
         { text: "Contact", href: "/#contact", current: null },
         { text: "Read as page", href: "/read", current: null },
       ]);
@@ -218,13 +211,9 @@ test("B4.9 the bar on /crew: at 320, 390, 768, 1024 and 1440 the wordmark links 
       "Crew",
     );
     await open(page, "/crew", width);
-    const log = page.locator("header nav a", { hasText: "Log" }).first();
-    const logHref = (await log.getAttribute("href")) ?? "";
-    await log.click();
-    await page.waitForURL((url) => url.pathname === logHref);
-    await expect(page.locator("h1"), `after Log at ${width}`).toHaveText(
-      logHref === "/log" ? "Log" : "Build log",
-    );
+    await page.locator("header nav a", { hasText: "Log" }).first().click();
+    await page.waitForURL((url) => url.pathname === "/log");
+    await expect(page.locator("h1"), `after Log at ${width}`).toHaveText("Log");
     await open(page, "/crew", width);
     await page.locator('a[href="/read"]:visible').first().click();
     await page.waitForURL((url) => url.pathname === "/read");
@@ -252,12 +241,7 @@ test("B4.10 the bar on / from 768 to 1023: at 768 and 1023 the five links and Fu
       .toEqual([
         ["Work", "#work"],
         ["Crew", "/crew"],
-        [
-          "Log",
-          ["/sprints", "/log"].includes(shown[2]?.href ?? "")
-            ? shown[2]?.href
-            : "/sprints",
-        ],
+        ["Log", "/log"],
         ["Contact", "#contact"],
         ["Read as page", "/read"],
       ]);

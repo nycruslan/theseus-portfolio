@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 // holds four links there, so Read as page sits here at the left, underlined as it is in the bar, a
 // 44 px target, with the sheet's motion control at the right. From 768 px the bar has room for it
 // and the foot is gone, so exactly one Read as page is ever shown. It precedes the control in the
-// DOM, so Tab reaches it first, as the eye does.
+// DOM, so Tab reaches it first, as the eye does. /crew has it alone at the drawing's foot; the Log
+// and its records, alone at the header's end (components/log.tsx).
 export function Foot({ control }: { control?: ReactNode }) {
   return (
     <div data-foot="" className="foot">

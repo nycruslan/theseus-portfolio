@@ -131,11 +131,24 @@ page, and B3, the signature moment.
     (`.crew/sprint/29/decisions.md`, 2). (PR #76, built in one run on 2026-10-24.) Answered here:
     the "group the build log past about 30 entries" rider (one table, 89 px a row at 390, no
     paging; day groups with B5b) and Lens's C9.5 selector nit (rides B5a).
-  - [ ] B5a (M): `/log` in 2D: the ghost hull in vellum (the 22 originals, each numbered by the
+  - [x] B5a (M): `/log` in 2D: the ghost hull in vellum (the 22 originals, each numbered by the
     first sprint that took it out), "Every revision" as a table of every merged sprint, a record
-    per revision at `/log/<n>`, `/sprints` answering 308 to `/log`. **Waits for the owner:** batch
-    F retires 23 tests and two assertions about `/sprints`' old column. Iris first: the ghost's
-    composition and `--vellum`, the record's place, the lede.
+    per revision at `/log/<n>`, `/sprints` answering 308 to `/log`. (Sprint 30, PR #77, built in
+    one run on 2026-10-24: Iris's three calls first (`.crew/sprint/30/notes-iris.md`: the profile
+    alone, `--vellum` light `#d7e2e1` and dark `#3f4d52`, the record beside the table from 1024),
+    Probe's B5.1 to B5.11 red first, Forge's build with one early-look round from Iris; Iris
+    ship at 8.2/10, 157 of 157 checks; decisions 1 to 6 in `decisions.md`.) **Its PR waits for
+    the owner:** batch F retires 23 tests and two assertions about `/sprints`' old column
+    (`gate` reports `e2e/sprints.spec.ts` deleted: git doesn't see the rewrite as a rename).
+    Riding with the next sprint that touches `/log`: Lens's two nits on #77 (three comments in
+    `next.config.ts`, `lib/sprint-log.ts` and `app/layout.tsx` still say nothing reads the sprint
+    folders at request time, while an unknown record address now runs `readSprintLog()` on the
+    server, so the retros must stay traced; two stale memory lines, Iris's on the 404's face and
+    Forge's citing `components/sprint-entry.tsx`); Iris's two cheap changes (the record's
+    `h2` `text-wrap: pretty`; with B5b's Merged column, cap Description near 66ch or keep the
+    table in the left column at 1440), and the unknown-record 404's scripts-off blank (Next's
+    error shell; status and `noindex` are right). Left open: a Design row needs a public retro
+    field (owner path, proposed in sprint 29's retro).
   - [ ] B5b (M): the merge record, `.crew/sprint/<n>/merge.json`, written by a crew script after
     each merge (owner path, with the skill's step, so its PR waits for the owner): the Merged
     column grouped by day, the time on each record, the lines figure. Opens by measuring whether
@@ -146,16 +159,12 @@ page, and B3, the signature moment.
     second route. Lens's nit on #74 rides here if B4.4 hasn't taken it.
 
 Riding along with the sprints that touch the same code:
-- With the next sprint that touches the facts or the fonts: Lens's nit on PR #67 still open (the
-  focus-ring comment in `app/globals.css` that cites the deleted card link; the font comments were
-  fixed in sprint 27); the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's
+- With the next sprint that touches the facts or the fonts: the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's
   Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
   rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
   (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).
 - B4.1's contract re-lays the phone bar: a fifth link (Crew) doesn't fit the row at 16 px (Iris,
   sprint 23); `rest-390.webp` moves Read as page to the drawing's foot (`.crew/sprint/28/b4-plan.md`).
-- On `/sprints`: group the build log past about 30 entries (Quill), and take C9.5's selector from
-  `ENTRIES` in `e2e/sprints.spec.ts` (Lens's nit on sprint 21).
 
 ## Done
 

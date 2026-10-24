@@ -1165,7 +1165,7 @@ async function scripts(
   };
 }
 
-test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew requests the 404's script files and bytes, within 2,048 B of /sprints'; two woff2 within 86,016 B", async ({
+test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew requests the 404's script files and bytes, within 2,048 B of /log's; two woff2 within 86,016 B", async ({
   page,
   browser,
 }, testInfo) => {
@@ -1215,13 +1215,16 @@ test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is t
 
   const crew = await scripts(browser, "/crew");
   const missing = await scripts(browser, "/no-such-page");
-  const sprints = await scripts(browser, "/sprints");
+  // Sprint 30 moved the baseline from /sprints to /log with the route (.crew/sprint/31/decisions.md, 7).
+  const log = await scripts(browser, "/log");
   testInfo.annotations.push({
     type: "script-bytes",
-    description: `/crew ${crew.bytes} B in ${crew.paths.length}; the 404 ${missing.bytes} B in ${missing.paths.length}; /sprints ${sprints.bytes} B in ${sprints.paths.length}`,
+    description: `/crew ${crew.bytes} B in ${crew.paths.length}; the 404 ${missing.bytes} B in ${missing.paths.length}; /log ${log.bytes} B in ${log.paths.length}`,
   });
   expect.soft(crew.status, "status of /crew").toBe(200);
   expect.soft(missing.status, "status of the 404").toBe(404);
+  // A missing /log is the 404, whose files are /crew's: the baseline must be the page.
+  expect.soft(log.status, "status of /log").toBe(200);
   expect
     .soft(crew.paths, "/crew's script files against the 404's")
     .toEqual(missing.paths);
@@ -1230,8 +1233,8 @@ test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is t
     .toBe(missing.bytes);
   expect
     .soft(
-      crew.bytes - sprints.bytes,
-      `script bytes on /crew beyond /sprints' (${sprints.bytes} B)`,
+      crew.bytes - log.bytes,
+      `script bytes on /crew beyond /log's (${log.bytes} B)`,
     )
     .toBeLessThanOrEqual(2_048);
 

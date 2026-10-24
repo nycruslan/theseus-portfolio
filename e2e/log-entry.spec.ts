@@ -4,19 +4,21 @@ import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { resolveColors, SCHEMES } from "./helpers";
 
-// The way in to the build log from `/`. Sprint 14 built it as the home line, "Build log · N
-// sprints" (.crew/sprint/12/contract.md, C14 and C15); sprint 22 (B1) moves it into the sheet's
-// revision block as "All N revisions in the Log" (.crew/sprint/22/contract.md, the disposition
-// table): C14.1, C14.2 and C15 are rewritten onto that link, and C14.3 to C14.6 retire with the
-// line. The count still has to agree three ways: the retro files, the link and /sprints.
+// The way in to the Log from `/`. Sprint 14 built it as the home line, "Build log · N sprints"
+// (.crew/sprint/12/contract.md, C14 and C15); sprint 22 (B1) moves it into the sheet's revision
+// block as "All N revisions in the Log" (.crew/sprint/22/contract.md, the disposition table), and
+// sprint 30 (B5a, .crew/sprint/29/b5-first-contract.md, B5.5) points it at /log, which replaces
+// /sprints: this file was sprints-entry.spec.ts, and C14.1, C14.2 and C15 are rewritten onto /log,
+// home by the bar's wordmark. The count still has to agree three ways: the retro files, the link
+// and /log's rows.
 //
 // The oracle. `n` is never a literal: it is the number of valid retro files in the checkout under
 // test, counted here with a few lines of this spec's own (the contract's data rules, not the
 // reader). The floor of 11 and the anchors of sprint 12's contract pin the oracle itself.
 
-const LOG_LINK = 'section[aria-labelledby="revisions"] a[href="/sprints"]';
+const LOG_LINK = 'section[aria-labelledby="revisions"] a[href="/log"]';
 const SPRINT_DIR = join(process.cwd(), ".crew", "sprint");
-const ENTRIES = "main section ol > li";
+const ROWS = 'section[aria-labelledby="every-revision"] table tbody tr';
 const HEIGHT = 900;
 
 // ---------------------------------------------------------------------------------------------
@@ -75,14 +77,14 @@ async function openHome(
   expect(response?.status(), "status of /").toBe(200);
 }
 
-/** The number of entries `/sprints` renders: what the link has to say. */
-async function entriesOnSprints(page: Page) {
-  const response = await page.goto("/sprints");
-  expect(response?.status(), "status of /sprints").toBe(200);
-  return page.locator(ENTRIES).count();
+/** The number of rows `/log` renders: what the link has to say. */
+async function rowsOnLog(page: Page) {
+  const response = await page.goto("/log");
+  expect(response?.status(), "status of /log").toBe(200);
+  return page.locator(ROWS).count();
 }
 
-/** The revision block's links to /sprints, as text. */
+/** The revision block's links to /log, as text. */
 function readLinks(page: Page) {
   return page.evaluate(
     (selector) =>
@@ -97,7 +99,7 @@ function readLinks(page: Page) {
 // C14. The way in
 
 test.describe("C14. The way in", () => {
-  test("C14.1 the revision block's link says 'All N revisions in the Log', and the files and /sprints agree on N", async ({
+  test("B5.5 (C14.1) the revision block's link says 'All N revisions in the Log', and the files and /log agree on N", async ({
     page,
     browser,
   }) => {
@@ -110,12 +112,9 @@ test.describe("C14. The way in", () => {
     );
     const n = VALID.length;
 
-    // Both ends: the files, /sprints and the link say the same number.
-    const onSprints = await entriesOnSprints(page);
-    expect(
-      onSprints,
-      "entries /sprints renders, against valid retro files",
-    ).toBe(n);
+    // Both ends: the files, /log and the link say the same number.
+    const onLog = await rowsOnLog(page);
+    expect(onLog, "rows /log renders, against valid retro files").toBe(n);
 
     await openHome(page, 1440);
     expect
@@ -134,7 +133,7 @@ test.describe("C14. The way in", () => {
   });
 
   for (const scheme of SCHEMES) {
-    test(`C14.2 the link is --foreground and underlined, 24 px tall at 320 and 390 (${scheme})`, async ({
+    test(`B5.5 (C14.2) the link to /log is --foreground and underlined, 24 px tall at 320 and 390 (${scheme})`, async ({
       page,
     }) => {
       for (const width of [320, 390]) {
@@ -173,7 +172,7 @@ test.describe("C14. The way in", () => {
 
 test.describe("C15. Both ends agree", () => {
   for (const width of [390, 1440]) {
-    test(`C15 the revision block's link leads to /sprints, its back link leads home, and the count is the entries (${width} px)`, async ({
+    test(`B5.5 (C15) the revision block's link leads to /log, the bar's wordmark leads home, and the count is /log's rows (${width} px)`, async ({
       page,
     }) => {
       await openHome(page, width);
@@ -184,23 +183,21 @@ test.describe("C15. Both ends agree", () => {
         .trim();
 
       await link.click();
-      await page.waitForURL("**/sprints");
+      await page.waitForURL((url) => url.pathname === "/log");
       await expect(page.locator("h1"), "the page after the click").toHaveText(
-        "Build log",
+        "Log",
       );
-      const entries = await page.locator(ENTRIES).count();
-      expect(entries, "entries on /sprints").toBeGreaterThanOrEqual(
-        VALID.length,
-      );
-      expect(said, "the count on /, against the entries on /sprints").toBe(
-        linkWords(entries),
+      const rows = await page.locator(ROWS).count();
+      expect(rows, "rows on /log").toBeGreaterThanOrEqual(VALID.length);
+      expect(said, "the count on /, against the rows on /log").toBe(
+        linkWords(rows),
       );
       expect(said, "the count on /, against the valid retro files").toBe(
         linkWords(VALID.length),
       );
 
-      const back = page.locator('main > header a[href="/"]');
-      await expect(back, "the back link").toHaveCount(1);
+      const back = page.locator('header:has(nav) a[href="/"]');
+      await expect(back, "the bar's wordmark").toHaveCount(1);
       await back.click();
       await page.waitForURL((url) => url.pathname === "/");
       await expect(page.locator("h1"), "the page after going back").toHaveText(

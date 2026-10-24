@@ -30,7 +30,7 @@ const LINK_CLASSES =
 type BarLink = {
   label: string;
   href: string;
-  /** The page's own place: Log on the Log ("page") and on a record ("true"). */
+  /** The page's own place: Crew on /crew and Log on the Log ("page"), Log on a record ("true"). */
   current?: "page" | "true";
   /** It leaves the sheet for another view. */
   away?: boolean;
@@ -55,7 +55,7 @@ export function Bar({ at = "sheet", control, className = "" }: BarProps) {
     },
     {
       label: "Log",
-      href: "/sprints",
+      href: "/log",
       current: at === "log" ? "page" : at === "record" ? "true" : undefined,
     },
     { label: "Contact", href: `${home}#contact` },

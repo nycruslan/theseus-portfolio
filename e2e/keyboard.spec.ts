@@ -21,9 +21,11 @@ import {
 // so the hover is the link's (B2.9 disposition); B2.3 pins Contact's first link as the 12th stop;
 // B2.9 holds the forced-colours ring on /read and the 404. Sprint 27 (.crew/sprint/27/contract.md):
 // the motion control's three buttons follow Read as page, so Contact's first link is the 15th stop,
-// `tabUntil`'s bound is 15, and the buttons are stops with one clear ring each. Sprint 31
-// (.crew/sprint/31/contract.md, B4a): Crew follows Work in the bar, so Contact's first link is the
-// 16th stop and `tabUntil`'s bound is 16; B2.9's forced-colours ring holds on /crew too.
+// `tabUntil`'s bound is 15, and the buttons are stops with one clear ring each. Sprint 30
+// (.crew/sprint/29/b5-first-contract.md, B5a): Log points at /log, and B2.9's forced-colours ring
+// holds on /log and a record too. Sprint 31 (.crew/sprint/31/contract.md, B4a): Crew follows Work
+// in the bar, so Contact's first link is the 16th stop and `tabUntil`'s bound is 16; B2.9's
+// forced-colours ring holds on /crew too.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -492,12 +494,12 @@ test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar link
     "#main",
     "#work",
     "/crew",
-    "/sprints",
+    "/log",
     "#contact",
     "/read",
     ...MODES.map((mode) => `<button> ${mode}`),
     ...profile.links.map((link) => link.href),
-    "/sprints",
+    "/log",
     ...withLink.map((project) => project.href ?? ""),
     profile.links[0]?.href ?? "",
   ];
@@ -526,13 +528,15 @@ test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar link
   ).toBe(true);
 });
 
-test("B2.9 in forced colours, every focused link or button on /read, /crew and the 404 shows exactly one ring", async ({
+test("B2.9 in forced colours, every focused link or button on /read, /crew, /log, /log/13 and the 404 shows exactly one ring", async ({
   page,
 }) => {
   await page.emulateMedia({ forcedColors: "active" });
   for (const [route, status] of [
     ["/read", 200],
     ["/crew", 200],
+    ["/log", 200],
+    ["/log/13", 200],
     ["/no-such-page", 404],
   ] as const) {
     const response = await page.goto(route);
