@@ -1,9 +1,9 @@
 import { Sofia_Sans_Extra_Condensed } from "next/font/google";
 
 // The display face: the names, the wordmark and the section heads. Declared once here and imported
-// by the routes that set it (/ and /read), never by the layout or the 404, so only those routes
-// preload it and /sprints stays one family (.crew/sprint/22/contract.md, B1.10; app/not-found.tsx
-// says why the 404 takes the text face). `optional` draws with the face only if it is there for the
+// by the routes that set it (/, /read and /log, whose heads the frames draw in it), never by the
+// layout or the 404, so only those routes preload it (.crew/sprint/22/contract.md, B1.10;
+// app/not-found.tsx says why the 404 takes the text face). `optional` draws with the face only if it is there for the
 // first paint, so it never swaps in later and moves the page (B1.8). Meanwhile the fallback holds
 // the same lines: not next/font's, whose one source, local Arial, a phone without Arial (Android,
 // Linux) doesn't have, so the page fell to the generic sans at full size, the wordmark 35 px wider

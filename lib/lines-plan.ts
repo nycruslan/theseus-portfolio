@@ -45,6 +45,33 @@ export function seatPlanks(merged: readonly number[]): Map<string, number> {
   return seats;
 }
 
+/**
+ * Each seat's holders, the merged sprints that seated it, oldest first, from the merged sprints in
+ * ascending order (.crew/sprint/29/b5-first-contract.md, "The seat"). A seat missing from the map
+ * has none: its original is still sailing.
+ */
+export function seatHolders(merged: readonly number[]): Map<string, number[]> {
+  const holders = new Map<string, number[]>();
+  for (const [i, sprint] of merged.entries()) {
+    const id = ORDER[i % ORDER.length];
+    if (id) holders.set(id, [...(holders.get(id) ?? []), sprint]);
+  }
+  return holders;
+}
+
+/**
+ * The ghost hull's numbers: each seat's first holder, the sprint that took its original out. A seat
+ * replaced twice keeps the older number, so the ghost is the original ship reassembled from what the
+ * crew removed (contract, "The ghost hull"), where the sheet's label is the newest.
+ */
+export function ghostPlanks(merged: readonly number[]): Map<string, number> {
+  const ghost = new Map<string, number>();
+  for (const [id, [first]] of seatHolders(merged)) {
+    if (first !== undefined) ghost.set(id, first);
+  }
+  return ghost;
+}
+
 /** A plank's depth at station x, top and bottom, or null where it has none. */
 function bandAt(plank: Plank, x: number): Point | null {
   const top = Math.max(plank.yTop, sheer(x));
@@ -205,7 +232,15 @@ const SEAMS = Array.from({ length: BUTTS.length - 1 }, (_, i) =>
   seamDepth(i + 1),
 );
 
-function draw(layout: Layout, seats: ReadonlyMap<string, number>): LinesPlan {
+/**
+ * Draws one layout. The ghost pass draws only the seats in `seats`, each numbered, and leaves a gap
+ * where a seat has none; otherwise a plank missing from `seats` is drawn as an original.
+ */
+function draw(
+  layout: Layout,
+  seats: ReadonlyMap<string, number>,
+  ghost = false,
+): LinesPlan {
   const { box, ox, oy, s, hbY, body } = layout;
   const P = (x: number, y: number): Point => [ox + x * s, oy + y * s];
   const H = (x: number, z: number): Point => [ox + x * s, hbY - z * s];
@@ -258,7 +293,8 @@ function draw(layout: Layout, seats: ReadonlyMap<string, number>): LinesPlan {
   // Each plank is its lift's box between two butts, cut by the outline; the seated ones carry
   // their sprint's number, in the middle of the plank's body. A plank whose body is too short for
   // it has its number set aft of the hull, at its lift's mid-depth, with a leader to the plank.
-  const planks = PLANKS.map((plank): PlankShape => {
+  const drawn = ghost ? PLANKS.filter((plank) => seats.has(plank.id)) : PLANKS;
+  const planks = drawn.map((plank): PlankShape => {
     const [x0, y0] = P(plank.x0, plank.yTop);
     const [x1, y1] = P(plank.x1, plank.yBot);
     const sprint = seats.get(plank.id);
@@ -358,4 +394,12 @@ export function linesPlans(seats: ReadonlyMap<string, number>) {
 /** The one drawing /read carries. */
 export function pagePlan(seats: ReadonlyMap<string, number>) {
   return draw(PAGE, seats);
+}
+
+/**
+ * The Log's ghost hull: /read's views (contract, "The ghost hull"; Iris sets which views at which
+ * widths), with only the originals the crew has taken out, from `ghostPlanks`.
+ */
+export function ghostPlan(seats: ReadonlyMap<string, number>) {
+  return draw(PAGE, seats, true);
 }

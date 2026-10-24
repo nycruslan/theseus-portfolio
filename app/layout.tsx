@@ -9,7 +9,7 @@ import "./globals.css";
 export const ensureStatic = "navigation";
 
 // The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The condensed display
-// face is /'s and /read's alone (app/fonts.ts). `optional`: the face is used only if it is there
+// face is set by /, /read and /log alone (app/fonts.ts). `optional`: the face is used only if it is there
 // for the first paint, so it never swaps in later and shifts the page; the fallback next/font
 // sizes to its metrics holds the lines meanwhile. No `fallback` list: under Turbopack one replaces
 // that sized fallback instead of following it (app/globals.css adds the generic family).
@@ -21,7 +21,7 @@ const sofiaSans = Sofia_Sans({
 
 // Every route gets these, unless it sets its own `openGraph` or `twitter`: those replace the objects
 // below whole, and with them the social image from app/opengraph-image.tsx, so such a route needs an
-// opengraph-image of its own (app/sprints/opengraph-image.tsx). The icon comes from app/icon.svg; Next
+// opengraph-image of its own (app/log/opengraph-image.tsx). The icon comes from app/icon.svg; Next
 // adds the image and icon tags itself. A canonical URL and og:url belong to one page each, so
 // they're set by the page (app/page.tsx), never here: here they would make every route, a 404
 // included, claim to be the home page.
