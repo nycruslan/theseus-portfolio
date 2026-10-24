@@ -1079,9 +1079,7 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
     const on = await readPanel(page);
     const context = await browser.newContext({ javaScriptEnabled: false });
     const noScript = await context.newPage();
-    await noScript.goto(
-      `${shown.base || ""}/crew`.replace(/^\/crew$/, "/crew"),
-    );
+    await noScript.goto(`${shown.base}/crew`);
     const off = await readPanel(noScript);
     await context.close();
     expect
