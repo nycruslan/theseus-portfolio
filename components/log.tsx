@@ -43,7 +43,8 @@ export function Log({ entries, open }: LogProps) {
   const seat = record
     ? [...holders].find(([, list]) => list.includes(record.sprint))
     : undefined;
-  const at = merged.indexOf(open ?? 0);
+  // The record's place in merged order, for its previous and next revisions.
+  const at = record ? merged.indexOf(record.sprint) : -1;
 
   return (
     <>
