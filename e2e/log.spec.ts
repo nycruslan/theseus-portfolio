@@ -10,39 +10,82 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
+import { SITE_URL } from "../lib/site";
 import {
   composite,
   contrast,
   horizontalOverflow,
+  installRgba,
+  measureLcp,
   parseColor,
   type Rgb,
   resolveColors,
-  resolveSteps,
+  rootTokens,
   SCHEMES,
   textStyles,
 } from "./helpers";
+import {
+  BAR,
+  EVERY,
+  entryOf,
+  ITEMS,
+  LOG,
+  NEWEST,
+  open,
+  prHref,
+  RECORD,
+  type Rgba,
+  ROWS,
+  readRecord,
+  readRows,
+  recordOf,
+  sameColor,
+  shown,
+  squash,
+  tokenRgba,
+  VALID,
+  WRONG,
+  withoutScripts,
+} from "./log";
+import {
+  cellsOf,
+  GHOST,
+  GHOST_CAPTION,
+  GHOST_COUNT,
+  LEDE,
+  MERGED,
+  neighbours,
+  PLANK_IDS,
+  SEAT_OF,
+} from "./retros";
 
-// Sprint 13, PR A of the build log: the /sprints route and the reader behind it. The checks are
-// C1 to C12 of .crew/sprint/12/contract.md ("PR A: the route"), one describe per number, written
-// before the build. The reader's interface, which C12 holds Forge to, is in
-// .crew/sprint/13/probe-checks.md.
+// Sprint 30, B5a: /log, the ghost hull in 2D, and a record per revision at /log/<n>, replacing
+// /sprints (.crew/sprint/29/b5-first-contract.md). Checks B5.1 to B5.5 and B5.8 to B5.11, one
+// describe per number, written before the build; the records' own checks, B5.6 and B5.7, are in
+// log-record.spec.ts, and what both use is in log.ts. This file was sprints.spec.ts (sprint 13's C1
+// to C13 for the build log): it moved with the route (.crew/sprint/30/decisions.md, 5), each
+// rewritten test keeps its C-number in its title beside its B5 number, C12's seven tests run
+// unedited, and the contract's batch F (C1.2, C6.1 to C6.4, C7.1 to C7.3, C11.2 "only the h2s
+// rise") retired with the old column, for the owner to approve.
 //
-// The oracle. Every expected value comes from the retro files in the checkout under test, read
-// and judged by `readOracle` below with a few lines of this spec's own, never by importing the
-// reader. So the checks stay true as sprints are added, and a preview that carries its own sprint's
-// retro passes like production. No check holds the number of entries; the floor is 11 and the
-// anchors (sprints 1 to 11, whose retros are history) pin the oracle itself.
+// The oracle is e2e/retros.ts: the contract's data rules in this suite's own lines over the retro
+// files in the checkout under test, never the page's reader. No check holds the number of
+// revisions; the anchors (sprints 1 to 11, whose retros are history) pin the oracle itself.
+//
+// Hooks the contract names and these checks rely on, and no others: `[data-ghost]` holding
+// `path[data-plank][data-sprint].plank-ghost` and `.plan-plank` lettering, `[data-current]` on a
+// record's plank, `p[data-ghost-caption]`, `p[data-ghost-count]`, the two sections by their
+// `aria-labelledby` (`every-revision`, `record`), `th[scope="row"] a[href="/log/<n>"]`, the bar as a
+// `header` before `main` with `a[href="/"]` and `nav[aria-label="Main"]`, and `--vellum` on :root.
+// A led-out number is read as on / (plan.spec.ts): a `path.ln-leader` from the number into its plank.
 
-const SPRINTS = "/sprints";
-// A fixed fact of the team, not the owner's: the repository the pull requests live in.
-const REPO = "https://github.com/nycruslan/theseus-portfolio";
-const SPRINT_DIR = join(process.cwd(), ".crew", "sprint");
-/** The entries: the `ol`'s own items, never the `li` of an entry's list. */
-const ENTRIES = "main section ol > li";
+const GHOST_HULL = "[data-ghost]";
+const HEADS = ["Rev", "Description", "Drawn", "Checked", "Tested", "Approved"];
+const DESCRIPTION =
+  "A crew of AI agents rebuilds this site one sprint at a time. The Log keeps every revision: who drew, checked, tested and approved it, and what went wrong.";
 const WIDTHS = [320, 390, 768, 1024, 1440] as const;
-const HEIGHT = 900;
 // WCAG 2.2 A and AA, and axe's best practices (the same set as invariants.spec.ts).
 const AXE_TAGS = [
   "wcag2a",
@@ -52,205 +95,13 @@ const AXE_TAGS = [
   "wcag22aa",
   "best-practice",
 ];
-/** The measurements below are in px from layout; one px either way is the contract's tolerance. */
-const TOLERANCE = 1;
 
-type Scheme = (typeof SCHEMES)[number];
-
-// ---------------------------------------------------------------------------------------------
-// The oracle: the retro files, judged by the contract's data rules
-
-type Expected = {
-  sprint: number;
-  /** The goal as the page shows it: prefix and trailing size tag removed, backticks dropped, first letter capitalised. */
-  goal: string;
-  size?: "S" | "M" | "L";
-  pr?: number;
-  ownersCall: boolean;
-  /** Every kept item, as shown: backticks dropped, whitespace normalised. The page shows three. */
-  items: string[];
-  outcome?: string;
-  /** Every `evidence` string in the file, for the "never rendered" scan. */
-  evidence: string[];
-};
-
-const squash = (text: string) => text.replace(/\s+/g, " ").trim();
-const noTicks = (text: string) => text.replaceAll("`", "");
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Contract, "Order and presentation": prefix off, backticks off, a trailing size tag off (a final
- * parenthetical holding only S, M or L, with the whitespace before it; any other parenthetical
- * stays), first letter capitalised.
- */
-function presentGoal(goal: string) {
-  const bare = noTicks(goal.replace(/^\s*roadmap item(?:\s+\d+)?\s*:\s*/i, ""))
-    .trim()
-    .replace(/\s*\(\s*[SML]\s*\)$/i, "")
-    .trim();
-  return bare.charAt(0).toUpperCase() + bare.slice(1);
-}
-
-/** The `what` of each item the page may show: a string, or an object with a string `what`. */
-function itemTexts(retro: Record<string, unknown>) {
-  const list = Array.isArray(retro.wentWrong)
-    ? retro.wentWrong
-    : Array.isArray(retro.went_wrong)
-      ? retro.went_wrong
-      : [];
-  return list.flatMap((item: unknown) => {
-    if (typeof item === "string") return [item];
-    return isRecord(item) && typeof item.what === "string" ? [item.what] : [];
-  });
-}
-
-function evidenceStrings(retro: Record<string, unknown>) {
-  const list = Array.isArray(retro.wentWrong)
-    ? retro.wentWrong
-    : Array.isArray(retro.went_wrong)
-      ? retro.went_wrong
-      : [];
-  const strings = list.flatMap((item: unknown) =>
-    isRecord(item) && typeof item.evidence === "string" ? [item.evidence] : [],
-  );
-  return typeof retro.evidence === "string"
-    ? [...strings, retro.evidence]
-    : strings;
-}
-
-/** Newest first. A file that is wrong is left out here; the build fails on it (C12 shows that). */
-function readOracle(): Expected[] {
-  const found: Expected[] = [];
-  for (const folder of readdirSync(SPRINT_DIR)) {
-    const file = join(SPRINT_DIR, folder, "retro.json");
-    if (!/^\d+$/.test(folder) || !existsSync(file)) continue;
-    let retro: unknown;
-    try {
-      retro = JSON.parse(readFileSync(file, "utf8"));
-    } catch {
-      continue;
-    }
-    if (!isRecord(retro)) continue;
-    const { sprint, goal, size, pr, outcome } = retro;
-    if (
-      typeof sprint !== "number" ||
-      !Number.isInteger(sprint) ||
-      sprint < 1 ||
-      sprint !== Number(folder) ||
-      typeof goal !== "string" ||
-      presentGoal(goal) === ""
-    ) {
-      continue;
-    }
-    found.push({
-      sprint,
-      goal: presentGoal(goal),
-      size: size === "S" || size === "M" || size === "L" ? size : undefined,
-      pr:
-        typeof pr === "number" && Number.isInteger(pr) && pr > 0
-          ? pr
-          : undefined,
-      ownersCall:
-        typeof outcome === "string" && /\bneeds-owner\b/i.test(outcome),
-      items: itemTexts(retro)
-        .map((text) => squash(noTicks(text)))
-        .filter((text) => text !== ""),
-      outcome: typeof outcome === "string" ? outcome : undefined,
-      evidence: evidenceStrings(retro),
-    });
-  }
-  return found.sort((a, b) => b.sprint - a.sprint);
-}
-
-const VALID = readOracle();
-const SIZE_WORD = { S: "Small sprint", M: "Medium sprint", L: "Large sprint" };
-const OWNERS_CALL = "Owner's call";
-/** What `main` is meant to show of an entry's items: the first three kept. */
-const shown = (entry: Expected) => entry.items.slice(0, 3);
-/** The words of the meta line, in the order the contract fixes. */
-function metaParts(entry: Expected) {
-  return [
-    ...(entry.size ? [SIZE_WORD[entry.size]] : []),
-    ...(entry.ownersCall ? [OWNERS_CALL] : []),
-    ...(entry.pr ? [`Pull request #${entry.pr}`] : []),
-  ];
-}
-const prHref = (n: number) => `${REPO}/pull/${n}`;
-const entryOf = (n: number) => VALID.find((entry) => entry.sprint === n);
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(installRgba);
+});
 
 // ---------------------------------------------------------------------------------------------
 // Shared page helpers
-
-async function open(page: Page, width: number, scheme?: Scheme) {
-  if (scheme) await page.emulateMedia({ colorScheme: scheme });
-  await page.setViewportSize({ width, height: HEIGHT });
-  const response = await page.goto(SPRINTS);
-  expect(response?.status(), `status of ${SPRINTS}`).toBe(200);
-}
-
-type Dom = {
-  /** The sprint number read from the h3's text ("Sprint N ..."), NaN when unreadable. */
-  number: number;
-  h3: string;
-  inner: string;
-  /** Everything in the h3 except the number span. */
-  goal: string;
-  meta: string | null;
-  links: { text: string; href: string | null }[];
-  labels: string[];
-  lists: number;
-  items: string[];
-  text: string;
-};
-
-/** Each entry as the DOM has it, in DOM order. */
-async function readEntries(page: Page) {
-  return page.evaluate(
-    (entries) =>
-      [...document.querySelectorAll(entries)].map((li): Dom => {
-        const h3 = li.querySelector("h3");
-        const number = h3?.querySelector(":scope > span") ?? null;
-        const next = h3?.nextElementSibling ?? null;
-        return {
-          number: Number(h3?.textContent?.match(/^\s*Sprint\s+(\d+)/)?.[1]),
-          h3: h3?.textContent ?? "",
-          inner: (h3 as HTMLElement | null)?.innerText ?? "",
-          goal: [...(h3?.childNodes ?? [])]
-            .filter((node) => node !== number)
-            .map((node) => node.textContent ?? "")
-            .join(""),
-          meta: next?.tagName === "P" ? (next.textContent ?? "") : null,
-          links: [...li.querySelectorAll("a")].map((a) => ({
-            text: (a.textContent ?? "").trim(),
-            href: a.getAttribute("href"),
-          })),
-          labels: [...li.querySelectorAll("h4")].map(
-            (h) => h.textContent ?? "",
-          ),
-          lists: li.querySelectorAll("ul").length,
-          items: [...li.querySelectorAll("ul > li")].map(
-            (item) => item.textContent ?? "",
-          ),
-          text: li.textContent ?? "",
-        };
-      }),
-    ENTRIES,
-  );
-}
-
-/** Presses Tab until the focused element matches `sel`, at most `max` times. */
-async function tabTo(page: Page, sel: string, max = 40) {
-  for (let presses = 0; presses < max; presses++) {
-    await page.keyboard.press("Tab");
-    if (await page.evaluate((s) => document.activeElement?.matches(s), sel)) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /** Waits out clock animations (a ring may fade in), and two frames for a scroll Tab caused. */
 async function settled(page: Page) {
@@ -267,253 +118,984 @@ async function settled(page: Page) {
   });
 }
 
-/** The tolerance of the contract's measurements, reported with both numbers. */
-function near(actual: number, expected: number, what: string) {
-  expect
-    .soft(Math.abs(actual - expected), `${what}: ${actual} vs ${expected}`)
-    .toBeLessThanOrEqual(TOLERANCE);
+/** The page's own canvas colour of `css` (installRgba), as [r, g, b, a]. */
+function painted(page: Page, css: string): Promise<Rgba> {
+  return page.evaluate((selector) => {
+    const rgba = (window as Window & { __rgba?: (c: string) => Rgba }).__rgba;
+    const el = document.querySelector(selector) ?? document.body;
+    return rgba ? rgba(getComputedStyle(el).backgroundColor) : null;
+  }, css);
 }
 
+const rgbOf = (c: Rgba): Rgb => [c?.[0] ?? 0, c?.[1] ?? 0, c?.[2] ?? 0];
+const over = (c: Rgba, ground: Rgb): Rgb =>
+  composite([c?.[0] ?? 0, c?.[1] ?? 0, c?.[2] ?? 0, c?.[3] ?? 1], ground);
+
 // ---------------------------------------------------------------------------------------------
-// C1. The route and its skeleton
+// B5.1 The route and the bar
 
 type Skeleton = Awaited<ReturnType<typeof skeleton>>;
 
 async function skeleton(page: Page) {
-  return page.evaluate(() => {
-    const sections = [...document.querySelectorAll("main section")];
-    const first = document.querySelector("main > header")?.firstElementChild;
+  return page.evaluate((every) => {
+    const squashed = (el: Element | null) =>
+      (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+    const main = document.querySelector("main");
+    const header = [...document.querySelectorAll("header")].find(
+      (h) =>
+        !h.closest("main") &&
+        main !== null &&
+        Boolean(
+          h.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+    );
+    const nav = header?.querySelector('nav[aria-label="Main"]') ?? null;
     return {
       mains: document.querySelectorAll("main").length,
       mainWithId: document.querySelectorAll('main#main[tabindex="-1"]').length,
       firstLink: document.querySelector("a")?.getAttribute("href") ?? null,
-      h1s: [...document.querySelectorAll("h1")].map((h) =>
-        (h.textContent ?? "").trim(),
+      h1s: [...document.querySelectorAll("h1")].map((h) => squashed(h)),
+      sections: [...(main?.querySelectorAll("section") ?? [])].map((s) =>
+        s.getAttribute("aria-labelledby"),
       ),
-      sections: sections.length,
-      labelledBy: sections[0]?.getAttribute("aria-labelledby") ?? null,
-      h2Id: sections[0]?.querySelector("h2")?.id ?? null,
-      headerFirst: first?.tagName ?? null,
-      headerFirstLinks: [...(first?.querySelectorAll("a") ?? [])].map((a) => ({
-        href: a.getAttribute("href"),
-        text: (a.textContent ?? "").trim(),
+      every: document.querySelector(every) !== null,
+      header: header !== undefined,
+      nav: nav !== null,
+      controls: [
+        ...(header?.querySelectorAll(
+          'a, button, input, select, [role="button"], [role="link"]',
+        ) ?? []),
+      ]
+        .filter((el) => el.getAttribute("href") !== "#main")
+        .map((el) => ({
+          tag: el.tagName.toLowerCase(),
+          text: squashed(el),
+          href: el.getAttribute("href"),
+          inNav: nav?.contains(el) ?? false,
+          current: el.getAttribute("aria-current"),
+        })),
+      buttons: header?.querySelectorAll("button").length ?? -1,
+      motion: header?.querySelectorAll("[data-motion]").length ?? -1,
+      crew: /\bcrew\b/i.test(squashed(header ?? null)),
+    };
+  }, EVERY);
+}
+
+function expectSkeleton(found: Skeleton, how: string, current: string) {
+  expect.soft(found.mains, `main elements (${how})`).toBe(1);
+  expect.soft(found.mainWithId, `main#main[tabindex="-1"] (${how})`).toBe(1);
+  expect.soft(found.firstLink, `the first a in the DOM (${how})`).toBe("#main");
+  expect.soft(found.h1s, `h1 elements (${how})`).toEqual(["Log"]);
+  expect.soft(found.every, `the Every revision section (${how})`).toBe(true);
+  expect.soft(found.header, `a <header> before main (${how})`).toBe(true);
+  expect.soft(found.nav, `nav[aria-label="Main"] in it (${how})`).toBe(true);
+  // C1.1's back link is the bar's wordmark now; Log is the current page, or a record's parent.
+  expect
+    .soft(found.controls, `the bar's wordmark and links, in order (${how})`)
+    .toEqual([
+      { tag: "a", text: "Theseus", href: "/", inNav: false, current: null },
+      ...BAR.map((link) => ({
+        tag: "a",
+        ...link,
+        inNav: true,
+        current: link.href === LOG ? current : null,
       })),
+    ]);
+  expect.soft(found.buttons, `buttons in the bar (${how})`).toBe(0);
+  expect.soft(found.motion, `[data-motion] in the bar (${how})`).toBe(0);
+  expect.soft(found.crew, `"Crew" in the bar (${how})`).toBe(false);
+}
+
+/** The bar's five targets at the current width: boxes, and each label's lines of text. */
+function readBarTargets(page: Page) {
+  return page.evaluate(() => {
+    const main = document.querySelector("main");
+    const header = [...document.querySelectorAll("header")].find(
+      (h) =>
+        !h.closest("main") &&
+        main !== null &&
+        Boolean(
+          h.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+    );
+    const cw = document.documentElement.clientWidth;
+    const ch = document.documentElement.clientHeight;
+    const targets = [
+      ...(header?.querySelectorAll('a[href]:not([href="#main"])') ?? []),
+    ];
+    return targets.map((a) => {
+      const r = a.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(a);
+      const rects = [...range.getClientRects()].filter((x) => x.width > 0);
+      return {
+        text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+        width: r.width,
+        height: r.height,
+        inside:
+          r.left >= -0.5 &&
+          r.top >= -0.5 &&
+          r.right <= cw + 0.5 &&
+          r.bottom <= ch + 0.5,
+        lines: new Set(rects.map((x) => Math.round(x.top))).size,
+        top: Math.min(...rects.map((x) => x.top)),
+        bottom: Math.max(...rects.map((x) => x.bottom)),
+      };
+    });
+  });
+}
+
+/** "in view" when the element's top is below the bar's bottom edge and inside the viewport. */
+function clearOfTheBar(page: Page, id: string) {
+  return page.evaluate((target) => {
+    const el = document.getElementById(target);
+    const bar = document.querySelector("header:has(nav)");
+    if (!el) return "missing";
+    const r = el.getBoundingClientRect();
+    const under = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+    return r.top >= under - 1 && r.top < innerHeight
+      ? "in view"
+      : `top ${r.top}, bar ${under}`;
+  }, id);
+}
+
+test.describe("B5.1 The route and the bar", () => {
+  test("B5.1 (C1.1) /log is 200 with scripts on and off: one main#main, the skip link first, one h1 Log, and the bar's wordmark and four links with Log current and no button; a record's bar the same with Log its parent", async ({
+    page,
+    browser,
+  }) => {
+    await open(page, LOG, 1440);
+    expectSkeleton(await skeleton(page), "/log, scripts on", "page");
+    const section = page.locator(EVERY);
+    await expect(section, "the Every revision section").toHaveRole("region");
+    await expect(section, "the Every revision section").toHaveAccessibleName(
+      "Every revision",
+    );
+    expect
+      .soft((await skeleton(page)).sections, "sections in main on /log")
+      .toEqual(["every-revision"]);
+
+    await open(page, recordOf(13), 1440);
+    expectSkeleton(await skeleton(page), "/log/13, scripts on", "true");
+    expect
+      .soft((await skeleton(page)).sections, "sections in main on /log/13")
+      .toEqual(["record", "every-revision"]);
+
+    for (const url of [LOG, recordOf(13)]) {
+      const bare = await withoutScripts(browser, url);
+      expect(bare.status, `status of ${url} with scripts off`).toBe(200);
+      const ran = await bare.page.evaluate(
+        () => typeof (self as { __next_f?: unknown }).__next_f,
+      );
+      expect(ran, `page scripts ran on ${url}`).toBe("undefined");
+      expectSkeleton(
+        await skeleton(bare.page),
+        `${url}, scripts off`,
+        url === LOG ? "page" : "true",
+      );
+      await bare.context.close();
+    }
+  });
+
+  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), and the wordmark, Work, Contact and Read as page land", async ({
+    page,
+  }) => {
+    test.setTimeout(150_000);
+    for (const width of WIDTHS) {
+      await open(page, LOG, width);
+      const targets = await readBarTargets(page);
+      const at = `at ${width} px`;
+      expect
+        .soft(
+          targets.map((t) => t.text),
+          `the bar's targets ${at}`,
+        )
+        .toEqual(["Theseus", ...BAR.map((link) => link.text)]);
+      const tall = width < 1024 ? 44 : 24;
+      expect
+        .soft(
+          targets
+            .filter((t) => t.width < 24 - 0.05 || t.height < tall - 0.05)
+            .map((t) => `${t.text}: ${t.width} x ${t.height}`),
+          `bar targets under 24 px wide or ${tall} px tall ${at}`,
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          targets.filter((t) => !t.inside).map((t) => t.text),
+          `bar targets not wholly inside the viewport ${at}`,
+        )
+        .toEqual([]);
+      // A wrapped label still passes "equal tops" in a flex row (sprint 27), so each label is one
+      // line, and the five share one band: every label's text overlaps every other's vertically.
+      expect
+        .soft(
+          targets
+            .filter((t) => t.lines !== 1)
+            .map((t) => `${t.text}: ${t.lines}`),
+          `bar labels on more than one line ${at}`,
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          Math.max(...targets.map((t) => t.top)) <
+            Math.min(...targets.map((t) => t.bottom)),
+          `the bar's labels share one line ${at}: ${JSON.stringify(targets.map((t) => [t.text, Math.round(t.top), Math.round(t.bottom)]))}`,
+        )
+        .toBe(true);
+      expect
+        .soft(await horizontalOverflow(page), `page overflow ${at}`)
+        .toBe(0);
+
+      // From the bar: the wordmark and Read as page land on their pages, Work and Contact on /'s
+      // sections, in view and clear of /'s bar.
+      for (const href of ["/", "/read"]) {
+        await open(page, LOG, width);
+        await page.locator(`header a[href="${href}"]`).first().click();
+        await page.waitForURL((url) => url.pathname === href);
+        await expect(
+          page.locator("h1"),
+          `after ${href} from /log ${at}`,
+        ).toHaveText(profile.name);
+      }
+      for (const id of ["work", "contact"]) {
+        await open(page, LOG, width);
+        await page.locator(`header a[href="/#${id}"]`).click();
+        await page.waitForURL((url) => url.pathname === "/");
+        await expect
+          .poll(() => new URL(page.url()).hash, `hash after /#${id} ${at}`)
+          .toBe(`#${id}`);
+        await expect
+          .poll(
+            () => clearOfTheBar(page, id),
+            `#${id} in view and clear of the bar after /#${id} ${at}`,
+          )
+          .toBe("in view");
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.2 /sprints is gone, and nothing points at it
+
+test("B5.2 (C2.2) /sprints answers 308 to /log; no page links to /sprints; the sitemap lists /log and every record, not /sprints; robots.txt disallows neither", async ({
+  page,
+  request,
+}) => {
+  const moved = await request.get("/sprints", { maxRedirects: 0 });
+  expect(moved.status(), "status of /sprints, not followed").toBe(308);
+  expect(moved.headers().location ?? "", "its Location").toMatch(/\/log$/);
+  await page.goto("/sprints");
+  expect(new URL(page.url()).pathname, "where /sprints lands").toBe(LOG);
+  await expect(page.locator("h1"), "the h1 after /sprints").toHaveText("Log");
+
+  for (const route of ["/", "/read", LOG, recordOf(13), "/no-such-page"]) {
+    const html = await (await request.get(route)).text();
+    expect
+      .soft(
+        html.match(/href="(?:https?:\/\/[^"/]+)?\/sprints(?=["/?#])/g) ?? [],
+        `links to /sprints in the server HTML of ${route}`,
+      )
+      .toEqual([]);
+  }
+
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.status(), "status of /sitemap.xml").toBe(200);
+  const locs = [...(await sitemap.text()).matchAll(/<loc>([^<]*)<\/loc>/g)].map(
+    (match) => match[1] ?? "",
+  );
+  expect(locs, "URLs in the sitemap").toEqual(
+    expect.arrayContaining([
+      `${SITE_URL}/`,
+      `${SITE_URL}/read`,
+      `${SITE_URL}${LOG}`,
+    ]),
+  );
+  expect(
+    locs.filter((loc) => /\/log\/[^/]+$/.test(loc)).sort(),
+    "the records in the sitemap: every merged revision, and no other",
+  ).toEqual(MERGED.map((e) => `${SITE_URL}${recordOf(e.sprint)}`).sort());
+  expect(
+    locs.filter((loc) => /\/sprints\/?$/.test(loc)),
+    "/sprints in the sitemap",
+  ).toEqual([]);
+
+  const robots = await (await request.get("/robots.txt")).text();
+  const disallowed = robots
+    .split("\n")
+    .map((line) => line.split("#")[0]?.trim() ?? "")
+    .flatMap((line) => {
+      const rule = line.match(/^disallow\s*:\s*(\S+)/i)?.[1];
+      return rule ? [rule.replace(/\*$/, "")] : [];
+    })
+    .filter((rule) => LOG.startsWith(rule) || recordOf(13).startsWith(rule));
+  expect(disallowed, "robots.txt rules that cover /log or a record").toEqual(
+    [],
+  );
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.3 The first screen
+
+test("B5.3 at 1440 x 900 and 390 x 844, both schemes: on /log the h1, the count line and the first row start in the viewport; on /log/13 and the newest record, the record's h2", async ({
+  page,
+}) => {
+  const starts = (selectors: string[]) =>
+    page.evaluate(
+      (list) =>
+        list.map((selector) => {
+          const el = document.querySelector(selector);
+          const top = el ? el.getBoundingClientRect().top : Number.NaN;
+          return { selector, top, inside: top >= 0 && top < innerHeight };
+        }),
+      selectors,
+    );
+  for (const scheme of SCHEMES) {
+    for (const [width, height] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      const where = `${width} x ${height}, ${scheme}`;
+      await open(page, LOG, width, scheme, height);
+      for (const found of await starts([
+        "main h1",
+        "p[data-ghost-count]",
+        ROWS,
+      ])) {
+        expect
+          .soft(
+            found.inside,
+            `${found.selector} starts at ${found.top} on /log, ${where}`,
+          )
+          .toBe(true);
+      }
+      for (const n of [...new Set([13, NEWEST])]) {
+        await open(page, recordOf(n), width, scheme, height);
+        for (const found of await starts([`${RECORD} h2`])) {
+          expect
+            .soft(
+              found.inside,
+              `the record's h2 starts at ${found.top} on /log/${n}, ${where}`,
+            )
+            .toBe(true);
+        }
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.4 The ghost hull
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+/** The ghost hull as a visitor's browser has it: its planks, lettering, leaders and rect. */
+async function readGhost(page: Page) {
+  return page.evaluate((selector) => {
+    const rgba = (
+      window as Window & { __rgba?: (c: string) => number[] | null }
+    ).__rgba;
+    const box = (el: Element): Rect => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    };
+    const ghosts = document.querySelectorAll(selector);
+    const ghost = ghosts[0];
+    if (!ghost) return null;
+    const shown = (el: Element) =>
+      el.getClientRects().length > 0 &&
+      el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+    const geometry = (el: Element) =>
+      el instanceof SVGGeometryElement
+        ? [el]
+        : [
+            ...el.querySelectorAll(
+              "path, polygon, rect, polyline, ellipse, circle",
+            ),
+          ].filter(
+            (g): g is SVGGeometryElement => g instanceof SVGGeometryElement,
+          );
+    // Whether a screen point is in a plank's painted fill, inside every clipPath an ancestor applies.
+    const inPlank = (plank: Element, x: number, y: number) =>
+      geometry(plank).some((g) => {
+        const m = g.getScreenCTM();
+        if (
+          !m ||
+          !g.isPointInFill(new DOMPoint(x, y).matrixTransform(m.inverse()))
+        ) {
+          return false;
+        }
+        for (
+          let el: Element | null = g;
+          el && el !== ghost;
+          el = el.parentElement
+        ) {
+          const ref = getComputedStyle(el).clipPath.match(
+            /url\(["']?#([^"')]+)["']?\)/,
+          )?.[1];
+          if (!ref) continue;
+          const clip = document.getElementById(ref);
+          const owner =
+            el instanceof SVGGraphicsElement ? el.getScreenCTM() : null;
+          if (!clip || !owner) return false;
+          const local = new DOMPoint(x, y).matrixTransform(owner.inverse());
+          if (!geometry(clip).some((c) => c.isPointInFill(local))) return false;
+        }
+        return true;
+      });
+    const all = [...ghost.querySelectorAll("[data-plank]")];
+    const shownPlanks = all.filter(shown);
+    const planks = all.map((el) => {
+      const svg = el.closest("svg");
+      const s = getComputedStyle(el);
+      const fill = rgba ? rgba(s.fill) : null;
+      const alpha = Number(s.fillOpacity) * Number(s.opacity);
+      return {
+        id: el.getAttribute("data-plank") ?? "",
+        sprint: el.getAttribute("data-sprint"),
+        tag: el.tagName.toLowerCase(),
+        ghostClass: el.classList.contains("plank-ghost"),
+        shown: shown(el),
+        box: box(el),
+        svg: svg ? box(svg) : null,
+        fillValue: s.fill,
+        fill: fill
+          ? [fill[0] ?? 0, fill[1] ?? 0, fill[2] ?? 0, (fill[3] ?? 1) * alpha]
+          : null,
+        stroke: rgba ? rgba(s.stroke) : null,
+        strokeWidth: Number.parseFloat(s.strokeWidth),
+      };
+    });
+    const leaders = [...ghost.querySelectorAll("path.ln-leader")]
+      .filter(
+        (el): el is SVGPathElement => el instanceof SVGPathElement && shown(el),
+      )
+      .flatMap((leader) => {
+        const m = leader.getScreenCTM();
+        const svg = leader.ownerSVGElement;
+        if (!m || !svg) return [];
+        return (leader.getAttribute("d") ?? "")
+          .split(/(?=M)/)
+          .filter((d) => d.trim() !== "")
+          .map((d) => {
+            const probe = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            probe.setAttribute("d", d);
+            svg.append(probe);
+            const length = probe.getTotalLength();
+            const [a, b] = [
+              probe.getPointAtLength(0),
+              probe.getPointAtLength(length),
+            ];
+            probe.remove();
+            const start = new DOMPoint(a.x, a.y).matrixTransform(m);
+            const end = new DOMPoint(b.x, b.y).matrixTransform(m);
+            const into = shownPlanks.find((p) => inPlank(p, end.x, end.y));
+            return { start, into: into?.getAttribute("data-plank") ?? null };
+          });
+      });
+    const LEADER_GAP = 6;
+    const texts = [...ghost.querySelectorAll("*")]
+      .filter(
+        (el) =>
+          shown(el) &&
+          [...el.childNodes].some(
+            (n) =>
+              n.nodeType === Node.TEXT_NODE &&
+              (n.textContent ?? "").trim() !== "",
+          ),
+      )
+      .map((el) => {
+        const s = getComputedStyle(el);
+        const svg = el instanceof SVGGraphicsElement;
+        const ctm = svg ? el.getScreenCTM() : null;
+        const scale = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const on = shownPlanks.find((p) => inPlank(p, cx, cy));
+        const led = leaders
+          .filter(
+            ({ start }) =>
+              Math.max(r.left - start.x, 0, start.x - r.right) ** 2 +
+                Math.max(r.top - start.y, 0, start.y - r.bottom) ** 2 <=
+              LEADER_GAP ** 2,
+          )
+          .flatMap(({ into }) => (into ? [into] : []));
+        return {
+          text: (el.textContent ?? "").replace(/\s+/g, " ").trim(),
+          color: rgba ? rgba(svg ? s.fill : s.color) : null,
+          opacity: Number(svg ? s.fillOpacity : 1) * Number(s.opacity),
+          size: Number.parseFloat(s.fontSize) * scale,
+          on: on?.getAttribute("data-plank") ?? null,
+          led,
+        };
+      });
+    return {
+      count: ghosts.length,
+      ariaHidden: ghost.getAttribute("aria-hidden"),
+      focusable: ghost.querySelectorAll(
+        'a[href], button, input, select, textarea, [tabindex], [contenteditable=""], [contenteditable="true"]',
+      ).length,
+      seatedOrOriginal: ghost.querySelectorAll(".plank-seated, .plank-original")
+        .length,
+      patterns: ghost.querySelectorAll("pattern").length,
+      hatched: [...ghost.querySelectorAll("*")].flatMap((el) => {
+        const s = getComputedStyle(el);
+        return [s.fill, s.stroke]
+          .filter((paint) => paint.startsWith("url("))
+          .map((paint) => `<${el.tagName.toLowerCase()}> ${paint}`);
+      }),
+      planks,
+      texts,
+      rect: box(ghost),
+      cw: document.documentElement.clientWidth,
+      bytes: new TextEncoder().encode(ghost.outerHTML).length,
+    };
+  }, GHOST_HULL);
+}
+
+/** The ghost's planks as the oracle's map: seat to number. */
+const ghostMap = (planks: { id: string; sprint: string | null }[]) =>
+  Object.fromEntries(planks.map((p) => [p.id, Number(p.sprint)]));
+
+/** The Log's header lines and their order in main. */
+function headerLines(page: Page) {
+  return page.evaluate(() => {
+    const squashed = (el: Element | null) =>
+      (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+    const main = document.querySelector("main");
+    const h1 = main?.querySelector("h1") ?? null;
+    const caption = main?.querySelector("p[data-ghost-caption]") ?? null;
+    const count = main?.querySelector("p[data-ghost-count]") ?? null;
+    const before = (a: Element | null, b: Element | null) =>
+      Boolean(
+        a &&
+          b &&
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    return {
+      captions: document.querySelectorAll("p[data-ghost-caption]").length,
+      counts: document.querySelectorAll("p[data-ghost-count]").length,
+      caption: squashed(caption),
+      count: squashed(count),
+      ordered: before(h1, caption) && before(caption, count),
     };
   });
 }
 
-function expectSkeleton(found: Skeleton, how: string) {
-  expect.soft(found.mains, `main elements (${how})`).toBe(1);
-  expect.soft(found.mainWithId, `main#main[tabindex="-1"] (${how})`).toBe(1);
-  expect.soft(found.firstLink, `the first a in the DOM (${how})`).toBe("#main");
-  expect.soft(found.h1s, `h1 elements (${how})`).toEqual(["Build log"]);
-  expect.soft(found.sections, `sections in main (${how})`).toBe(1);
-  expect.soft(found.h2Id, `the section's h2 id (${how})`).toBe("sprints");
-  expect
-    .soft(found.labelledBy, `the section's aria-labelledby (${how})`)
-    .toBe("sprints");
-  expect.soft(found.headerFirst, `the header's first child (${how})`).toBe("P");
-  expect
-    .soft(found.headerFirstLinks, `the links in that p (${how})`)
-    .toEqual([{ href: "/", text: profile.name }]);
-}
-
-test.describe("C1. The route and its skeleton", () => {
-  test("C1.1 /sprints is 200 with scripts on and off, with the home page's skeleton", async ({
+test.describe("B5.4 The ghost hull", () => {
+  test("B5.4 the ghost hull is in the HTML, hidden from assistive tech and inert, with exactly the data rules' planks, none seated, original, hatched or copper, at most 32,768 B, under its caption and count line, with scripts on and off", async ({
     page,
     browser,
+    request,
   }) => {
-    await open(page, 1440);
-    expectSkeleton(await skeleton(page), "scripts on");
-    const section = page.locator("main section");
-    await expect(section, "the Sprints section").toHaveRole("region");
-    await expect(section, "the Sprints section").toHaveAccessibleName(
-      "Sprints",
+    test.setTimeout(90_000);
+    const html = await (await request.get(LOG)).text();
+    const at = html.search(/data-ghost(?:=|[\s>])/);
+    expect(at, "[data-ghost] is in the HTML response of /log").toBeGreaterThan(
+      -1,
     );
+    expect
+      .soft(html.slice(at), "ghost planks in the HTML")
+      .toContain('data-plank="');
+    // The oracle's ghost: every seat with a holder, numbered by its first; gaps only below 22.
+    expect
+      .soft(Object.keys(GHOST).length, "seats with a holder, by the oracle")
+      .toBe(Math.min(MERGED.length, PLANK_IDS.length));
 
-    const context = await browser.newContext({ javaScriptEnabled: false });
-    const bare = await context.newPage();
-    const response = await bare.goto(SPRINTS);
-    expect(response?.status(), "status with scripts off").toBe(200);
-    const ran = await bare.evaluate(
-      () => typeof (self as { __next_f?: unknown }).__next_f,
-    );
-    expect(ran, "page scripts ran").toBe("undefined");
-    expectSkeleton(await skeleton(bare), "scripts off");
-    await context.close();
-  });
-
-  test("C1.2 no hero, canvas, svg, img, table, button, details or input, and nothing expands", async ({
-    page,
-  }) => {
-    await open(page, 1440);
-    const found = await page.evaluate(() => {
-      const main = document.querySelector("main");
-      const forbidden =
-        "canvas, svg, img, table, button, details, input, [aria-expanded]";
-      return {
-        inMain: [...(main?.querySelectorAll(forbidden) ?? [])].map((el) =>
-          el.tagName.toLowerCase(),
-        ),
-        hero: document.querySelectorAll("[data-hero]").length,
-      };
-    });
-    expect(found.inMain, "forbidden elements in main").toEqual([]);
-    expect(found.hero, "[data-hero] elements").toBe(0);
-  });
-});
-
-// ---------------------------------------------------------------------------------------------
-// C2. Metadata
-
-test.describe("C2. Metadata", () => {
-  test("C2.1 its own title, canonical, og:url and descriptions", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    const homeTitle = await page.title();
-    const response = await page.goto(SPRINTS);
-    expect(response?.status(), `status of ${SPRINTS}`).toBe(200);
-    const title = await page.title();
-    expect(title, "document.title").toContain("Build log");
-    expect(title, "the home page's title").not.toBe(homeTitle);
-
-    const tags = await page.evaluate(() => {
-      const content = (css: string) =>
-        [...document.querySelectorAll<HTMLMetaElement>(css)].map(
-          (meta) => meta.content,
-        );
-      return {
-        canonical: [
-          ...document.querySelectorAll<HTMLLinkElement>(
-            'link[rel="canonical"]',
-          ),
-        ].map((link) => link.href),
-        ogUrl: content('meta[property="og:url"]'),
-        description: content('meta[name="description"]'),
-        ogDescription: content('meta[property="og:description"]'),
-        twitterDescription: content('meta[name="twitter:description"]'),
-      };
-    });
-    const url = "https://theseus-portfolio.vercel.app/sprints";
-    expect(tags.canonical, "canonical").toEqual([url]);
-    expect(tags.ogUrl, "og:url").toEqual([url]);
-    // The layout's description is the owner's bio; a page that spreads the shared openGraph or
-    // leaves twitter alone would claim it as the build log's.
-    for (const key of [
-      "description",
-      "ogDescription",
-      "twitterDescription",
+    const bare = await withoutScripts(browser, LOG);
+    expect(bare.status, "status of /log with scripts off").toBe(200);
+    const off = await readGhost(bare.page);
+    const words = await headerLines(bare.page);
+    await bare.context.close();
+    await open(page, LOG, 1440);
+    for (const [how, ghost, lines] of [
+      ["scripts off", off, words],
+      ["scripts on", await readGhost(page), await headerLines(page)],
     ] as const) {
-      expect(tags[key], key).toHaveLength(1);
-      expect(tags[key][0]?.trim(), `${key} is set`).not.toBe("");
-      expect(tags[key][0], `${key} is not the bio`).not.toBe(profile.bio);
+      expect(ghost, `${GHOST_HULL} (${how})`).not.toBeNull();
+      if (!ghost) continue;
+      expect.soft(ghost.count, `${GHOST_HULL} elements (${how})`).toBe(1);
+      expect.soft(ghost.ariaHidden, `aria-hidden (${how})`).toBe("true");
+      expect.soft(ghost.focusable, `focusable elements in it (${how})`).toBe(0);
+      expect
+        .soft(
+          ghost.planks.map((p) => p.id).sort(),
+          `its planks' seats, once each (${how})`,
+        )
+        .toEqual(Object.keys(GHOST).sort());
+      expect
+        .soft(ghostMap(ghost.planks), `each ghost plank's data-sprint (${how})`)
+        .toEqual(GHOST);
+      expect
+        .soft(
+          ghost.planks
+            .filter((p) => p.tag !== "path" || !p.ghostClass)
+            .map((p) => `${p.id}: <${p.tag}>, plank-ghost ${p.ghostClass}`),
+          `ghost planks that aren't path.plank-ghost (${how})`,
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          ghost.seatedOrOriginal,
+          `.plank-seated or .plank-original in it (${how})`,
+        )
+        .toBe(0);
+      expect.soft(ghost.patterns, `<pattern> in it (${how})`).toBe(0);
+      expect.soft(ghost.hatched, `pattern paints in it (${how})`).toEqual([]);
+      expect
+        .soft(ghost.bytes, `${GHOST_HULL} outerHTML in bytes (${how})`)
+        .toBeLessThanOrEqual(32_768);
+      expect.soft(lines.captions, `p[data-ghost-caption] (${how})`).toBe(1);
+      expect.soft(lines.counts, `p[data-ghost-count] (${how})`).toBe(1);
+      expect.soft(lines.caption, `the caption (${how})`).toBe(GHOST_CAPTION);
+      expect.soft(lines.count, `the count line (${how})`).toBe(GHOST_COUNT);
+      expect
+        .soft(
+          lines.ordered,
+          `h1, then the caption, then the count line (${how})`,
+        )
+        .toBe(true);
+    }
+
+    for (const scheme of SCHEMES) {
+      await open(page, LOG, 1440, scheme);
+      const accent = await tokenRgba(page, "--accent");
+      const copper = await page.evaluate(
+        ({ selector, accent }) => {
+          const rgba = (
+            window as Window & { __rgba?: (c: string) => number[] | null }
+          ).__rgba;
+          const near = (c: number[] | null) =>
+            Boolean(
+              c &&
+                accent &&
+                c
+                  .slice(0, 3)
+                  .every((v, i) => Math.abs(v - (accent[i] ?? -9)) <= 1),
+            );
+          const ghost = document.querySelector(selector);
+          return [...(ghost?.querySelectorAll("*") ?? [])].flatMap((el) => {
+            const s = getComputedStyle(el);
+            return [s.fill, s.stroke, s.color]
+              .filter((paint) => near(rgba ? rgba(paint) : null))
+              .map((paint) => `<${el.tagName.toLowerCase()}> ${paint}`);
+          });
+        },
+        { selector: GHOST_HULL, accent },
+      );
+      expect
+        .soft(copper, `copper (--accent) in the ghost hull (${scheme})`)
+        .toEqual([]);
+    }
+
+    // Nothing in it is the element at any of its points: a 3 x 3 grid and every plank's centre.
+    for (const width of [390, 1440]) {
+      await open(page, LOG, width);
+      const hits = await page.evaluate((selector) => {
+        const ghost = document.querySelector(selector);
+        if (!ghost) return null;
+        ghost.scrollIntoView({ block: "center" });
+        const r = ghost.getBoundingClientRect();
+        const points = [1 / 6, 1 / 2, 5 / 6].flatMap((fy) =>
+          [1 / 6, 1 / 2, 5 / 6].map(
+            (fx) => [r.left + r.width * fx, r.top + r.height * fy] as const,
+          ),
+        );
+        for (const plank of ghost.querySelectorAll("[data-plank]")) {
+          const p = plank.getBoundingClientRect();
+          if (p.width > 0) {
+            points.push([p.left + p.width / 2, p.top + p.height / 2]);
+          }
+        }
+        return points.flatMap(([x, y]) => {
+          const el = document.elementFromPoint(x, y);
+          return el && ghost.contains(el)
+            ? [
+                `<${el.tagName.toLowerCase()}> at ${Math.round(x)},${Math.round(y)}`,
+              ]
+            : [];
+        });
+      }, GHOST_HULL);
+      expect(hits, `the ghost hull at ${width}`).not.toBeNull();
+      expect
+        .soft(hits, `ghost elements hit by elementFromPoint at ${width}`)
+        .toEqual([]);
     }
   });
 
-  test("C2.2 the sitemap lists / and /sprints, and robots.txt does not disallow /sprints", async ({
-    request,
+  test("B5.4 from 768 px each ghost plank's number shows, at least 10 px, on its plank or led out to it; from 320 to 1440 px the drawing is inside the viewport's width and uncropped", async ({
+    page,
   }) => {
-    const sitemap = await request.get("/sitemap.xml");
-    expect(sitemap.status(), "status of /sitemap.xml").toBe(200);
-    const locs = [
-      ...(await sitemap.text()).matchAll(/<loc>([^<]*)<\/loc>/g),
-    ].map((match) => match[1]);
-    expect(locs, "URLs in the sitemap").toEqual(
-      expect.arrayContaining([
-        "https://theseus-portfolio.vercel.app/",
-        "https://theseus-portfolio.vercel.app/sprints",
-      ]),
-    );
-
-    const robots = await (await request.get("/robots.txt")).text();
-    const disallowed = robots
-      .split("\n")
-      .map((line) => line.split("#")[0]?.trim() ?? "")
-      .flatMap((line) => {
-        const rule = line.match(/^disallow\s*:\s*(\S+)/i)?.[1];
-        return rule ? [rule.replace(/\*$/, "")] : [];
-      })
-      .filter((rule) => "/sprints".startsWith(rule));
-    expect(disallowed, "robots.txt rules that cover /sprints").toEqual([]);
+    test.setTimeout(90_000);
+    for (const width of WIDTHS) {
+      await open(page, LOG, width);
+      const ghost = await readGhost(page);
+      const where = `${width} px`;
+      expect(ghost, `${GHOST_HULL} at ${where}`).not.toBeNull();
+      if (!ghost) continue;
+      expect
+        .soft(
+          ghost.rect.left >= -0.5 && ghost.rect.right <= ghost.cw + 0.5,
+          `the ghost hull (${ghost.rect.left} to ${ghost.rect.right}) inside the viewport's ${ghost.cw} px at ${where}`,
+        )
+        .toBe(true);
+      expect
+        .soft(
+          ghost.planks
+            .filter(
+              (p) =>
+                !p.shown ||
+                !p.svg ||
+                p.box.left < -0.5 ||
+                p.box.right > ghost.cw + 0.5 ||
+                p.box.left < p.svg.left - 0.5 ||
+                p.box.right > p.svg.right + 0.5 ||
+                p.box.top < p.svg.top - 0.5 ||
+                p.box.bottom > p.svg.bottom + 0.5,
+            )
+            .map((p) => p.id),
+          `ghost planks hidden, cropped or outside the viewport at ${where}`,
+        )
+        .toEqual([]);
+      if (width < 768) continue;
+      expect
+        .soft(
+          ghost.planks
+            .filter(
+              (p) =>
+                !ghost.texts.some(
+                  (t) =>
+                    t.text === p.sprint &&
+                    (t.on === p.id || t.led.includes(p.id)),
+                ),
+            )
+            .map((p) => `${p.id} (sprint ${p.sprint})`),
+          `ghost planks without their number on them, or led to them, at ${where}`,
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          ghost.texts
+            .filter((t) => /^\d+$/.test(t.text) && t.size < 10 - 0.01)
+            .map((t) => `"${t.text}": ${t.size.toFixed(2)} px`),
+          `ghost numbers under 10 px at ${where}`,
+        )
+        .toEqual([]);
+    }
   });
 
-  test("C2.3 one og:image and one twitter:image, each served as image/png", async ({
+  test("B5.4 the ghost is vellum: --vellum on :root in both schemes, unlike --card, --card-old and --background, every plank filled with it and its numbers at least 4.5:1 on it; in forced colours each plank's edge shows", async ({
     page,
-    request,
   }) => {
-    const response = await page.goto(SPRINTS);
-    expect(response?.status(), `status of ${SPRINTS}`).toBe(200);
-    // A page that sets its own openGraph or twitter replaces the layout's whole, and takes the
-    // inherited image with it; /sprints once shared a card with the large-image type and no image.
-    const images = await page.evaluate(() => {
-      const content = (css: string) =>
-        [...document.querySelectorAll<HTMLMetaElement>(css)].map(
-          (meta) => meta.content,
-        );
-      return {
-        og: content('meta[property="og:image"]'),
-        twitter: content('meta[name="twitter:image"]'),
-      };
-    });
-    expect(images.og, "og:image").toHaveLength(1);
-    expect(images.twitter, "twitter:image").toHaveLength(1);
-    // The tags name the production host; the same paths are served here.
-    for (const [name, urls] of Object.entries(images)) {
-      const url = urls[0] ?? "";
-      const image = await request.get(new URL(url).pathname);
-      expect(image.status(), `status of the ${name} image`).toBe(200);
-      expect(image.headers()["content-type"], `${name} image type`).toBe(
-        "image/png",
+    for (const scheme of SCHEMES) {
+      await open(page, LOG, 1440, scheme);
+      const raw = await rootTokens(page, ["--vellum"]);
+      expect
+        .soft(raw["--vellum"], `--vellum on :root (${scheme})`)
+        .not.toBe("");
+      const vellum = await tokenRgba(page, "--vellum");
+      expect(vellum, `--vellum resolves (${scheme})`).not.toBeNull();
+      for (const other of ["--card", "--card-old", "--background"]) {
+        expect
+          .soft(
+            sameColor(vellum, await tokenRgba(page, other)),
+            `--vellum ${JSON.stringify(vellum)} is the same as ${other} (${scheme})`,
+          )
+          .toBe(false);
+      }
+      const ghost = await readGhost(page);
+      expect(ghost, `${GHOST_HULL} (${scheme})`).not.toBeNull();
+      if (!ghost) continue;
+      expect
+        .soft(
+          ghost.planks
+            .filter(
+              (p) =>
+                !p.fill ||
+                !sameColor(p.fill.slice(0, 3), (vellum ?? []).slice(0, 3)),
+            )
+            .map((p) => `${p.id}: ${p.fillValue}`),
+          `ghost planks not filled with --vellum (${scheme})`,
+        )
+        .toEqual([]);
+      // The ground under the drawing: the nearest opaque background, the page's by default.
+      const ground = rgbOf(
+        await page.evaluate((selector) => {
+          const rgba = (
+            window as Window & { __rgba?: (c: string) => number[] | null }
+          ).__rgba;
+          for (
+            let el = document.querySelector(selector);
+            el;
+            el = el.parentElement
+          ) {
+            const c = rgba ? rgba(getComputedStyle(el).backgroundColor) : null;
+            if (c && (c[3] ?? 0) > 0.99) return c;
+          }
+          return rgba
+            ? rgba(getComputedStyle(document.body).backgroundColor)
+            : null;
+        }, GHOST_HULL),
       );
+      const numbers = ghost.texts.filter((t) => /^\d+$/.test(t.text));
+      expect(
+        numbers.length,
+        `ghost numbers at 1440 (${scheme})`,
+      ).toBeGreaterThan(0);
+      for (const number of numbers) {
+        const plank = ghost.planks.find((p) => p.id === number.on);
+        const under = plank?.fill ? over(plank.fill, ground) : ground;
+        const ink = number.color
+          ? [
+              number.color[0] ?? 0,
+              number.color[1] ?? 0,
+              number.color[2] ?? 0,
+              (number.color[3] ?? 1) * number.opacity,
+            ]
+          : null;
+        expect
+          .soft(
+            ink ? contrast(over(ink, under), under) : 0,
+            `number ${number.text} ${number.on ? `on plank ${number.on}` : "led out"} (${scheme})`,
+          )
+          .toBeGreaterThanOrEqual(4.5);
+      }
+    }
+
+    await page.emulateMedia({ colorScheme: "light", forcedColors: "active" });
+    for (const width of [390, 1440]) {
+      await open(page, LOG, width);
+      const canvas = await painted(page, "body");
+      const ghost = await readGhost(page);
+      expect(
+        ghost,
+        `${GHOST_HULL} in forced colours at ${width}`,
+      ).not.toBeNull();
+      expect
+        .soft(
+          (ghost?.planks ?? [])
+            .filter(
+              (p) =>
+                !p.stroke ||
+                !(p.strokeWidth > 0) ||
+                sameColor(p.stroke.slice(0, 3), (canvas ?? []).slice(0, 3)),
+            )
+            .map(
+              (p) => `${p.id}: ${JSON.stringify(p.stroke)} ${p.strokeWidth} px`,
+            ),
+          `ghost planks whose edge doesn't show in forced colours at ${width} (Canvas ${JSON.stringify(canvas)})`,
+        )
+        .toEqual([]);
+    }
+  });
+
+  test("B5.4 on each record exactly one ghost plank carries data-current, at its sprint's seat; on /log none does", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await open(page, LOG, 1440);
+    expect
+      .soft(
+        await page.locator(`${GHOST_HULL} [data-current]`).count(),
+        "[data-current] in the ghost on /log",
+      )
+      .toBe(0);
+    for (const entry of VALID) {
+      await open(page, recordOf(entry.sprint), 1440);
+      const current = await page.evaluate(
+        (selector) =>
+          [...document.querySelectorAll(`${selector} [data-current]`)].map(
+            (el) => el.getAttribute("data-plank"),
+          ),
+        GHOST_HULL,
+      );
+      expect
+        .soft(current, `the ghost's [data-current] on /log/${entry.sprint}`)
+        .toEqual([SEAT_OF.get(entry.sprint)]);
     }
   });
 });
 
 // ---------------------------------------------------------------------------------------------
-// C3. Order and count
+// B5.5 Every revision
 
-test.describe("C3. Order and count", () => {
-  test("C3.1 one entry per valid retro, newest first by the number in the file", async ({
+test.describe("B5.5 Every revision", () => {
+  test("B5.5 (C3.1) one row per merged sprint, newest first, each row's cells as the oracle's, under the h2 Every revision, its lede and the six heads", async ({
     page,
   }) => {
-    await open(page, 1440);
-    const wanted = VALID.map((entry) => entry.sprint);
     // The anchors: sprints 1 to 11 are history, so they must be there whatever the oracle saw.
     expect(
-      wanted,
+      VALID.map((entry) => entry.sprint),
       "valid retros found in .crew/sprint (at least sprints 1 to 11)",
     ).toEqual(
       expect.arrayContaining(Array.from({ length: 11 }, (_, i) => i + 1)),
     );
-    await expect(page.locator("main section ol"), "lists").toHaveCount(1);
-    await expect(page.locator(ENTRIES), "entries").toHaveCount(wanted.length);
-    const rendered = (await readEntries(page)).map((entry) => entry.number);
-    expect(rendered, "sprint numbers, top to bottom").toEqual(wanted);
+    await open(page, LOG, 1440);
+    await expect(page.locator(`${EVERY} table`), "tables").toHaveCount(1);
+    await expect(page.locator(ROWS), "rows").toHaveCount(VALID.length);
+    const rows = await readRows(page);
+    expect(
+      rows.map((row) => row.number),
+      "revision numbers, top to bottom",
+    ).toEqual(VALID.map((entry) => entry.sprint));
+    for (const [i, entry] of VALID.entries()) {
+      const cells = cellsOf(entry);
+      expect
+        .soft(rows[i]?.cells, `the cells of revision ${entry.sprint}`)
+        .toEqual([
+          cells.description,
+          cells.drawn,
+          cells.checked,
+          cells.tested,
+          cells.approved,
+        ]);
+      expect
+        .soft(rows[i]?.links, `links in revision ${entry.sprint}'s th`)
+        .toBe(1);
+    }
+    const head = await page.evaluate((every) => {
+      const squashed = (el: Element | null) =>
+        (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const section = document.querySelector(every);
+      const h2 = section?.querySelector("h2");
+      return {
+        h2: h2 ? { id: h2.id, text: squashed(h2) } : null,
+        lede: squashed(section?.querySelector("p") ?? null),
+        heads: [
+          ...(section?.querySelectorAll('thead th[scope="col"]') ?? []),
+        ].map((th) => squashed(th)),
+      };
+    }, EVERY);
+    expect
+      .soft(head.h2, "its h2")
+      .toEqual({ id: "every-revision", text: "Every revision" });
+    expect.soft(head.lede, "its lede").toBe(LEDE);
+    expect.soft(head.heads, "its column heads").toEqual(HEADS);
   });
 
-  test("C3.2 anchors: 10 before 9, 2 before 1 (not a sort by folder name), and 1 last", async ({
+  test("B5.5 (C3.2) anchors: 10 before 9, 2 before 1 (not a sort by folder name), and 1 last", async ({
     page,
   }) => {
-    await open(page, 1440);
-    const rendered = (await readEntries(page)).map((entry) => entry.number);
+    await open(page, LOG, 1440);
+    const rendered = (await readRows(page)).map((row) => row.number);
     const at = (n: number) => rendered.indexOf(n);
-    expect(at(10), "sprint 10 is listed").toBeGreaterThanOrEqual(0);
-    expect(at(9), "sprint 9 is listed").toBeGreaterThanOrEqual(0);
-    expect(at(10), "sprint 10 comes before 9").toBeLessThan(at(9));
-    expect(at(2), "sprint 2 comes before 1").toBeLessThan(at(1));
-    expect(rendered.at(-1), "the last entry").toBe(1);
+    expect(at(10), "revision 10 is listed").toBeGreaterThanOrEqual(0);
+    expect(at(9), "revision 9 is listed").toBeGreaterThanOrEqual(0);
+    expect(at(10), "revision 10 comes before 9").toBeLessThan(at(9));
+    expect(at(2), "revision 2 comes before 1").toBeLessThan(at(1));
+    expect(rendered.at(-1), "the last row").toBe(1);
   });
-});
 
-// ---------------------------------------------------------------------------------------------
-// C4. One entry's words
-
-test.describe("C4. One entry's words", () => {
-  test("C4.1 the heading reads 'Sprint N ' and the goal, with a real space, at every width", async ({
+  test("B5.5 (C4.1) each Rev link is named 'Revision N' with a real space, shows the number alone and points at /log/N, and each row's Description is its goal, at every width", async ({
     page,
   }) => {
-    // Word for word, from the contract: the prefix, the backticks and the capital applied.
+    test.setTimeout(120_000);
+    // Word for word, from sprint 12's contract: the prefix, the backticks and the capital applied.
     const anchors: [number, string][] = [
       [
         1,
@@ -539,1091 +1121,479 @@ test.describe("C4. One entry's words", () => {
     }
 
     for (const width of WIDTHS) {
-      await open(page, width);
-      const dom = await readEntries(page);
-      expect(dom.length, `entries at ${width} px`).toBe(VALID.length);
+      await open(page, LOG, width);
+      const rows = await readRows(page);
+      expect(rows.length, `rows at ${width} px`).toBe(VALID.length);
+      // What the eyes get: "Revision " visually hidden (a box of at most 1 px, or clipped), the
+      // number in sight.
+      const sight = await page.evaluate((selector) => {
+        const hiddenBox = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          const s = getComputedStyle(el);
+          return (
+            (r.width <= 1 && r.height <= 1) ||
+            s.clipPath === "inset(50%)" ||
+            /rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)/.test(s.clip)
+          );
+        };
+        return [...document.querySelectorAll(selector)].map((tr) => {
+          const a = tr.querySelector('th[scope="row"] a');
+          if (!a) return { word: false, number: false };
+          const walker = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+          let word = false;
+          let number = false;
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const text = node.textContent ?? "";
+            const holder = node.parentElement ?? a;
+            if (/Revision/.test(text)) word = hiddenBox(holder);
+            const digits = text.search(/\d/);
+            if (digits >= 0) {
+              const range = document.createRange();
+              range.setStart(node, digits);
+              range.setEnd(node, text.length);
+              const r = range.getBoundingClientRect();
+              number = r.width > 1 && r.height > 1 && !hiddenBox(holder);
+            }
+          }
+          return { word, number };
+        });
+      }, ROWS);
       for (const [i, entry] of VALID.entries()) {
-        const name = `Sprint ${entry.sprint} ${entry.goal}`;
-        const found = dom[i];
-        const where = `sprint ${entry.sprint} at ${width} px`;
+        const where = `revision ${entry.sprint} at ${width} px`;
+        const row = rows[i];
         await expect
           .soft(
-            page.locator(ENTRIES).nth(i).locator("h3"),
-            `accessible name, ${where}`,
+            page.locator(ROWS).nth(i).locator('th[scope="row"] a'),
+            `the Rev link's accessible name, ${where}`,
           )
-          .toHaveAccessibleName(name);
-        // textContent has no layout in it: "Sprint 11Stack" can't hide behind a block.
-        expect.soft(squash(found?.h3 ?? ""), `h3 text, ${where}`).toBe(name);
+          .toHaveAccessibleName(`Revision ${entry.sprint}`);
+        // textContent has no layout in it, and one U+0020: "Revision13" or a no-break space fail.
+        expect
+          .soft(row?.text.trim(), `the Rev link's text, ${where}`)
+          .toBe(`Revision ${entry.sprint}`);
+        expect
+          .soft(row?.href, `the Rev link's href, ${where}`)
+          .toBe(recordOf(entry.sprint));
         expect
           .soft(
-            squash(found?.inner ?? "").replace(/^Sprint (?=\d)/, ""),
-            `visible text: the number, then the goal, ${where}`,
+            sight[i],
+            `"Revision " hidden and the number in sight, ${where}`,
           )
-          .toBe(`${entry.sprint} ${entry.goal}`);
+          .toEqual({ word: true, number: true });
         expect
-          .soft(squash(found?.goal ?? ""), `goal text, ${where}`)
+          .soft(row?.cells[0], `the Description, ${where}`)
           .toBe(entry.goal);
       }
     }
   });
 
-  test("C4.2 the meta line: size in words and Owner's call, joined by dots", async ({
+  test("B5.5 (C4.5) each Description is the whole goal on as many lines as it takes: no size tag, no ellipsis, nothing clipped, and sprint 15 keeps its words, at every width", async ({
     page,
   }) => {
-    await open(page, 1440);
-    const dom = await readEntries(page);
-    for (const [i, entry] of VALID.entries()) {
-      const meta = dom[i]?.meta ?? null;
-      const parts = metaParts(entry);
-      const where = `the meta line of sprint ${entry.sprint}`;
-      if (parts.length === 0) {
-        expect.soft(meta, `${where} is left out`).toBeNull();
-        continue;
-      }
-      const text = squash((meta ?? "").replaceAll("\u00a0", " "));
-      expect.soft(text, where).toBe(parts.join(" · "));
-      expect
-        .soft(text.startsWith("·"), `${where} starts with a dot`)
-        .toBe(false);
-      // Direction §3.3: a no-break space before each dot, so a dot never starts a line.
-      expect
-        .soft(
-          [...(meta ?? "")].every(
-            (char, at, all) => char !== "·" || all[at - 1] === "\u00a0",
-          ),
-          `${where}: a no-break space before every dot`,
-        )
-        .toBe(true);
-    }
-
-    // Anchors, from history: the owner decided 1, 2, 7, 9 and 10 among sprints 1 to 11.
-    const marked = VALID.flatMap((entry, i) =>
-      entry.sprint <= 11 && dom[i]?.meta?.includes(OWNERS_CALL)
-        ? [entry.sprint]
-        : [],
-    );
-    expect(
-      marked.sort((a, b) => a - b),
-      "Owner's call on sprints 1 to 11",
-    ).toEqual([1, 2, 7, 9, 10]);
-    const words = (n: number) =>
-      dom[VALID.findIndex((e) => e.sprint === n)]?.meta;
-    expect(words(11), "sprint 11 (S)").toMatch(/^Small sprint/);
-    expect(words(1), "sprint 1 (M)").toMatch(/^Medium sprint/);
-    expect(words(7), "sprint 7 (L)").toMatch(/^Large sprint/);
-  });
-
-  test("C4.3 the pull request link: text, href, 24 px tall, in --foreground", async ({
-    page,
-  }) => {
-    expect(entryOf(11)?.pr, "the oracle's pull request for sprint 11").toBe(36);
-    for (const scheme of SCHEMES) {
-      for (const width of [320, 390, 1440]) {
-        await open(page, width, scheme);
-        // Owner's call 2 (sprint 22): links are ink; copper means live now.
-        const ink = (await resolveColors(page))["--foreground"]?.computed;
-        const dom = await readEntries(page);
-        const boxes = await page.evaluate(
-          (selector) =>
-            [...document.querySelectorAll(selector)].map((li) =>
-              [...li.querySelectorAll("a")].map((a) => ({
-                height: a.getBoundingClientRect().height,
-                color: getComputedStyle(a).color,
-              })),
-            ),
-          ENTRIES,
-        );
-        for (const [i, entry] of VALID.entries()) {
-          const where = `sprint ${entry.sprint}, ${width} px, ${scheme}`;
-          const links = dom[i]?.links ?? [];
-          const expected = entry.pr
-            ? [{ text: `Pull request #${entry.pr}`, href: prHref(entry.pr) }]
-            : [];
-          expect.soft(links, `links, ${where}`).toEqual(expected);
-          for (const box of boxes[i] ?? []) {
-            expect
-              .soft(box.height, `link height, ${where}`)
-              .toBeGreaterThanOrEqual(24 - 0.05);
-            expect.soft(box.color, `link color, ${where}`).toBe(ink);
-          }
-        }
-        const eleven = dom[VALID.findIndex((e) => e.sprint === 11)];
-        expect
-          .soft(eleven?.links, `sprint 11's link, ${width} px, ${scheme}`)
-          .toEqual([
-            {
-              text: "Pull request #36",
-              href: "https://github.com/nycruslan/theseus-portfolio/pull/36",
-            },
-          ]);
-      }
-    }
-  });
-
-  test("C4.4 no status label: not 'Merged', 'Shipped' or 'Failed' outside the team's own words", async ({
-    page,
-  }) => {
-    await open(page, 1440);
-    const dom = await readEntries(page);
-    for (const [i, entry] of VALID.entries()) {
-      const found = dom[i];
-      // What is left once the rendered goal and items are taken out is the page's own words.
-      let rest = found?.text ?? "";
-      for (const own of [found?.goal ?? "", ...(found?.items ?? [])]) {
-        rest = rest.replace(own, " ");
-      }
-      expect
-        .soft(
-          rest.match(/\b(?:merged|shipped|failed)\b/gi) ?? [],
-          `status words in sprint ${entry.sprint}'s own words: "${squash(rest)}"`,
-        )
-        .toEqual([]);
-    }
-  });
-});
-
-test.describe("C4b. The goal carries no size tag", () => {
-  test("C4.5 no goal on the page ends in a bare size tag, and sprint 15 still shows its words", async ({
-    page,
-  }) => {
-    await open(page, 1280);
-    const dom = await readEntries(page);
-    expect(dom.length, "entries").toBe(VALID.length);
-    for (const found of dom) {
-      expect(
-        squash(found.goal),
-        `the goal of sprint ${found.number} does not end in (S), (M) or (L)`,
-      ).not.toMatch(/\(\s*[SML]\s*\)$/i);
-    }
-    const fifteen = dom.find((found) => found.number === 15);
-    expect(squash(fifteen?.goal ?? ""), "sprint 15's goal").toBe(
-      "Redesign, direction step: the concept, key screens, motion storyboard and budgets, with the contract for the build",
-    );
-    // The meta line already says the size in words.
-    expect(squash(fifteen?.meta ?? ""), "sprint 15's meta line").toContain(
-      "Large",
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------------------------
-// C5. What went wrong, all of it
-
-test.describe("C5. What went wrong, all of it", () => {
-  test("C5.1 an h4 and a list exactly when there are items; up to three, in the file's order", async ({
-    page,
-  }) => {
-    await open(page, 1440);
-    const dom = await readEntries(page);
-    for (const [i, entry] of VALID.entries()) {
-      const found = dom[i];
-      const where = `sprint ${entry.sprint}`;
-      const wanted = shown(entry);
-      if (entry.items.length === 0) {
-        expect.soft(found?.labels, `h4 of ${where}`).toEqual([]);
-        expect.soft(found?.lists, `lists of ${where}`).toBe(0);
-        continue;
-      }
-      expect
-        .soft(found?.labels.map(squash), `h4 of ${where}`)
-        .toEqual(["What went wrong"]);
-      expect.soft(found?.lists, `lists of ${where}`).toBe(1);
-      expect
-        .soft(
-          found?.items.map(squash),
-          `items of ${where} (min(3, ${entry.items.length}))`,
-        )
-        .toEqual(wanted);
-    }
-
-    // Anchors, from history: sprint 11 has two items, and every sprint from 1 to 11 has 1 to 3.
-    const count = (n: number) =>
-      dom[VALID.findIndex((e) => e.sprint === n)]?.items.length;
-    expect(count(11), "items shown for sprint 11").toBe(2);
-    for (let n = 1; n <= 11; n++) {
-      expect(count(n), `items shown for sprint ${n}`).toBeGreaterThanOrEqual(1);
-      expect(count(n), `items shown for sprint ${n}`).toBeLessThanOrEqual(3);
-    }
-  });
-
-  test("C5.2 nothing is truncated, collapsed or hidden", async ({ page }) => {
-    for (const width of [320, 1440]) {
-      await open(page, width);
-      const found = await page.evaluate((selector) => {
-        const main = document.querySelector("main") ?? document.body;
-        const own = new Set(["SCRIPT", "TEMPLATE", "STYLE"]);
-        const all = [...main.querySelectorAll("*")].filter(
-          (el) => !own.has(el.tagName),
-        );
-        const name = (el: Element) =>
-          `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 30)}"`;
-        const lis = [...document.querySelectorAll(selector)].flatMap(
-          (entry) => [entry, ...entry.querySelectorAll("li")],
-        );
-        return {
-          controls: main.querySelectorAll(
-            "details, summary, button, [aria-expanded]",
-          ).length,
-          hidden: all
-            .filter(
-              (el) =>
-                el.hasAttribute("hidden") ||
-                getComputedStyle(el).display === "none",
-            )
-            .map(name),
-          clipped: all
-            .filter((el) => {
-              const style = getComputedStyle(el);
-              return (
-                style.textOverflow === "ellipsis" ||
-                (style.getPropertyValue("-webkit-line-clamp") !== "none" &&
-                  style.getPropertyValue("-webkit-line-clamp") !== "")
-              );
-            })
-            .map(name),
-          notVisible: lis
-            .filter(
-              (li) =>
-                !li.checkVisibility({
-                  opacityProperty: true,
-                  visibilityProperty: true,
-                  contentVisibilityAuto: true,
-                }),
-            )
-            .map(name),
-          scrolls: lis
-            .filter((li) => li.scrollHeight !== li.clientHeight)
-            .map(name),
-          endings: [...main.querySelectorAll("h3, ul > li")]
-            .map((el) => (el.textContent ?? "").trim())
-            .filter((text) => /(…|\.\.\.)$/.test(text)),
-        };
-      }, ENTRIES);
-      const at = `at ${width} px`;
-      expect(
-        found.controls,
-        `details, summary, button, [aria-expanded] ${at}`,
-      ).toBe(0);
-      expect(found.hidden, `hidden elements in main ${at}`).toEqual([]);
-      expect(found.clipped, `ellipsis or line-clamp ${at}`).toEqual([]);
-      expect(found.notVisible, `li that are not visible ${at}`).toEqual([]);
-      expect(
-        found.scrolls,
-        `li whose scrollHeight differs from clientHeight ${at}`,
-      ).toEqual([]);
-      const sourceEllipses = VALID.flatMap((entry) => [
-        entry.goal,
-        ...shown(entry),
-      ]).filter((text) => /(…|\.\.\.)$/.test(text));
-      expect(
-        found.endings.map(squash),
-        `text ending in an ellipsis ${at} (the source's own: ${sourceEllipses.length})`,
-      ).toEqual(sourceEllipses.map(squash));
-    }
-  });
-
-  test("C5.3 the outcome and the evidence are not rendered, no backtick, only the contract's links", async ({
-    page,
-  }) => {
-    await open(page, 1440);
-    const found = await page.evaluate(() => ({
-      text: document.querySelector("main")?.textContent ?? "",
-      hrefs: [...document.querySelectorAll("main a")].map((a) =>
-        a.getAttribute("href"),
-      ),
-    }));
-    const text = squash(found.text);
-    const own = VALID.flatMap((entry) => [entry.goal, ...shown(entry)]);
-    // Only more than two words: a one-word outcome ("merged") would match any goal that has it.
-    const hidden = VALID.flatMap((entry) => [
-      ...(entry.outcome ? [entry.outcome] : []),
-      ...entry.evidence,
-    ])
-      .flatMap((raw) => [squash(raw), squash(noTicks(raw))])
-      .filter((string) => string.split(" ").length > 2);
-    const leaked = hidden.filter(
-      (string) =>
-        text.includes(string) &&
-        !own.some((shownText) => shownText.includes(string)),
-    );
-    expect(leaked, "outcome or evidence strings found in main's text").toEqual(
-      [],
-    );
-    expect(found.text.includes("`"), "a backtick in main").toBe(false);
-
-    const allowed = new Set([
-      "/",
-      ...VALID.flatMap((e) => (e.pr ? [prHref(e.pr)] : [])),
-    ]);
-    const stray = found.hrefs.filter((href) => !href || !allowed.has(href));
-    expect(
-      stray,
-      "links in main other than the back link and the PR links",
-    ).toEqual([]);
-  });
-});
-
-// ---------------------------------------------------------------------------------------------
-// C6. Spacing and the hang
-
-type Box = { top: number; bottom: number; left: number; right: number };
-type Geometry = Awaited<ReturnType<typeof measure>>;
-
-/** Every box the spacing checks need, in px, read in one go. */
-async function measure(page: Page) {
-  return page.evaluate((selector) => {
-    const box = (el: Element | null | undefined) => {
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-    };
-    // The first character that is not white space, outside `skip`: its rect is the first line.
-    const firstChar = (root: Element, skip: Element | null): Box | null => {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        if (skip?.contains(node)) continue;
-        const at = (node.textContent ?? "").search(/\S/);
-        if (at < 0) continue;
-        const range = document.createRange();
-        range.setStart(node, at);
-        range.setEnd(node, at + 1);
-        const r = range.getBoundingClientRect();
-        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-      }
-      return null;
-    };
-    const main = document.querySelector("main");
-    const mainBox = main?.getBoundingClientRect();
-    const columnLeft =
-      (mainBox?.left ?? 0) +
-      Number.parseFloat(getComputedStyle(main ?? document.body).paddingLeft);
-    const px = (value: string) => Number.parseFloat(value);
-    return {
-      columnLeft,
-      header: box(document.querySelector("main > header")),
-      section: box(document.querySelector("main > section")),
-      h2: box(document.querySelector("main > section > h2")),
-      entries: [...document.querySelectorAll(selector)].map((li) => {
-        const h3 = li.querySelector("h3");
-        const number = h3?.querySelector(":scope > span") ?? null;
-        const next = h3?.nextElementSibling ?? null;
-        const style = getComputedStyle(li);
-        return {
-          n: Number(h3?.textContent?.match(/^\s*Sprint\s+(\d+)/)?.[1]),
-          li: box(li),
-          clientTop: li.clientTop,
-          border: {
-            width: style.borderTopWidth,
-            style: style.borderTopStyle,
-            color: style.borderTopColor,
-          },
-          h3: box(h3),
-          goal: h3 ? firstChar(h3, number) : null,
-          number: box(number),
-          meta: next?.tagName === "P" ? box(next) : null,
-          label: box(li.querySelector("h4")),
-          items: [...li.querySelectorAll("ul > li")].map((item) => {
-            const dot = getComputedStyle(item, "::before");
-            return {
-              box: box(item),
-              clientLeft: item.clientLeft,
-              clientTop: item.clientTop,
-              position: getComputedStyle(item).position,
-              text: firstChar(item, null),
-              dot: {
-                content: dot.content,
-                position: dot.position,
-                width: px(dot.width),
-                height: px(dot.height),
-                radius: dot.borderTopLeftRadius,
-                background: dot.backgroundColor,
-                left: px(dot.left),
-                top: px(dot.top),
-                marginLeft: Number.isNaN(px(dot.marginLeft))
-                  ? 0
-                  : px(dot.marginLeft),
-                marginTop: Number.isNaN(px(dot.marginTop))
-                  ? 0
-                  : px(dot.marginTop),
-              },
-            };
-          }),
-        };
-      }),
-    };
-  }, ENTRIES);
-}
-
-/** The contract's rounded-full test: 50% or more, or a radius of at least half the 3 px dot. */
-function isRound(radius: string) {
-  const value = Number.parseFloat(radius);
-  return radius.endsWith("%") ? value >= 50 : value >= 1.5;
-}
-
-function checkHang(g: Geometry, width: number) {
-  const hung = width >= 768;
-  for (const e of g.entries) {
-    const where = `sprint ${e.n}, ${width} px`;
-    if (!e.number || !e.goal || !e.h3) {
-      expect.soft(false, `a number and a goal in the h3 (${where})`).toBe(true);
-      continue;
-    }
-    if (hung) {
-      near(
-        e.goal.left - e.number.right,
-        16,
-        `number's right edge to the text (${where})`,
-      );
-      near(
-        (e.number.top + e.number.bottom) / 2,
-        (e.goal.top + e.goal.bottom) / 2,
-        `number's centre to the first line's centre (${where})`,
-      );
-      expect
-        .soft(
-          (e.number.top + e.number.bottom) / 2,
-          `number's centre is inside the first line (${where})`,
-        )
-        .toBeGreaterThanOrEqual(e.goal.top - TOLERANCE);
-      expect
-        .soft(
-          (e.number.top + e.number.bottom) / 2,
-          `number's centre inside the first line (${where})`,
-        )
-        .toBeLessThanOrEqual(e.goal.bottom + TOLERANCE);
-      near(
-        e.goal.left,
-        g.columnLeft,
-        `goal text's left edge to the column's (${where})`,
-      );
-    } else {
-      near(
-        e.number.left,
-        g.columnLeft,
-        `inline number's left edge to the column's (${where})`,
-      );
-    }
-  }
-  if (hung) {
-    const right = (n: number) =>
-      g.entries.find((e) => e.n === n)?.number?.right;
-    const [nine, eleven] = [right(9), right(11)];
-    expect.soft(nine, "sprint 9 has a number").toBeDefined();
-    expect.soft(eleven, "sprint 11 has a number").toBeDefined();
-    near(
-      nine ?? Number.NaN,
-      eleven ?? Number.NaN,
-      `right edges of 9 and 11 (${width} px)`,
-    );
-  }
-}
-
-function checkDots(g: Geometry, muted: string | undefined, width: number) {
-  for (const e of g.entries) {
-    for (const [at, item] of e.items.entries()) {
-      const where = `sprint ${e.n}, item ${at + 1}, ${width} px`;
-      const { dot } = item;
-      if (!item.box || !item.text) {
-        expect.soft(false, `a box and text (${where})`).toBe(true);
-        continue;
-      }
-      expect
-        .soft(
-          item.position,
-          `the item is the dot's containing block (${where})`,
-        )
-        .not.toBe("static");
-      expect
-        .soft(dot.position, `the dot is positioned (${where})`)
-        .toBe("absolute");
-      expect.soft(dot.content, `the dot is generated (${where})`).toBe('""');
-      near(dot.width, 3, `dot width (${where})`);
-      near(dot.height, 3, `dot height (${where})`);
-      expect
-        .soft(
-          isRound(dot.radius),
-          `dot radius ${dot.radius} is round (${where})`,
-        )
-        .toBe(true);
-      expect.soft(dot.background, `dot colour (${where})`).toBe(muted);
-      const left = item.box.left + item.clientLeft + dot.left + dot.marginLeft;
-      const top = item.box.top + item.clientTop + dot.top + dot.marginTop;
-      near(item.box.left - left, 12, `dot's left, left of the item (${where})`);
-      near(
-        item.text.left - (left + dot.width),
-        9,
-        `clear air between dot and text (${where})`,
-      );
-      near(
-        top + dot.height / 2,
-        (item.text.top + item.text.bottom) / 2,
-        `dot's centre to the first line's centre (${where})`,
-      );
-      near(
-        item.text.left,
-        g.columnLeft,
-        `item text's left edge to the column's (${where})`,
-      );
-    }
-  }
-}
-
-function checkSpacing(g: Geometry, rule: string | undefined, width: number) {
-  expect.soft(g.header && g.section, "a header and a section").toBeTruthy();
-  near(
-    (g.section?.top ?? 0) - (g.header?.bottom ?? 0),
-    64,
-    `header to section (${width} px)`,
-  );
-  if (g.entries[0]?.li && g.h2) {
-    near(
-      g.entries[0].li.top - g.h2.bottom,
-      24,
-      `section label to the first rule (${width} px)`,
-    );
-  }
-  for (const [i, e] of g.entries.entries()) {
-    const where = `sprint ${e.n}, ${width} px`;
-    expect.soft(e.border.width, `rule width (${where})`).toBe("1px");
-    expect.soft(e.border.style, `rule style (${where})`).toBe("solid");
-    expect.soft(e.border.color, `rule colour is --rule (${where})`).toBe(rule);
-    if (!e.li || !e.h3) continue;
-    near(e.h3.top - (e.li.top + e.clientTop), 24, `rule to h3 (${where})`);
-    let last = e.h3.bottom;
-    if (e.meta) {
-      near(e.meta.top - e.h3.bottom, 0, `h3 to meta line (${where})`);
-      last = e.meta.bottom;
-    }
-    if (e.label) {
-      near(
-        e.label.top - (e.meta?.bottom ?? e.h3.bottom),
-        16,
-        `meta line to the label (${where})`,
-      );
-      last = e.label.bottom;
-    }
-    for (const [at, item] of e.items.entries()) {
-      if (!item.box) continue;
-      const above = at === 0 ? e.label?.bottom : e.items[at - 1]?.box?.bottom;
-      near(
-        item.box.top - (above ?? Number.NaN),
-        at === 0 ? 4 : 8,
-        `${at === 0 ? "label to first item" : "item to item"} (${where}, item ${at + 1})`,
-      );
-      last = item.box.bottom;
-    }
-    const next = g.entries[i + 1]?.li;
-    if (next)
-      near(next.top - last, 32, `last line to the next rule (${where})`);
-  }
-}
-
-for (const width of WIDTHS) {
-  test.describe(`C6. Spacing and the hang, ${width} px`, () => {
-    // Reduced motion: the heading's rise would otherwise move the label while it is measured.
-    test.use({ reducedMotion: "reduce" });
-
-    test(`C6.1 the number hangs 16 px left of the text from 768, inline below (${width} px)`, async ({
-      page,
-    }) => {
-      await open(page, width);
-      checkHang(await measure(page), width);
-    });
-
-    test(`C6.2 the list dot: 3 x 3, round, --muted, 12 px left, on the first line (${width} px)`, async ({
-      page,
-    }) => {
-      await open(page, width);
-      const muted = (await resolveColors(page))["--muted"]?.computed;
-      const g = await measure(page);
-      expect(g.entries.length, "entries").toBe(VALID.length);
-      checkDots(g, muted, width);
-    });
-
-    test(`C6.3 and C6.4 the vertical rhythm, and every entry on a 1 px --rule (${width} px)`, async ({
-      page,
-    }) => {
-      await open(page, width);
-      const rule = (await resolveColors(page))["--rule"]?.computed;
-      const g = await measure(page);
-      expect(g.entries.length, "entries").toBe(VALID.length);
-      checkSpacing(g, rule, width);
-    });
-  });
-}
-
-// ---------------------------------------------------------------------------------------------
-// C7. Colour and type, in tokens only
-
-for (const scheme of SCHEMES) {
-  test.describe(`C7. Colour and type, ${scheme}`, () => {
-    test.use({ colorScheme: scheme, reducedMotion: "reduce" });
-
-    test(`C7.1 text is in the five colours and the sm, base, lg and 2xl steps; weights 400, 500, 600; one font (${scheme})`, async ({
-      page,
-    }) => {
-      for (const width of [320, 1440]) {
-        await open(page, width);
-        const { tokenColors, texts } = await textStyles(page);
-        const steps = await resolveSteps(page);
-        const allowed = [
-          "--step-sm",
-          "--step-base",
-          "--step-lg",
-          "--step-2xl",
-        ].map((name) => steps[name] ?? Number.NaN);
-        expect(texts.length, "elements with text").toBeGreaterThan(0);
-        const off = texts
-          .filter(
-            ({ color, fontSize }) =>
-              !tokenColors.includes(color) ||
-              !allowed.some(
-                (size) => Math.abs(size - Number.parseFloat(fontSize)) < 0.02,
-              ),
-          )
-          .map(
-            ({ element, color, fontSize }) =>
-              `${element}: ${color}, ${fontSize}`,
-          );
-        expect
-          .soft(off, `text outside the tokens or the four steps at ${width} px`)
-          .toEqual([]);
-
-        const faces = await page.evaluate(() => {
-          const els = [...document.body.querySelectorAll("*")].filter(
-            (el) =>
-              el.getClientRects().length > 0 &&
-              [...el.childNodes].some(
-                (node) =>
-                  node.nodeType === Node.TEXT_NODE &&
-                  (node.textContent ?? "").trim() !== "",
-              ),
-          );
+    for (const width of WIDTHS) {
+      await open(page, LOG, width);
+      const cells = await page.evaluate((selector) => {
+        const squashed = (el: Element | null) =>
+          (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+        return [...document.querySelectorAll(selector)].map((tr) => {
+          const cell = tr.querySelector(":scope > td");
+          const s = cell ? getComputedStyle(cell) : null;
+          const clamp = s?.getPropertyValue("-webkit-line-clamp") ?? "none";
           return {
-            weights: [
-              ...new Set(els.map((el) => getComputedStyle(el).fontWeight)),
-            ],
-            families: [
-              ...new Set(els.map((el) => getComputedStyle(el).fontFamily)),
-            ],
+            text: squashed(cell),
+            cut: {
+              ellipsis: s?.textOverflow === "ellipsis",
+              clamped: clamp !== "none" && clamp !== "",
+              wide: cell ? cell.scrollWidth > cell.clientWidth + 1 : true,
+              tall: cell ? cell.scrollHeight > cell.clientHeight + 1 : true,
+              hidden: cell
+                ? !cell.checkVisibility({
+                    opacityProperty: true,
+                    visibilityProperty: true,
+                  })
+                : true,
+            },
           };
         });
+      }, ROWS);
+      const at = `at ${width} px`;
+      expect(cells.length, `rows ${at}`).toBe(VALID.length);
+      for (const [i, entry] of VALID.entries()) {
+        const cell = cells[i];
+        const where = `revision ${entry.sprint}'s Description ${at}`;
+        expect.soft(cell?.text, where).toBe(entry.goal);
         expect
-          .soft(
-            faces.weights.filter((w) => !["400", "500", "600"].includes(w)),
-            `font weights other than 400, 500, 600 at ${width} px`,
-          )
-          .toEqual([]);
-        expect
-          .soft(faces.families, `font families at ${width} px`)
-          .toHaveLength(1);
-        expect
-          .soft(
-            faces.families.filter((f) => /mono|courier|consolas/i.test(f)),
-            "monospace families",
-          )
-          .toEqual([]);
+          .soft(cell?.text, `${where} does not end in (S), (M) or (L)`)
+          .not.toMatch(/\(\s*[SML]\s*\)$/i);
+        expect.soft(cell?.cut, `${where}: cut, clamped or hidden`).toEqual({
+          ellipsis: false,
+          clamped: false,
+          wide: false,
+          tall: false,
+          hidden: false,
+        });
       }
-    });
-
-    test(`C7.2 the accent colour is on nothing, links included (${scheme})`, async ({
-      page,
-    }) => {
-      await open(page, 1440);
-      const accent = (await resolveColors(page))["--accent"]?.computed;
-      expect(accent, "--accent resolves").toBeTruthy();
-      // Sprint 22: nothing on /sprints is live, so nothing is copper, not even a link.
-      const found = await page.evaluate((color) => {
-        const links = document.querySelectorAll("main a").length;
-        const off = [...document.body.querySelectorAll("*")]
-          .filter((el) => getComputedStyle(el).color === color)
-          .map(
-            (el) =>
-              `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 30)}"`,
-          );
-        return { links, off };
-      }, accent);
-      expect(
-        found.links,
-        "links in main (the back link and the PR links)",
-      ).toBeGreaterThan(1);
-      expect(found.off, "elements in --accent").toEqual([]);
-    });
-
-    test(`C7.3 no background, radius, shadow, outline, rail or transform in the log, but the dots (${scheme})`, async ({
-      page,
-    }) => {
-      for (const width of [390, 1440]) {
-        await open(page, width);
-        const found = await page.evaluate(
-          ({ selector }) => {
-            const main = document.querySelector("main") ?? document.body;
-            const name = (el: Element) =>
-              `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}"`;
-            const paint = (style: CSSStyleDeclaration) => {
-              const flags: string[] = [];
-              const bg = style.backgroundColor.replace(/\s/g, "");
-              if (bg !== "rgba(0,0,0,0)" && bg !== "transparent")
-                flags.push(`background ${style.backgroundColor}`);
-              if (style.backgroundImage !== "none")
-                flags.push("background-image");
-              if (style.borderTopLeftRadius !== "0px")
-                flags.push(`radius ${style.borderTopLeftRadius}`);
-              if (style.boxShadow !== "none") flags.push("box-shadow");
-              return flags;
-            };
-            const rested: string[] = [];
-            const lists: string[] = [];
-            for (const el of [main, ...main.querySelectorAll("*")]) {
-              const style = getComputedStyle(el);
-              const flags = paint(style);
-              if (
-                style.outlineStyle !== "none" &&
-                Number.parseFloat(style.outlineWidth) > 0
-              )
-                flags.push("outline");
-              if (flags.length) rested.push(`${name(el)}: ${flags.join(", ")}`);
-              for (const pseudo of ["::before", "::after"]) {
-                const made = getComputedStyle(el, pseudo);
-                if (made.content === "none" || made.content === "normal")
-                  continue;
-                const isDot =
-                  pseudo === "::before" && el.matches(`${selector} ul > li`);
-                const wrong = paint(made);
-                if (!isDot && wrong.length)
-                  rested.push(`${name(el)}${pseudo}: ${wrong.join(", ")}`);
-              }
-            }
-            for (const el of document.querySelectorAll(
-              `${selector}, ${selector} *`,
-            )) {
-              const style = getComputedStyle(el);
-              const sides = (["Left", "Right", "Bottom"] as const).filter(
-                (side) =>
-                  style[`border${side}Style`] !== "none" &&
-                  Number.parseFloat(style[`border${side}Width`]) > 0,
-              );
-              if (sides.length)
-                lists.push(`${name(el)}: border ${sides.join(", ")}`);
-              if (style.transform !== "none")
-                lists.push(`${name(el)}: transform`);
-              if (style.translate !== "none")
-                lists.push(`${name(el)}: translate`);
-            }
-            return { rested, lists };
-          },
-          { selector: ENTRIES },
-        );
-        expect
-          .soft(found.rested, `painted boxes at rest at ${width} px`)
-          .toEqual([]);
-        expect
-          .soft(found.lists, `rails and transforms in the list at ${width} px`)
-          .toEqual([]);
-      }
-    });
+      const fifteen = cells[VALID.findIndex((entry) => entry.sprint === 15)];
+      expect(fifteen?.text, `revision 15's Description ${at}`).toBe(
+        "Redesign, direction step: the concept, key screens, motion storyboard and budgets, with the contract for the build",
+      );
+    }
   });
-}
+});
 
 // ---------------------------------------------------------------------------------------------
-// C8. Phones and widths
+// B5.8 Metadata
+
+test.describe("B5.8 Metadata", () => {
+  test("B5.8 (C2.1) /log and /log/13 carry their own title, description, canonical and og:url", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const homeTitle = await page.title();
+    const pages = [
+      [LOG, `Log — ${profile.name}`, DESCRIPTION],
+      [recordOf(13), `Revision 13 — Log — ${profile.name}`, entryOf(13)?.goal],
+    ] as const;
+    for (const [url, title, description] of pages) {
+      const response = await page.goto(url);
+      expect(response?.status(), `status of ${url}`).toBe(200);
+      expect.soft(await page.title(), `document.title of ${url}`).toBe(title);
+      expect(await page.title(), "the home page's title").not.toBe(homeTitle);
+      const tags = await page.evaluate(() => {
+        const content = (css: string) =>
+          [...document.querySelectorAll<HTMLMetaElement>(css)].map(
+            (meta) => meta.content,
+          );
+        return {
+          canonical: [
+            ...document.querySelectorAll<HTMLLinkElement>(
+              'link[rel="canonical"]',
+            ),
+          ].map((link) => link.href),
+          ogUrl: content('meta[property="og:url"]'),
+          description: content('meta[name="description"]'),
+          ogDescription: content('meta[property="og:description"]'),
+          twitterDescription: content('meta[name="twitter:description"]'),
+        };
+      });
+      expect
+        .soft(tags.canonical, `canonical of ${url}`)
+        .toEqual([`${SITE_URL}${url}`]);
+      expect
+        .soft(tags.ogUrl, `og:url of ${url}`)
+        .toEqual([`${SITE_URL}${url}`]);
+      expect
+        .soft(tags.description, `description of ${url}`)
+        .toEqual([description]);
+      // The layout's description is the owner's bio; a page that spreads the shared openGraph or
+      // leaves twitter alone would claim it as the Log's.
+      for (const key of ["ogDescription", "twitterDescription"] as const) {
+        expect(tags[key], `${key} of ${url}`).toHaveLength(1);
+        expect(tags[key][0]?.trim(), `${key} of ${url} is set`).not.toBe("");
+        expect(tags[key][0], `${key} of ${url} is not the bio`).not.toBe(
+          profile.bio,
+        );
+      }
+    }
+  });
+
+  test("B5.8 (C2.3) /log and /log/13 each carry one og:image and one twitter:image, each served as image/png", async ({
+    page,
+    request,
+  }) => {
+    for (const url of [LOG, recordOf(13)]) {
+      const response = await page.goto(url);
+      expect(response?.status(), `status of ${url}`).toBe(200);
+      // A page that sets its own openGraph or twitter replaces the layout's whole, and takes the
+      // inherited image with it; /sprints once shared a card with the large-image type and no image.
+      const images = await page.evaluate(() => {
+        const content = (css: string) =>
+          [...document.querySelectorAll<HTMLMetaElement>(css)].map(
+            (meta) => meta.content,
+          );
+        return {
+          og: content('meta[property="og:image"]'),
+          twitter: content('meta[name="twitter:image"]'),
+        };
+      });
+      expect(images.og, `og:image on ${url}`).toHaveLength(1);
+      expect(images.twitter, `twitter:image on ${url}`).toHaveLength(1);
+      // The tags name the production host; the same paths are served here.
+      for (const [name, urls] of Object.entries(images)) {
+        const image = await request.get(new URL(urls[0] ?? "").pathname);
+        expect(image.status(), `status of ${url}'s ${name} image`).toBe(200);
+        expect(
+          image.headers()["content-type"],
+          `${url}'s ${name} image type`,
+        ).toBe("image/png");
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.9 The route sweeps on /log and a record (ROUTES in helpers.ts carries the site-wide ones)
+
+const SWEPT = [LOG, recordOf(13)] as const;
 
 for (const scheme of SCHEMES) {
-  test.describe(`C8. Phones and widths, ${scheme}`, () => {
+  test.describe(`B5.9 Widths, ${scheme}`, () => {
     test.use({ colorScheme: scheme, reducedMotion: "reduce" });
 
-    test(`C8.1 nothing overflows and nothing sticks out past the right, 320 to 1440 px (${scheme})`, async ({
+    test(`B5.9 (C8.1) nothing overflows and nothing sticks out past the right, 320 to 1440 px, on /log and /log/13 (${scheme})`, async ({
       page,
     }) => {
-      for (const width of WIDTHS) {
-        await open(page, width);
-        expect
-          .soft(
-            await horizontalOverflow(page),
-            `horizontal overflow at ${width} px`,
-          )
-          .toBeLessThanOrEqual(0);
-        const out = await page.evaluate(() => {
-          const view = document.documentElement.clientWidth;
-          return [...document.body.querySelectorAll("*")].flatMap((el) => {
-            const r = el.getBoundingClientRect();
-            if (r.width === 0 && r.height === 0) return [];
-            // The left edge is checked in main, where a number hung into the gutter could leave.
-            const left = el.closest("main") && r.left < -1.5;
-            return r.right > view + 0.5 || left
-              ? [
-                  `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}": ${r.left} to ${r.right} of ${view}`,
-                ]
-              : [];
-          });
-        });
-        expect
-          .soft(out, `elements outside the viewport at ${width} px`)
-          .toEqual([]);
-      }
-    });
-
-    test(`C8.2 at 320 the meta line never wraps before a dot, and a PR link stays on one line (${scheme})`, async ({
-      page,
-    }) => {
-      await open(page, 320);
-      const found = await page.evaluate(
-        (selector) =>
-          [...document.querySelectorAll(selector)].map((li) => {
-            const h3 = li.querySelector("h3");
-            const meta = h3?.nextElementSibling;
-            if (meta?.tagName !== "P")
-              return {
-                n: Number.NaN,
-                startsLine: [] as string[],
-                lineCounts: [] as number[],
-              };
-            const startsLine: string[] = [];
-            let lineTop = Number.NEGATIVE_INFINITY;
-            const walker = document.createTreeWalker(
-              meta,
-              NodeFilter.SHOW_TEXT,
-            );
-            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-              const text = node.textContent ?? "";
-              for (let at = 0; at < text.length; at++) {
-                if (/\s/.test(text.charAt(at))) continue;
-                const range = document.createRange();
-                range.setStart(node, at);
-                range.setEnd(node, at + 1);
-                const r = range.getBoundingClientRect();
-                if (r.top > lineTop + 2) {
-                  lineTop = r.top;
-                  if (text.charAt(at) === "·")
-                    startsLine.push(text.slice(at, at + 12));
-                }
-              }
-            }
-            const lineCounts = [...meta.querySelectorAll("a")].map((a) => {
-              const range = document.createRange();
-              range.selectNodeContents(a);
-              return new Set(
-                [...range.getClientRects()].map((r) => Math.round(r.top)),
-              ).size;
+      for (const url of SWEPT) {
+        for (const width of WIDTHS) {
+          await open(page, url, width);
+          expect
+            .soft(
+              await horizontalOverflow(page),
+              `horizontal overflow on ${url} at ${width} px`,
+            )
+            .toBeLessThanOrEqual(0);
+          const out = await page.evaluate(() => {
+            const view = document.documentElement.clientWidth;
+            return [...document.body.querySelectorAll("*")].flatMap((el) => {
+              const r = el.getBoundingClientRect();
+              if (r.width === 0 && r.height === 0) return [];
+              const left = el.closest("main") && r.left < -1.5;
+              return r.right > view + 0.5 || left
+                ? [
+                    `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}": ${r.left} to ${r.right} of ${view}`,
+                  ]
+                : [];
             });
-            return {
-              n: Number(h3?.textContent?.match(/^\s*Sprint\s+(\d+)/)?.[1]),
-              startsLine,
-              lineCounts,
-            };
-          }),
-        ENTRIES,
-      );
-      expect(found.length, "entries").toBe(VALID.length);
-      for (const entry of found) {
-        expect
-          .soft(
-            entry.startsLine,
-            `lines of sprint ${entry.n}'s meta that start with a dot`,
-          )
-          .toEqual([]);
-        for (const lines of entry.lineCounts) {
-          expect.soft(lines, `lines of sprint ${entry.n}'s PR link`).toBe(1);
+          });
+          expect
+            .soft(out, `elements outside the viewport on ${url} at ${width} px`)
+            .toEqual([]);
         }
       }
     });
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// C9. Accessibility
-
-test.describe("C9. Accessibility", () => {
+test.describe("B5.9 Accessibility", () => {
   for (const scheme of SCHEMES) {
-    test(`C9.1 axe finds nothing at 390 and 1440, with or without the skip link showing (${scheme})`, async ({
+    test(`B5.9 (C9.1) axe finds nothing at 390 and 1440, with or without the skip link showing, on /log and /log/13 (${scheme})`, async ({
       page,
     }) => {
+      test.setTimeout(90_000);
       await page.emulateMedia({ colorScheme: scheme });
-      for (const width of [390, 1440]) {
-        for (const skipShowing of [false, true]) {
-          const where = `${width} px, ${scheme}, ${skipShowing ? "skip link showing" : "nothing focused"}`;
-          await open(page, width);
-          if (skipShowing) await page.keyboard.press("Tab");
-          const results = await new AxeBuilder({ page })
-            .withTags(AXE_TAGS)
-            .analyze();
-          const found = results.violations.map((v) => ({
-            rule: v.id,
-            impact: v.impact,
-            help: v.help,
-            targets: v.nodes.map((node) => node.target.join(" ")),
-          }));
-          expect.soft(found, `axe violations (${where})`).toEqual([]);
-          const passed = results.passes.map((p) => p.id);
-          for (const rule of [
-            "color-contrast",
-            "landmark-one-main",
-            "region",
-          ]) {
-            expect
-              .soft(passed, `axe passed ${rule} (${where})`)
-              .toContain(rule);
+      for (const url of SWEPT) {
+        for (const width of [390, 1440]) {
+          for (const skipShowing of [false, true]) {
+            const where = `${url}, ${width} px, ${scheme}, ${skipShowing ? "skip link showing" : "nothing focused"}`;
+            await open(page, url, width);
+            if (skipShowing) await page.keyboard.press("Tab");
+            const results = await new AxeBuilder({ page })
+              .withTags(AXE_TAGS)
+              .analyze();
+            const found = results.violations.map((v) => ({
+              rule: v.id,
+              impact: v.impact,
+              help: v.help,
+              targets: v.nodes.map((node) => node.target.join(" ")),
+            }));
+            expect.soft(found, `axe violations (${where})`).toEqual([]);
+            const passed = results.passes.map((p) => p.id);
+            for (const rule of [
+              "color-contrast",
+              "landmark-one-main",
+              "region",
+            ]) {
+              expect
+                .soft(passed, `axe passed ${rule} (${where})`)
+                .toContain(rule);
+            }
           }
         }
       }
     });
 
-    test(`C9.2 text meets its contrast thresholds (${scheme})`, async ({
+    test(`B5.9 (C9.2) text meets its contrast thresholds on /log and /log/13 (${scheme})`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: scheme });
-      await open(page, 390);
-      const colors = await resolveColors(page);
-      const rgba = (token: string) => {
-        const value = colors[token]?.rgba;
-        if (!value) throw new Error(`${token} did not resolve`);
-        return value;
-      };
-      const [r, g, b] = rgba("--background");
-      const background: Rgb = [r, g, b];
-      const on = (token: string) =>
-        contrast(composite(rgba(token), background), background);
-      expect
-        .soft(on("--foreground"), `--foreground (${scheme})`)
-        .toBeGreaterThanOrEqual(7);
-      for (const token of ["--muted", "--accent"]) {
+      for (const url of SWEPT) {
+        await open(page, url, 390);
+        const colors = await resolveColors(page);
+        const rgba = (token: string) => {
+          const value = colors[token]?.rgba;
+          if (!value) throw new Error(`${token} did not resolve`);
+          return value;
+        };
+        const [r, g, b] = rgba("--background");
+        const background: Rgb = [r, g, b];
+        const on = (token: string) =>
+          contrast(composite(rgba(token), background), background);
         expect
-          .soft(on(token), `${token} (${scheme})`)
-          .toBeGreaterThanOrEqual(4.5);
-      }
-      // And the colours this route's text really has, not only the tokens.
-      const { texts } = await textStyles(page);
-      for (const { element, color } of texts) {
-        const parsed = parseColor(color);
-        const ratio = parsed
-          ? contrast(composite(parsed, background), background)
-          : 0;
-        expect
-          .soft(ratio, `contrast of ${element} (${scheme})`)
-          .toBeGreaterThanOrEqual(4.5);
+          .soft(on("--foreground"), `--foreground on ${url} (${scheme})`)
+          .toBeGreaterThanOrEqual(7);
+        for (const token of ["--muted", "--accent"]) {
+          expect
+            .soft(on(token), `${token} on ${url} (${scheme})`)
+            .toBeGreaterThanOrEqual(4.5);
+        }
+        // And the colours this route's text really has, not only the tokens.
+        const { texts } = await textStyles(page);
+        for (const { element, color } of texts) {
+          const parsed = parseColor(color);
+          const ratio = parsed
+            ? contrast(composite(parsed, background), background)
+            : 0;
+          expect
+            .soft(ratio, `contrast of ${element} on ${url} (${scheme})`)
+            .toBeGreaterThanOrEqual(4.5);
+        }
       }
     });
   }
 
-  test("C9.3 one h1, then the Sprints h2, then each entry's h3, an h4 only under an h3, no level skipped", async ({
+  test("B5.9 (C9.3) headings: one h1 Log, the record's h2 and its h3, then Every revision, no level skipped", async ({
     page,
   }) => {
-    await open(page, 1440);
-    const headings = await page.evaluate(() =>
-      [...document.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => ({
-        level: Number(h.tagName.slice(1)),
-        text: (h.textContent ?? "").trim().slice(0, 30),
-      })),
-    );
-    expect(
-      headings.slice(0, 2).map((h) => `h${h.level} ${h.text}`),
-      "the first two headings",
-    ).toEqual(["h1 Build log", "h2 Sprints"]);
-    expect(
-      headings.filter((h) => h.level === 1),
-      "h1 elements",
-    ).toHaveLength(1);
-    expect(
-      headings.filter((h) => h.level === 2),
-      "h2 elements",
-    ).toHaveLength(1);
-    expect(
-      headings.filter((h) => h.level === 3),
-      "h3 elements, one per entry",
-    ).toHaveLength(VALID.length);
-    let previous = 0;
-    for (const { level, text } of headings) {
+    for (const url of SWEPT) {
+      await open(page, url, 1440);
+      const headings = await page.evaluate(() =>
+        [...document.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => ({
+          level: Number(h.tagName.slice(1)),
+          text: (h.textContent ?? "").replace(/\s+/g, " ").trim(),
+        })),
+      );
+      const entry = url === LOG ? undefined : entryOf(13);
       expect(
-        level - previous,
-        `h${level} "${text}" follows an h${previous}`,
-      ).toBeLessThanOrEqual(1);
-      if (level === 4)
-        expect(previous, `the h4 "${text}" follows an h3`).toBe(3);
-      previous = level;
+        headings.map((h) => `h${h.level} ${h.text}`),
+        `the headings on ${url}`,
+      ).toEqual([
+        "h1 Log",
+        ...(entry
+          ? [
+              `h2 ${entry.goal}`,
+              ...(entry.wentWrong.length > 0 ? [`h3 ${WRONG}`] : []),
+            ]
+          : []),
+        "h2 Every revision",
+      ]);
+      let previous = 0;
+      for (const { level, text } of headings) {
+        expect(
+          level - previous,
+          `h${level} "${text.slice(0, 30)}" follows an h${previous} on ${url}`,
+        ).toBeLessThanOrEqual(1);
+        previous = level;
+      }
     }
   });
 
-  test("C9.4 every link but the skip link is at least 24 x 24 px at 390", async ({
+  test("B5.9 (C9.4) every link but the skip link is at least 24 x 24 px at 390, on /log and /log/13", async ({
     page,
   }) => {
-    await open(page, 390);
-    const small = await page.evaluate(() =>
-      [...document.querySelectorAll("a")]
-        .filter((a) => a.getAttribute("href") !== "#main")
-        .flatMap((a) => {
-          const r = a.getBoundingClientRect();
-          return r.width >= 24 - 0.05 && r.height >= 24 - 0.05
-            ? []
-            : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
-        }),
-    );
-    expect(small, "links smaller than 24 x 24 px").toEqual([]);
+    for (const url of SWEPT) {
+      await open(page, url, 390);
+      const small = await page.evaluate(() =>
+        [...document.querySelectorAll("a")]
+          .filter((a) => a.getAttribute("href") !== "#main")
+          .flatMap((a) => {
+            const r = a.getBoundingClientRect();
+            return r.width >= 24 - 0.05 && r.height >= 24 - 0.05
+              ? []
+              : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
+          }),
+      );
+      expect(small, `links smaller than 24 x 24 px on ${url}`).toEqual([]);
+    }
   });
 
-  test("C9.5 forced colors: each What-went-wrong bullet's dot still shows, at 390 and 1440", async ({
+  test("B5.9 (C9.5) forced colors: each of the record's list dots still shows, at 390 and 1440", async ({
     page,
   }) => {
     // Windows High Contrast resets a background-only dot to Canvas, the page's own colour, so it
-    // vanishes: the dot must differ from the page, not only be opaque.
+    // vanishes: a drawn dot must differ from the page; a list marker is text, and shows.
     await page.emulateMedia({ forcedColors: "active" });
+    const n = 13;
+    expect(entryOf(n)?.wentWrong.length ?? 0, `items of ${n}`).toBeGreaterThan(
+      0,
+    );
     for (const width of [390, 1440]) {
-      await open(page, width);
+      await open(page, recordOf(n), width);
       const seen = await page.evaluate(
-        (entries) => ({
+        (items) => ({
           page: getComputedStyle(document.body).backgroundColor,
-          dots: [...document.querySelectorAll(`${entries} ul > li`)].map(
-            (li) => ({
+          dots: [...document.querySelectorAll(items)].map((li) => {
+            const dot = getComputedStyle(li, "::before");
+            const s = getComputedStyle(li);
+            return {
               text: (li.textContent ?? "").trim().slice(0, 24),
-              background: getComputedStyle(li, "::before").backgroundColor,
-            }),
-          ),
+              drawn: dot.content !== "none" && dot.content !== "normal",
+              background: dot.backgroundColor,
+              marker: s.display === "list-item" && s.listStyleType !== "none",
+            };
+          }),
         }),
-        ENTRIES,
+        ITEMS,
       );
-      const where = `${width} px`;
-      expect(
-        seen.dots.length,
-        `What-went-wrong bullets at ${where}`,
-      ).toBeGreaterThan(0);
+      const where = `/log/${n} at ${width} px`;
+      expect(seen.dots.length, `list items on ${where}`).toBeGreaterThan(0);
       expect(
         seen.dots.filter(
           (dot) =>
-            dot.background === "transparent" ||
-            dot.background === "rgba(0, 0, 0, 0)",
+            !dot.marker &&
+            (!dot.drawn ||
+              dot.background === "transparent" ||
+              dot.background === "rgba(0, 0, 0, 0)" ||
+              dot.background === seen.page),
         ),
-        `bullets with no dot colour in forced colors at ${where}`,
-      ).toEqual([]);
-      expect(
-        seen.dots.filter((dot) => dot.background === seen.page),
-        `bullets whose dot is the colour of the page in forced colors at ${where}`,
+        `items with no dot, or a dot the colour of the page, in forced colors on ${where}`,
       ).toEqual([]);
     }
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// C10. Keyboard
-
-test.describe("C10. Keyboard", () => {
+test.describe("B5.9 Keyboard", () => {
   for (const scheme of SCHEMES) {
-    test(`C10 skip link first, Enter lands on main, Tab visits the back link and each PR link, each with one clear ring (${scheme})`, async ({
+    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's five links, the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
       page,
     }) => {
-      await page.emulateMedia({ colorScheme: scheme });
-      await open(page, 1440);
-
-      // The stops: the DOM's links, skip link first, then the back link, then newest first.
+      test.setTimeout(120_000);
+      await open(page, recordOf(13), 1440, scheme);
+      const order = await page.evaluate(
+        ({ record, rows }) => {
+          const hrefs = (selector: string) =>
+            [...document.querySelectorAll(selector)]
+              .filter((a) => a.checkVisibility())
+              .map((a) => a.getAttribute("href") ?? "");
+          return {
+            all: hrefs("a[href]"),
+            record: hrefs(`${record} a[href]`),
+            revs: hrefs(`${rows} th a[href]`),
+          };
+        },
+        { record: RECORD, rows: ROWS },
+      );
+      const { previous, next } = neighbours(13);
+      const pr = entryOf(13)?.pr;
+      expect
+        .soft([...order.record].sort(), "the record's links")
+        .toEqual(
+          [
+            LOG,
+            ...(pr ? [prHref(pr)] : []),
+            ...[previous, next].flatMap((m) => (m ? [recordOf(m)] : [])),
+          ].sort(),
+        );
+      expect
+        .soft(order.revs, "the Rev links")
+        .toEqual(VALID.map((entry) => recordOf(entry.sprint)));
       const expected = [
         "#main",
         "/",
-        ...VALID.flatMap((e) => (e.pr ? [prHref(e.pr)] : [])),
+        ...BAR.map((link) => link.href),
+        ...order.record,
+        ...order.revs,
       ];
-      const stops = await page.evaluate(() =>
-        [...document.querySelectorAll("a[href]")]
-          .filter((a) => a.checkVisibility())
-          .map((a) => a.getAttribute("href") ?? ""),
-      );
-      expect(stops, "the visible links in DOM order").toEqual(expected);
+      expect(order.all, "the visible links in DOM order").toEqual(expected);
 
       const skip = page.locator('a[href="#main"]');
       const before = await skip.evaluate((el) => {
@@ -1642,13 +1612,7 @@ test.describe("C10. Keyboard", () => {
         `skip link hidden before focus: ${JSON.stringify(before)}`,
       ).toBe(true);
 
-      const colors = await resolveColors(page);
-      const tokenRgba = new Map(
-        Object.values(colors).map((c) => [c.computed, c.rgba] as const),
-      );
-      const [r = 0, g = 0, b = 0] = colors["--background"]?.rgba ?? [];
-      const background: Rgb = [r, g, b];
-
+      const ink = await tokenRgba(page, "--foreground");
       const visited: string[] = [];
       const problems: string[] = [];
       for (let presses = 0; presses < expected.length + 2; presses++) {
@@ -1657,6 +1621,9 @@ test.describe("C10. Keyboard", () => {
         const stop = await page.evaluate(() => {
           const el = document.activeElement;
           if (el?.tagName !== "A") return null;
+          const rgba = (
+            window as Window & { __rgba?: (c: string) => number[] | null }
+          ).__rgba;
           const box = el.getBoundingClientRect();
           const style = getComputedStyle(el);
           return {
@@ -1674,31 +1641,27 @@ test.describe("C10. Keyboard", () => {
               box.top < innerHeight,
             style: style.outlineStyle,
             width: Number.parseFloat(style.outlineWidth),
-            color: style.outlineColor,
+            color: rgba ? rgba(style.outlineColor) : null,
             offset: Number.parseFloat(style.outlineOffset),
           };
         });
         if (!stop) break;
         visited.push(stop.href);
-        const rgba = tokenRgba.get(stop.color);
         const why = [
           stop.seen ? "" : "can't be seen when focused",
-          stop.width >= 2 ? "" : `ring width ${stop.width}`,
-          ["none", "hidden"].includes(stop.style)
-            ? `ring style ${stop.style}`
-            : "",
-          rgba ? "" : `ring colour ${stop.color} isn't a token`,
-          !rgba || contrast(composite(rgba, background), background) >= 3
+          stop.style === "solid" ? "" : `ring style ${stop.style}`,
+          Math.abs(stop.width - 2) <= 0.05 ? "" : `ring width ${stop.width}`,
+          Math.abs(stop.offset - 2) <= 0.05 ? "" : `ring offset ${stop.offset}`,
+          sameColor(stop.color, ink)
             ? ""
-            : "ring contrast under 3",
-          stop.offset >= 0 ? "" : `ring offset ${stop.offset}`,
+            : `ring colour ${JSON.stringify(stop.color)}`,
         ].filter(Boolean);
         if (why.length) problems.push(`${stop.href}: ${why.join("; ")}`);
       }
       expect(visited, `Tab order (${scheme})`).toEqual(expected);
       expect(
         problems,
-        `stops that are not seen or lack a clear ring (${scheme})`,
+        `stops that are not seen or lack a ring of 2 px ink, 2 px out (${scheme})`,
       ).toEqual([]);
 
       const tabindexes = await page.evaluate(() =>
@@ -1711,12 +1674,13 @@ test.describe("C10. Keyboard", () => {
         '<main> tabindex="-1"',
       ]);
 
-      // Enter on the skip link lands on main, which shows no ring; the next Tab is the back link.
-      await open(page, 1440);
+      // Enter on the skip link lands on main, which shows no ring; the next Tab is main's first link.
+      await open(page, recordOf(13), 1440);
+      await page.keyboard.press("Tab");
       expect(
-        await tabTo(page, 'a[href="#main"]', 1),
+        await page.evaluate(() => document.activeElement?.getAttribute("href")),
         "the first Tab focuses the skip link",
-      ).toBe(true);
+      ).toBe("#main");
       await page.keyboard.press("Enter");
       await expect
         .poll(() => new URL(page.url()).hash, "hash after Enter")
@@ -1734,124 +1698,289 @@ test.describe("C10. Keyboard", () => {
       await page.keyboard.press("Tab");
       expect(
         await page.evaluate(() => document.activeElement?.getAttribute("href")),
-        "the Tab after the skip link's jump",
-      ).toBe("/");
-      if (VALID[0]?.pr) {
-        await page.keyboard.press("Tab");
-        expect(
-          await page.evaluate(() =>
-            document.activeElement?.getAttribute("href"),
-          ),
-          "then the newest entry's PR link",
-        ).toBe(prHref(VALID[0].pr));
-      }
+        "the Tab after the skip link's jump: main's first link",
+      ).toBe(order.record[0]);
     });
   }
 });
 
-// ---------------------------------------------------------------------------------------------
-// C11. Nothing moves, nothing needs scripts
-
-test.describe("C11. Nothing moves, nothing needs scripts", () => {
-  test("C11.1 with scripts off, the server HTML already holds every entry", async ({
+test.describe("B5.9 Nothing moves, nothing needs scripts", () => {
+  test("B5.9 (C11.1) with scripts off, the server HTML already holds every row, and a record's items", async ({
     browser,
   }) => {
-    const context = await browser.newContext({ javaScriptEnabled: false });
-    const page = await context.newPage();
-    const response = await page.goto(SPRINTS);
-    expect(response?.status(), "status with scripts off").toBe(200);
-    const found = await page.evaluate(
-      (selector) => ({
-        scriptsRan: typeof (self as { __next_f?: unknown }).__next_f,
-        entries: document.querySelectorAll(selector).length,
-        numbers: [...document.querySelectorAll(`${selector} h3`)].map((h) =>
-          Number(h.textContent?.match(/^\s*Sprint\s+(\d+)/)?.[1]),
-        ),
-      }),
-      ENTRIES,
-    );
-    await context.close();
-    expect(found.scriptsRan, "page scripts ran").toBe("undefined");
-    expect(found.entries, "entries in the server HTML").toBe(VALID.length);
-    expect(found.numbers, "their numbers").toEqual(VALID.map((e) => e.sprint));
+    for (const url of SWEPT) {
+      const bare = await withoutScripts(browser, url);
+      expect(bare.status, `status of ${url} with scripts off`).toBe(200);
+      const found = await bare.page.evaluate(
+        (rows) => ({
+          scriptsRan: typeof (self as { __next_f?: unknown }).__next_f,
+          numbers: [...document.querySelectorAll(`${rows} th a`)].map((a) =>
+            Number(a.getAttribute("href")?.match(/^\/log\/(\d+)$/)?.[1]),
+          ),
+        }),
+        ROWS,
+      );
+      const record = await readRecord(bare.page);
+      await bare.context.close();
+      expect(found.scriptsRan, `page scripts ran on ${url}`).toBe("undefined");
+      expect(found.numbers, `the rows in the server HTML of ${url}`).toEqual(
+        VALID.map((entry) => entry.sprint),
+      );
+      const entry = url === LOG ? undefined : entryOf(13);
+      expect(
+        record.items,
+        `the record's items in the server HTML of ${url}`,
+      ).toEqual(entry ? shown(entry) : []);
+    }
   });
 
   test.describe("reduced motion", () => {
     test.use({ reducedMotion: "reduce" });
 
-    test("C11.2 with reduced motion nothing animates", async ({ page }) => {
-      await open(page, 390);
-      await page.evaluate(
-        () => new Promise((done) => requestAnimationFrame(done)),
-      );
-      const animations = await page.evaluate(() =>
-        document
-          .getAnimations()
-          .map(
-            (a) => (a.effect as KeyframeEffect | null)?.target?.tagName ?? "?",
-          ),
-      );
-      expect(animations, "document.getAnimations()").toEqual([]);
+    test("B5.9 (C11.2) with reduced motion nothing animates on /log and /log/13", async ({
+      page,
+    }) => {
+      for (const url of SWEPT) {
+        await open(page, url, 390);
+        await page.evaluate(
+          () => new Promise((done) => requestAnimationFrame(done)),
+        );
+        const animations = await page.evaluate(() =>
+          document
+            .getAnimations()
+            .map(
+              (a) =>
+                (a.effect as KeyframeEffect | null)?.target?.tagName ?? "?",
+            ),
+        );
+        expect(animations, `document.getAnimations() on ${url}`).toEqual([]);
+      }
     });
-  });
-
-  test("C11.2 with motion allowed only the h2s rise, and nothing in the list moves but a link's colour", async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: "no-preference" });
-    for (const width of [390, 1440]) {
-      await open(page, width);
-      const found = await page.evaluate((selector) => {
-        const list = [
-          ...document.querySelectorAll(`${selector}, ${selector} *`),
-        ];
-        const colourOnly = /color|^fill$|^stroke$|^--tw-gradient/;
-        return {
-          targets: document.getAnimations().map((a) => {
-            const target = (a.effect as KeyframeEffect | null)?.target;
-            return target ? target.tagName : "?";
-          }),
-          inList: list.flatMap((el) => {
-            const style = getComputedStyle(el);
-            const name = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}"`;
-            const problems: string[] = [];
-            if (style.animationName !== "none")
-              problems.push(`animation ${style.animationName}`);
-            if (el.getAnimations().length > 0)
-              problems.push("running animation");
-            const moving = style.transitionDuration
-              .split(",")
-              .some((d) => Number.parseFloat(d) > 0);
-            const properties = style.transitionProperty
-              .split(",")
-              .map((p) => p.trim());
-            if (
-              moving &&
-              !(
-                el.tagName === "A" &&
-                properties.every((p) => colourOnly.test(p))
-              )
-            ) {
-              problems.push(`transition ${style.transitionProperty}`);
-            }
-            return problems.length ? [`${name}: ${problems.join(", ")}`] : [];
-          }),
-        };
-      }, ENTRIES);
-      expect(
-        found.targets.filter((tag) => tag !== "H2"),
-        `animations whose target is not an h2 at ${width} px`,
-      ).toEqual([]);
-      expect(
-        found.inList,
-        `animation or transition under the entry list at ${width} px`,
-      ).toEqual([]);
-    }
   });
 });
 
 // ---------------------------------------------------------------------------------------------
-// C12. The reader on bad data (no page: the reader is called on folders this test writes)
+// B5.10 Text first, the framework's script alone
+
+/** The script files a fresh visit to `url` fetches, by path, and their decoded bytes. */
+async function scripts(browser: Browser, url: string) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const bodies: Promise<{ path: string; bytes: number }>[] = [];
+  page.on("response", (response) => {
+    if (response.request().resourceType() === "script") {
+      const path = new URL(response.url()).pathname;
+      bodies.push(
+        response
+          .body()
+          .then((body) => body.length)
+          .catch(() => Number.NaN)
+          .then((bytes) => ({ path, bytes })),
+      );
+    }
+  });
+  await page.goto(url);
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 1500)));
+  const files = await Promise.all(bodies);
+  await context.close();
+  return {
+    paths: files.map((f) => f.path).sort(),
+    bytes: files.reduce((sum, f) => sum + f.bytes, 0),
+  };
+}
+
+test.describe("B5.10 Text first, the framework's script alone", () => {
+  test("B5.10 the LCP on /log and /log/13 is text in main, outside the ghost hull, with no url, within 2,500 ms at 4x CPU", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(150_000);
+    for (const url of SWEPT) {
+      for (const [width, height] of [
+        [390, 844],
+        [1440, 900],
+      ] as const) {
+        const fresh = await page.context().newPage();
+        await fresh.setViewportSize({ width, height });
+        await fresh.addInitScript((ghost) => {
+          const win = window as Window & {
+            __lcpWhere?: { main: boolean; ghost: boolean }[];
+          };
+          win.__lcpWhere = [];
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              const el = (
+                entry as PerformanceEntry & { element: Element | null }
+              ).element;
+              win.__lcpWhere?.push({
+                main: Boolean(el?.closest("main")),
+                ghost: Boolean(el?.closest(ghost)),
+              });
+            }
+          }).observe({ type: "largest-contentful-paint", buffered: true });
+        }, GHOST_HULL);
+        const lcp = await measureLcp(fresh, url);
+        // Without the page and its drawing, "text, not in the drawing" holds on the 404 too.
+        await expect(
+          fresh.locator("main h1"),
+          `the h1 on ${url} at ${width} x ${height}`,
+        ).toHaveText("Log");
+        await expect(
+          fresh.locator(GHOST_HULL),
+          `the ghost hull on ${url} at ${width} x ${height}`,
+        ).toHaveCount(1);
+        const placed = await fresh.evaluate(
+          () =>
+            (
+              window as Window & {
+                __lcpWhere?: { main: boolean; ghost: boolean }[];
+              }
+            ).__lcpWhere?.at(-1) ?? null,
+        );
+        await fresh.close();
+        const where = `on ${url} at ${width} x ${height}`;
+        expect(lcp, `an LCP candidate ${where}`).not.toBeNull();
+        if (!lcp) continue;
+        expect
+          .soft(
+            placed,
+            `LCP <${lcp.tag}> "${lcp.text}" in main, not in the ghost, ${where}`,
+          )
+          .toEqual({ main: true, ghost: false });
+        expect.soft(lcp.url, `LCP has a url ${where}`).toBe("");
+        expect
+          .soft(lcp.tag, `LCP is text, not an image or drawing, ${where}`)
+          .not.toMatch(/^(?:img|image|video|svg|canvas|path)$/);
+        expect
+          .soft(lcp.time, `LCP time (ms) ${where}`)
+          .toBeLessThanOrEqual(2500);
+        testInfo.annotations.push({
+          type: "lcp",
+          description: `${where}: <${lcp.tag}> "${lcp.text}" at ${lcp.time.toFixed(0)} ms`,
+        });
+      }
+    }
+  });
+
+  test("B5.10 (B1.10's /sprints block) /log, /log/13 and the newest record load the 404's script files and bytes; /log loads two woff2 within 86,016 B, the display face preloaded, its text in Sofia Sans and Sofia Sans Extra Condensed only", async ({
+    browser,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    const missing = await scripts(browser, "/no-such-page");
+    expect(
+      missing.paths.length,
+      "script files the 404 requests",
+    ).toBeGreaterThan(0);
+    for (const url of [...new Set([LOG, recordOf(13), recordOf(NEWEST)])]) {
+      const found = await scripts(browser, url);
+      testInfo.annotations.push({
+        type: "script-bytes",
+        description: `${url}: ${found.bytes} B in ${found.paths.length} files; the 404: ${missing.bytes} B in ${missing.paths.length}`,
+      });
+      expect
+        .soft(found.paths, `script files ${url} requests, by path`)
+        .toEqual(missing.paths);
+      expect
+        .soft(found.bytes, `script bytes on ${url}, decoded`)
+        .toBe(missing.bytes);
+    }
+
+    // Fonts on /log, in a fresh context so every response has a body.
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    });
+    const page = await context.newPage();
+    const fonts: Promise<{ url: string; bytes: number }>[] = [];
+    page.on("response", (response) => {
+      if (new URL(response.url()).pathname.endsWith(".woff2")) {
+        fonts.push(
+          response
+            .body()
+            .then((body) => ({ url: response.url(), bytes: body.length })),
+        );
+      }
+    });
+    const response = await page.goto(LOG);
+    expect(response?.status(), "status of /log").toBe(200);
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => new Promise((done) => setTimeout(done, 500)));
+    const files = await Promise.all(fonts);
+    const faces = await page.evaluate(() => {
+      const primary = (el: Element) =>
+        (getComputedStyle(el).fontFamily.split(",")[0] ?? "")
+          .trim()
+          .replace(/^["']|["']$/g, "");
+      const display: string[] = [];
+      for (const sheet of document.styleSheets) {
+        let list: CSSRuleList;
+        try {
+          list = sheet.cssRules;
+        } catch {
+          continue;
+        }
+        for (const rule of list) {
+          if (!(rule instanceof CSSFontFaceRule)) continue;
+          const family = rule.style
+            .getPropertyValue("font-family")
+            .replace(/["']/g, "")
+            .trim();
+          if (family !== "Sofia Sans Extra Condensed") continue;
+          for (const m of rule.style
+            .getPropertyValue("src")
+            .matchAll(/url\(["']?([^"')]+)["']?\)/g)) {
+            display.push(new URL(m[1] ?? "", sheet.href ?? location.href).href);
+          }
+        }
+      }
+      const texts = [...document.body.querySelectorAll("*")].filter(
+        (el) =>
+          el.getClientRects().length > 0 &&
+          [...el.childNodes].some(
+            (n) =>
+              n.nodeType === Node.TEXT_NODE &&
+              (n.textContent ?? "").trim() !== "",
+          ),
+      );
+      return {
+        display,
+        preloads: [
+          ...document.querySelectorAll<HTMLLinkElement>(
+            'link[rel="preload"][as="font"]',
+          ),
+        ].map((l) => l.href),
+        families: [...new Set(texts.map(primary))].sort(),
+      };
+    });
+    await context.close();
+    expect
+      .soft(
+        files.map((f) => new URL(f.url).pathname),
+        "woff2 files /log loads",
+      )
+      .toHaveLength(2);
+    expect
+      .soft(
+        files.reduce((sum, f) => sum + f.bytes, 0),
+        "the woff2 files together, in bytes",
+      )
+      .toBeLessThanOrEqual(86_016);
+    expect
+      .soft(faces.display.length, "the display face's file on /log")
+      .toBeGreaterThan(0);
+    expect
+      .soft(
+        faces.preloads.filter((href) => faces.display.includes(href)),
+        "the display face is preloaded on /log",
+      )
+      .not.toEqual([]);
+    expect
+      .soft(faces.families, "the faces of the text on /log")
+      .toEqual(["Sofia Sans", "Sofia Sans Extra Condensed"]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.11 The reader keeps its rules: C12 runs unedited (no page: the reader is called on folders
+// this test writes), and C13.1 at the foot holds the route to the team's files
 
 type ReaderEntry = {
   sprint: number;
@@ -1864,8 +1993,8 @@ type ReaderEntry = {
 type Reader = (dir?: string) => ReaderEntry[];
 
 // The reader is loaded when a test runs, from a path held in a variable: before the build, a plain
-// import would fail typecheck and, worse, fail loading this whole file, so C1 to C11 would report
-// an error instead of the missing route. This way C12 fails alone, naming the missing module.
+// import would fail typecheck and, worse, fail loading this whole file, so the route's checks would
+// report an error instead of the missing route. This way C12 fails alone, naming the missing module.
 const READER_MODULE = "../lib/sprint-log";
 
 async function loadReader(): Promise<Reader> {
@@ -2245,26 +2374,26 @@ test.describe("C12. The reader on bad data", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// C13.1 (the contract puts it in this spec): the route reads only the team's files
+// C13.1, rewritten for the Log (B5.11): the route reads only the team's files
 
-test("C13.1 the reader and app/sprints/ name no content/ path and use only profile.name of the owner's facts", () => {
+test("B5.11 (C13.1) the reader and app/log/ name no content/ path and use only profile.name of the owner's facts", () => {
   const code = (file: string) =>
     readFileSync(file, "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1")
-      // The one import the contract allows, for the back link's text.
+      // The one import the contract allows, for the title's name.
       .replace(/["']@\/content\/profile["']/g, "");
-  const route = existsSync("app/sprints")
-    ? readdirSync("app/sprints", { recursive: true, encoding: "utf8" })
+  const route = existsSync("app/log")
+    ? readdirSync("app/log", { recursive: true, encoding: "utf8" })
         .filter((file) => /\.tsx?$/.test(file))
-        .map((file) => join("app/sprints", file))
+        .map((file) => join("app/log", file))
     : [];
   const files = ["lib/sprint-log.ts", ...route];
   expect(
     files.filter((file) => existsSync(file)),
     "the reader and the route exist",
   ).toEqual(expect.arrayContaining(["lib/sprint-log.ts"]));
-  expect(route, "files under app/sprints/").not.toEqual([]);
+  expect(route, "files under app/log/").not.toEqual([]);
   const hits = files
     .filter((file) => existsSync(file))
     .flatMap((file) => {
