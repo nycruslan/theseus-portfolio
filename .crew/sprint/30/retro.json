@@ -1,0 +1,41 @@
+{
+  "sprint": 30,
+  "pr": 77,
+  "goal": "B5a: /log in 2D, the ghost hull in vellum and a record per revision",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "LENS_PENDING",
+  "fixRounds": 0,
+  "minutes": 0,
+  "agents": [
+    { "role": "design-director", "model": "fable", "tokens": 348405, "minutes": 37 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 388180, "minutes": 48 },
+    { "role": "engineer", "model": "opus", "tokens": 456246, "minutes": 60 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "Git doesn't see the rewritten build-log spec as a rename, so the gate reports a deleted test file instead of the 23 retirements the owner is asked to approve",
+      "evidence": "e2e/sprints.spec.ts to e2e/log.spec.ts was a git mv, but under 30% of the lines survived; the PR body names batch F and what gate reports (Probe's report, decisions.md 5)"
+    },
+    {
+      "what": "An unknown record's 404 is this Next version's error shell, filled in by the browser, so with scripts off /log/999 is blank",
+      "evidence": "notFound() from a page under cacheComponents renders html#__next_error__ with an empty body; a segment not-found.tsx and partialPrefetching off didn't change it; status 404 and noindex are right (Forge's report, app/log/[n]/page.tsx)"
+    },
+    {
+      "what": "The Vercel preview isn't reachable from the cloud session, so the request-time 404 path and the preview's pages were checked on local builds only",
+      "evidence": "curl to the preview host fails at the proxy with CONNECT 403; production is reachable (.crew/STATE.md)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Sprint 29's proposals stand: the merge-record script for B5b (an owner path) and the public design retro field; neither is applied yet",
+      "moves": "B5b's Merged column, day groups and lines figure; the record's Design row"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "On #77: approve batch F (23 tests and two assertions about /sprints' old column), and look at /log and a record at 390 and 1440 in both schemes on the preview" },
+    { "who": "Forge", "what": "With the next sprint that touches /log: the record's h2 text-wrap pretty; with B5b's Merged column, cap Description near 66ch or keep the table in the left column at 1440 (Iris's review)" },
+    { "who": "Atlas", "what": "B5b next (the merge record, an owner path), or B5c if the owner hasn't answered; B4 waits on #75" }
+  ]
+}
