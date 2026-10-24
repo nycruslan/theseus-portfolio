@@ -1173,7 +1173,8 @@ test("B2.5 the ship on /read: one inert drawing from the same component, 22 plan
   expect
     .soft(words.legend, "the legend on /read, as / shows it")
     .toEqual(homeWords.legend);
-  expect.soft(words.log, "links in the ship on /read").toContain("/sprints");
+  // Sprint 30 (B5a): the Log is /log.
+  expect.soft(words.log, "links in the ship on /read").toContain("/log");
 
   // The same drawing with scripts off.
   const context = await browser.newContext({
