@@ -62,3 +62,26 @@
    `/home/user/wt-forge-31` on `forge/31`; Quill 4740 to 4749 in `/home/user/wt-quill-31` on
    `quill/31`. Roles push after every commit; Atlas cherry-picks onto `sprint/31-b4a-crew` as
    commits land and pushes.
+
+## The second run (Atlas, from 22:26 UTC)
+
+9. **The first run stopped after the build.** At 22:26 the pre-flight said `continue` on #78: its
+   last commit was 20:02, past the two-hour rule. Forge's build (`forge/31`, to c127eb2) and
+   Probe's checks (`probe/31`, to 6aafbf8) were done on their branches but not on the sprint
+   branch, and Iris's Part 1 notes never reached git (Forge's 680d11c took them). Atlas merged
+   both branches (Probe's side for the e2e files both had, as his were newer) as 6c749db.
+
+10. **#77 merged first, so this branch merged main** (decision 4's plan): Forge resolved the
+    product files (both sides; Crew on #77's slot bar, Log's href `/log`) and added Read as page's
+    foot to `/log` and `/log/<n>`, since below 768 the bar no longer shows it; Probe resolved the
+    specs (both sides, `ROUTES` with `/crew`, `/log`, `/log/13`), pinned Log to `/log`, moved
+    B2.10's and B4.14's baseline to `/log` (decision 7), and gave #77's Log checks the Crew link,
+    rewriting two that the new bar made vacuous or wrong (`expectSkeleton`'s Crew count, C9.4's
+    hidden link), none weaker. 74dd3fd; `pnpm verify` and 180 of 180 e2e passed on it.
+
+11. **Iris ran on Opus,** as main's `design-director.md` sets it since #81: her first start on this
+    branch's older file hit the weekly Fable limit. Her verdict was `changes` (7.0): two musts in
+    `app/globals.css` (mid-word breaks in the crew table, Evidence's target over Approval below
+    1024), two cheap CSS changes and two sentences tightened, all taken in one fix round. She
+    keeps the Log's foot where Forge put it. Her answers to the contract's four calls are in
+    `review-iris.md`.
