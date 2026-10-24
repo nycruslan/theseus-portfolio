@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { LinesPlan } from "@/components/lines-plan";
@@ -21,8 +22,11 @@ type LogProps = {
   open?: number;
 };
 
-/** The count line under the caption (contract, "The Log's header"). */
-function countLine(merged: readonly number[]) {
+/**
+ * The count line under the caption (contract, "The Log's header"). "sprint 23" never breaks, so a
+ * phone's line doesn't end on "sprint" with the number alone below it.
+ */
+function countLine(merged: readonly number[]): ReactNode {
   const k = merged.length;
   const all = PLANKS.length;
   if (k < all) {
@@ -32,7 +36,13 @@ function countLine(merged: readonly number[]) {
     k > all
       ? ` Since then the crew has replaced ${k - all} planks of its own.`
       : "";
-  return `All ${all} original planks are out: the last went with sprint ${merged[all - 1]}.${since}`;
+  return (
+    <>
+      {`All ${all} original planks are out: the last went with `}
+      <span className="whitespace-nowrap">{`sprint ${merged[all - 1]}`}</span>
+      {`.${since}`}
+    </>
+  );
 }
 
 export function Log({ entries, open }: LogProps) {
@@ -87,10 +97,11 @@ export function Log({ entries, open }: LogProps) {
 
         <section aria-labelledby="every-revision" className="log-revs">
           <h2 id="every-revision">Every revision</h2>
+          {/* "27 revisions" never breaks, so the number keeps its noun on a phone. */}
           <p className="log-lede">
-            A crew of AI agents rebuilds this site one sprint at a time.{" "}
-            {entries.length} revisions, newest first: choose one to open its
-            record.
+            {"A crew of AI agents rebuilds this site one sprint at a time. "}
+            <span className="whitespace-nowrap">{`${entries.length} revisions`}</span>
+            {", newest first: choose one to open its record."}
           </p>
           {/* The key to Approved, which the table and the records share (notes-iris.md, 3.2). */}
           <p className="log-lede log-key">

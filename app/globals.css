@@ -531,6 +531,15 @@ main > [data-motion] {
   }
 }
 
+/* 768 to 1023 px the drawing runs the column's full width, its lifts 17.5 to 23.5 px deep: room
+   for 13 px. From 1024 it shares the row with the header, 13.5 px lifts at 1024, and drops to 11
+   until 1280. */
+@media (48rem <= width < 64rem) {
+  .plan-view.plan-ghost > .plan-plank {
+    font-size: var(--step-sm);
+  }
+}
+
 @media (width >= 80rem) {
   .plan-view.plan-ghost > .plan-plank {
     font-size: var(--step-sm);
@@ -952,6 +961,23 @@ main:has(> [data-model]) {
       inset -1px 0 0 var(--foreground),
       inset 0 1px 0 var(--foreground),
       inset 0 -1px 0 var(--foreground);
+  }
+}
+
+/* Forced colours drop shadows, so there the unfolded row is boxed by its cells' borders, in the
+   system's text colour; the row grows 1 px in that mode only. */
+@media (forced-colors: active) and (width >= 40rem) {
+  .rev-log tbody tr:has(a[aria-current="page"]) > * {
+    border-top: 1px solid CanvasText;
+    border-bottom-color: CanvasText;
+  }
+
+  .rev-log tbody tr:has(a[aria-current="page"]) > :first-child {
+    border-left: 1px solid CanvasText;
+  }
+
+  .rev-log tbody tr:has(a[aria-current="page"]) > :last-child {
+    border-right: 1px solid CanvasText;
   }
 }
 
