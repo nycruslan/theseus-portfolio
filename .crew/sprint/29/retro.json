@@ -1,0 +1,71 @@
+{
+  "sprint": 29,
+  "pr": 76,
+  "goal": "B5's plan, and B5a's contract: /log, the ghost hull and a record per revision",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 26706e0 with no fix round and one nit taken as a note in the close-out (B5.6's status-word rule is B5b's second rewrite); the plan and B5a's contract are ready for the next run",
+  "fixRounds": 0,
+  "minutes": 36,
+  "agents": [
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 287220,
+      "minutes": 21
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 363439,
+    "important": 0,
+    "actedOn": 1,
+    "nits": 1
+  },
+  "wentWrong": [
+    {
+      "what": "The brief and the decisions miscounted the build log's checks, at 50 and 54, before anyone listed them",
+      "evidence": "playwright test --list gives 60 in e2e/sprints.spec.ts and 5 in e2e/sprints-entry.spec.ts; the contract's disposition table was sorted against those (decisions.md, 5)"
+    },
+    {
+      "what": "The retros can't carry a merge date, so the frame's Merged column and lines figure need a crew script, which is an owner path",
+      "evidence": "A retro is written in the PR before the merge and the crew never pushes main; B5b records each merge afterward in .crew/sprint/<n>/merge.json, and its PR waits for the owner (b5-plan.md, 'The dates')"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "A crew script that records each sprint's merge after the fact in .crew/sprint/<n>/merge.json (the PR, the merge time from the squash commit, the original-lines count by git blame), run at the next run's start by the sprint skill, with a one-time backfill of sprints 1 to 27",
+      "moves": "B5b's Merged column, day groups and lines figure get a source that is the same at every build with no network call; without it the Log has no dates"
+    },
+    {
+      "change": "A public `design` field in retro.json (Iris's score, written at the close-out from her review), added to retro.md's list",
+      "moves": "The record at /log/<n> can show the frame's Design row for sprints that have it; today the score sits only in `outcome`, which is never shown"
+    },
+    {
+      "change": "Sprint 28's proposals stand (the proxy rule for GET /api/crew; sprint 27's and 26's): none is applied yet",
+      "moves": "Unchanged"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Atlas",
+      "what": "The next run starts B5a from .crew/sprint/29/b5-first-contract.md: Iris's three calls and Probe's checks first, then Forge; its PR waits for the owner for batch F, with /log on its preview"
+    },
+    {
+      "who": "Atlas",
+      "what": "When B4.1's contract is written, count its script budget against /log instead of /sprints and include /log in its bar checks if B5a merged first; b4-plan.md says /sprints'"
+    },
+    {
+      "who": "Iris",
+      "what": "Before B5a's build: the 2D ghost's composition at 390, 1024 and 1440 with --vellum in both schemes and the data-current style; the record's place at 1440 and below 1024; the lede's first sentence and an Approved key"
+    },
+    {
+      "who": "Owner",
+      "what": "On B5a's PR: batch F (23 tests and two assertions about /sprints' old column). On B5b's PR: the merge script and the skill step, closed sprints' rows, and the design retro field"
+    },
+    {
+      "who": "Atlas",
+      "what": ".crew/STATE.md is 119 lines on main against its 'about 100', and #75 folds some: fold more at the close-out of the first sprint that doesn't conflict with #75's notes"
+    }
+  ]
+}
