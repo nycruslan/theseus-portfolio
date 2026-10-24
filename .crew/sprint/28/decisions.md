@@ -36,3 +36,24 @@
 5. **Quill alone.** The frames are approved (`crew-1440.webp`, `crew-390.webp`, the rest frames),
    so there is no direction to open; Iris reviews the build sprints. Forge and Pixel aren't
    needed to read the Studio's types, which Atlas read first and Quill reads for the contract.
+
+6. **Quill's plan and contract are taken as written, with one correction.** `b4-plan.md` makes
+   B4 five M sprints after the feed (B4.1 `/crew` and the Crew link; B4.2 the live layer on `/`;
+   B4.3 `/crew` live in the browser through the portfolio's own `/api/crew`; B4.4 the hull on
+   `/crew` with one mark per moment; B4.5 Replay), and `feed-contract.md` asks for one endpoint,
+   `GET /api/crew`, every field traced to a Studio derivation (checked against the clone: `liveRun`,
+   `sprintIndex`, `tellRun`, `agentProfiles`, `agentLine`, `health`, `present`, `momentText`,
+   `PullState.mergedAt`, the `Moment` kinds). The correction is the portfolio's cache note: a
+   `cacheLife` of `stale` 30 is included in a prerender but kept out of the route's App Shell, not
+   "prerendered into the shell"; the first build measures that `/` stays static. Quill's claim that
+   production has no rest line holds: production's HTML has no "plank seated" or "resting" text
+   (sprint 22's contract dropped it), so B4.2 adds it from the feed.
+
+7. **Nothing of B4 ships before the feed, and B4.1 starts on the contract's approval.** Quill
+   looked for a visitor's gain in a `/crew` from the retros, the phone re-lay, a rest line without
+   a time or a link out to the Studio, and found none (plan, "Before the feed"); the provisional
+   call in 3 stands. The owner's approval of this PR's head freezes the feed's shape, so the next
+   run may start B4.1 against the contract's fixtures without waiting for the Studio's deploy;
+   B4.1's PR waits for the owner anyway (Read as page moves on phones, `CREW_FEED_URL` on Vercel)
+   and merges only once the real feed answers on its preview. If the owner changes the contract
+   in a comment instead, the next run revises it here first.
