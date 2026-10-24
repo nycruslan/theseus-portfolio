@@ -138,7 +138,7 @@ export default function Read() {
               </div>
               <p>
                 Each replaced plank is one merged sprint; all {entries.length}{" "}
-                revisions are in <a href="/sprints">the Log</a>.
+                revisions are in <a href="/log">the Log</a>.
               </p>
             </figcaption>
           </figure>

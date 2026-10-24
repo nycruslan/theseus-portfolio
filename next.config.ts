@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
       ".crew/**/*.{md,html,txt,webp,png,jpg,woff2,mjs}",
     ],
   },
+  // The Log moved from /sprints to /log (.crew/sprint/29/b5-first-contract.md): a permanent redirect
+  // keeps the share card and two weeks of links working, and tells search engines the page moved.
+  async redirects() {
+    return [{ source: "/sprints", destination: "/log", permanent: true }];
+  },
   experimental: {
     // No Turbopack cache between builds. A restored `.next/cache` once kept serving an old
     // globals.css after the file changed (the CSS runs through the Tailwind loader below), so

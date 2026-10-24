@@ -4,7 +4,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { Open } from "@/lib/model/mount";
 
 // The model's client code, the only script / ships with the model Off, so it is one module and
-// stays this small (B2.10, 2,048 B decoded over /sprints'): the motion mode, the bar's control for
+// stays this small (B2.10, 2,048 B decoded over /log's): the motion mode, the bar's control for
 // it, and the model's loader. A module of its own costs about 165 B, and neither component is
 // memoised by the React Compiler ("use no memo"): its cache and runtime cost 633 B here and save
 // no work, since each renders a handful of elements (.crew/sprint/27/).

@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 // A mistyped address gets a page in the site's own style with one decision: go back
 // (.crew/sprint/23/contract.md, data rules; notes-iris.md, section 7). /read's column, no bar: the
 // bar's Work and Contact only mean something on /. It doesn't import app/fonts.ts: the root
-// not-found is part of every route's tree, so the display face would ship and preload on /sprints
-// as well, which stays one family (B1.10). Its heading takes the text face.
+// not-found is part of every route's tree, so the display face would ship and preload on every
+// route through it, not only on /, /read and /log, which set it. Its heading takes the text face.
 export default function NotFound() {
   return (
     <>

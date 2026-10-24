@@ -6,9 +6,10 @@ const ROWS = 5;
 
 /**
  * A row's cells after Rev and Description, by their column's head (contract, "Data rules"). The
- * first three hold the crew's names, which a page translator would otherwise turn into words.
+ * first three hold the crew's names, which a page translator would otherwise turn into words. The
+ * Log's table and records read the same cells (components/log.tsx), so the two can't disagree.
  */
-const signatures = (
+export const signatures = (
   entry: SprintEntry,
 ): [head: string, cell: string, names: boolean][] => [
   ["Drawn", entry.drawn.length > 0 ? entry.drawn.join(", ") : NONE, true],
@@ -100,7 +101,7 @@ export function Revisions({
           <PlankLegend />
         </div>
         <a
-          href="/sprints"
+          href="/log"
           className="inline-flex min-h-6 items-center font-semibold text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2"
         >
           All {entries.length} revisions in the Log

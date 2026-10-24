@@ -22,6 +22,9 @@
   --pencil: #878d91; /* construction lines */
   --card: #fbfaf7; /* a seated plank: one per merged sprint */
   --card-old: #d9e0dc; /* an original plank, not replaced yet */
+  /* The ghost hull's planks on the Log: #cfdcdc at 0.7 over the film (.crew/sprint/22/notes-iris.md,
+     section 5), composited so it is one colour. */
+  --vellum: #d7e2e1;
 
   /* Both schemes are supported, so native scrollbars and form controls follow the system. It sits
      here, not in the dark block, so that block stays the color tokens. */
@@ -107,6 +110,9 @@
     --pencil: #6a7377;
     --card: #58646a;
     --card-old: #222d31;
+    /* The light vellum's tint of its card-old (-10, -4, 0) on this card-old, at 0.7 over the film:
+       as faint on the night sheet as by day. */
+    --vellum: #16242b;
   }
 }
 
@@ -256,8 +262,8 @@ main > [data-motion] {
 }
 
 /* One focus ring for everything focusable: 2 px of ink, set off the text. It sits in @layer base on
-   purpose: an unlayered rule outranks every Tailwind utility, so the card link's own
-   `focus-visible:outline-none` would lose and the card would draw two rings. */
+   purpose: an unlayered rule would outrank every Tailwind utility, and a component could then never
+   move or drop its own ring with one. */
 @layer base {
   :focus-visible {
     outline: 2px solid var(--foreground);
@@ -480,6 +486,49 @@ main > [data-motion] {
 
   .swatch.bg-card-old {
     background: GrayText;
+  }
+}
+
+/*
+ * The ghost hull (LinesPlan view="ghost"; .crew/sprint/29/b5-first-contract.md): the Log's drawing
+ * of the original planks the crew has taken out, in vellum, each numbered by the sprint that took
+ * it out; a seat whose original still sails is a gap. /read's views and lettering: the numbers 11
+ * px from 768 px, and hidden below it with the one leader, where a lift is too shallow for them.
+ * Inert like the lines plan (`.plan`). Nothing in it is copper, hatched or seated.
+ */
+.plank-ghost {
+  fill: var(--vellum);
+  stroke: var(--pencil);
+  stroke-width: 0.9px;
+}
+
+/* On a record, the seat its sprint took: a 2 px ink edge, drawn last so it is whole. */
+.plank-ghost[data-current] {
+  stroke: var(--foreground);
+  stroke-width: 2px;
+}
+
+.plan-view.plan-ghost > .plan-plank {
+  font-size: var(--step-xs);
+}
+
+@media (width < 48rem) {
+  .plan-ghost > .plan-plank,
+  .plan-ghost .ln-leader {
+    display: none;
+  }
+}
+
+/* Forced colours drop the vellum: each plank is its edge in the system's text colour on the
+   system's ground, the current one's edge thicker. */
+@media (forced-colors: active) {
+  .plan .plank-ghost {
+    fill: Canvas;
+  }
+
+  .plan .plank-ghost[data-current] {
+    stroke: CanvasText;
+    stroke-width: 3px;
   }
 }
 
@@ -716,6 +765,302 @@ main:has(> [data-model]) {
 @media (width >= 64rem) {
   .sheet-row {
     min-height: min(21rem, calc(100svh - 88px - (100vw - 34px) * 0.3381));
+  }
+}
+
+/*
+ * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
+ * log-390.webp): the Log's header, then on a record the record, then the ghost hull and Every
+ * revision, stacked in that order below 1024 px. From 1024 a 12-column grid, as the frame lays it
+ * out: the drawing on the left and the header on the right, then the table under the drawing, with
+ * the record beside it in the right column when one is open. Nothing on it moves.
+ */
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 16px 48px;
+}
+
+.log h1 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-2xl);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+.log-head p {
+  max-width: 66ch;
+  margin-top: 12px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.log-head [data-ghost-count] {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+/* The drawing's height holds the table's first row in the first screen. */
+.log-ghost {
+  width: 100%;
+  max-width: 44rem;
+}
+
+.log-revs {
+  padding-top: 14px;
+  border-top: 2px solid var(--foreground);
+}
+
+.log h2 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.log-lede {
+  max-width: 66ch;
+  margin: 8px 0 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* The Log is where the whole goal lives: a description is never cut, on as many lines as it takes
+   (the sheet's rule above cuts it from 1024 px). */
+.rev-log tbody td:not([data-label]) {
+  overflow-wrap: anywhere;
+}
+
+@media (width >= 64rem) {
+  .rev-log tbody td:not([data-label]) {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+  }
+}
+
+/* Each number opens its record: a 24 px target, ink and underlined like every link off the bar.
+   The negative margin keeps the row's height. */
+.rev-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 24px;
+  min-height: 24px;
+  margin-block: -3.5px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .rev-link:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* The open record's row, boxed in ink as the frame draws row 13. A shadow, not an outline: the
+   only ring on the page is focus's. */
+.rev-log tbody tr:has([aria-current]) {
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+
+@media (width >= 64rem) {
+  .log {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 24px;
+    row-gap: 40px;
+    align-items: start;
+    padding: 40px 40px 72px;
+  }
+
+  .log-ghost {
+    grid-column: 1 / span 8;
+    grid-row: 1;
+  }
+
+  .log-head {
+    grid-column: 9 / span 4;
+    grid-row: 1;
+  }
+
+  .log-revs {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .log-open .log-revs {
+    grid-column: 1 / span 8;
+  }
+
+  .record {
+    grid-column: 9 / span 4;
+    grid-row: 2;
+  }
+}
+
+/*
+ * The record (components/log-record.tsx), on /log/<n>: in a 1 px ink frame, as the frame draws it,
+ * Close at its top right and the previous and next revisions at its foot. Its list's terms in
+ * graphite; what went wrong as the crew wrote it, whole, each item with a drawn dot.
+ */
+.record {
+  position: relative;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--foreground);
+}
+
+.record a {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .record a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* The row Close shares: as tall as its target, and clear of it. */
+.record-rev {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-right: 96px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.record h2 {
+  margin-top: 4px;
+  line-height: 1.05;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.record dl {
+  margin-top: 16px;
+}
+
+.record dl > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  column-gap: 16px;
+  padding: 3px 0;
+  line-height: 1.5;
+}
+
+.record dt {
+  color: var(--muted);
+}
+
+.record dd {
+  overflow-wrap: break-word;
+}
+
+/* The pull request's link never wraps, a 24 px target. */
+.record-pr {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.record h3 {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.record-wrong {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 14px;
+}
+
+.record-wrong li {
+  position: relative;
+  max-width: 66ch;
+  line-height: 1.55;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+
+.record-wrong li::before {
+  content: "";
+  position: absolute;
+  top: calc(0.5lh - 1.5px);
+  left: -12px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.record-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.record-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.record-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+}
+
+.record-next {
+  margin-left: auto;
+}
+
+/* On a phone the terms go over their details, so a pull request's number keeps its line. */
+@media (width < 30rem) {
+  .record dl > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (width >= 64rem) {
+  .record {
+    padding: 16px 24px 24px;
+  }
+
+  .record-close {
+    top: 16px;
+    right: 24px;
+  }
+
+  .record-links a {
+    min-height: 24px;
+  }
+
+  .record-rev {
+    min-height: 32px;
+  }
+}
+
+/* Forced colours drop backgrounds, the dots' included: they take the system's text colour. */
+@media (forced-colors: active) {
+  .record-wrong li::before {
+    background: CanvasText;
   }
 }
 
@@ -1245,8 +1590,8 @@ main:has(> [data-model]) {
 
 /* The not-found page: the column, one heading under a 2 px rule, one line and the ways back. The
    heading is the text face at the entry step, a document's head, not the display face: the root
-   not-found sits in every route's tree, so a font it loads would be preloaded on /sprints too
-   (app/not-found.tsx). */
+   not-found sits in every route's tree, so a font it loads would ship and be preloaded on every
+   route, whether the route sets that face or not (app/not-found.tsx). */
 .lost {
   padding: 12px 0 48px;
 }
@@ -1345,6 +1690,7 @@ main:has(> [data-model]) {
     --pencil: #878d91;
     --card: #fbfaf7;
     --card-old: #d9e0dc;
+    --vellum: #d7e2e1;
   }
 
   .entry,
