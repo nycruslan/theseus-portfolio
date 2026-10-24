@@ -116,7 +116,11 @@ page, and B3, the signature moment.
     ship at 8.2/10, 157 of 157 checks; decisions 1 to 6 in `decisions.md`.) **Its PR waits for
     the owner:** batch F retires 23 tests and two assertions about `/sprints`' old column
     (`gate` reports `e2e/sprints.spec.ts` deleted: git doesn't see the rewrite as a rename).
-    Riding with the next sprint that touches `/log`: Iris's two cheap changes (the record's
+    Riding with the next sprint that touches `/log`: Lens's two nits on #77 (three comments in
+    `next.config.ts`, `lib/sprint-log.ts` and `app/layout.tsx` still say nothing reads the sprint
+    folders at request time, while an unknown record address now runs `readSprintLog()` on the
+    server, so the retros must stay traced; two stale memory lines, Iris's on the 404's face and
+    Forge's citing `components/sprint-entry.tsx`); Iris's two cheap changes (the record's
     `h2` `text-wrap: pretty`; with B5b's Merged column, cap Description near 66ch or keep the
     table in the left column at 1440), and the unknown-record 404's scripts-off blank (Next's
     error shell; status and `noindex` are right). Left open: a Design row needs a public retro

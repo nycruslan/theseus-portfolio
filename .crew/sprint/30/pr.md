@@ -94,7 +94,12 @@ right, and `/log` itself renders whole without scripts).
 
 ## Lens
 
-Pending.
+**Ship** on a8aba55, no fix round, two nits riding with the next sprint that touches `/log`: three
+comments (`next.config.ts`, `lib/sprint-log.ts`, `app/layout.tsx`) still say nothing reads the
+sprint folders at request time, while an unknown record address now runs `readSprintLog()` on the
+server, so the retros must stay traced into the function; and two stale memory lines. Iris:
+**ship, 8.2/10** (`.crew/sprint/30/review-iris.md`; her paragraph for the owner is in it under
+"For the owner"). The close-out after Lens's ship touches notes only.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 

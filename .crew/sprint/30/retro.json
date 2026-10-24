@@ -4,15 +4,36 @@
   "goal": "B5a: /log in 2D, the ghost hull in vellum and a record per revision",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "LENS_PENDING",
+  "outcome": "needs-owner: Lens ship on a8aba55 with no fix round and two nits riding with the next sprint that touches /log (three comments that still say nothing reads the sprint folders at request time, and two stale memory lines); Iris ship at 8.2/10; 157 of 157 checks; the PR waits for the owner's approval of batch F",
   "fixRounds": 0,
-  "minutes": 0,
+  "minutes": 85,
   "agents": [
-    { "role": "design-director", "model": "fable", "tokens": 348405, "minutes": 37 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 388180, "minutes": 48 },
-    { "role": "engineer", "model": "opus", "tokens": 456246, "minutes": 60 }
+    {
+      "role": "design-director",
+      "model": "fable",
+      "tokens": 348405,
+      "minutes": 37
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 388180,
+      "minutes": 48
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 456246,
+      "minutes": 60
+    }
   ],
-  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": {
+    "runs": 1,
+    "tokens": 4396871,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 2
+  },
   "wentWrong": [
     {
       "what": "Git doesn't see the rewritten build-log spec as a rename, so the gate reports a deleted test file instead of the 23 retirements the owner is asked to approve",
@@ -34,8 +55,21 @@
     }
   ],
   "followUps": [
-    { "who": "Owner", "what": "On #77: approve batch F (23 tests and two assertions about /sprints' old column), and look at /log and a record at 390 and 1440 in both schemes on the preview" },
-    { "who": "Forge", "what": "With the next sprint that touches /log: the record's h2 text-wrap pretty; with B5b's Merged column, cap Description near 66ch or keep the table in the left column at 1440 (Iris's review)" },
-    { "who": "Atlas", "what": "B5b next (the merge record, an owner path), or B5c if the owner hasn't answered; B4 waits on #75" }
+    {
+      "who": "Owner",
+      "what": "On #77: approve batch F (23 tests and two assertions about /sprints' old column), and look at /log and a record at 390 and 1440 in both schemes on the preview"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens's two nits on #77, with the next sprint that touches /log: next.config.ts, lib/sprint-log.ts and app/layout.tsx's comments say nothing reads the sprint folders at request time, but an unknown record address runs find() and readSprintLog() on the server, so the retros must stay traced (and find() could share one read via React's cache()); the design-director memory line that says the 404 keeps the text face so /sprints stays one family, and the engineer memory line citing components/sprint-entry.tsx (now components/log-record.tsx)"
+    },
+    {
+      "who": "Forge",
+      "what": "With the next sprint that touches /log: the record's h2 text-wrap pretty; with B5b's Merged column, cap Description near 66ch or keep the table in the left column at 1440 (Iris's review)"
+    },
+    {
+      "who": "Atlas",
+      "what": "B5b next (the merge record, an owner path), or B5c if the owner hasn't answered; B4 waits on #75"
+    }
   ]
 }
