@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <>
       <SkipLink />
-      <Bar className={sofiaCondensed.variable} />
+      <Bar className={sofiaCondensed.variable} control={<MotionControl />} />
       {/* The sheet (.crew/sprint/22/contract.md): the drawing, then the title block and the revision
         block side by side from 1024 px inside a frame 16 px in, stacked below it with the title
         block first. The title block leads in the DOM at every width, so the name is read first. The

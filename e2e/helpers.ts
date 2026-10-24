@@ -24,12 +24,23 @@ export function projectLinkLabel(href: string) {
   return entry ? entry.label : host.replace(/^www\./, "");
 }
 
-/** The routes a visitor reads the owner on, and a mistyped address (sprint 23, B2.9). */
-export const ROUTES = ["/", "/read", "/no-such-page"] as const;
+/**
+ * The routes a visitor reads the owner on, and a mistyped address (sprint 23, B2.9); since sprint 30
+ * the Log and one of its records (.crew/sprint/29/b5-first-contract.md, B5.9).
+ */
+export const ROUTES = [
+  "/",
+  "/read",
+  "/log",
+  "/log/13",
+  "/no-such-page",
+] as const;
 /** The status each of ROUTES answers with. */
 export const STATUS: Record<(typeof ROUTES)[number], number> = {
   "/": 200,
   "/read": 200,
+  "/log": 200,
+  "/log/13": 200,
   "/no-such-page": 404,
 };
 

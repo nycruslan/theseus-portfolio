@@ -35,9 +35,13 @@ import { bioParts, MERGED, ROWS } from "./retros";
 // one is in the bar's nav after the four links from 768 px, its group right of Read as page at
 // 1440, and in main between `[data-model]` and the title block below 768. Its buttons are 44 px
 // targets below 1024, and the second test hit-tests their centres too.
+//
+// Sprint 30 (.crew/sprint/29/b5-first-contract.md, B5a): /log replaces /sprints, so B2.3's Log lands
+// on /log's h1 "Log", B1.5 counts /log's rows, B1.6 runs on /log and a record, and B1.10's
+// "/sprints: Sofia Sans only" retires with the old column (batch F; B5.10 checks /log's two faces).
 
 const REVISIONS = 'section[aria-labelledby="revisions"]';
-const SPRINTS_ENTRIES = "main section ol > li";
+const LOG_ROWS = 'section[aria-labelledby="every-revision"] table tbody tr';
 const HEADS = ["Rev", "Description", "Drawn", "Checked", "Tested", "Approved"];
 const [BIO_1 = "", BIO_2 = "", ...BIO_REST] = bioParts(profile.bio);
 const TITLE_BIO = `${BIO_1} ${BIO_2}`;
@@ -427,7 +431,7 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
 
   const LINKS = [
     { tag: "a", text: "Work", href: "#work", inNav: true },
-    { tag: "a", text: "Log", href: "/sprints", inNav: true },
+    { tag: "a", text: "Log", href: "/log", inNav: true },
     { tag: "a", text: "Contact", href: "#contact", inNav: true },
     { tag: "a", text: "Read as page", href: "/read", inNav: true },
   ];
@@ -555,10 +559,8 @@ test("B2.3 the labelled bar (B1.3, sprint 27): the wordmark, then Work, Log, Con
     }
     await open(page, width);
     await page.locator("header nav a", { hasText: "Log" }).first().click();
-    await page.waitForURL("**/sprints");
-    await expect(page.locator("h1"), `after Log at ${width}`).toHaveText(
-      "Build log",
-    );
+    await page.waitForURL((url) => url.pathname === "/log");
+    await expect(page.locator("h1"), `after Log at ${width}`).toHaveText("Log");
     await open(page, width);
     const read = page.locator("header nav a", { hasText: "Read as page" });
     await expect(read, `Read as page in the bar at ${width}`).toHaveCount(1);
@@ -597,7 +599,7 @@ test("B2.3 the bar stays above the facts (B1.3, sprint 27): at 1024, with each f
   ];
   const LANDINGS: Record<string, string> = {
     Work: "#work",
-    Log: "/sprints",
+    Log: "/log",
     Contact: "#contact",
     "Read as page": "/read",
   };
@@ -750,14 +752,11 @@ test("B2.3 the bar stays above the facts (B1.3, sprint 27): at 1024, with each f
 test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros and one link to the Log, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
   page,
 }) => {
-  const entries = async () => {
-    await open(page, 1440, 900, "/sprints");
-    return page.locator(SPRINTS_ENTRIES).count();
+  const rows = async () => {
+    await open(page, 1440, 900, "/log");
+    return page.locator(LOG_ROWS).count();
   };
-  expect(
-    await entries(),
-    "entries /sprints renders, against valid retros",
-  ).toBe(N);
+  expect(await rows(), "rows /log renders, against valid retros").toBe(N);
 
   const read = (cutsDescription: boolean) =>
     page.evaluate(
@@ -893,7 +892,7 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
     }
     expect
       .soft(found.links, `its links at ${where}`)
-      .toEqual([{ text: `All ${N} revisions in the Log`, href: "/sprints" }]);
+      .toEqual([{ text: `All ${N} revisions in the Log`, href: "/log" }]);
     if (width === 320) {
       expect
         .soft(await horizontalOverflow(page), "page overflow at 320")
@@ -1144,7 +1143,8 @@ function accentPaint(page: Page, accent: Rgba) {
 for (const scheme of SCHEMES) {
   for (const [route, status] of [
     ["/", 200],
-    ["/sprints", 200],
+    ["/log", 200],
+    ["/log/13", 200],
     ["/read", 200],
     ["/no-such-page", 404],
   ] as const) {
@@ -1173,7 +1173,8 @@ for (const scheme of SCHEMES) {
       await settled(page);
       note("at rest", await accentPaint(page, accent));
 
-      // Links: ink, and underlined but for the bar's navigation (the frames draw it bare).
+      // Links: ink, and underlined but for the bar's (the frames draw it bare): its nav, and on
+      // /log its wordmark, the bar being the header with the nav.
       const links = await page.evaluate(() => {
         const rgba = (
           window as Window & { __rgba?: (c: string) => number[] | null }
@@ -1190,7 +1191,8 @@ for (const scheme of SCHEMES) {
               href: a.getAttribute("href") ?? "",
               color: rgba ? rgba(s.color) : null,
               underlined: s.textDecorationLine.includes("underline"),
-              inBar: a.closest("header nav") !== null && !a.closest("main"),
+              inBar:
+                a.closest("header:has(nav)") !== null && !a.closest("main"),
             };
           });
       });
@@ -1377,8 +1379,8 @@ test("B1.10 one type family: Sofia Sans and its Extra Condensed name, two self-h
     .soft(imports.sort(), "next/font/google imports in app/")
     .toEqual(["Sofia_Sans", "Sofia_Sans_Extra_Condensed"]);
 
-  // Bodies are read on / only: the listener comes off before /sprints, where a font served from
-  // Chrome's memory cache has no body over CDP and an unawaited read would reject.
+  // Bodies are read on / only: the listener comes off before another page is opened, where a font
+  // served from Chrome's memory cache has no body over CDP and an unawaited read would reject.
   const fonts: Promise<{ url: string; bytes: number }>[] = [];
   const onResponse = (response: Response) => {
     if (new URL(response.url()).pathname.endsWith(".woff2")) {
@@ -1487,40 +1489,6 @@ test("B1.10 one type family: Sofia Sans and its Extra Condensed name, two self-h
       "the display face is preloaded",
     )
     .not.toEqual([]);
-
-  // /sprints: Sofia Sans only.
-  await open(page, 1440, 900, "/sprints");
-  const sprints = await page.evaluate(() => {
-    const primary = (el: Element) =>
-      (getComputedStyle(el).fontFamily.split(",")[0] ?? "")
-        .trim()
-        .replace(/^["']|["']$/g, "");
-    const texts = [...document.body.querySelectorAll("*")].filter(
-      (el) =>
-        el.getClientRects().length > 0 &&
-        [...el.childNodes].some(
-          (n) =>
-            n.nodeType === Node.TEXT_NODE &&
-            (n.textContent ?? "").trim() !== "",
-        ),
-    );
-    return {
-      families: [...new Set(texts.map(primary))],
-      loaded: [
-        ...new Set(
-          [...document.fonts]
-            .filter((f) => f.status === "loaded")
-            .map((f) => f.family.replace(/["']/g, "")),
-        ),
-      ],
-    };
-  });
-  expect
-    .soft(sprints.families, "faces of the text on /sprints")
-    .toEqual(["Sofia Sans"]);
-  expect
-    .soft(sprints.loaded, "faces loaded on /sprints")
-    .toEqual(["Sofia Sans"]);
 });
 
 // The direction's values (.crew/sprint/17/design/tokens.webp, canvas-extract/Tokens.html, and Iris's
