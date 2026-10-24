@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 // The labelled bar at the top of the sheet (.crew/sprint/22/contract.md, B1.3; .crew/sprint/23/
 // notes-iris.md, section 5): the wordmark, then a link to each place on the site that exists today,
 // Crew among them since its route does (.crew/sprint/31/contract.md, "The bar"). Below 768 px five
-// don't fit, so Read as page leaves the bar for the drawing's foot (app/page.tsx, app/crew/page.tsx)
-// and stays in the nav's DOM, hidden. On the sheet the wordmark is plain text, since it would link to the
+// don't fit, so Read as page leaves the bar for the drawing's foot (components/foot.tsx) and stays
+// in the nav's DOM, hidden. On the sheet the wordmark is plain text, since it would link to the
 // page it sits on. It sticks to the top while the page scrolls, so html's scroll-padding-top in
 // app/globals.css keeps every fragment target and focused link clear of it. It isn't printed: on
 // paper it is a strip of links nobody can follow. After the links, the sheet passes the motion

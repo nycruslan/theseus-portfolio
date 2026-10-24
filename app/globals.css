@@ -1601,7 +1601,7 @@ main:has(> [data-model]) {
   quotes: "\201C" "\201D";
 }
 
-/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot under an ink rule. */
+/* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot, under ink. */
 .crew-facts {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
