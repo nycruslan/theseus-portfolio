@@ -58,7 +58,7 @@ steps).
   - B5.25's "one key" counts only `/log`'s own scripts;
   - B5.19 samples each plank's own vellum on the canvas's fill levels;
   - B5.19's mark check searches its 3 px neighbourhood at 1 px steps.
-- **Results:** `pnpm verify` passes, and the full suite result is below.
+- **Results:** `pnpm verify` passes, and the full suite passes 183 of 183 (33.7 min) on b2f5ac2.
 
 ### Iris
 
