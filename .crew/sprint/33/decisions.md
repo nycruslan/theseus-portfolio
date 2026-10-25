@@ -77,3 +77,12 @@
     17.2, `log-pick` 11.1). The cap is in `.github/`, which is the owner's, so Probe makes the specs
     cheaper without weakening any assertion, with a target of at most 16 test-minutes. Lens's ship
     on 9b8743a stands for the product code; the spec changes are reviewed again.
+    Probe's 7561524 brings the B5c specs to 16.4 test-minutes, from 36. The full suite runs 184 of
+    184 in 19.5 min wall at 2 workers locally. The speed-up:
+    - scans dispatch `pointermove` at the element under each grid point, matched cell for cell
+      against the real mouse;
+    - picks catch their navigation with a 204 and fetch the record's document to check its h2;
+    - checks that read the same settled page share it.
+    One check runs at fewer widths: "on `/log/13`, a pick on another plank" now runs at 1440 only,
+    where the contract names no width. It added assertions (console errors at rest, one
+    navigation per pick, no page opened during the move, both schemes at 390).
