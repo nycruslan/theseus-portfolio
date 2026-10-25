@@ -23,7 +23,7 @@ when it merged. Every date comes from a record the crew writes after the merge
   date in UTC with a `Z`, its full hash, and the lines figure at that commit. It never rewrites an
   existing record, and with no matching commit it writes nothing for that sprint and says so.
 - **The lines figure** at a commit: the lines of the files git tracks under `app/`, `components/`
-  and `lib/` at that commit, by `git blame`; a line is original when blame dates it at or before
+  and `lib/` at that commit, by `git blame`; a line is original when blame dates it strictly before
   sprint 1's merge (46ed7ee, 2026-10-13T23:10:36Z). It must reproduce Quill's measurements:
   **70 of 2,027 at e6551d3** and **64 of 5,288 at 0fcb84f**.
 - **This sprint backfills** every merged sprint, 1 to 15 and 17 to 30, and commits the records.

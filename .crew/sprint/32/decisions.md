@@ -39,3 +39,8 @@
    4830 to 4839 in `/home/user/wt-forge-32` on `forge/32`; Iris 4820 to 4829 in
    `/home/user/wt-iris-32`. Roles push after every commit; Atlas cherry-picks onto the sprint
    branch as they land.
+
+8. **"Strictly before" sprint 1's merge.** Forge measured that only a strict rule reproduces
+   Quill's figures (70 of 2,027 at e6551d3, 64 of 5,288 at 0fcb84f); "at or before" gives 114 and
+   90, counting sprint 1's own lines as original. Sprint 1's lines are the first plank replaced.
+   The contract is amended.
