@@ -25,7 +25,7 @@
    run writes the record is true. Cut; nothing reads git at build.
 
 5. **Undated rows.** A merged sprint with no record yet (the newest, between its merge and the
-   next run) sits in a last group, "Undated", so the day groups never claim a day they don't
+   next run) sits in a group of its own, "Undated" (first, by decision 9), so the day groups never claim a day they don't
    know.
 
 6. **Riders taken (all in files this sprint edits):** Lens's two nits on #77 (the three comments
@@ -44,3 +44,9 @@
    Quill's figures (70 of 2,027 at e6551d3, 64 of 5,288 at 0fcb84f); "at or before" gives 114 and
    90, counting sprint 1's own lines as original. Sprint 1's lines are the first plank replaced.
    The contract is amended.
+
+9. **"Undated" is the first group, not the last.** Probe found that once this PR's own retro lands,
+   sprint 32 is merged with no record, and "Undated last" would put it below revision 1, turning
+   C3.1 (newest first) and C3.2 (1 last) red, or needing them loosened by the owner. The rows
+   without a record are always the newest (merged after the last writer run), so leading with
+   them keeps both assertions as they are, and the groups still never claim a day they don't know.
