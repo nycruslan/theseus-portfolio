@@ -1,15 +1,20 @@
 // The model's scene on WebGLRenderer (.crew/sprint/24/spike/scene/stage.js and scene-webgl.js,
 // ported; contract, "Stack"). Three draws a frame at most four: the card (every plank, the deck
 // and the transom, one merged mesh), the seams and the outline (two fat-line batches), and the
-// shadow once the model lifts. Nothing loops here: `draw` draws one frame.
+// shadow once the model lifts. Nothing loops here: `draw` draws one frame. The Log's ghost hull
+// (.crew/sprint/33/contract.md, "How it's built") draws at most five: the card's far and near
+// sides, each its own index range once, translucent; the seams, the outline, and the ink marks.
 
 import {
+  BackSide,
   BufferAttribute,
   BufferGeometry,
   Color,
   CustomBlending,
   DataTexture,
   DirectionalLight,
+  DoubleSide,
+  FrontSide,
   Group,
   HemisphereLight,
   LinearFilter,
@@ -23,6 +28,7 @@ import {
   Raycaster,
   RGBAFormat,
   Scene,
+  type Side,
   SrcAlphaFactor,
   Vector3,
   Vector4,
@@ -35,14 +41,19 @@ import { PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
   DARK_LIGHT,
+  GHOST_ALPHA,
+  GHOST_DARK_GAIN,
   GHOST_EDGE_PX,
+  GHOST_GAIN,
+  GHOST_LIT,
   GHOST_OUTLINE_PX,
+  MARK_PX,
   OUTLINE_PX,
   SEAM_PX,
   SHADOW_DARK,
   SHADOW_LIGHT,
 } from "./calls";
-import { DECK, type Hull, type Vec3 } from "./hull";
+import { DECK, type Hull } from "./hull";
 import type { Loft } from "./loft";
 import { LIGHT, type Shadow } from "./shadow";
 
@@ -75,14 +86,19 @@ const rad = (deg: number) => (deg * Math.PI) / 180;
  * back to that flat colour while the model lies on the drawing (uLit 0 is the drawing's own fills,
  * exactly: S4), with the pencil hatch where a state's alpha flags it (B4's graphite; unused in B3).
  */
-function cardMaterial() {
-  const uniforms = {
-    uLit: { value: 0 },
-    uPencil: { value: new Color() },
-    uStates: {
-      value: Array.from({ length: SLOTS }, () => new Vector4(1, 1, 1, 1)),
-    },
-  };
+const cardUniforms = () => ({
+  uLit: { value: 0 },
+  uPencil: { value: new Color() },
+  uStates: {
+    value: Array.from({ length: SLOTS }, () => new Vector4(1, 1, 1, 1)),
+  },
+});
+
+/**
+ * With `side`, the ghost's: one side of the card, translucent, writing no depth, so the far side
+ * shows through the near one as vellum shows what lies under it (notes-iris.md, section 1).
+ */
+function cardMaterial(uniforms = cardUniforms(), side?: Side) {
   const material = new MeshStandardMaterial({
     roughness: 1,
     metalness: 0,
@@ -91,6 +107,9 @@ function cardMaterial() {
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,
+    ...(side === undefined
+      ? {}
+      : { side, transparent: true, depthWrite: false }),
   });
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -138,6 +157,23 @@ function cardGeometry(hull: Hull) {
   return geometry;
 }
 
+/**
+ * The ghost's two sides over one set of buffers: the far side's index range and the near side's,
+ * so each pass draws its own triangles once (three's two-pass `DoubleSide` would draw every
+ * triangle twice: 46,288 a frame, over the 30,000 budget; spike-pixel.md, section 2).
+ */
+function sideGeometries(hull: Hull) {
+  const near = cardGeometry(hull);
+  const far = new BufferGeometry();
+  for (const name of ["position", "normal", "slot"]) {
+    far.setAttribute(name, near.getAttribute(name));
+  }
+  far.setIndex(near.getIndex());
+  far.setDrawRange(0, hull.far);
+  near.setDrawRange(hull.far, hull.index.length - hull.far);
+  return { near, far };
+}
+
 /** A batch of fat lines' segments at one level. */
 function lineGeometry(positions: Float32Array, quads: boolean) {
   const geometry = new LineSegmentsGeometry();
@@ -179,13 +215,34 @@ export function createStage(
   const model = new Group();
   scene.add(model);
 
-  const card = cardMaterial();
-  const mesh = new Mesh(cardGeometry(hull), card.material);
+  const card = cardMaterial(cardUniforms(), ghost ? FrontSide : undefined);
+  const sides = ghost ? sideGeometries(hull) : null;
+  const mesh = new Mesh(sides?.near ?? cardGeometry(hull), card.material);
   mesh.frustumCulled = false;
+  // The ghost's far side, drawn before the near (renderOrder sorts the transparent pass).
+  const back = sides
+    ? new Mesh(sides.far, cardMaterial(card.uniforms, BackSide).material)
+    : null;
+  if (back) {
+    back.frustumCulled = false;
+    back.renderOrder = 1;
+    mesh.renderOrder = 2;
+    model.add(back);
+  }
 
   const seams = lines(hull.seams, true);
   const outline = lines(hull.outline, false);
   model.add(mesh, seams.line, outline.line);
+  // The ghost's ink marks: a record's plank and the one under the pointer, drawn after the seams
+  // they lie on, so at an equal depth the mark wins.
+  const marks = lines(new Float32Array(6), false);
+  marks.line.visible = false;
+  marks.line.renderOrder = 1;
+  model.add(marks.line);
+  /** The ghost's colours: the token and the translucent colour that composites to it. */
+  const vellum = new Color();
+  const solved = new Color();
+  const tint = new Color();
 
   const sky = new HemisphereLight(0xffffff, GROUND_LIGHT, SKY);
   const fill = new DirectionalLight(0xffffff, FILL);
@@ -219,8 +276,12 @@ export function createStage(
   const camera = new OrthographicCamera();
   let [width, height] = [1, 1];
   const ray = new Raycaster();
+  // Both of its faces: a pointer above the near sheer finds the far side's inside.
   const proxy = pickHull
-    ? new Mesh(cardGeometry(pickHull), new MeshBasicMaterial())
+    ? new Mesh(
+        cardGeometry(pickHull),
+        new MeshBasicMaterial({ side: DoubleSide }),
+      )
     : null;
   if (proxy) {
     proxy.visible = false;
@@ -239,6 +300,7 @@ export function createStage(
       seams.material.linewidth = (ghost ? GHOST_EDGE_PX : SEAM_PX) * ratio;
       outline.material.linewidth =
         (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
+      marks.material.linewidth = MARK_PX * ratio;
     },
 
     /**
@@ -246,9 +308,13 @@ export function createStage(
      * materials and so the compiled programs stay (.crew/sprint/26/contract.md, "Which drawing").
      */
     load(next: Hull) {
-      const hull = mesh.geometry;
-      mesh.geometry = cardGeometry(next);
-      hull.dispose();
+      const old = [mesh.geometry, back?.geometry];
+      if (back) {
+        const fresh = sideGeometries(next);
+        mesh.geometry = fresh.near;
+        back.geometry = fresh.far;
+      } else mesh.geometry = cardGeometry(next);
+      for (const geometry of old) geometry?.dispose();
       for (const [part, positions, quads] of [
         [seams, next.seams, true],
         [outline, next.outline, false],
@@ -280,22 +346,37 @@ export function createStage(
 
     /** The tokens and the record: each plank's state, the ink, the rig and the shadow's darkness. */
     paint(palette: Palette, seated: ReadonlySet<string>) {
-      const tint = new Color();
       card.uniforms.uStates.value.forEach((state, i) => {
         const id = PLANKS[i]?.id ?? "";
-        tint.set(
-          ghost
-            ? palette.vellum
-            : i === DECK || seated.has(id)
-              ? palette.card
-              : palette.old,
-        );
+        tint.set(i === DECK || seated.has(id) ? palette.card : palette.old);
         state.set(tint.r, tint.g, tint.b, 1);
       });
       card.uniforms.uPencil.value.set(palette.pencil);
-      seams.material.color.set(ghost ? palette.pencil : palette.ink);
-      outline.material.color.set(ghost ? palette.muted : palette.ink);
-      const gain = palette.dark ? DARK_GAIN : 1;
+      seams.material.color.set(palette.ink);
+      outline.material.color.set(palette.ink);
+      marks.material.color.set(palette.ink);
+      let gain = palette.dark ? DARK_GAIN : 1;
+      if (ghost) {
+        // The vellum (call 1): the colour that composites to the token over the film at α, solved
+        // per sRGB channel, C = (V − (1 − α) B) / α, from the tokens the page computes.
+        vellum.set(palette.vellum);
+        const [v, b] = [palette.vellum, palette.ground].map((token) =>
+          new Color(token).getRGB(new Color(), "srgb"),
+        );
+        const channel = (key: "r" | "g" | "b") =>
+          Math.min(
+            1,
+            Math.max(
+              0,
+              ((v?.[key] ?? 0) - (1 - GHOST_ALPHA) * (b?.[key] ?? 0)) /
+                GHOST_ALPHA,
+            ),
+          );
+        solved.setRGB(channel("r"), channel("g"), channel("b"), "srgb");
+        seams.material.color.set(palette.dark ? palette.muted : palette.pencil);
+        outline.material.color.set(palette.muted);
+        gain = palette.dark ? GHOST_DARK_GAIN : GHOST_GAIN;
+      }
       for (const light of [sky, fill, sun]) {
         light.color.set(palette.dark ? DARK_LIGHT : 0xffffff);
       }
@@ -320,15 +401,37 @@ export function createStage(
       model.position.set(pose.x, pose.y, pose.z);
       model.rotation.set(rad(pose.pitch), rad(pose.yaw), 0, "YXZ");
       model.scale.setScalar(pose.s);
-      card.uniforms.uLit.value = Math.min(1, e * 1.25);
+      card.uniforms.uLit.value =
+        Math.min(1, e * 1.25) * (ghost ? GHOST_LIT : 1);
+      if (ghost) {
+        // Frame 1 is the 2D fill, opaque and unlit; the vellum turns translucent with the move.
+        tint.lerpColors(vellum, solved, e);
+        for (const state of card.uniforms.uStates.value) {
+          state.set(tint.r, tint.g, tint.b, 1);
+        }
+        const alpha = 1 + (GHOST_ALPHA - 1) * e;
+        card.material.opacity = alpha;
+        if (back) (back.material as MeshStandardMaterial).opacity = alpha;
+      }
       shadowMaterial.opacity = darkness * Math.min(1, e * 1.4);
       shadow.visible = !ghost && e > 0;
       renderer.render(scene, camera);
     },
 
+    /** The ghost's ink marks, as segment pairs in the model's frame; none hides them. */
+    mark(positions: Float32Array) {
+      marks.line.visible = positions.length > 0;
+      if (!positions.length) return;
+      const old = marks.line.geometry;
+      marks.line.geometry = lineGeometry(positions, false);
+      old.dispose();
+    },
+
     /**
-     * The plank slot under a point of the canvas, in CSS px from its top left, as the last frame
-     * drew it, or -1: a ray from the camera through the point, against the card's front faces.
+     * The plank under a point of the canvas, in CSS px from its top left, as the last frame drew
+     * it: its slot and side (1 near, −1 far), or null. A ray from the camera through the point,
+     * built by unprojecting it (`setFromCamera` would take the hand-set projection for
+     * orthographic), against the pick hull's faces, both of them.
      */
     pick(x: number, y: number) {
       const at = (z: number) =>
@@ -341,27 +444,22 @@ export function createStage(
       hits.length = 0;
       const target = proxy ?? mesh;
       ray.intersectObject(target, false, hits);
-      const face = hits[0]?.face;
+      const hit = hits[0];
+      if (!hit?.face) return null;
       const slot = target.geometry.getAttribute("slot");
-      return face ? Math.round(slot.getX(face.a)) : -1;
-    },
-
-    /** Model-frame points on the canvas, in CSS px from its top left, as the last frame drew them. */
-    screen(points: readonly Vec3[]) {
-      return points.map(([px, py, pz]) => {
-        const p = new Vector3(px, py, pz)
-          .applyMatrix4(mesh.matrixWorld)
-          .applyMatrix4(camera.projectionMatrix);
-        return [((p.x + 1) / 2) * width, ((1 - p.y) / 2) * height] as const;
-      });
+      // The hull is symmetric about z = 0: the hit's side is its sign in the model's frame.
+      const side = target.worldToLocal(hit.point.clone()).z < 0 ? -1 : 1;
+      return { slot: Math.round(slot.getX(hit.face.a)), side };
     },
 
     dispose() {
       mesh.geometry.dispose();
+      back?.geometry.dispose();
+      (back?.material as MeshStandardMaterial | undefined)?.dispose();
       proxy?.geometry.dispose();
       (proxy?.material as MeshBasicMaterial | undefined)?.dispose();
       card.material.dispose();
-      for (const part of [seams, outline]) {
+      for (const part of [seams, outline, marks]) {
         part.line.geometry.dispose();
         part.material.dispose();
       }

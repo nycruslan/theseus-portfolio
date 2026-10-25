@@ -668,11 +668,16 @@ main:has(> [data-model]) {
   }
 }
 
-/* Spike (sprint 33): the ghost in 3D. The layer takes the ghost's flex and grid order, since items
-   paint in order-modified document order: at order 0 it would paint under the drawing. Frame 1
-   changes nothing: the drawing's numbers and leader stay over the canvas, as on the sheet. From the
-   first moving frame the whole 2D ghost goes, since the model turns in place over it, and the 3D
-   numbers stand for the drawing's. */
+/*
+ * The ghost hull in 3D on the Log (lib/model/; .crew/sprint/33/contract.md, "The numbers", "The
+ * view" and "The pick"; notes-iris.md): the model's layer after `[data-ghost]`, under the rules
+ * above. Frame 1 changes nothing: the drawing's numbers paint over the canvas, as the sheet's do.
+ * From the first moving frame the 2D ghost's svg goes, since the model turns in place over it,
+ * and each number rides its plank on an offset the chunk sets.
+ */
+
+/* The layer takes the ghost's flex and grid order: items paint in order-modified document order,
+   so at order 0 it would paint under the drawing (spike-pixel.md, section 5). */
 .log-ghost + [data-model] {
   order: 2;
 }
@@ -682,36 +687,53 @@ main:has(> [data-model]) {
 }
 
 @media screen and (forced-colors: none) {
-  [data-ghost]:has(
-    + [data-model]:is(
-        [data-state="lofting"],
-        [data-state="settled"],
-        [data-state="still"]
-      )
-  ) {
-    & svg,
-    & .plan-plank {
-      visibility: hidden;
-    }
+  /* Only while the model has a state, so Off, a lost context, print and forced colours set every
+     number at its place in the drawing. */
+  [data-ghost]:has(+ [data-model][data-state]) .plan-plank {
+    transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
+  }
+
+  /* At rest the canvas takes the pointer and the finger: a plank opens its record, and a drag
+     still scrolls the page. */
+  [data-ghost]
+    + [data-model]:is([data-state="settled"], [data-state="still"])
+    canvas {
+    pointer-events: auto;
+    touch-action: manipulation;
   }
 }
 
-[data-model] > .plan-view {
-  position: absolute;
+@media screen and (forced-colors: none) and (
+    prefers-reduced-motion: no-preference
+  ) {
+  [data-ghost]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    visibility: hidden;
+  }
 }
 
-[data-model]:not(
-    [data-state="lofting"],
-    [data-state="settled"],
-    [data-state="still"]
-  )
-  > .plan-view {
-  visibility: hidden;
-}
+/* Under reduced motion the svg fades out as the canvas fades in, 240 ms and linear, as on the
+   sheet; the numbers cut to their planks. */
+@media screen and (forced-colors: none) and (prefers-reduced-motion: reduce) {
+  [data-ghost]:has(+ [data-model]) svg {
+    transition: opacity 240ms linear;
+  }
 
-@media (width < 48rem) {
-  [data-model] > .plan-view > .plan-plank {
-    display: none;
+  [data-ghost]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    opacity: 0;
   }
 }
 

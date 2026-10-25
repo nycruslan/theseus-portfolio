@@ -12,8 +12,9 @@
 import { HEIGHT, LENGTH } from "@/lib/half-model";
 import { GHOST, type Layout, NARROW } from "@/lib/hull-layouts";
 import {
-  G_GHOST,
+  DURATION,
   G_NARROW,
+  GHOST_DURATION,
   GROW,
   HOLD,
   LIFT,
@@ -81,7 +82,12 @@ function framed(
     left = Math.min(left, sx);
     right = Math.max(right, sx);
   }
-  return { height: bottom - top, width: right - left };
+  return {
+    height: bottom - top,
+    width: right - left,
+    cx: (left + right) / 2,
+    cy: (top + bottom) / 2,
+  };
 }
 
 /** The canvas the loft plays on: its CSS size, the drawing's width and the viewport's height. */
@@ -103,6 +109,12 @@ type Settle = {
   lift: number;
   grow: number;
   curve: (e: number) => number;
+  /** What the move holds as it grows: the framed height on the sheet, the length on the ghost. */
+  hold: "height" | "width";
+  /** Whether the framed box keeps its registered centre (the ghost's, on its drawing's box). */
+  centre: boolean;
+  /** The move's length in ms. */
+  duration: number;
 };
 
 /** Each drawing's settled pose (lib/model/calls.ts): sprint 17's on the three views, S5's phone
@@ -110,12 +122,20 @@ type Settle = {
  * The phone's growth rides on e², since the turn's foreshortening is flat near 0°: on e, the
  * growth ran ahead of it and swelled the hull 24 px longer than its drawing at u 0.15 at 390
  * (decision 9). */
+const sheet = { lift: LIFT, hold: HOLD, centre: false, duration: DURATION };
 const settleOn = (layout: Layout): Settle =>
   layout === GHOST
-    ? { ...SETTLE_GHOST, grow: G_GHOST, curve: (e) => e }
+    ? {
+        ...SETTLE_GHOST,
+        grow: 0,
+        curve: (e) => e,
+        hold: "width",
+        centre: true,
+        duration: GHOST_DURATION,
+      }
     : layout === NARROW
-      ? { ...SETTLE_NARROW, lift: LIFT, grow: G_NARROW, curve: (e) => e * e }
-      : { ...SETTLE, lift: LIFT, grow: GROW, curve: (e) => e };
+      ? { ...SETTLE_NARROW, ...sheet, grow: G_NARROW, curve: (e) => e * e }
+      : { ...SETTLE, ...sheet, grow: GROW, curve: (e) => e };
 
 /**
  * The registered and settled poses for a drawing shown `drawing` CSS px wide: the registered pose
@@ -166,9 +186,14 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
       s,
     };
   };
-  const target = framed(points, worldPose(from, scale, 0), width, height, 0)[
-    HOLD
-  ];
+  const registered = framed(
+    points,
+    worldPose(from, scale, 0),
+    width,
+    height,
+    0,
+  );
+  const target = registered[settle.hold];
 
   const solve = (e: number) => {
     const screen: Screen = {
@@ -182,9 +207,19 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
     const want = target * (1 + settle.grow * settle.curve(e));
     let s = scale;
     for (let i = 0; i < 4; i++) {
-      s *=
-        want /
-        framed(points, worldPose(screen, s, invD), width, height, invD)[HOLD];
+      const box = framed(
+        points,
+        worldPose(screen, s, invD),
+        width,
+        height,
+        invD,
+      );
+      s *= want / box[settle.hold];
+      // The ghost turns in place: its framed box keeps the registered centre, the drawing's.
+      if (settle.centre) {
+        screen.cx += registered.cx - box.cx;
+        screen.cy += registered.cy - box.cy;
+      }
     }
     return worldPose(screen, s, invD);
   };
@@ -193,24 +228,33 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
   const table = Array.from({ length: SAMPLES + 1 }, (_, i) =>
     solve(i / SAMPLES),
   );
+  const at = (e: number): { pose: Pose; invD: number } => {
+    const f = Math.min(1, Math.max(0, e)) * SAMPLES;
+    const i = Math.min(SAMPLES - 1, Math.floor(f));
+    const a = table[i] as Pose;
+    const b = table[i + 1] as Pose;
+    const u = f - i;
+    const pose: Pose = {
+      x: lerp(a.x, b.x, u),
+      y: lerp(a.y, b.y, u),
+      z: lerp(a.z, b.z, u),
+      yaw: lerp(a.yaw, b.yaw, u),
+      pitch: lerp(a.pitch, b.pitch, u),
+      s: lerp(a.s, b.s, u),
+    };
+    return { pose, invD: Math.min(1, Math.max(0, e)) / lens };
+  };
   return {
     /** The pose and the camera's 1/D at eased progress e. */
-    at(e: number): { pose: Pose; invD: number } {
-      const f = Math.min(1, Math.max(0, e)) * SAMPLES;
-      const i = Math.min(SAMPLES - 1, Math.floor(f));
-      const a = table[i] as Pose;
-      const b = table[i + 1] as Pose;
-      const u = f - i;
-      const pose: Pose = {
-        x: lerp(a.x, b.x, u),
-        y: lerp(a.y, b.y, u),
-        z: lerp(a.z, b.z, u),
-        yaw: lerp(a.yaw, b.yaw, u),
-        pitch: lerp(a.pitch, b.pitch, u),
-        s: lerp(a.s, b.s, u),
-      };
-      return { pose, invD: Math.min(1, Math.max(0, e)) / lens };
+    at,
+    /** Points in the model's frame on the canvas at eased progress e, in CSS px from its top
+     * left: the frame stage.ts draws, without reading the GPU. */
+    screen: (points: readonly Vec3[], e: number) => {
+      const { pose, invD } = at(e);
+      return points.map((p) => project(place(p, pose), width, height, invD));
     },
+    /** The move's length in ms. */
+    duration: settle.duration,
     /** The scale of the drawing: what the shadow's texels follow. */
     scale,
     /** The camera's nearest distance D (1/D peaks at 1/lens): the depth range must stay in
