@@ -6,19 +6,19 @@ import type { ReactNode } from "react";
 // the visitor who clicks it. On the sheet the wordmark is plain text, since it would link to the
 // page it sits on. It sticks to the top while the page scrolls, so html's scroll-padding-top in
 // app/globals.css keeps every fragment target and focused link clear of it. It isn't printed: on
-// paper it is a strip of links nobody can follow. After the links, the sheet passes the motion
+// paper it is a strip of links nobody can follow. After the links, the page passes the motion
 // control into its slot, shown from 768 px: from 1024 at the bar's right end after Read as page, as
-// the approved frame draws it. Below 768 the bar is full, and the control sits at the drawing's foot
-// (app/page.tsx; .crew/sprint/27/). The control is a slot, not an import, so its client module
-// ships only where the sheet renders it.
+// the approved frame draws it. Below 768 the bar is full, and the control sits in the page: at the
+// drawing's foot on the sheet (app/page.tsx; .crew/sprint/27/), at the header's end on the Log
+// (components/log.tsx; .crew/sprint/33/). The control is a slot, not an import, so its client
+// module ships only where a page with a model renders it.
 //
 // On the Log and its records (.crew/sprint/29/b5-first-contract.md, "The bar"), the wordmark is the
-// way home, Work and Contact point at the sheet's sections, and Log is current. No control: there is
-// no model on the Log to move.
+// way home, Work and Contact point at the sheet's sections, and Log is current.
 type BarProps = {
   /** Where the bar is: the sheet, the Log, or one of the Log's records. */
   at?: "sheet" | "log" | "record";
-  /** The motion control, from the sheet. */
+  /** The motion control, from a page with a model: the sheet, the Log and its records. */
   control?: ReactNode;
   className?: string;
 };
