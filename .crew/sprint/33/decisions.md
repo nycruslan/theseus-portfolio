@@ -28,3 +28,30 @@
    the header below), Lens's nit on #74 in `components/model.tsx`'s `MotionControl`, and Iris's
    rule-width rider. `app/globals.css` is shared: Pixel's rules stay under the model layer's
    selectors, Forge's under the Log's header and the control's row, each in its own block.
+
+5. **Amendment 1: three live Log checks rewritten for the control in `main`** (Forge's run of the
+   live suites on 6cb0428). The contract's rewrite table missed them. B5.6's C5.2 counts no
+   disclosure widgets: it now counts within the record and the table, since the control is a
+   button group, not a disclosure. B5.9's C9.2 composites every label on `--background`: the
+   pressed button's label is now read on its own fill, still at 4.5:1. C10's added Tab stops are
+   3 with WebGL and 1 (Off) with it refused, since Full and Calm are disabled then. Each is
+   rewritten with assertions no weaker than before; Probe's report lists the before and after.
+
+6. **Iris's early look, and her decision on the numbers** (`early-look-iris.md`). Plank 5.0's leader
+   draws from 768 only. The pitch stays at 12°. "8" (seat 3.0) leads out aft on a leader from 768,
+   as 5.0 does. Numbers are centred in their plank's projected depth, searched only in the middle
+   half of the plank (her must on 937be40). Touches she accepts: from 768 to 1279, "23", "11",
+   "1", "4" and "13" may touch their plank's lines, and "23" grazes its butt at 1440.
+
+7. **The lit mix is 0.4, not 0.5** (Pixel, db4ab8e; Iris accepts, `review-iris.md`). At 0.5 the
+   keel's planks fell under Iris's 0.85 light floor and the inside above the sheer read as the
+   page. Her bands are unchanged, so the contract isn't amended.
+
+8. **B5.19 reads each plank's own vellum** (Probe, 9c60af8). It samples on the canvas's own fill
+   levels and splits runs at lines, which drops points off the hull (the two led-out numbers) and
+   on lines (the far seams through the near vellum at 390). If a seat's points all sit on lines,
+   it falls back to the fill pixels in their blocks, and a seat with nothing to read fails. The
+   bands and every seat stay checked, and nothing is skipped.
+
+9. **Pixel's branch is `pixel/33-r2`:** the cloud refused a force-push to `pixel/33`. His commits
+   are cherry-picked onto the sprint branch, whose product tree equals his head.

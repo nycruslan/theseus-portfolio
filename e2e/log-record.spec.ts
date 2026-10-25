@@ -31,15 +31,20 @@ import {
   recordPairs,
   SEATS_PER_LIFT,
 } from "./retros";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 30, B5a: a record per revision at /log/<n>, and Back from it
 // (.crew/sprint/29/b5-first-contract.md, B5.6 and B5.7), written before the build; the rest of the
 // Log's checks are in log.spec.ts. B5.6 rewrites sprint 13's C4.2 to C4.4, C5.1 to C5.3 and C8.2
 // from sprints.spec.ts, each keeping its C-number in its title, onto the records. The oracle is
-// e2e/retros.ts; the contract's three plank examples are typed in below as anchors on it.
+// e2e/retros.ts; the contract's three plank examples are typed in below as anchors on it. Sprint 33
+// (.crew/sprint/33/contract.md, "The live checks"): every context refuses WebGL, since the ghost in
+// 3D restyles the drawing these checks read; C5.2 counts main without the motion control
+// (amendment 1).
 
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
+  await context.addInitScript(refuseWebGl);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -299,9 +304,13 @@ test.describe("B5.6 A record per revision", () => {
               `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 30)}"`;
             const lis = [...document.querySelectorAll(items)];
             return {
-              controls: main.querySelectorAll(
-                "details, summary, button, [aria-expanded]",
-              ).length,
+              // Sprint 33's amendment 1: the motion control's buttons are in main below 768 px,
+              // and a button group is no disclosure, so main is counted without [data-motion].
+              controls: [
+                ...main.querySelectorAll(
+                  "details, summary, button, [aria-expanded]",
+                ),
+              ].filter((el) => !el.closest("[data-motion]")).length,
               hidden: inRecord
                 .filter(
                   (el) =>

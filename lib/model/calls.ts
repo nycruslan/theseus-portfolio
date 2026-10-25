@@ -62,18 +62,51 @@ export const SETTLE_NARROW = { dx: 0, dy: 26, yaw: -36, pitch: 16 };
  */
 export const LIFT = 90;
 
+// The Log's ghost hull (.crew/sprint/33/notes-iris.md, Iris's calls 1 to 4; contract.md, "What it
+// shows" and "The view"). One constant a call, as the loft's are.
+
 /**
- * The Log's ghost hull (.crew/sprint/33/spike-pixel.md; Iris's call to come): its one camera move is
- * a turn in place on its own drawing, sprint 17's approved ghost turn (yaw −20°, pitch 12°), with
- * no lift. The ghost drawing hugs the profile with 4 units of margin, so the canvas lies on it as on
- * the sheet and the settled hull must fit it: dy 3.5 centres the pitched hull, and its framed height
- * may grow 3% (5 to 6% fits from 768 px, 3 to 4% at 320 and 390).
+ * Its one camera move, in ms: the loft's ease over a shorter span, the archive's quieter echo of
+ * the sheet's 2.4 s (call 3).
  */
-export const SETTLE_GHOST = { dx: 0, dy: 3.5, yaw: -20, pitch: 12, lift: 0 };
-export const G_GHOST = 0.03;
-/** The ghost's line weights in CSS px, the 2D ghost's own: each plank's pencil edge, the outline. */
+export const GHOST_DURATION = 1800;
+
+/**
+ * Its settled view at every width (call 3): sprint 17's ghost turn, yaw −20° and pitch 12°, with
+ * the sheet's lift and lens. Its framed length holds at its drawing's, centred on the drawing's
+ * box, so the settled hull stays inside the box the canvas lies on.
+ */
+export const SETTLE_GHOST = { dx: 0, dy: 0, yaw: -20, pitch: 12, lift: LIFT };
+
+/**
+ * The vellum (call 1): the card's lit material made translucent, at α 0.7 settled, its colour
+ * solved so the unlit composite over the film is `--vellum`; at 0.4 of the card's lit mix, under
+ * the rig at × 1.35 in light and the warm lamp at 1.6 in dark (`/`'s × 4 put 8 to 9 numbers under
+ * 4.5:1: spike-pixel.md, section 4). Iris's 0.5 left the keel's planks at L 0.844 to 0.850 in
+ * light, under her band's 0.85, and the inside above the near sheer at the film's 0.952; the
+ * lower mix draws both ends toward the unlit `--vellum`, in both schemes.
+ */
+export const GHOST_ALPHA = 0.7;
+export const GHOST_LIT = 0.4;
+export const GHOST_GAIN = 1.35;
+export const GHOST_DARK_GAIN = 1.6;
+
+/**
+ * The seats whose numbers the 3D leads out aft, as the 2D leads out 5.0's, from 768 px: 3.0's "8",
+ * where the turned stern leaves its plank no place to clear the outline (Iris's decision on must 2,
+ * .crew/sprint/33/early-look-iris.md). Each goes at its lift's mid-depth, LEAD_OUT units aft of its
+ * plank's stern end, right-aligned, with a leader LEAD_GAP units short of it into the plank, as the
+ * 2D's rule sets 5.0 (lib/lines-plan.ts). The Off drawing keeps them on their planks.
+ */
+export const LED_OUT: readonly string[] = ["3.0"];
+export const LEAD_OUT = 22;
+export const LEAD_GAP = 2;
+
+/** The ghost's line weights in CSS px: the seams and butts, the outline, and the ink mark of a
+ * record's plank or the hovered one (calls 1 and 4); the leaders are the seams' weight. */
 export const GHOST_EDGE_PX = 0.75;
 export const GHOST_OUTLINE_PX = 1.4;
+export const MARK_PX = 1.4;
 
 /** The shadow's darkness: --foreground over the sheet in light, black over it in dark (call 4). */
 export const SHADOW_LIGHT = 0.18;
