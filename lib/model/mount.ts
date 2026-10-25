@@ -15,6 +15,7 @@ import {
   type Hull,
   type Level,
   PHONE,
+  PICK,
   plankEdges,
 } from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
@@ -730,11 +731,7 @@ function start(
       canvas,
       hull,
       Boolean(ghost),
-      // The pick's hull, never drawn: the phone's level, whose plank edges are exact (every level's
-      // stations hold each plank's ends) and whose stem departs from the desktop's by half a pixel
-      // at 1440; the coarser 24 x 2 was up to a pixel off the drawn hull, so a sample it named a
-      // plank could fall on the plank's lines or off the hull (B5.19).
-      ghost ? buildHull(PHONE, ghost.hull) : undefined,
+      ghost ? buildHull(PICK, ghost.hull) : undefined,
     );
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
