@@ -3,6 +3,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { LinesPlan } from "@/components/lines-plan";
 import { LogRecord } from "@/components/log-record";
+import { Model, MotionControl } from "@/components/model";
 import { signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { PLANKS } from "@/lib/hull-layouts";
@@ -14,8 +15,9 @@ import type { MergeRecord, SprintEntry } from "@/lib/sprint-log";
 // in .crew/sprint/17/design/): the ghost hull with its caption and count, the lines figure, then
 // every merged sprint as a revision table, newest first, grouped by the UTC day it merged
 // (.crew/sprint/32/contract.md). A record is the same page with the record open, at /log/<n>, so
-// opening one is a document navigation and Back closes it with no script. The page loads the
-// framework's script and nothing else (B5.10), and nothing on it moves or is copper.
+// opening one is a document navigation and Back closes it with no script. The ghost stands up in
+// 3D over its drawing under /'s Full, Calm and Off (.crew/sprint/33/contract.md): with the model
+// Off, the page loads /'s script and nothing else (B5.10), and nothing on it is copper.
 
 type LogProps = {
   /** Every merged sprint, newest first (lib/sprint-log.ts). */
@@ -127,8 +129,19 @@ export function Log({ entries, open }: LogProps) {
 
   return (
     <>
+      {/* Below 1024 px CSS sets the drawing above the caption, but in the DOM it follows the
+        header and the record, so a first paint of HTML cut before it would draw the header
+        without it, and the drawing's arrival would push the caption down: B5.25's layout shift
+        of 0.0699 on /log/13 at 320 (.crew/sprint/33/). The page paints only once the parser is
+        past the drawing and the model's layer, whose next element is Every revision's heading.
+        React puts the link in the head; Chromium honours it, other browsers paint as before. */}
+      <link rel="expect" href="#every-revision" blocking="render" />
       <SkipLink />
-      <Bar at={record ? "record" : "log"} className={sofiaCondensed.variable} />
+      <Bar
+        at={record ? "record" : "log"}
+        className={sofiaCondensed.variable}
+        control={<MotionControl />}
+      />
       {/* tabIndex -1: the skip link's landing spot, never a Tab stop. */}
       <main
         id="main"
@@ -148,6 +161,13 @@ export function Log({ entries, open }: LogProps) {
           {newest ? <LinesFigure {...newest} /> : null}
         </div>
 
+        {/* Below 768 px the bar is full, so the motion control closes the header here, in a row
+          under the lines figure (.crew/sprint/33/notes-iris.md, section 5): under the drawing it
+          would part the hull from its caption, and in the DOM it precedes the record, so Tab meets
+          it where the eye does. #78's Read as page takes the same place: whichever merges second
+          makes this <Foot control={<MotionControl />} />. */}
+        <MotionControl />
+
         {record && seat ? (
           <LogRecord
             entry={record}
@@ -164,6 +184,9 @@ export function Log({ entries, open }: LogProps) {
           current={seat?.[0]}
           className="log-ghost"
         />
+        {/* The ghost in 3D: the 3D chunk reads its seats and numbers off the drawing right before
+          it, so the two can't disagree. The loader is /'s, unchanged. */}
+        <Model seated={[]} />
 
         <section aria-labelledby="every-revision" className="log-revs">
           <h2 id="every-revision">Every revision</h2>

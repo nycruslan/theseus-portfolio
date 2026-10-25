@@ -5,9 +5,19 @@
 // and moves to the other one, settled, when a resize crosses 768 px. Its one hook for tests and CSS
 // is `[data-model]`'s data-state; nothing is put on window.
 
-import { type Layout, NARROW, WIDE } from "@/lib/hull-layouts";
+import { GHOST, type Layout, NARROW, PLANKS, WIDE } from "@/lib/hull-layouts";
 import { DURATION, ease } from "./calls";
-import { buildHull, DESKTOP, type Hull, type Level, PHONE } from "./hull";
+import { type GhostPage, near as nearLine, readGhost, riders } from "./ghost";
+import {
+  buildHull,
+  DESKTOP,
+  type Ghost,
+  type Hull,
+  type Level,
+  PHONE,
+  PICK,
+  plankEdges,
+} from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
 import { bakeShadow } from "./shadow";
 import { createStage, type Palette, type Stage } from "./stage";
@@ -24,8 +34,9 @@ type Fit = Frame & { left: number; top: number; buffer: [number, number] };
 /** One of the sheet's two drawings, and what the model is on it: its layout, level and ratio cap. */
 type Sheet = { drawing: Element; layout: Layout; level: Level; cap: number };
 
-/** The once-a-visit flag in sessionStorage. */
+/** The once-a-visit flag in sessionStorage: the sheet's loft, and the Log's camera move. */
 const PLAYED = "theseus:model";
+const PLAYED_GHOST = "theseus:ghost";
 /** The inputs that end the loft at its settled frame; each still does its own work. */
 const INPUTS = ["keydown", "pointerdown", "wheel", "touchstart", "scroll"];
 /** Where the page shows the three views rather than the profile (app/globals.css, "The lines plan"). */
@@ -34,10 +45,14 @@ const THREE_VIEWS = "(min-width: 48rem)";
 const SLOW_MS = 22;
 const STALL_MS = 33.4;
 
-/** Each level's hull, built once a visit: a resize back across 768 px or a Back reuses it. */
+/**
+ * Each level's hull, built once a visit: a resize back across 768 px or a Back reuses it. A page
+ * has one kind, the sheet's card or the Log's ghost (its seats fixed by the page), so the level
+ * keys it.
+ */
 const hulls = new Map<Level, Hull>();
-const hullAt = (level: Level) => {
-  const hull = hulls.get(level) ?? buildHull(level);
+const hullAt = (level: Level, ghost?: Ghost) => {
+  const hull = hulls.get(level) ?? buildHull(level, ghost);
   hulls.set(level, hull);
   return hull;
 };
@@ -47,17 +62,17 @@ const pause = () => new Promise((done) => setTimeout(done, 0));
 /** A style read, so a transition has a before-change style to start from (notes-iris.md 8). */
 const flush = (element: Element) => getComputedStyle(element).opacity;
 
-const played = () => {
+const played = (key: string) => {
   try {
-    return sessionStorage.getItem(PLAYED) === "1";
+    return sessionStorage.getItem(key) === "1";
   } catch {
     return false;
   }
 };
 
-const remember = () => {
+const remember = (key: string) => {
   try {
-    sessionStorage.setItem(PLAYED, "1");
+    sessionStorage.setItem(key, "1");
   } catch {
     // Storage is blocked: the loft plays again on the next load, and nothing errors.
   }
@@ -73,6 +88,8 @@ function palette(): Palette {
     ink: token("--foreground"),
     ground: token("--background"),
     pencil: token("--pencil"),
+    vellum: token("--vellum"),
+    muted: token("--muted"),
     dark: matchMedia("(prefers-color-scheme: dark)").matches,
   };
 }
@@ -128,20 +145,40 @@ function start(
   back: boolean,
 ) {
   const plan = host.previousElementSibling;
-  const wide = plan?.querySelector(".plan-wide");
-  const narrow = plan?.querySelector(".plan-narrow");
+  // The Log's ghost (.crew/sprint/33/): one drawing at every width, the profile alone. Its seats and
+  // numbers are the drawing's own, as the server drew them from the data rules.
+  const ghostDrawing = plan?.matches("[data-ghost]")
+    ? plan.querySelector(".plan-ghost")
+    : null;
+  const wide = ghostDrawing ?? plan?.querySelector(".plan-wide");
+  const narrow = ghostDrawing ?? plan?.querySelector(".plan-narrow");
   if (!wide || !narrow) return { stop() {}, settle() {} };
+  const ghost: GhostPage | undefined = ghostDrawing
+    ? readGhost(ghostDrawing)
+    : undefined;
+  const key = ghost ? PLAYED_GHOST : PLAYED;
   // The level and the cap follow the drawing, not the device (.crew/sprint/26/contract.md, "The
-  // calls I made"): the three views from 768 px, the profile and half-breadth plan below.
+  // calls I made"): the three views from 768 px, the profile and half-breadth plan below. The
+  // ghost's one drawing takes the desktop's level and cap from 768 px, the phone's below.
   const sheets: Record<"wide" | "narrow", Sheet> = {
-    wide: { drawing: wide, layout: WIDE, level: DESKTOP, cap: 2 },
-    narrow: { drawing: narrow, layout: NARROW, level: PHONE, cap: 1.5 },
+    wide: {
+      drawing: wide,
+      layout: ghost ? GHOST : WIDE,
+      level: DESKTOP,
+      cap: 2,
+    },
+    narrow: {
+      drawing: narrow,
+      layout: ghost ? GHOST : NARROW,
+      level: PHONE,
+      cap: 1.5,
+    },
   };
   const shownSheet = () =>
     matchMedia(THREE_VIEWS).matches ? sheets.wide : sheets.narrow;
   const canvas = document.createElement("canvas");
   host.append(canvas);
-
+  const numbers = ghost ? riders(ghost) : null;
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
   let sheet = shownSheet();
@@ -183,15 +220,21 @@ function start(
 
   /** The layer's box against the viewport. Under forced colours the layer has none. */
   const box = () => host.getBoundingClientRect();
+  /**
+   * What must be on screen: the layer, which is the drawing's row on the sheet; on the Log, whose
+   * main is a flex column below 1024 px, the layer is all of main, so the drawing (spike, sprint 33).
+   */
+  const shownBox = () =>
+    box().width > 0 ? (ghost ? wide : host).getBoundingClientRect() : box();
   /** On screen now: the loft plays only to someone who can see it. */
   const visible = () => {
-    const r = box();
+    const r = shownBox();
     return r.width > 0 && r.bottom > 0 && r.top < innerHeight;
   };
   /** Within a viewport of the screen, as the observer's margin is: a redraw waiting for that is
    * drawn before the model scrolls into view (Lens's nit on #72). */
   const near = () => {
-    const r = box();
+    const r = shownBox();
     return r.width > 0 && r.bottom > -innerHeight && r.top < 2 * innerHeight;
   };
 
@@ -203,14 +246,20 @@ function start(
       Math.round(p.width * ratio),
       Math.round(p.height * ratio),
     ];
+    // Chromium lays a box out in 1/64 px, flooring: the ghost's CSS size is rounded up to it, so the
+    // buffer is never more than the ratio times the size the page lays out (107 / 1.5 = 71.333
+    // reads back 71.328 at 390, over the 1.5 cap: B5.23).
+    const css = (n: number) =>
+      ghost ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
     return {
       left: p.left - h.left,
       top: p.top - h.top,
       drawing: p.width,
-      width: buffer[0] / ratio,
-      height: buffer[1] / ratio,
+      width: css(buffer[0]),
+      height: css(buffer[1]),
       viewport: innerHeight,
       buffer,
+      ratio,
     };
   };
 
@@ -220,9 +269,10 @@ function start(
    */
   const apply = (next: Fit, keep = false) => {
     if (!stage) return;
-    const level = hullAt(sheet.level);
-    const reshade = !keep || level !== hull;
-    if (level !== hull) stage.load(level);
+    const level = hullAt(sheet.level, ghost?.hull);
+    const reshade = !ghost && (!keep || level !== hull);
+    const changed = level !== hull;
+    if (changed) stage.load(level);
     hull = level;
     fit = next;
     on = sheet;
@@ -235,6 +285,8 @@ function start(
     stage.fit(next.buffer, [next.width, next.height]);
     loft = makeLoft(next, hull.points, sheet.layout);
     if (reshade) stage.shade(shadowFor(hull, loft));
+    numbers?.reset();
+    if (changed) remark();
   };
 
   /** Puts the model on the drawing shown: that drawing's level, ratio cap, loft and shadow. */
@@ -244,8 +296,47 @@ function start(
     apply(measure());
   };
 
+  /** Every line the settled frame draws but the leaders: the numbers clear them all. */
+  const drawn = () => {
+    const record = ghost?.current
+      ? plankEdges(sheet.level, ghost.current, 1)
+      : new Float32Array(0);
+    const parts = [hull?.seams, hull?.outline, record];
+    const all = new Float32Array(
+      parts.reduce((n, part) => n + (part?.length ?? 0), 0),
+    );
+    let at = 0;
+    for (const part of parts) {
+      if (!part) continue;
+      all.set(part, at);
+      at += part.length;
+    }
+    return all;
+  };
+
   const draw = (e: number) => {
-    if (stage && loft) stage.draw(e, loft);
+    if (!stage || !loft) return;
+    // The leaders ride with their numbers, so they are laid before the frame is drawn.
+    if (numbers) {
+      const lines = numbers.leaders(e, matchMedia(THREE_VIEWS).matches);
+      const all: number[] = [];
+      for (const { points } of lines) {
+        for (let i = 1; i < points.length; i++) {
+          all.push(...(points[i - 1] ?? []), ...(points[i] ?? []));
+        }
+      }
+      stage.lead(new Float32Array(all));
+    }
+    stage.draw(e, loft);
+    if (fit && numbers) {
+      numbers.place(
+        loft,
+        fit.drawing / GHOST.box[2],
+        e,
+        matchMedia(THREE_VIEWS).matches,
+        drawn,
+      );
+    }
   };
 
   const listen = (active: boolean) => {
@@ -281,7 +372,7 @@ function start(
     if (!alive) return;
     const interval = now - last;
     last = now;
-    const u = (now - begin) / DURATION;
+    const u = (now - begin) / (loft?.duration ?? DURATION);
     if (skip || u >= 1) return rest("settled");
     // Three frames in a row above 22 ms step the DPR down a rung; at DPR 1, six above 33.4 ms
     // give up the move for the settled frame. Nothing steps up mid-move; rest does.
@@ -307,17 +398,17 @@ function start(
     if (on !== sheet) register();
     flush(canvas);
     // A press of Full asked for the loft: it counts as this visit's, shown or not.
-    if (open === "loft") remember();
+    if (open === "loft") remember(key);
     if (
       open === "settled" ||
       back ||
-      (open === "auto" && played()) ||
+      (open === "auto" && played(key)) ||
       !visible() ||
       document.hidden
     ) {
       return rest("settled");
     }
-    remember();
+    remember(key);
     set("landed");
     draw(0);
     begin = now;
@@ -435,6 +526,7 @@ function start(
     pending = false;
     state = null;
     delete host.dataset.state;
+    unpick();
   };
 
   /** three rebuilds its state first (its listener was added before this one); the settled frame
@@ -452,7 +544,155 @@ function start(
     },
     { rootMargin: "100% 0px" },
   );
-  seen.observe(host);
+  seen.observe(ghost ? wide : host);
+  // The ghost's pick (.crew/sprint/33/contract.md, "The pick"): at rest the canvas takes the
+  // pointer (app/globals.css). A mouse or pen over a plank inks its edges, sets data-pick and the
+  // hand cursor, with one frame per plank crossed; a click, a tap that lifts within 10 px, opens the
+  // record of the sprint that took it out. A record's own plank keeps its mark.
+  type Target = { seat: string; side: number };
+  /** The plank under the mouse or pen, and the press in progress, with what it landed on. */
+  let hovered: Target | null = null;
+  let press: {
+    id: number;
+    x: number;
+    y: number;
+    button: number;
+    touch: boolean;
+    target: Target | null;
+  } | null = null;
+  const marks = new Map<string, Float32Array>();
+  const edges = ({ seat, side }: Target) => {
+    const key = `${sheet.level.stations}:${seat}:${side}`;
+    const found = marks.get(key) ?? plankEdges(sheet.level, seat, side);
+    marks.set(key, found);
+    return found;
+  };
+  const same = (a: Target | null | undefined, b: Target | null | undefined) =>
+    a?.seat === b?.seat && a?.side === b?.side;
+  /** The ink marks: the record's plank, and the one under the pointer or the finger. */
+  function remark() {
+    if (!stage || !ghost) return;
+    const record = ghost.current ? { seat: ghost.current, side: 1 } : undefined;
+    const lit = press?.touch ? press.target : hovered;
+    const parts = [record, same(lit, record) ? undefined : lit]
+      .filter((target): target is Target => Boolean(target))
+      .map(edges);
+    const all = new Float32Array(parts.reduce((n, part) => n + part.length, 0));
+    let at = 0;
+    for (const part of parts) {
+      all.set(part, at);
+      at += part.length;
+    }
+    stage.mark(all);
+  }
+  const resting = () => state === "settled" || state === "still";
+  /** The plank under a point of the viewport, as the settled frame draws it. */
+  const pickAt = (x: number, y: number): Target | null => {
+    if (!ghost || !stage || !loft || !resting()) return null;
+    const r = canvas.getBoundingClientRect();
+    // A number set aft of the hull picks its plank: its box, and 4 px round its leader, from
+    // 768 px, where they show (both led-out numbers: 5.0's, and 3.0's by Iris's decision).
+    for (const leader of numbers?.leaders(1, sheet === sheets.wide) ?? []) {
+      const box = ghost.labels
+        .find((label) => label.seat === leader.seat)
+        ?.span.getBoundingClientRect();
+      const on =
+        box?.width &&
+        x >= box.left &&
+        x <= box.right &&
+        y >= box.top &&
+        y <= box.bottom;
+      const line = loft
+        .screen(leader.points, 1)
+        .map(([px, py]) => [px + r.left, py + r.top] as const);
+      if (on || nearLine(line, x, y, 4)) return { seat: leader.seat, side: 1 };
+    }
+    const hit = stage.pick(x - r.left, y - r.top);
+    const seat = hit ? PLANKS[hit.slot]?.id : undefined;
+    return hit && seat && ghost.numbers.has(seat)
+      ? { seat, side: hit.side }
+      : null;
+  };
+  // The cursor is the canvas's, written only when it changes: a style write on main restyles its
+  // whole table (spike-pixel.md, section 3).
+  const hover = (next: Target | null) => {
+    if (same(next, hovered)) return;
+    hovered = next;
+    if (next) host.dataset.pick = next.seat;
+    else delete host.dataset.pick;
+    canvas.style.cursor = next ? "pointer" : "";
+    remark();
+    redraw();
+  };
+  /** Back to no hover and no press: the state went, or the model did. */
+  function unpick() {
+    press = null;
+    hovered = null;
+    delete host.dataset.pick;
+    canvas.style.cursor = "";
+    numbers?.clear();
+  }
+  const moved = (event: PointerEvent) => {
+    if (event.pointerType !== "touch" && !press) {
+      hover(pickAt(event.clientX, event.clientY));
+    }
+  };
+  const left = (event: PointerEvent) => {
+    if (event.pointerType === "touch") return;
+    // A mouse or pen press dragged off the canvas is a cancelled click: its release lands off the
+    // canvas, and a press left set would stop every hover until the next press here.
+    if (press?.id === event.pointerId) press = null;
+    hover(null);
+  };
+  const down = (event: PointerEvent) => {
+    if (event.button !== 0 && event.button !== 1) return;
+    const touch = event.pointerType === "touch";
+    press = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      button: event.button,
+      touch,
+      target: pickAt(event.clientX, event.clientY),
+    };
+    // The finger's plank shows its ink edges from the press, until the navigation or a cancel.
+    if (touch && press.target) {
+      remark();
+      redraw();
+    }
+  };
+  const up = (event: PointerEvent) => {
+    const done = press;
+    press = null;
+    if (!done || done.id !== event.pointerId) return;
+    if (done.touch && done.target) {
+      remark();
+      redraw();
+    }
+    const travel = Math.hypot(event.clientX - done.x, event.clientY - done.y);
+    if (!ghost || !done.target || travel > 10) return;
+    const href = `/log/${ghost.numbers.get(done.target.seat)}`;
+    // As the table's links: the middle button, Cmd and Ctrl open the record in a new tab.
+    if (done.button === 1 || event.metaKey || event.ctrlKey || event.shiftKey) {
+      // No opener, so the tab starts its own session and plays the move (B5.20).
+      window.open(href, "_blank", "noopener");
+    } else location.assign(href);
+  };
+  const cancel = () => {
+    const had = press?.touch && press.target;
+    press = null;
+    if (had) {
+      remark();
+      redraw();
+    }
+  };
+  if (ghost) {
+    canvas.addEventListener("pointermove", moved);
+    canvas.addEventListener("pointerleave", left);
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", cancel);
+  }
   const sized = new ResizeObserver(refit);
   for (const element of [wide, narrow, host]) sized.observe(element);
   addEventListener("resize", refit);
@@ -471,6 +711,7 @@ function start(
     scheme.removeEventListener("change", recolour);
     forced.removeEventListener("change", unforced);
     document.removeEventListener("visibilitychange", shown);
+    unpick();
     canvas.removeEventListener("webglcontextlost", lost);
     canvas.removeEventListener("webglcontextrestored", restored);
     // three's compile polls the programs on a timer: disposing under it is left until it settles.
@@ -488,19 +729,25 @@ function start(
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = hullAt(sheet.level);
+    hull = hullAt(sheet.level, ghost?.hull);
     await pause();
     if (!alive) return;
-    stage = createStage(canvas, hull);
+    stage = createStage(
+      canvas,
+      hull,
+      Boolean(ghost),
+      ghost ? buildHull(PICK, ghost.hull) : undefined,
+    );
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     await pause();
     if (!alive || !stage) return;
     stage.paint(palette(), seated);
     apply(measure(), true);
+    remark();
     await pause();
     if (!alive || !stage || !loft) return;
-    stage.shade(shadowFor(hull, loft));
+    if (!ghost) stage.shade(shadowFor(hull, loft));
     await pause();
     if (!alive || !stage || !loft) return;
     compiling = stage.compile(loft);

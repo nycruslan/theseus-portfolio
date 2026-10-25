@@ -669,6 +669,75 @@ main:has(> [data-model]) {
 }
 
 /*
+ * The ghost hull in 3D on the Log (lib/model/; .crew/sprint/33/contract.md, "The numbers", "The
+ * view" and "The pick"; notes-iris.md): the model's layer after `[data-ghost]`, under the rules
+ * above. Frame 1 changes nothing: the drawing's numbers paint over the canvas, as the sheet's do.
+ * From the first moving frame the 2D ghost's svg goes, since the model turns in place over it,
+ * and each number rides its plank on an offset the chunk sets.
+ */
+
+/* The layer takes the ghost's flex and grid order: items paint in order-modified document order,
+   so at order 0 it would paint under the drawing (spike-pixel.md, section 5). */
+.log-ghost + [data-model] {
+  order: 2;
+}
+
+[data-ghost]:has(+ [data-model]) .plan-plank {
+  z-index: 1;
+}
+
+@media screen and (forced-colors: none) {
+  /* Only while the model has a state, so Off, a lost context, print and forced colours set every
+     number at its place in the drawing. */
+  [data-ghost]:has(+ [data-model][data-state]) .plan-plank {
+    transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
+  }
+
+  /* At rest the canvas takes the pointer and the finger: a plank opens its record, and a drag
+     still scrolls the page. */
+  [data-ghost]
+    + [data-model]:is([data-state="settled"], [data-state="still"])
+    canvas {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+}
+
+@media screen and (forced-colors: none) and (
+    prefers-reduced-motion: no-preference
+  ) {
+  [data-ghost]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    visibility: hidden;
+  }
+}
+
+/* Under reduced motion the svg fades out as the canvas fades in, 240 ms and linear, as on the
+   sheet; the numbers cut to their planks. */
+@media screen and (forced-colors: none) and (prefers-reduced-motion: reduce) {
+  [data-ghost]:has(+ [data-model]) svg {
+    transition: opacity 240ms linear;
+  }
+
+  [data-ghost]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    opacity: 0;
+  }
+}
+
+/*
  * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
  * folds: the number on the left, the description beside it, and the four signatures under it, each
  * with its column's head above it. The heads row is then read by assistive tech only. From 1024 px
@@ -804,11 +873,12 @@ main:has(> [data-model]) {
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
  * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3). Below 1024 px one column:
- * the h1, the drawing, the caption, the count line, the record when one is open, then Every
- * revision, its 2 px rule edge to edge as the facts' are. The drawing follows the count line in the
- * DOM and is set after the h1 here; it is hidden from assistive tech, so the reading order is the
- * DOM's. From 1024 the sheet's inset box as a two-column grid: the drawing beside the header, then
- * Every revision beside the record, or across both columns on /log. Nothing on it moves.
+ * the h1, the drawing, the caption, the count line, the lines figure, the motion control's row,
+ * the record when one is open, then Every revision, its 2 px rule edge to edge as the facts' are.
+ * The drawing follows the header in the DOM and is set after the h1 here; it is hidden from
+ * assistive tech, so the reading order is the DOM's. From 1024 the sheet's inset box as a
+ * two-column grid: the drawing beside the header, then Every revision beside the record, or across
+ * both columns on /log. Nothing here moves: the ghost's 3D is the model layer's (above).
  */
 .log {
   display: flex;
@@ -871,6 +941,29 @@ main:has(> [data-model]) {
   font-weight: 700;
   line-height: 1.1;
   color: var(--foreground);
+}
+
+/*
+ * Sprint 33, the header's end (.crew/sprint/33/contract.md, calls 7 and 9; notes-iris.md,
+ * section 5). The lines figure's rule takes the header's whole column while its text keeps the
+ * header's 66ch: from 640 to 1023 px the column is wider than the text, and a rule that stopped
+ * with it read as cut short (Iris, on #82). Elsewhere the column is narrower than 66ch, and the
+ * padding is 0.
+ */
+.log-head .log-lines {
+  max-width: none;
+  padding-right: max(0px, 100% - 66ch);
+}
+
+/* The motion control below 768 px (components/log.tsx): a 44 px row 12 px under the lines figure,
+   the group at its right end, on the Log's own 16 px text edge. It takes the figure's order, which
+   it follows in the DOM. The sheet's slot rule (`main > [data-motion]`) would add its 16 px of
+   padding to the Log's gutter. When #78's `Foot` holds the control, `.log > .foot` takes this
+   12 px and this rule goes. */
+.log > [data-motion] {
+  order: 4;
+  margin: 12px 0 0;
+  padding: 0;
 }
 
 .record {
