@@ -5,9 +5,18 @@
 // and moves to the other one, settled, when a resize crosses 768 px. Its one hook for tests and CSS
 // is `[data-model]`'s data-state; nothing is put on window.
 
-import { type Layout, NARROW, WIDE } from "@/lib/hull-layouts";
+import { GHOST, type Layout, NARROW, PLANKS, WIDE } from "@/lib/hull-layouts";
 import { DURATION, ease } from "./calls";
-import { buildHull, DESKTOP, type Hull, type Level, PHONE } from "./hull";
+import {
+  buildHull,
+  DESKTOP,
+  type Hull,
+  type Level,
+  nearSide,
+  PHONE,
+  PICK,
+  type Vec3,
+} from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
 import { bakeShadow } from "./shadow";
 import { createStage, type Palette, type Stage } from "./stage";
@@ -24,8 +33,9 @@ type Fit = Frame & { left: number; top: number; buffer: [number, number] };
 /** One of the sheet's two drawings, and what the model is on it: its layout, level and ratio cap. */
 type Sheet = { drawing: Element; layout: Layout; level: Level; cap: number };
 
-/** The once-a-visit flag in sessionStorage. */
+/** The once-a-visit flag in sessionStorage: the sheet's loft, and the Log's camera move. */
 const PLAYED = "theseus:model";
+const PLAYED_GHOST = "theseus:ghost";
 /** The inputs that end the loft at its settled frame; each still does its own work. */
 const INPUTS = ["keydown", "pointerdown", "wheel", "touchstart", "scroll"];
 /** Where the page shows the three views rather than the profile (app/globals.css, "The lines plan"). */
@@ -34,10 +44,14 @@ const THREE_VIEWS = "(min-width: 48rem)";
 const SLOW_MS = 22;
 const STALL_MS = 33.4;
 
-/** Each level's hull, built once a visit: a resize back across 768 px or a Back reuses it. */
+/**
+ * Each level's hull, built once a visit: a resize back across 768 px or a Back reuses it. A page
+ * has one kind, the sheet's card or the Log's ghost (its seats fixed by the page), so the level
+ * keys it.
+ */
 const hulls = new Map<Level, Hull>();
-const hullAt = (level: Level) => {
-  const hull = hulls.get(level) ?? buildHull(level);
+const hullAt = (level: Level, ghost?: ReadonlySet<string>) => {
+  const hull = hulls.get(level) ?? buildHull(level, ghost);
   hulls.set(level, hull);
   return hull;
 };
@@ -47,17 +61,17 @@ const pause = () => new Promise((done) => setTimeout(done, 0));
 /** A style read, so a transition has a before-change style to start from (notes-iris.md 8). */
 const flush = (element: Element) => getComputedStyle(element).opacity;
 
-const played = () => {
+const played = (key: string) => {
   try {
-    return sessionStorage.getItem(PLAYED) === "1";
+    return sessionStorage.getItem(key) === "1";
   } catch {
     return false;
   }
 };
 
-const remember = () => {
+const remember = (key: string) => {
   try {
-    sessionStorage.setItem(PLAYED, "1");
+    sessionStorage.setItem(key, "1");
   } catch {
     // Storage is blocked: the loft plays again on the next load, and nothing errors.
   }
@@ -73,6 +87,8 @@ function palette(): Palette {
     ink: token("--foreground"),
     ground: token("--background"),
     pencil: token("--pencil"),
+    vellum: token("--vellum"),
+    muted: token("--muted"),
     dark: matchMedia("(prefers-color-scheme: dark)").matches,
   };
 }
@@ -128,19 +144,38 @@ function start(
   back: boolean,
 ) {
   const plan = host.previousElementSibling;
-  const wide = plan?.querySelector(".plan-wide");
-  const narrow = plan?.querySelector(".plan-narrow");
+  // The Log's ghost (.crew/sprint/33/): one drawing at every width, the profile alone. Its seats and
+  // numbers are the drawing's own, as the server drew them from the data rules.
+  const ghostDrawing = plan?.matches("[data-ghost]")
+    ? plan.querySelector(".plan-ghost")
+    : null;
+  const wide = ghostDrawing ?? plan?.querySelector(".plan-wide");
+  const narrow = ghostDrawing ?? plan?.querySelector(".plan-narrow");
   if (!wide || !narrow) return { stop() {}, settle() {} };
+  const ghost = ghostDrawing ? ghostSeats(ghostDrawing) : undefined;
+  const key = ghost ? PLAYED_GHOST : PLAYED;
   // The level and the cap follow the drawing, not the device (.crew/sprint/26/contract.md, "The
-  // calls I made"): the three views from 768 px, the profile and half-breadth plan below.
+  // calls I made"): the three views from 768 px, the profile and half-breadth plan below. The
+  // ghost's one drawing takes the desktop's level and cap from 768 px, the phone's below.
   const sheets: Record<"wide" | "narrow", Sheet> = {
-    wide: { drawing: wide, layout: WIDE, level: DESKTOP, cap: 2 },
-    narrow: { drawing: narrow, layout: NARROW, level: PHONE, cap: 1.5 },
+    wide: {
+      drawing: wide,
+      layout: ghost ? GHOST : WIDE,
+      level: DESKTOP,
+      cap: 2,
+    },
+    narrow: {
+      drawing: narrow,
+      layout: ghost ? GHOST : NARROW,
+      level: PHONE,
+      cap: 1.5,
+    },
   };
   const shownSheet = () =>
     matchMedia(THREE_VIEWS).matches ? sheets.wide : sheets.narrow;
   const canvas = document.createElement("canvas");
   host.append(canvas);
+  const labels = ghost && ghostDrawing ? ghostLabels(ghostDrawing, host) : null;
 
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
@@ -183,15 +218,21 @@ function start(
 
   /** The layer's box against the viewport. Under forced colours the layer has none. */
   const box = () => host.getBoundingClientRect();
+  /**
+   * What must be on screen: the layer, which is the drawing's row on the sheet; on the Log, whose
+   * main is a flex column below 1024 px, the layer is all of main, so the drawing (spike, sprint 33).
+   */
+  const shownBox = () =>
+    box().width > 0 ? (ghost ? wide : host).getBoundingClientRect() : box();
   /** On screen now: the loft plays only to someone who can see it. */
   const visible = () => {
-    const r = box();
+    const r = shownBox();
     return r.width > 0 && r.bottom > 0 && r.top < innerHeight;
   };
   /** Within a viewport of the screen, as the observer's margin is: a redraw waiting for that is
    * drawn before the model scrolls into view (Lens's nit on #72). */
   const near = () => {
-    const r = box();
+    const r = shownBox();
     return r.width > 0 && r.bottom > -innerHeight && r.top < 2 * innerHeight;
   };
 
@@ -220,18 +261,21 @@ function start(
    */
   const apply = (next: Fit, keep = false) => {
     if (!stage) return;
-    const level = hullAt(sheet.level);
-    const reshade = !keep || level !== hull;
+    const level = hullAt(sheet.level, ghost?.seats);
+    const reshade = !ghost && (!keep || level !== hull);
     if (level !== hull) stage.load(level);
     hull = level;
     fit = next;
     on = sheet;
-    Object.assign(canvas.style, {
-      left: `${next.left}px`,
-      top: `${next.top}px`,
-      width: `${next.width}px`,
-      height: `${next.height}px`,
-    });
+    for (const element of [canvas, labels?.layer]) {
+      if (!element) continue;
+      Object.assign(element.style, {
+        left: `${next.left}px`,
+        top: `${next.top}px`,
+        width: `${next.width}px`,
+        height: `${next.height}px`,
+      });
+    }
     stage.fit(next.buffer, [next.width, next.height]);
     loft = makeLoft(next, hull.points, sheet.layout);
     if (reshade) stage.shade(shadowFor(hull, loft));
@@ -245,7 +289,9 @@ function start(
   };
 
   const draw = (e: number) => {
-    if (stage && loft) stage.draw(e, loft);
+    if (!stage || !loft) return;
+    stage.draw(e, loft);
+    if (fit) labels?.place(stage, [fit.width, fit.height]);
   };
 
   const listen = (active: boolean) => {
@@ -307,17 +353,17 @@ function start(
     if (on !== sheet) register();
     flush(canvas);
     // A press of Full asked for the loft: it counts as this visit's, shown or not.
-    if (open === "loft") remember();
+    if (open === "loft") remember(key);
     if (
       open === "settled" ||
       back ||
-      (open === "auto" && played()) ||
+      (open === "auto" && played(key)) ||
       !visible() ||
       document.hidden
     ) {
       return rest("settled");
     }
-    remember();
+    remember(key);
     set("landed");
     draw(0);
     begin = now;
@@ -452,7 +498,41 @@ function start(
     },
     { rootMargin: "100% 0px" },
   );
-  seen.observe(host);
+  seen.observe(ghost ? wide : host);
+  // The ghost's pick (.crew/sprint/33/): at rest, a pointer on a plank opens the record of the
+  // sprint that took it out. The layer takes no events, so a touch drag over it still scrolls.
+  const point = (event: MouseEvent) => {
+    if (!ghost || !stage || (state !== "settled" && state !== "still")) {
+      return undefined;
+    }
+    const r = canvas.getBoundingClientRect();
+    const [x, y] = [event.clientX - r.left, event.clientY - r.top];
+    if (x < 0 || y < 0 || x > r.width || y > r.height) return undefined;
+    const slot = stage.pick(x, y);
+    const id = PLANKS[slot]?.id;
+    const sprint = id === undefined ? undefined : ghost.numbers.get(id);
+    return sprint === undefined ? undefined : `/log/${sprint}`;
+  };
+  const cursor = host.parentElement;
+  // Written only when it changes: a style write per move would restyle the page on the next read.
+  let pointing = false;
+  const hover = (event: PointerEvent) => {
+    const now = Boolean(point(event));
+    if (now === pointing || !cursor) return;
+    pointing = now;
+    cursor.style.cursor = now ? "pointer" : "";
+  };
+  const choose = (event: MouseEvent) => {
+    const href = point(event);
+    if (!href || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey)
+      window.open(href, "_blank");
+    else location.assign(href);
+  };
+  if (ghost) {
+    addEventListener("pointermove", hover, { passive: true });
+    addEventListener("click", choose);
+  }
   const sized = new ResizeObserver(refit);
   for (const element of [wide, narrow, host]) sized.observe(element);
   addEventListener("resize", refit);
@@ -471,6 +551,10 @@ function start(
     scheme.removeEventListener("change", recolour);
     forced.removeEventListener("change", unforced);
     document.removeEventListener("visibilitychange", shown);
+    removeEventListener("pointermove", hover);
+    removeEventListener("click", choose);
+    if (cursor) cursor.style.cursor = "";
+    labels?.layer.remove();
     canvas.removeEventListener("webglcontextlost", lost);
     canvas.removeEventListener("webglcontextrestored", restored);
     // three's compile polls the programs on a timer: disposing under it is left until it settles.
@@ -488,10 +572,15 @@ function start(
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = hullAt(sheet.level);
+    hull = hullAt(sheet.level, ghost?.seats);
     await pause();
     if (!alive) return;
-    stage = createStage(canvas, hull);
+    stage = createStage(
+      canvas,
+      hull,
+      Boolean(ghost),
+      ghost ? buildHull(PICK, ghost.seats) : undefined,
+    );
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     await pause();
@@ -500,7 +589,7 @@ function start(
     apply(measure(), true);
     await pause();
     if (!alive || !stage || !loft) return;
-    stage.shade(shadowFor(hull, loft));
+    if (!ghost) stage.shade(shadowFor(hull, loft));
     await pause();
     if (!alive || !stage || !loft) return;
     compiling = stage.compile(loft);
@@ -516,4 +605,67 @@ function start(
   });
 
   return { stop, settle };
+}
+
+/** The ghost's seats and their numbers, read off the drawing the server drew. */
+function ghostSeats(drawing: Element) {
+  const numbers = new Map<string, number>();
+  for (const path of drawing.querySelectorAll(
+    "path[data-plank][data-sprint]",
+  )) {
+    numbers.set(
+      path.getAttribute("data-plank") ?? "",
+      Number(path.getAttribute("data-sprint")),
+    );
+  }
+  return { numbers, seats: new Set(numbers.keys()) };
+}
+
+/**
+ * The ghost's numbers in 3D (.crew/sprint/33/): the drawing's own lettering, cloned into the layer
+ * over the canvas at the same places, each anchored on the hull's near side where the drawing sets
+ * it, and moved with its plank each frame by a transform: frame 1 is the drawing's lettering.
+ */
+function ghostLabels(drawing: Element, host: HTMLElement) {
+  const layer = drawing.cloneNode(false) as HTMLElement;
+  layer.style.position = "absolute";
+  const spans: HTMLElement[] = [];
+  const anchors: Vec3[] = [];
+  /** Each number's place in the drawing, as shares of its box: where frame 1 draws it. */
+  const shares: [number, number][] = [];
+  const [bx, by, bw, bh] = GHOST.box;
+  for (const span of drawing.querySelectorAll<HTMLElement>(
+    ":scope > .plan-plank",
+  )) {
+    const copy = span.cloneNode(true) as HTMLElement;
+    const share: [number, number] = [
+      parseFloat(span.style.left) / 100,
+      parseFloat(span.style.top) / 100,
+    ];
+    shares.push(share);
+    const x = share[0] * bw + bx;
+    const y = share[1] * bh + by;
+    anchors.push(nearSide((x - GHOST.ox) / GHOST.s, (y - GHOST.oy) / GHOST.s));
+    spans.push(copy);
+    layer.append(copy);
+  }
+  host.append(layer);
+  return {
+    layer,
+    /** Moves each number to its plank as the last frame drew it, in whole device pixels. */
+    place(
+      stage: { screen(points: readonly Vec3[]): (readonly [number, number])[] },
+      [width, height]: readonly [number, number],
+    ) {
+      const step = 1 / devicePixelRatio;
+      stage.screen(anchors).forEach(([x, y], i) => {
+        const [sx, sy] = shares[i] ?? [0, 0];
+        const [x0, y0] = [sx * width, sy * height];
+        const dx = Math.round((x - x0) / step) * step;
+        const dy = Math.round((y - y0) / step) * step;
+        const span = spans[i];
+        if (span) span.style.transform = `translate(${dx}px, ${dy}px)`;
+      });
+    },
+  };
 }

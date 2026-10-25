@@ -3,6 +3,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { LinesPlan } from "@/components/lines-plan";
 import { LogRecord } from "@/components/log-record";
+import { Model } from "@/components/model";
 import { signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { PLANKS } from "@/lib/hull-layouts";
@@ -164,6 +165,9 @@ export function Log({ entries, open }: LogProps) {
           current={seat?.[0]}
           className="log-ghost"
         />
+        {/* The ghost in 3D (sprint 33's spike), read off the drawing beside it by the chunk; the
+          loader is /'s, unchanged. */}
+        <Model seated={[]} />
 
         <section aria-labelledby="every-revision" className="log-revs">
           <h2 id="every-revision">Every revision</h2>

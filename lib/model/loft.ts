@@ -10,8 +10,17 @@
 // 1), and it runs linearly with the eased progress to the lens's 1/D (contract, "The loft").
 
 import { HEIGHT, LENGTH } from "@/lib/half-model";
-import { type Layout, NARROW } from "@/lib/hull-layouts";
-import { G_NARROW, GROW, HOLD, LIFT, SETTLE, SETTLE_NARROW } from "./calls";
+import { GHOST, type Layout, NARROW } from "@/lib/hull-layouts";
+import {
+  G_GHOST,
+  G_NARROW,
+  GROW,
+  HOLD,
+  LIFT,
+  SETTLE,
+  SETTLE_GHOST,
+  SETTLE_NARROW,
+} from "./calls";
 import type { Vec3 } from "./hull";
 
 /** Where the model stands on the canvas: its centre (CSS px from the top left), lift and turn. */
@@ -90,6 +99,8 @@ type Settle = {
   dy: number;
   yaw: number;
   pitch: number;
+  /** How much further off the sheet it stands, in hull units (LIFT on the sheet). */
+  lift: number;
   grow: number;
   curve: (e: number) => number;
 };
@@ -100,9 +111,11 @@ type Settle = {
  * growth ran ahead of it and swelled the hull 24 px longer than its drawing at u 0.15 at 390
  * (decision 9). */
 const settleOn = (layout: Layout): Settle =>
-  layout === NARROW
-    ? { ...SETTLE_NARROW, grow: G_NARROW, curve: (e) => e * e }
-    : { ...SETTLE, grow: GROW, curve: (e) => e };
+  layout === GHOST
+    ? { ...SETTLE_GHOST, grow: G_GHOST, curve: (e) => e }
+    : layout === NARROW
+      ? { ...SETTLE_NARROW, lift: LIFT, grow: G_NARROW, curve: (e) => e * e }
+      : { ...SETTLE, lift: LIFT, grow: GROW, curve: (e) => e };
 
 /**
  * The registered and settled poses for a drawing shown `drawing` CSS px wide: the registered pose
@@ -123,7 +136,7 @@ function poses({ drawing, viewport }: Frame, layout: Layout, settle: Settle) {
   const to: Screen = {
     cx: from.cx + settle.dx * k,
     cy: from.cy + settle.dy * k,
-    lift: from.lift + LIFT * scale,
+    lift: from.lift + settle.lift * scale,
     yaw: settle.yaw,
     pitch: settle.pitch,
   };
