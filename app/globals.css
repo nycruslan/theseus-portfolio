@@ -668,6 +668,53 @@ main:has(> [data-model]) {
   }
 }
 
+/* Spike (sprint 33): the ghost in 3D. The layer takes the ghost's flex and grid order, since items
+   paint in order-modified document order: at order 0 it would paint under the drawing. Frame 1
+   changes nothing: the drawing's numbers and leader stay over the canvas, as on the sheet. From the
+   first moving frame the whole 2D ghost goes, since the model turns in place over it, and the 3D
+   numbers stand for the drawing's. */
+.log-ghost + [data-model] {
+  order: 2;
+}
+
+[data-ghost]:has(+ [data-model]) .plan-plank {
+  z-index: 1;
+}
+
+@media screen and (forced-colors: none) {
+  [data-ghost]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) {
+    & svg,
+    & .plan-plank {
+      visibility: hidden;
+    }
+  }
+}
+
+[data-model] > .plan-view {
+  position: absolute;
+}
+
+[data-model]:not(
+    [data-state="lofting"],
+    [data-state="settled"],
+    [data-state="still"]
+  )
+  > .plan-view {
+  visibility: hidden;
+}
+
+@media (width < 48rem) {
+  [data-model] > .plan-view > .plan-plank {
+    display: none;
+  }
+}
+
 /*
  * The revision table (components/revisions.tsx). Below 640 px six columns don't fit, so each row
  * folds: the number on the left, the description beside it, and the four signatures under it, each

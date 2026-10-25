@@ -62,6 +62,19 @@ export const SETTLE_NARROW = { dx: 0, dy: 26, yaw: -36, pitch: 16 };
  */
 export const LIFT = 90;
 
+/**
+ * The Log's ghost hull (.crew/sprint/33/spike-pixel.md; Iris's call to come): its one camera move is
+ * a turn in place on its own drawing, sprint 17's approved ghost turn (yaw −20°, pitch 12°), with
+ * no lift. The ghost drawing hugs the profile with 4 units of margin, so the canvas lies on it as on
+ * the sheet and the settled hull must fit it: dy 3.5 centres the pitched hull, and its framed height
+ * may grow 3% (5 to 6% fits from 768 px, 3 to 4% at 320 and 390).
+ */
+export const SETTLE_GHOST = { dx: 0, dy: 3.5, yaw: -20, pitch: 12, lift: 0 };
+export const G_GHOST = 0.03;
+/** The ghost's line weights in CSS px, the 2D ghost's own: each plank's pencil edge, the outline. */
+export const GHOST_EDGE_PX = 0.75;
+export const GHOST_OUTLINE_PX = 1.4;
+
 /** The shadow's darkness: --foreground over the sheet in light, black over it in dark (call 4). */
 export const SHADOW_LIGHT = 0.18;
 export const SHADOW_DARK = 0.6;

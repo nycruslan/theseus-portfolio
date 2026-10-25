@@ -20,9 +20,11 @@ import {
   OneMinusSrcAlphaFactor,
   OrthographicCamera,
   PlaneGeometry,
+  Raycaster,
   RGBAFormat,
   Scene,
   SrcAlphaFactor,
+  Vector3,
   Vector4,
   WebGLRenderer,
 } from "three";
@@ -33,12 +35,14 @@ import { PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
   DARK_LIGHT,
+  GHOST_EDGE_PX,
+  GHOST_OUTLINE_PX,
   OUTLINE_PX,
   SEAM_PX,
   SHADOW_DARK,
   SHADOW_LIGHT,
 } from "./calls";
-import { DECK, type Hull } from "./hull";
+import { DECK, type Hull, type Vec3 } from "./hull";
 import type { Loft } from "./loft";
 import { LIGHT, type Shadow } from "./shadow";
 
@@ -49,6 +53,9 @@ export type Palette = {
   ink: string;
   ground: string;
   pencil: string;
+  /** The ghost's tokens (.crew/sprint/33/): the planks' vellum and the outline's graphite. */
+  vellum: string;
+  muted: string;
   dark: boolean;
 };
 
@@ -152,7 +159,17 @@ function lines(positions: Float32Array, quads: boolean) {
 
 export type Stage = ReturnType<typeof createStage>;
 
-export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
+/**
+ * The scene on `canvas`: the sheet's white card model, or with `ghost` the Log's ghost hull
+ * (.crew/sprint/33/): the same card, lines and rig, in vellum, with no shadow.
+ */
+export function createStage(
+  canvas: HTMLCanvasElement,
+  hull: Hull,
+  ghost = false,
+  /** A coarse hull to pick against: a ray costs 0.1 ms on it, 0.5 to 0.7 on the drawn one. */
+  pickHull?: Hull,
+) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
   // Buffer pixels are set exactly by `fit`, never as css × ratio, which three floors.
@@ -201,6 +218,15 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
   // camera's flag keeps the lighting's view direction straight down at the sheet.
   const camera = new OrthographicCamera();
   let [width, height] = [1, 1];
+  const ray = new Raycaster();
+  const proxy = pickHull
+    ? new Mesh(cardGeometry(pickHull), new MeshBasicMaterial())
+    : null;
+  if (proxy) {
+    proxy.visible = false;
+    model.add(proxy);
+  }
+  const hits: ReturnType<Raycaster["intersectObject"]> = [];
 
   return {
     /** Sizes the buffer in whole pixels and the scene in the canvas's CSS px. */
@@ -210,8 +236,9 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
       // LineSegments2 sets each line's resolution to the viewport before it draws, and the
       // viewport is in buffer pixels here, so the weights are too: the drawing's CSS px × ratio.
       const ratio = buffer[0] / width;
-      seams.material.linewidth = SEAM_PX * ratio;
-      outline.material.linewidth = OUTLINE_PX * ratio;
+      seams.material.linewidth = (ghost ? GHOST_EDGE_PX : SEAM_PX) * ratio;
+      outline.material.linewidth =
+        (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
     },
 
     /**
@@ -256,12 +283,18 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
       const tint = new Color();
       card.uniforms.uStates.value.forEach((state, i) => {
         const id = PLANKS[i]?.id ?? "";
-        tint.set(i === DECK || seated.has(id) ? palette.card : palette.old);
+        tint.set(
+          ghost
+            ? palette.vellum
+            : i === DECK || seated.has(id)
+              ? palette.card
+              : palette.old,
+        );
         state.set(tint.r, tint.g, tint.b, 1);
       });
       card.uniforms.uPencil.value.set(palette.pencil);
-      seams.material.color.set(palette.ink);
-      outline.material.color.set(palette.ink);
+      seams.material.color.set(ghost ? palette.pencil : palette.ink);
+      outline.material.color.set(ghost ? palette.muted : palette.ink);
       const gain = palette.dark ? DARK_GAIN : 1;
       for (const light of [sky, fill, sun]) {
         light.color.set(palette.dark ? DARK_LIGHT : 0xffffff);
@@ -277,7 +310,7 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
     /** Compiles every program, the shadow's too, before frame 1 (S6; build note 5). */
     async compile(loft: Loft) {
       project(loft, 1);
-      shadow.visible = true;
+      shadow.visible = !ghost;
       await renderer.compileAsync(scene, camera);
     },
 
@@ -289,12 +322,44 @@ export function createStage(canvas: HTMLCanvasElement, hull: Hull) {
       model.scale.setScalar(pose.s);
       card.uniforms.uLit.value = Math.min(1, e * 1.25);
       shadowMaterial.opacity = darkness * Math.min(1, e * 1.4);
-      shadow.visible = e > 0;
+      shadow.visible = !ghost && e > 0;
       renderer.render(scene, camera);
+    },
+
+    /**
+     * The plank slot under a point of the canvas, in CSS px from its top left, as the last frame
+     * drew it, or -1: a ray from the camera through the point, against the card's front faces.
+     */
+    pick(x: number, y: number) {
+      const at = (z: number) =>
+        new Vector3(2 * (x / width) - 1, 1 - 2 * (y / height), z).applyMatrix4(
+          camera.projectionMatrixInverse,
+        );
+      const near = at(-1);
+      ray.ray.origin.copy(near);
+      ray.ray.direction.copy(at(1).sub(near).normalize());
+      hits.length = 0;
+      const target = proxy ?? mesh;
+      ray.intersectObject(target, false, hits);
+      const face = hits[0]?.face;
+      const slot = target.geometry.getAttribute("slot");
+      return face ? Math.round(slot.getX(face.a)) : -1;
+    },
+
+    /** Model-frame points on the canvas, in CSS px from its top left, as the last frame drew them. */
+    screen(points: readonly Vec3[]) {
+      return points.map(([px, py, pz]) => {
+        const p = new Vector3(px, py, pz)
+          .applyMatrix4(mesh.matrixWorld)
+          .applyMatrix4(camera.projectionMatrix);
+        return [((p.x + 1) / 2) * width, ((1 - p.y) / 2) * height] as const;
+      });
     },
 
     dispose() {
       mesh.geometry.dispose();
+      proxy?.geometry.dispose();
+      (proxy?.material as MeshBasicMaterial | undefined)?.dispose();
       card.material.dispose();
       for (const part of [seams, outline]) {
         part.line.geometry.dispose();
