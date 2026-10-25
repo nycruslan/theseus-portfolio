@@ -4,7 +4,7 @@
 - agent-browser takes `set viewport <w> <h>` and `set media dark|light` (the bare forms fail silently); 0.39.0 writes a screenshot to the absolute path given (0.3x ignored it). Check `eval innerWidth` before a screenshot (`.crew/sprint/13/`, `.crew/sprint/22/`).
 - Forced colors drops `background-color` but not `border` or `outline`, so a drawn dot needs `forced-colors:before:bg-[CanvasText]`. Playwright's `forcedColors: "active"` shows it; agent-browser has no such switch (`.crew/sprint/20/brief.md`).
 - `overflow-x-clip` clips sideways and leaves `overflow-y` visible, unlike `overflow-x-hidden`, which forces y to `auto` (`.crew/sprint/20/brief.md`).
-- biome's `noArrayIndexKey` also flags a key built from the `.map` index: key duplicates by an occurrence count instead (`components/sprint-entry.tsx`, `.crew/sprint/14/`).
+- biome's `noArrayIndexKey` also flags a key built from the `.map` index: key duplicates by an occurrence count instead (`components/log-record.tsx`, `.crew/sprint/14/`).
 - JSX text trims a leading space, so text that starts with a non-breaking space and a space is a template literal (`.crew/sprint/14/`).
 - A `next/font` loader called in a module the pages import (`app/fonts.ts`, sprint 23) rather than the layout is preloaded and its @font-face shipped on those routes only, so other routes stay one family; Turbopack names the family plainly (`"Sofia Sans"`, no hash), which checks can match (`.crew/sprint/22/`).
 - A font the previous page loaded comes from Chrome's memory cache on the next one, where CDP has no body for it: a Playwright `response.body()` read after a navigation rejects with "No data found for resource" (`.crew/sprint/22/`, B1.10).

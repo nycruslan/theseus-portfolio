@@ -1,12 +1,14 @@
 import { Fragment, type ReactNode } from "react";
 import { signatures } from "@/components/revisions";
 import { PLANKS } from "@/lib/hull-layouts";
+import { instantWords } from "@/lib/log-dates";
 import { REPO_URL } from "@/lib/site";
 import type { SprintEntry } from "@/lib/sprint-log";
 
 // One revision's record, open on /log/<n> (.crew/sprint/29/b5-first-contract.md, "The record"): the
-// row's cells, its size, its pull request and its plank, then what went wrong in the crew's words,
-// whole. Only the retro's public fields and the cells the sheet already publishes.
+// row's cells, its size, when it merged (.crew/sprint/32/contract.md), its pull request and its
+// plank, then what went wrong in the crew's words, whole. Only the retro's public fields, the cells
+// the sheet already publishes, and the merge record.
 
 const SIZE_WORDS = { S: "Small", M: "Medium", L: "Large" } as const;
 
@@ -65,6 +67,20 @@ export function LogRecord({
     names,
   }));
   if (entry.size) pairs.push({ term: "Size", detail: SIZE_WORDS[entry.size] });
+  // No record, no pair: the record never guesses a date. A narrow record breaks the line after the
+  // comma, never inside the day or the time.
+  if (entry.merge) {
+    const { day, time } = instantWords(entry.merge.mergedAt);
+    pairs.push({
+      term: "Date",
+      detail: (
+        <time dateTime={entry.merge.mergedAt}>
+          <span className="whitespace-nowrap">{`${day},`}</span>{" "}
+          <span className="whitespace-nowrap">{time}</span>
+        </time>
+      ),
+    });
+  }
   if (entry.pr) {
     pairs.push({
       term: "Pull request",
