@@ -2,8 +2,8 @@
 // "Owner's pick"), each a heading with task-list options the owner ticks on GitHub, one marked
 // "(Recommended)". The team goes ahead with the recommended option; a tick on another tells the next
 // run to switch. A pick marked "(waits)" holds its PR for the owner's answer, and an "Applied:" line
-// under a pick names the option the team built, the last one counting, so the owner can still change
-// their mind. The sprint pre-flight reads them (next-sprint.mjs).
+// under a pick names the option the team built, the last one counting, so the owner can still
+// change their mind. The sprint pre-flight reads them (next-sprint.mjs).
 
 const PICK =
   /^#{2,4}\s+Owner's pick(?<waits>\s*\(waits\))?\s*:?\s*(?<question>.*)$/iu;
@@ -48,9 +48,9 @@ export function ownerPicks(body) {
 }
 
 /**
- * What the owner ticked that the team hasn't built: empty when nothing is ticked or the built option
- * is among the ticks. The built one is the last applied, or else the recommended one, which the team
- * builds without waiting; a pick that waits has none until it's applied.
+ * What the owner ticked that the team hasn't built: empty when nothing is ticked or the built
+ * option is among the ticks. The built one is the last applied, or else the recommended one, which
+ * the team builds without waiting; a pick that waits has none until it's applied.
  */
 export function unbuilt({ waits, applied, options }) {
   const ticked = options

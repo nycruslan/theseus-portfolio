@@ -110,10 +110,10 @@ The team decides and merges its own work. Product calls are Quill's and yours, t
 a check the work retires is Lens's to accept: name each retired check in the PR and why the
 behaviour it checked is gone. Lens refuses one without a reason, and never accepts one that only
 makes a failing build pass. Editing the description starts no review: after adding a reason Lens
-asked for, remove and re-add the `review` label. `gate` holds only a PR that touches an owner path (the crew's own rails
-and the owner's facts, in `.github/CODEOWNERS`), changes `package.json`'s scripts, or ever carried
-`needs-owner`, until the owner approves its head; `merge.mjs` leaves such a PR for the owner to
-merge.
+asked for, remove and re-add the `review` label. `gate` holds only a PR that touches an owner path
+(the crew's own rails and the owner's facts, in `.github/CODEOWNERS`), changes `package.json`'s
+scripts, or ever carried `needs-owner`, until the owner approves its head; `merge.mjs` leaves such
+a PR for the owner to merge.
 
 Ask the owner only what only they can decide: an owner path, their own facts, money, accounts and
 secrets, and anything that can't be undone. Put each question in the PR as an Owner's pick: a
