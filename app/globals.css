@@ -946,8 +946,12 @@ main:has(> [data-model]) {
   font-weight: 700;
 }
 
-.rev-log tbody:first-of-type .rev-day th {
-  padding-top: 12px;
+/* Under the heads' ink rule the first group needs less air. Only from 1024: below it the rules
+   for 640 to 1023 and the fold set the first group's own. */
+@media (width >= 64rem) {
+  .rev-log tbody:first-of-type .rev-day th {
+    padding-top: 12px;
+  }
 }
 
 .rev-day-n {
