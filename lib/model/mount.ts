@@ -179,6 +179,14 @@ function start(
   const canvas = document.createElement("canvas");
   host.append(canvas);
   const numbers = ghost ? riders(ghost) : null;
+  /**
+   * The ghost's hull for the drawing shown: 5.0's leader only from 768 px, where its number shows
+   * (the 2D hides both below: .crew/sprint/33/early-look-iris.md, must 1).
+   */
+  const shape = () =>
+    ghost && sheet === sheets.narrow
+      ? { seats: ghost.hull.seats }
+      : ghost?.hull;
 
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
@@ -247,12 +255,17 @@ function start(
       Math.round(p.width * ratio),
       Math.round(p.height * ratio),
     ];
+    // Chromium lays a box out in 1/64 px, flooring: the ghost's CSS size is rounded up to it, so the
+    // buffer is never more than the ratio times the size the page lays out (107 / 1.5 = 71.333
+    // reads back 71.328 at 390, over the 1.5 cap: B5.23).
+    const css = (n: number) =>
+      ghost ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
     return {
       left: p.left - h.left,
       top: p.top - h.top,
       drawing: p.width,
-      width: buffer[0] / ratio,
-      height: buffer[1] / ratio,
+      width: css(buffer[0]),
+      height: css(buffer[1]),
       viewport: innerHeight,
       buffer,
     };
@@ -264,7 +277,7 @@ function start(
    */
   const apply = (next: Fit, keep = false) => {
     if (!stage) return;
-    const level = hullAt(sheet.level, ghost?.hull);
+    const level = hullAt(sheet.level, shape());
     const reshade = !ghost && (!keep || level !== hull);
     const changed = level !== hull;
     if (changed) stage.load(level);
@@ -300,6 +313,7 @@ function start(
         fit.drawing / GHOST.box[2],
         e,
         matchMedia(THREE_VIEWS).matches,
+        hull?.outline ?? new Float32Array(0),
       );
     }
   };
@@ -555,8 +569,9 @@ function start(
   const pickAt = (x: number, y: number): Target | null => {
     if (!ghost || !stage || !loft || !resting()) return null;
     const r = canvas.getBoundingClientRect();
-    // A number set aft of the hull picks its plank: its box, and 4 px round its leader.
-    for (const leader of ghost.leaders) {
+    // A number set aft of the hull picks its plank: its box, and 4 px round its leader, from
+    // 768 px, where they show.
+    for (const leader of sheet === sheets.wide ? ghost.leaders : []) {
       const box = ghost.labels
         .find((label) => label.seat === leader.seat)
         ?.span.getBoundingClientRect();
@@ -688,7 +703,7 @@ function start(
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = hullAt(sheet.level, ghost?.hull);
+    hull = hullAt(sheet.level, shape());
     await pause();
     if (!alive) return;
     stage = createStage(
