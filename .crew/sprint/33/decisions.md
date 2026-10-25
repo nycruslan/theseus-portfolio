@@ -12,3 +12,19 @@
 2. **Sprint 32's merge record is committed with this sprint**, as `.crew/STATE.md` says:
    `merge-record.mjs` wrote `.crew/sprint/32/merge.json` (#82, 2026-10-25T02:08:27Z, 4070914, 43
    of 6,498 lines original).
+
+3. **The build starts from Pixel's spike** (07e2a69, cherry-picked with his memory, 82c27f8): the
+   seam is in the 3D chunk, which reads the ghost's seats off `[data-ghost]`'s paths, so
+   `components/model.tsx`'s loader is unchanged and `/`'s geometry and loft are identical. Pixel's
+   three open items are already in the contract: per-side index ranges for Iris's two passes
+   (26,288 and 8,432 triangles in 5 draws; three's default `DoubleSide` would break both budgets),
+   the rest window with the pointer off the hull, and the off-screen window at 1440 × 600, 1024
+   and 390.
+
+4. **Two builders on written-down files.** Pixel owns the chunk (`lib/model/*`) and the model
+   layer's CSS: Iris's look, the pick, the move, the hover and record marks, the number spans
+   riding their planks. Forge owns the page side: `components/log.tsx`, `components/log-record.tsx`,
+   `app/log/**`, `components/bar.tsx`, the control's place on `/log` (bar from 768, the row after
+   the header below), Lens's nit on #74 in `components/model.tsx`'s `MotionControl`, and Iris's
+   rule-width rider. `app/globals.css` is shared: Pixel's rules stay under the model layer's
+   selectors, Forge's under the Log's header and the control's row, each in its own block.

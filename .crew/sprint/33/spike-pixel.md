@@ -5,7 +5,8 @@ Pixel, 2026-10-25. A scratch mount of the ghost hull on `/log` in my worktree
 (`e2e/webgl.ts`'s `openModel`, the frame and draw recorder) and B2.10's and B3.6's byte methods
 against `next start` on 4850 (the base) and 4851 (the spike). The scratch ghost is one side,
 opaque, cursor-only hover, built before Iris's notes landed; section 2 adds her look as counted
-geometry. Every GPU number is SwiftShader's floor. The scripts are in my scratchpad (`maths/`).
+geometry. Check numbers follow the contract's final ones (B5.18 to B5.26). Every GPU number is
+SwiftShader's floor. The scripts are in my scratchpad (`maths/`).
 
 ## The answer
 
@@ -15,9 +16,14 @@ geometry. Every GPU number is SwiftShader's floor. The scripts are in my scratch
   seats and numbers off that drawing (`path[data-plank][data-sprint]`, which the server drew with
   `ghostPlanks`, B5.4's oracle). So the 3D can't disagree with the 2D, and B2.10's 10 B stays
   untouched (Lens's #74 nit is the only loader change, about 3 B).
-- **One chunk, the same file on both routes:** 147,126 B gzip -9 with the spike's ghost code in it
-  (`/`'s today: 145,277 B), at 1440 and 390, on `/` and `/log`. A visitor from `/` downloads no new
-  3D.
+- **One chunk, the same file on both routes:** 147,094 B gzip -9 with the spike's ghost code in it
+  (`/`'s today: 145,277 B, so +1,817 B), at 1440 and 390, on `/` and `/log`. A visitor from `/`
+  downloads no new 3D.
+- **`/` is untouched:**
+  - `/` with WebGL refused is still 460,920 B decoded in 6 files.
+  - `/log` with WebGL refused loads exactly those files (the 404: 458,882 B in 5).
+  - Against the spike's build, `/`'s B3.1, B3.6, the rest of `model-landing`, and `motion.spec.ts`
+    all pass (see item 6 of section 5).
 - **Cheap:** 3 draws and 15,580 triangles from 768 px, 5,476 below, in the scratch ghost. Iris's
   both-sides ghost is 26,288 and 8,432 with two hover or record marks, **if** her two passes draw
   one side's index range each; as three's default two-pass `DoubleSide` it's 46,288 and 13,632,
@@ -93,8 +99,9 @@ height) and `DURATION` (1.8 s against 2.4 s), both global constants today.
   the buffers, or groups with a `BackSide` and a `FrontSide` material. The near side is `+z` at
   every pose of a −20° yaw and 12° pitch, so the split is static.
 - That's her 5 draws (far, near, seams, outline, marks) at 26,288 triangles.
-- A single `forceSinglePass` `DoubleSide` draw would make 4, but it also draws the near side's own
-  back faces wherever the bilge turns under, so it isn't her look.
+- A single `forceSinglePass` `DoubleSide` draw would make 4, but it would also draw any near-side
+  face that turns away from the camera, and blend in index order rather than far then near. I
+  didn't render it, so it isn't proven to be her look.
 - Use the sheet's shared lift seams, drawing a segment only where a plank beside it exists. A gap
   (fixtures only, k < 22) then leaves no seam, without the 3,600 extra triangles that per-plank
   edges cost.
@@ -121,7 +128,7 @@ height) and `DURATION` (1.8 s against 2.4 s), both global constants today.
 - **The style write is the cost, not the ray.** With `main`'s cursor written on every move, the
   handler cost 0.8 to 2.1 ms where the ray took 0.1 to 0.7, because the next rect read restyles
   `main`'s whole table. Write only when it changes. Better still, put the cursor on the canvas,
-  since Iris gives the canvas pointer events at rest: that restyles only the canvas, and B5.23 can
+  since Iris gives the canvas pointer events at rest: that restyles only the canvas, and B5.24 can
   read the canvas's cursor as the contract says. With `pointer-events: none` it would have to read
   the computed cursor under the point instead.
 - **A press during the move.** If the pick listens on the canvas, and the canvas takes events only
@@ -142,14 +149,14 @@ height) and `DURATION` (1.8 s against 2.4 s), both global constants today.
   - light: 5.98:1 at worst at 1440 and 1024;
   - dark, under `/`'s ×4 lamp: 3.18:1 at worst, with 9 numbers under 4.5:1 at 1440 and 8 at 1024.
   The lamp lifts the upper strakes to about (118, 132, 131). Iris's dark gain of 1.6 is what fixes
-  it; check B5.18's 4.5:1 there.
+  it; check B5.19's 4.5:1 there.
 - **The paint-order trap below.** It hid my clones at frame 1: the layer painted under the drawing.
 
 ## 5. What won't hold as written
 
 1. **The numbering.** B5b ended at **B5.17** ("Nothing else moves", `.crew/sprint/32/contract.md`;
-   `e2e/log-dates.spec.ts` line 36), not B5.16. The contract's B5.17 to B5.25 collide; B5c starts at
-   B5.18.
+   `e2e/log-dates.spec.ts` line 36), not B5.16. So B5c starts at B5.18, which the contract
+   now does.
 2. **Paint order.** `.log-ghost` has `order: 2`, and flex and grid items paint in order-modified
    document order. So `[data-model]` (order 0) paints *under* the ghost at every width, though it
    follows it in the DOM.
@@ -166,17 +173,22 @@ height) and `DURATION` (1.8 s against 2.4 s), both global constants today.
    The contract's "an off-screen layer opens settled" should say the ghost's drawing.
 4. **B3.6's off-screen window can't happen at 1440 × 900 on `/log`.** The page is 2,036 px tall, so
    at its bottom the drawing ends 779 px above the viewport. That's within a viewport, so the near
-   rule rightly draws on a scheme switch. B5.22 needs 1440 × 600, or 1024 and 390, for that window.
+   rule rightly draws on a scheme switch. B5.23 needs 1440 × 600, or 1024 and 390, for that window.
 5. **B3.6's rest window moves the pointer over the drawing,** from (width/4, 150) to (width/2, 200).
    On `/log` at 1440 that ends on a plank.
    - With Iris's hover, that is one frame per plank entered. On CI's SwiftShader that is a 100 to
      300 ms task each.
-   - B5.22 should keep the pointer off the hull. B5.23 should count exactly one frame per hovered
+   - B5.23 should keep the pointer off the hull. B5.24 should count exactly one frame per hovered
      plank change and none within a plank.
-6. **The default path turns two Log checks red,** run against the spike (the full list is in the
-   report): B5.10's "load the 404's script files and bytes" and B5.4's "every plank filled with
-   `--vellum`" (the ghost goes hollow under the model). The contract's plan, the Log specs on the
-   WebGL-refused path with B5.10 rewritten against `/`'s files, covers both.
+6. **The default path turns two Log checks red.** I ran `model-landing`, `model-cost`, `motion`,
+   `log`, `log-record`, `log-dates` and `log-entry` against the spike's build: 69 passed and 2
+   failed, both as expected.
+   - B5.10's "load the 404's script files and bytes": `/log` requests two more files, the loader
+     and the 3D chunk.
+   - B5.4's "ghost numbers at 1440 (dark)": 0 found, because the 2D numbers are hidden under the
+     model.
+   The contract's plan (the Log specs on the WebGL-refused path, with B5.10 rewritten against `/`'s
+   files) covers both.
 7. **The hold and the duration are global** (`HOLD`, `DURATION` in `lib/model/calls.ts`). Iris's
    width hold and 1.8 s need them per settle. That's a few lines in the chunk, and `/` is unchanged.
 8. **At 1440 the move ends `still` on SwiftShader** after 6 frames, as `/`'s does. Probe's
@@ -186,7 +198,8 @@ height) and `DURATION` (1.8 s against 2.4 s), both global constants today.
 
 The spike is the start of the build: the seam, the hull variant, the stage flag, the settle per
 layout, the numbers' projection, the raycast pick against the proxy, visibility on the drawing, and
-the order fix. It is committed on `pixel/33` (the commit is named in my report).
+the order fix. It is committed on `pixel/33` as 07e2a69, with my memory lines in 82c27f8, and pushed to
+`origin/pixel/33`.
 
 Iris's look isn't in it yet: both sides, translucency and its colour solve, the two passes, moving
 the drawing's own spans rather than clones, the canvas taking events at rest, the marks, the
@@ -198,8 +211,9 @@ stagger, 5.0's leader and box, and the hold, duration and dark gain. The CSS rul
 - Feel and frame rate: no GPU and no phone here.
 - B3.1's registration bound itself. I compared frame 1 with the Off page by pixels instead:
   - fills and numbers matched exactly;
-  - lines moved by antialiasing only, at 0.95% of the box's pixels by more than 16 levels at 1440 @1
-    (worst 94);
+  - the lines differ at 0.95% of the box's pixels by more than 16 levels at 1440 @1 (worst 94), and
+    0.38% at 1440 @2 dark. The diff shows single thin traces along them, with no doubled edges, so
+    I read it as antialiasing, not an offset;
   - at 390 @2 it was 2.49%, the outline at the 1.5× cap scaled to DPR 2.
 - The chrome-devtools MCP refused to start Chrome as root in this container, so the trace is
   Playwright's CDP tracing (`devtools.timeline`), read per drawn frame.
