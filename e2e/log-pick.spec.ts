@@ -30,7 +30,8 @@ import { openModel } from "./webgl";
 // mouse, at rest, the plank under the pointer sets `data-pick="<seat>"` on `[data-model]` and the
 // canvas's cursor to pointer; a click is a document navigation to /log/GHOST[seat]. From 768 px the
 // aim is each number span's centre (the numbers take no pointer events, so a click on one picks its
-// plank; 5.0's sits off the hull at its leader's end, which the pick tests first). Below 768 the
+// plank; 5.0's and, from 768, 3.0's sit off the hull at their leaders' ends, which the pick
+// tests first: .crew/sprint/33/early-look-iris.md, "Decision on must 2"). Below 768 the
 // numbers are hidden and the pose isn't the drawing's, so each seat's point is found by a mouse
 // scan on a 2 px grid in a context without touch, then tapped in one with touch.
 
