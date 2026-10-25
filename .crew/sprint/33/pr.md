@@ -58,7 +58,16 @@ steps).
   - B5.25's "one key" counts only `/log`'s own scripts;
   - B5.19 samples each plank's own vellum on the canvas's fill levels;
   - B5.19's mark check searches its 3 px neighbourhood at 1 px steps.
-- **Results:** `pnpm verify` passes, and the full suite passes 183 of 183 (33.7 min) on b2f5ac2.
+- **Results:** `pnpm verify` passes, and the full suite passes 184 of 184 (29.4 min) on 34b2500, after Lens's fix round.
+
+### Lens's fix round 1
+
+Lens said changes on d430702. The fixes:
+- a mouse press dragged off the canvas left hover dead: it is now a cancelled click, and a new check fails without the fix;
+- new tabs open with `noopener`, so they play the move;
+- main is merged in, with an unchanged tree.
+
+Forge also root-caused a one-off CLS of 0.0699 on `/log/13` at 320. A partial first paint came before the drawing, which comes later in the DOM than on screen. The Log now holds its first paint with `<link rel="expect" blocking="render">` (decision 11).
 
 ### Iris
 
