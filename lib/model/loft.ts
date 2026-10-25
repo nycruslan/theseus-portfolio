@@ -44,9 +44,9 @@ export type Pose = {
 
 /** The deck's greatest half-breadth and a margin, in hull units: the model clears the sheet. */
 const STANDOFF = 76;
-/** CSS px a turn in place keeps clear inside its canvas: the 1.4 px outline, half on each side,
- * and 0.2 for the canvas's rounding to whole buffer pixels. */
-const ROOM = 1.6;
+/** Half the outline's width in CSS px: what a turn in place keeps clear of its canvas's edge, and
+ * half a buffer row more, so the outline's ink covers no edge row (B5.18 at 320 x 568). */
+const OUTLINE_HALF = 0.7;
 /** Samples of the solved loft; the frame loop interpolates between them. */
 const SAMPLES = 48;
 
@@ -99,6 +99,8 @@ export type Frame = {
   height: number;
   drawing: number;
   viewport: number;
+  /** Buffer pixels per CSS px, where a turn in place needs it (the ghost's room). */
+  ratio?: number;
 };
 
 /** Where the model settles on one drawing: its offset in the drawing's units, its turn in
@@ -172,7 +174,8 @@ export type Loft = ReturnType<typeof makeLoft>;
 /** The loft for one canvas over `layout`'s drawing: the pose and the camera's 1/D at eased
  * progress e. */
 export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
-  const { width, height } = frame;
+  const { width, height, ratio = 1 } = frame;
+  const margin = OUTLINE_HALF + 0.5 / ratio;
   const settle = settleOn(layout);
   const { from, to, scale, lens } = poses(frame, layout, settle);
   const lerp = (a: number, b: number, e: number) => a + (b - a) * e;
@@ -219,13 +222,15 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
       );
       s *= want / box[settle.hold];
       // The ghost turns in place inside the box its canvas lies on: never taller than the canvas
-      // less ROOM, so the outline's ink isn't clipped (0.35% of its length at 1440 × 900, 1.5% at 390),
-      // and its framed box keeps the registered centre, the drawing's.
+      // less a margin on each side, so the outline's ink covers no edge row (0.85% of its length at
+      // 1440 × 900 at DPR 1, 0.6% at DPR 2), its framed box keeping the registered centre across
+      // and riding to the canvas's centre down, so both margins are kept.
       if (settle.centre) {
         const tall = (box.height * want) / box[settle.hold];
-        if (tall > height - ROOM) s *= (height - ROOM) / tall;
+        const room = height - 2 * margin;
+        if (tall > room) s *= room / tall;
         screen.cx += registered.cx - box.cx;
-        screen.cy += registered.cy - box.cy;
+        screen.cy += lerp(registered.cy, height / 2, e) - box.cy;
       }
     }
     return worldPose(screen, s, invD);

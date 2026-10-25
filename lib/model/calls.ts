@@ -89,8 +89,19 @@ export const GHOST_LIT = 0.5;
 export const GHOST_GAIN = 1.35;
 export const GHOST_DARK_GAIN = 1.6;
 
+/**
+ * The seats whose numbers the 3D leads out aft, as the 2D leads out 5.0's, from 768 px: 3.0's "8",
+ * where the turned stern leaves its plank no place to clear the outline (Iris's decision on must 2,
+ * .crew/sprint/33/early-look-iris.md). Each goes at its lift's mid-depth, LEAD_OUT units aft of its
+ * plank's stern end, right-aligned, with a leader LEAD_GAP units short of it into the plank, as the
+ * 2D's rule sets 5.0 (lib/lines-plan.ts). The Off drawing keeps them on their planks.
+ */
+export const LED_OUT: readonly string[] = ["3.0"];
+export const LEAD_OUT = 22;
+export const LEAD_GAP = 2;
+
 /** The ghost's line weights in CSS px: the seams and butts, the outline, and the ink mark of a
- * record's plank or the hovered one (calls 1 and 4). */
+ * record's plank or the hovered one (calls 1 and 4); the leaders are the seams' weight. */
 export const GHOST_EDGE_PX = 0.75;
 export const GHOST_OUTLINE_PX = 1.4;
 export const MARK_PX = 1.4;

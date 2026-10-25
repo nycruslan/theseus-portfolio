@@ -4,6 +4,7 @@
 // own seat and the leaders all come from it, so the 3D can't disagree with the 2D. No three.js.
 
 import { GHOST, PLANKS } from "@/lib/hull-layouts";
+import { LEAD_GAP, LEAD_OUT, LED_OUT } from "./calls";
 import { bandAt, type Ghost, nearSide, type Vec3 } from "./hull";
 import type { Loft } from "./loft";
 
@@ -15,12 +16,18 @@ type Label = {
   share: [number, number];
   /** The same point in hull units. */
   anchor: [number, number];
-  /** Set aft of the hull at its leader's end, right-aligned (only 5.0's today). */
-  led: boolean;
+  /** The span is right-aligned on its anchor: the 2D leads it out (only 5.0's today). */
+  end: boolean;
+  /**
+   * Led out aft of the hull from 768 px, with a leader into its plank: by the 2D drawing ("2d",
+   * 5.0's, already there at frame 1), or by the 3D alone ("3d", LED_OUT's, riding out with e).
+   */
+  lead: "2d" | "3d" | undefined;
+  /** Where a led-out number's right edge stands at rest, in hull units. */
+  out: [number, number];
+  /** Its leader's inner end, on the plank, in hull units. */
+  into: [number, number];
 };
-
-/** A leader from a number set aft of the hull to its plank, in the model's frame. */
-type Leader = { seat: string; points: Vec3[] };
 
 const [BX, BY, BW, BH] = GHOST.box;
 
@@ -55,39 +62,57 @@ export function readGhost(drawing: Element) {
       Number.parseFloat(span.style.left) / 100,
       Number.parseFloat(span.style.top) / 100,
     ];
-    return {
-      span,
-      seat: seatOf.get(span.textContent ?? ""),
-      share,
-      anchor: toHull(share[0] * BW + BX, share[1] * BH + BY),
-      led: span.classList.contains("plan-end"),
-    };
+    const seat = seatOf.get(span.textContent ?? "");
+    const anchor = toHull(share[0] * BW + BX, share[1] * BH + BY);
+    const end = span.classList.contains("plan-end");
+    const plank = PLANKS.find((candidate) => candidate.id === seat);
+    // The 3D's own: at its lift's mid-depth, LEAD_OUT units aft of the plank, its leader into the
+    // plank where the 2D sets its number, so the leader has no length at frame 1.
+    const lead: Label["lead"] = end
+      ? "2d"
+      : seat && plank && LED_OUT.includes(seat)
+        ? "3d"
+        : undefined;
+    const out: [number, number] =
+      lead === "3d" && plank
+        ? [plank.x0 - LEAD_OUT, (plank.yTop + plank.yBot) / 2]
+        : anchor;
+    return { span, seat, share, anchor, end, lead, out, into: anchor };
   });
-  // The drawing's leaders, "M x y H x" each, lifted onto the near side: each one's y is its
-  // number's, so the number names its seat.
-  const leaders: Leader[] = [];
+  // The drawing's leaders, "M x y H x" each: each one's y is its number's, so the number names its
+  // seat, and its inner end is the leader's into its plank.
   const d = drawing.querySelector(".ln-leader")?.getAttribute("d") ?? "";
-  for (const [, x0, y0, x1] of d.matchAll(
+  for (const [, , y0, x1] of d.matchAll(
     /M(-?[\d.]+)[ ,](-?[\d.]+)H(-?[\d.]+)/g,
   )) {
-    const [ax, ay] = toHull(Number(x0), Number(y0));
-    const [bx] = toHull(Number(x1), Number(y0));
+    const [bx, by] = toHull(Number(x1), Number(y0));
     const label = labels.find(
-      (candidate) => candidate.led && Math.abs(candidate.anchor[1] - ay) < 0.5,
+      (candidate) => candidate.end && Math.abs(candidate.anchor[1] - by) < 0.5,
     );
-    if (!label?.seat) continue;
-    leaders.push({
-      seat: label.seat,
-      points: Array.from({ length: 9 }, (_, i) =>
-        nearSide(ax + ((bx - ax) * i) / 8, ay),
-      ),
-    });
+    if (label) label.into = [bx, by];
   }
-  const hull: Ghost = {
-    seats: new Set(numbers.keys()),
-    leaders: leaders.map((leader) => leader.points),
-  };
-  return { numbers, current, labels, leaders, hull };
+  const hull: Ghost = { seats: new Set(numbers.keys()) };
+  return { numbers, current, labels, hull };
+}
+
+/**
+ * A led-out number's leader at eased progress e, as a polyline on the near side in the model's
+ * frame: from LEAD_GAP units short of the number into its plank. The 3D's own rides out with its
+ * number from the plank, so at frame 1 it has no length.
+ */
+function leaderAt(label: Label, e: number): Vec3[] {
+  const [ox, oy] = [label.out[0] + LEAD_GAP, label.out[1]];
+  const [ax, ay] =
+    label.lead === "3d"
+      ? [
+          label.into[0] + (ox - label.into[0]) * e,
+          label.into[1] + (oy - label.into[1]) * e,
+        ]
+      : [ox, oy];
+  const [bx, by] = label.into;
+  return Array.from({ length: 9 }, (_, i) =>
+    nearSide(ax + ((bx - ax) * i) / 8, ay + ((by - ay) * i) / 8),
+  );
 }
 
 type Box = { l: number; r: number; t: number; b: number };
@@ -116,6 +141,31 @@ function edgesOf(plank: Plank) {
   ];
 }
 
+/** One canvas for measuring the digits' ink, made once. */
+let measure: CanvasRenderingContext2D | null | undefined;
+
+/**
+ * How far a number's ink sits inside its span's box, in CSS px on each side: the glyphs' actual
+ * bounds from the canvas's text metrics, against the baseline that a line box as tall as the font
+ * (line-height 1) sets. Iris's bar is that no line crosses a digit's ink (early-look-iris.md).
+ */
+function inkInsets(span: HTMLElement) {
+  measure ??= document.createElement("canvas").getContext("2d");
+  const style = getComputedStyle(span);
+  const [w, h] = [span.offsetWidth, span.offsetHeight];
+  if (!measure || !w || !h) return { l: 0, r: 0, t: 0, b: 0 };
+  measure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const m = measure.measureText(span.textContent ?? "");
+  const content = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+  const baseline = (h - content) / 2 + m.fontBoundingBoxAscent;
+  return {
+    l: Math.max(0, -m.actualBoundingBoxLeft),
+    r: Math.max(0, w - m.actualBoundingBoxRight),
+    t: Math.max(0, baseline - m.actualBoundingBoxAscent),
+    b: Math.max(0, h - baseline - m.actualBoundingBoxDescent),
+  };
+}
+
 /** The distance from a segment to a box, 0 where they meet. */
 function reach(box: Box, [ax, ay]: Point, [bx, by]: Point) {
   const inside = (x: number, y: number) =>
@@ -137,30 +187,43 @@ function reach(box: Box, [ax, ay]: Point, [bx, by]: Point) {
  * the frame draws it, in custom properties that app/globals.css applies only while the model has a
  * state. A number's point is the screen midpoint between its plank's projected top and bottom edges,
  * since on the turned hull a band's projected middle isn't its middle's projection
- * (.crew/sprint/33/early-look-iris.md, must 2). At rest it stands where that projected depth is
- * greatest within the 2D's body stretch; set in seat order, one whose box would come within 2 px of
- * another number, or within 1 px of its plank's edges or the outline, slides along its own plank,
- * either way, to the nearest place that clears both (the band at least 6 units deep), else the
- * nearest that clears the numbers, else stays. In the move it rides from the 2D's place to that x
- * with e: at e 0 the midpoint is the 2D's anchor, so frame 1 is the drawing.
+ * (.crew/sprint/33/early-look-iris.md, must 2). At rest each takes the place along its plank 2 px
+ * clear of the other numbers and 1 px clear of every line drawn (both sides' seams through the
+ * vellum, the outline, the record's mark, the leaders), nearest the 2D's place; where none is, the
+ * clearest, the hardest planks placed first. A led-out number (5.0's in the 2D, LED_OUT's in the 3D
+ * alone) stands aft at its leader's end. In the move each rides from the 2D's place with e, so frame
+ * 1 is the drawing.
  */
 export function riders({ labels }: GhostPage) {
   const planks = labels.map((label) =>
     PLANKS.find((plank) => plank.id === label.seat),
   );
   const edges = planks.map((plank) => (plank ? edgesOf(plank) : []));
-  /** Each label's settled x in hull units; a led-out one keeps its anchor. */
+  /** Each label's settled x in hull units; a led-out one rides out instead. */
   let targets: number[] | null = null;
   /** Each span's box corner on the page with no offset: where its device pixels fall. */
   let bases: [number, number][] | null = null;
   const offset = (span: HTMLElement, name: string) =>
     Number.parseFloat(span.style.getPropertyValue(name)) || 0;
 
-  /** A number's point and its plank's projected depth there, at x and eased progress e. */
+  /** Each span's width, read with the places: a 3D-led number's right edge goes on its point. */
+  let widths: number[] = [];
+
+  /** A number's point (its box's anchor) and its plank's projected depth there, at x and e. */
   const pointAt = (i: number, loft: Loft, x: number, e: number) => {
     const label = labels[i];
     const plank = planks[i];
-    if (!label || !plank || label.led) {
+    if (label?.lead === "3d") {
+      const [ax, ay] = label.anchor;
+      const [ox, oy] = label.out;
+      const [px, py] = loft.screen(
+        [nearSide(ax + (ox - ax) * e, ay + (oy - ay) * e)],
+        e,
+      )[0] ?? [0, 0];
+      // Centred in the 2D, right-aligned on its leader's end once out.
+      return { at: [px - ((widths[i] ?? 0) / 2) * e, py] as const, depth: 0 };
+    }
+    if (!label || !plank || label.lead) {
       return {
         at: loft.screen([nearSide(...(label?.anchor ?? [0, 0]))], e)[0] ?? [
           0, 0,
@@ -181,52 +244,107 @@ export function riders({ labels }: GhostPage) {
     };
   };
 
-  const settle = (loft: Loft, outline: Float32Array) => {
+  const settle = (loft: Loft, drawn: Float32Array) => {
     // The clearances hold after each box is rounded to the device's pixels; a line's ink is
     // measured from its centre, so 1 px past the widest line's half (the outline's, 1.4 px).
     const round = 1 / devicePixelRatio;
     const gap = 2 + round;
     const ink = 1 + 0.7;
-    const outlined: [Point, Point][] = [];
-    for (let i = 0; i < outline.length; i += 6) {
-      const [a, b] = loft.screen(
-        [
-          [outline[i] ?? 0, outline[i + 1] ?? 0, outline[i + 2] ?? 0],
-          [outline[i + 3] ?? 0, outline[i + 4] ?? 0, outline[i + 5] ?? 0],
-        ],
-        1,
-      );
-      if (a && b) outlined.push([a, b]);
+    // Every line the settled frame draws, on screen, in 24 px cells: the far side's seams show
+    // through the near side's vellum, so a number clears them too; and the leaders.
+    const CELL = 24;
+    const cells = new Map<string, [Point, Point][]>();
+    const add = (a: Point, b: Point) => {
+      for (
+        let cx = Math.floor(Math.min(a[0], b[0]) / CELL);
+        cx <= Math.floor(Math.max(a[0], b[0]) / CELL);
+        cx++
+      ) {
+        for (
+          let cy = Math.floor(Math.min(a[1], b[1]) / CELL);
+          cy <= Math.floor(Math.max(a[1], b[1]) / CELL);
+          cy++
+        ) {
+          const key = `${cx}:${cy}`;
+          const list = cells.get(key) ?? [];
+          list.push([a, b]);
+          cells.set(key, list);
+        }
+      }
+    };
+    const pairs: Vec3[] = [];
+    for (let i = 0; i + 5 < drawn.length; i += 3) {
+      if ((i / 3) % 2 === 0) {
+        pairs.push(
+          [drawn[i] ?? 0, drawn[i + 1] ?? 0, drawn[i + 2] ?? 0],
+          [drawn[i + 3] ?? 0, drawn[i + 4] ?? 0, drawn[i + 5] ?? 0],
+        );
+      }
     }
+    const flat = loft.screen(pairs, 1);
+    for (let i = 0; i + 1 < flat.length; i += 2) {
+      const [a, b] = [flat[i], flat[i + 1]];
+      if (a && b) add(a, b);
+    }
+    for (const label of labels) {
+      if (!label.lead) continue;
+      const line = loft.screen(leaderAt(label, 1), 1);
+      for (let j = 1; j < line.length; j++) {
+        const [a, b] = [line[j - 1], line[j]];
+        if (a && b) add(a, b);
+      }
+    }
+    /** The lines whose cells a box, grown by `ink`, touches. */
+    const nearBox = (box: Box) => {
+      const found = new Set<[Point, Point]>();
+      for (
+        let cx = Math.floor((box.l - ink) / CELL);
+        cx <= Math.floor((box.r + ink) / CELL);
+        cx++
+      ) {
+        for (
+          let cy = Math.floor((box.t - ink) / CELL);
+          cy <= Math.floor((box.b + ink) / CELL);
+          cy++
+        ) {
+          for (const segment of cells.get(`${cx}:${cy}`) ?? [])
+            found.add(segment);
+        }
+      }
+      return found;
+    };
     type Place = { x: number; box: Box; score: number; d: number };
+    widths = labels.map(({ span }) => span.offsetWidth);
+    const insets = labels.map(({ span }) => inkInsets(span));
     /** Each number's places along its plank, with how clear each is of the plank's lines. */
     const places = labels.map((label, i): Place[] => {
       const plank = planks[i];
       const [w, h] = [label.span.offsetWidth, label.span.offsetHeight];
       const boxAt = ([x, y]: Point): Box =>
-        label.led
+        label.end
           ? { l: x - w, r: x, t: y - h / 2, b: y + h / 2 }
           : { l: x - w / 2, r: x + w / 2, t: y - h / 2, b: y + h / 2 };
-      if (label.led || !plank) {
+      if (label.lead || !plank) {
         const x = label.anchor[0];
         return [{ x, box: boxAt(pointAt(i, loft, x, 1).at), score: ink, d: 0 }];
       }
       const [top, bottom, ...butts] = (edges[i] ?? []).map((line) =>
         loft.screen(line, 1),
       );
-      // The outline's segments near this plank: the rest can't come within a box of it.
-      const xs = [...(top ?? []), ...(bottom ?? [])].map(([x]) => x);
-      const [left, right] = [Math.min(...xs) - 40, Math.max(...xs) + 40];
-      const near = outlined.filter(
-        ([a, b]) =>
-          Math.max(a[0], b[0]) >= left && Math.min(a[0], b[0]) <= right,
-      );
       /**
-       * How clear a box is of its plank's lines, in px: its slack to the projected top and bottom
-       * edges over its width (negative where a seam crosses it), and its distance from the butts and
-       * the outline. At least `ink` is clear.
+       * How clear a number's digits are of the lines, in px: their slack to the plank's projected
+       * top and bottom edges over their width (negative where a seam crosses them), and their
+       * distance from its butts and every other line drawn. At least `ink` is clear.
        */
-      const clearance = (box: Box) => {
+      const inset = insets[i] ?? { l: 0, r: 0, t: 0, b: 0 };
+      const clearance = (outer: Box) => {
+        // The digits' ink, not the span's box: a line through its margin doesn't show.
+        const box: Box = {
+          l: outer.l + inset.l,
+          r: outer.r - inset.r,
+          t: outer.t + inset.t,
+          b: outer.b - inset.b,
+        };
         const ys = (line: readonly Point[] | undefined) => {
           const found: number[] = [];
           (line ?? []).forEach(([x, y], j) => {
@@ -254,7 +372,9 @@ export function riders({ labels }: GhostPage) {
             );
           }
         }
-        for (const [a, b] of near) score = Math.min(score, reach(box, a, b));
+        for (const [a, b] of nearBox(box)) {
+          score = Math.min(score, reach(box, a, b));
+        }
         return score;
       };
       // Every place along the plank where it is at least 6 units deep, a unit apart.
@@ -278,7 +398,7 @@ export function riders({ labels }: GhostPage) {
     /**
      * Of a number's places 2 px clear of the others: the clear one nearest the 2D's place; else the
      * clearest, where the plank's projected depth is greatest and the box is centred in it, nearest
-     * the 2D's place of those within a quarter pixel of it.
+     * the 2D's place of those within 0.05 px of it.
      */
     const choose = (i: number, others: readonly Box[]) => {
       const open = (places[i] ?? []).filter((place) =>
@@ -290,7 +410,7 @@ export function riders({ labels }: GhostPage) {
       if (clear) return clear;
       const most = Math.max(...open.map((place) => place.score));
       return open
-        .filter((place) => place.score >= most - 0.25)
+        .filter((place) => place.score >= most - 0.05)
         .sort((a, b) => a.d - b.d)[0];
     };
     // The hardest first, the planks whose clearest place is least clear (the keel's and the
@@ -324,18 +444,18 @@ export function riders({ labels }: GhostPage) {
     },
     /**
      * Sets each number at eased progress e on `loft`, whose drawing is `k` CSS px a unit, clear of
-     * `outline` (the hull's, in the model's frame); below 768 px, where the numbers are hidden, it
-     * clears them instead.
+     * the lines `drawn` gives (segment pairs in the model's frame, read when the places are solved);
+     * below 768 px, where the numbers are hidden, it clears them instead.
      */
     place(
       loft: Loft,
       k: number,
       e: number,
       shown: boolean,
-      outline: Float32Array,
+      drawn: () => Float32Array,
     ) {
       if (!shown) return this.clear();
-      targets ??= settle(loft, outline);
+      targets ??= settle(loft, drawn());
       bases ??= labels.map(({ span }) => {
         const r = span.getBoundingClientRect();
         return [
@@ -359,6 +479,19 @@ export function riders({ labels }: GhostPage) {
         label.span.style.setProperty("--ghost-x", snap(px - x0, bx));
         label.span.style.setProperty("--ghost-y", snap(py - y0, by));
       });
+    },
+    /**
+     * The led-out numbers' leaders at eased progress e, each with its seat, as polylines in the
+     * model's frame: none at frame 1, since the 2D draws its own, and none below 768 px.
+     */
+    leaders(e: number, shown: boolean) {
+      if (!shown || e <= 0) return [];
+      return labels
+        .filter((label) => label.lead && label.seat)
+        .map((label) => ({
+          seat: label.seat ?? "",
+          points: leaderAt(label, e),
+        }));
     },
     /** Every number back at its place in the drawing. */
     clear() {

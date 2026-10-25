@@ -238,7 +238,10 @@ export function createStage(
   const marks = lines(new Float32Array(6), false);
   marks.line.visible = false;
   marks.line.renderOrder = 1;
-  model.add(marks.line);
+  // The led-out numbers' leaders, graphite at the seams' weight, laid each frame.
+  const leads = lines(new Float32Array(6), true);
+  leads.line.visible = false;
+  model.add(marks.line, leads.line);
   /** The ghost's colours: the token and the translucent colour that composites to it. */
   const vellum = new Color();
   const solved = new Color();
@@ -301,6 +304,7 @@ export function createStage(
       outline.material.linewidth =
         (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
       marks.material.linewidth = MARK_PX * ratio;
+      leads.material.linewidth = GHOST_EDGE_PX * ratio;
     },
 
     /**
@@ -375,6 +379,7 @@ export function createStage(
         solved.setRGB(channel("r"), channel("g"), channel("b"), "srgb");
         seams.material.color.set(palette.dark ? palette.muted : palette.pencil);
         outline.material.color.set(palette.muted);
+        leads.material.color.set(palette.muted);
         gain = palette.dark ? GHOST_DARK_GAIN : GHOST_GAIN;
       }
       for (const light of [sky, fill, sun]) {
@@ -418,6 +423,15 @@ export function createStage(
       renderer.render(scene, camera);
     },
 
+    /** The led-out numbers' leaders, as segment pairs in the model's frame; none hides them. */
+    lead(positions: Float32Array) {
+      leads.line.visible = positions.length > 0;
+      if (!positions.length) return;
+      const old = leads.line.geometry;
+      leads.line.geometry = lineGeometry(positions, true);
+      old.dispose();
+    },
+
     /** The ghost's ink marks, as segment pairs in the model's frame; none hides them. */
     mark(positions: Float32Array) {
       marks.line.visible = positions.length > 0;
@@ -459,7 +473,7 @@ export function createStage(
       proxy?.geometry.dispose();
       (proxy?.material as MeshBasicMaterial | undefined)?.dispose();
       card.material.dispose();
-      for (const part of [seams, outline, marks]) {
+      for (const part of [seams, outline, marks, leads]) {
         part.line.geometry.dispose();
         part.material.dispose();
       }
