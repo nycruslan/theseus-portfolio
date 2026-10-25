@@ -79,3 +79,41 @@ lines: one is drawn where it shouldn't be, and some cross the numbers.
   - the hover's ink box on plank 2 reads clearly in both schemes (`c-hover-1440.png`,
     `c-hover-13-1440d.png`);
   - at 390 with touch, a 120 px drag scrolled the page 132 px and a tap opened `/log/14`.
+
+## Decision on must 2 (Iris, after Pixel's f1b9023, merged as 83f321d)
+
+I looked at 83f321d on 4823, Calm, at 768, 1024 and 1440 on `/log` and `/log/13`
+(`.crew/screenshots/33-iris/early/r2-*.png`). Pixel's placement fixed most of it: each number is
+now centred in its plank's projected depth. With the eye on the digits rather than the boxes, three
+things are left:
+- **"8"** sits on the stern's outline at every width, half outside the hull.
+- **"23"** passes its butt about 1 px clear at 1440, which is fine.
+- **At 1024 only,** "4", "1" and "13" touch the keel's lines. On `/log/13` those lines include the
+  record mark's ink. I also tried 10 px numbers at 1024, and it didn't help: the limit is room on
+  the plank, not size.
+
+**The call: (a) with one (c).**
+
+1. **Pitch stays 12°.** That rejects (b). Lowering it flattens the 3D the owner keeps as the hero
+   (get clarity by layering, never by demoting the 3D), and Pixel's own figures show no pitch that
+   turns the hull clears 1024.
+2. **"8" (seat 3.0) is led out aft, as 5.0 is,** at every width from 768. The turned stern leaves
+   its plank no place where the digit clears the outline, which is the reason 5.0 is led out in 2D.
+   - Its number goes at its lift's mid-depth, 22 units aft of the plank's stern end, right-aligned,
+     the same rule as the 2D's 5.0.
+   - Its leader is graphite at 0.75 px, from the number to the plank's body, and only from 768.
+   - The number rides from its 2D anchor to that place with e, and the leader runs from the plank to
+     the number at every frame. So the leader has no length at frame 1, and frame 1 is still the
+     2D exactly.
+   - A pick tests its box and leader first, as it does for "20".
+   - In the Off drawing "8" stays on its plank; the led-out place is the 3D's.
+3. **Everything else stays on its plank,** with Pixel's centred placement.
+   - A line through a number's box margin but not its digits is accepted: it doesn't show.
+   - From 1024 to 1279 only, "4", "1" and "13" may touch the keel's lines, the record mark's
+     included. That's the band where the 2D's own "4" touches too, and it can't be cleared without
+     more leaders under the keel, which would cost more than the touch does.
+4. **The bar replaces my line count.** No line crosses a digit's ink at 768 and 1440, in either
+   scheme, on `/log` or `/log/13`. At 1024 to 1279 the only exceptions are "4", "1" and "13".
+
+The colour recheck passes (dark 1024 under "15" is L 0.475, light 1440 under "23" is 0.865), so
+`GHOST_DARK_GAIN` stays at 1.6.
