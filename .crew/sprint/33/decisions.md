@@ -71,3 +71,9 @@
     blocking="render">` on the Log holds the first paint until the parser reaches the heading after
     the drawing. It is Chromium only, with no layout change and no script. Re-ordering the DOM to
     match below 1024 would re-lay the header's grid from 1024, which is bigger and Iris's.
+
+12. **CI's 25-minute cap cancelled the suite on 77f76ad** (the e2e step ran 23.8 min before it was
+    stopped; main's takes 10.4). B5c's specs add about 36 test-minutes at 2 workers (`log-model`
+    17.2, `log-pick` 11.1). The cap is in `.github/`, which is the owner's, so Probe makes the specs
+    cheaper without weakening any assertion, with a target of at most 16 test-minutes. Lens's ship
+    on 9b8743a stands for the product code; the spec changes are reviewed again.
