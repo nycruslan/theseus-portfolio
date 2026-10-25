@@ -26,6 +26,16 @@ export type Retro = {
   wentWrong: string[];
   /** The retro's `outcome` and every `evidence` string: never on the page. */
   unshown: string[];
+  /** The sprint's merge record (`merge.json`, sprint 32's B5b), when it has a valid one. */
+  merge?: Merge;
+};
+
+/** A merge record: `.crew/sprint/<n>/merge.json` (.crew/sprint/32/contract.md, "The merge record"). */
+export type Merge = {
+  pr: number;
+  mergedAt: string;
+  commit: string;
+  lines: { original: number; total: number };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -111,6 +121,41 @@ function checkedOf(retro: Record<string, unknown>) {
   );
 }
 
+const isCount = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0;
+
+/** A folder's `merge.json` as parsed JSON, or undefined when it is missing or isn't JSON. */
+export function readMergeFile(sprint: number): unknown {
+  const file = join(SPRINT_DIR, String(sprint), "merge.json");
+  if (!existsSync(file)) return undefined;
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return undefined;
+  }
+}
+
+/** The record when every field has the contract's shape; a bad record counts as none. */
+function mergeOf(raw: unknown): Merge | undefined {
+  if (!isRecord(raw) || !isRecord(raw.lines)) return undefined;
+  const { pr, mergedAt, commit } = raw;
+  const { original, total } = raw.lines;
+  if (
+    !isPositiveInteger(pr) ||
+    typeof mergedAt !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(mergedAt) ||
+    Number.isNaN(Date.parse(mergedAt)) ||
+    typeof commit !== "string" ||
+    !/^[0-9a-f]{40}$/.test(commit) ||
+    !isCount(original) ||
+    !isCount(total) ||
+    original > total
+  ) {
+    return undefined;
+  }
+  return { pr, mergedAt, commit, lines: { original, total } };
+}
+
 /** Every valid retro, oldest first. A file the build would reject is left out here. */
 function readRetros(): Retro[] {
   const found: Retro[] = [];
@@ -146,6 +191,7 @@ function readRetros(): Retro[] {
       tested: roles.includes("qa-engineer"),
       wentWrong: wentWrongOf(retro),
       unshown: unshownOf(retro),
+      merge: mergeOf(readMergeFile(sprint)),
     });
   }
   return found.sort((a, b) => a.sprint - b.sprint);
@@ -268,6 +314,9 @@ export function recordPairs(retro: Retro): [string, string][] {
     ...(retro.size
       ? [["Size", SIZE_WORDS[retro.size]] as [string, string]]
       : []),
+    ...(retro.merge
+      ? [["Date", recordDate(retro.merge.mergedAt)] as [string, string]]
+      : []),
     ...(retro.pr
       ? [["Pull request", `Pull request #${retro.pr}`] as [string, string]]
       : []),
@@ -298,3 +347,96 @@ export function bioParts(bio: string) {
     .map((part) => part.trim())
     .filter(Boolean);
 }
+
+// ---------------------------------------------------------------------------------------------
+// The dates and the lines (.crew/sprint/32/contract.md, "What the page shows"). Each wording is
+// one rule below, so a reword is one line.
+
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+const WEEKDAYS = "Sun Mon Tue Wed Thu Fri Sat".split(" ");
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** The newest record: the one of the highest sprint number that has one. */
+export const NEWEST_MERGE = [...MERGED]
+  .reverse()
+  .find((retro) => retro.merge)?.merge;
+const NEWEST_YEAR = NEWEST_MERGE
+  ? new Date(NEWEST_MERGE.mergedAt).getUTCFullYear()
+  : Number.NaN;
+
+/** The merge's UTC day, "2026-10-24": what a day group is keyed on. */
+export const dayKey = (mergedAt: string) => mergedAt.slice(0, 10);
+
+/** The Date cell's words for a UTC instant: "24 Oct", with " 2025" when it isn't the newest record's year. */
+export function dateWords(mergedAt: string, year = NEWEST_YEAR) {
+  const d = new Date(mergedAt);
+  const words = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  return d.getUTCFullYear() === year ? words : `${words} ${d.getUTCFullYear()}`;
+}
+
+/** A row's Date cell: its record's day, or empty (never "—") when it has none. */
+export const dateCell = (retro: Retro) =>
+  retro.merge ? dateWords(retro.merge.mergedAt) : "";
+
+/** A day group's header: "Sat 24 Oct · 4 revisions", "1 revision" in the singular. */
+export function groupHeader(
+  mergedAt: string,
+  count: number,
+  year = NEWEST_YEAR,
+) {
+  const weekday = WEEKDAYS[new Date(mergedAt).getUTCDay()];
+  return `${weekday} ${dateWords(mergedAt, year)} · ${count} ${count === 1 ? "revision" : "revisions"}`;
+}
+
+/** The header of the group of rows without a record. */
+export const UNDATED = "Undated";
+
+export type Group = { header: string; day?: string; sprints: number[] };
+
+/**
+ * The table's groups, top to bottom: "Undated" first (decision 9), then one per UTC merge day,
+ * newest day first; in each, the sprints by number, descending, as the table orders its rows.
+ */
+export const GROUPS: Group[] = (() => {
+  const newestFirst = [...MERGED].reverse();
+  const undated = newestFirst.filter((retro) => !retro.merge);
+  const days = new Map<string, Retro[]>();
+  for (const retro of newestFirst) {
+    if (!retro.merge) continue;
+    const key = dayKey(retro.merge.mergedAt);
+    days.set(key, [...(days.get(key) ?? []), retro]);
+  }
+  const dated = [...days.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([day, retros]) => ({
+      header: groupHeader(retros[0]?.merge?.mergedAt ?? day, retros.length),
+      day: dateWords(retros[0]?.merge?.mergedAt ?? day),
+      sprints: retros.map((retro) => retro.sprint),
+    }));
+  return [
+    ...(undated.length > 0
+      ? [{ header: UNDATED, sprints: undated.map((retro) => retro.sprint) }]
+      : []),
+    ...dated,
+  ];
+})();
+
+/** The record's Date pair: "24 Oct 2026, 03:36 UTC", the year always. */
+export function recordDate(mergedAt: string) {
+  const d = new Date(mergedAt);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
+/** The lines figure's line in the Log's header, from a record. */
+export function linesLine(merge: Pick<Merge, "commit" | "lines">) {
+  const { original, total } = merge.lines;
+  const percent = (Math.round((original * 1000) / total) / 10).toFixed(1);
+  const n = (value: number) => value.toLocaleString("en-US");
+  return `${n(original)} of ${n(total)} lines of the site's code are still original: ${percent}%, by git blame on app, components and lib at ${merge.commit.slice(0, 7)}.`;
+}
+
+/** The words that find the line on the page, wherever its numbers fall. */
+export const LINES_PHRASE = "lines of the site's code are still original";
+
+/** The Log's lines line, or undefined when no sprint has a record (the line is absent). */
+export const LINES = NEWEST_MERGE ? linesLine(NEWEST_MERGE) : undefined;

@@ -18,7 +18,9 @@ import { resolveColors, SCHEMES } from "./helpers";
 
 const LOG_LINK = 'section[aria-labelledby="revisions"] a[href="/log"]';
 const SPRINT_DIR = join(process.cwd(), ".crew", "sprint");
-const ROWS = 'section[aria-labelledby="every-revision"] table tbody tr';
+// The revision rows, not the day groups' header rows (sprint 32, B5.17).
+const ROWS =
+  'section[aria-labelledby="every-revision"] table tbody tr:has(> th[scope="row"])';
 const HEIGHT = 900;
 
 // ---------------------------------------------------------------------------------------------
