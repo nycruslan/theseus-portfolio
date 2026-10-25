@@ -62,12 +62,79 @@ const MEASURED = {
   },
 } as const;
 
-/** The Log's table as the DOM has it: its heads, and each row's number and Date cell, with its label. */
+/**
+ * The Log's table as the DOM has it: its heads, each row's number and Date cell as painted, and the
+ * group headers as painted. A box is "hidden" in the sr-only pattern: at most 1 x 1 px, overflow
+ * clipped, and `clip: rect(0 0 0 0)` or `clip-path: inset(50%)` (decision 10: below 640 the Date
+ * cell is kept for assistive tech and paints nothing).
+ */
 function readTable(page: Page) {
   return page.evaluate(
     ({ every, rows }) => {
       const squashed = (el: Element | null | undefined) =>
         (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const srOnly = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        const s = getComputedStyle(el);
+        return (
+          r.width <= 1 &&
+          r.height <= 1 &&
+          s.overflowX !== "visible" &&
+          (/rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)/.test(s.clip) ||
+            s.clipPath === "inset(50%)")
+        );
+      };
+      /** Whether el or an ancestor up to `top` is in the sr-only pattern. */
+      const hiddenWithin = (el: Element | null, top: Element) => {
+        for (let at = el; at; at = at.parentElement) {
+          if (srOnly(at)) return true;
+          if (at === top) break;
+        }
+        return false;
+      };
+      /** Text that paints: a text node's box wider and taller than 1 px, outside any sr-only box. */
+      const ink = (el: Element) => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if ((node.textContent ?? "").trim() === "") continue;
+          if (hiddenWithin(node.parentElement, el)) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          if (
+            [...range.getClientRects()].some((r) => r.width > 1 && r.height > 1)
+          ) {
+            return true;
+          }
+        }
+        return false;
+      };
+      /** Whether the box itself paints: a border, a background or a shadow on an area over 1 px. */
+      const paintsBox = (el: Element) => {
+        if (srOnly(el)) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 1 || r.height <= 1) return false;
+        const s = getComputedStyle(el);
+        const borders = ["Top", "Right", "Bottom", "Left"].some(
+          (side) =>
+            Number.parseFloat(
+              s.getPropertyValue(`border-${side.toLowerCase()}-width`),
+            ) > 0 &&
+            s.getPropertyValue(`border-${side.toLowerCase()}-style`) !== "none",
+        );
+        const ground = !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(
+          s.backgroundColor,
+        );
+        return borders || ground || s.boxShadow !== "none";
+      };
+      /** In the accessibility tree: not aria-hidden, display none or visibility hidden. */
+      const inTree = (el: Element) =>
+        !el.closest('[aria-hidden="true"]') &&
+        el.checkVisibility({ visibilityProperty: true });
+      const shown = (el: Element) =>
+        !srOnly(el) &&
+        el.getBoundingClientRect().width > 1 &&
+        el.getBoundingClientRect().height > 1 &&
+        el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
       const section = document.querySelector(every);
       const heads = [
         ...(section?.querySelectorAll('thead th[scope="col"]') ?? []),
@@ -84,34 +151,44 @@ function readTable(page: Page) {
             at < 0
               ? undefined
               : [...tr.querySelectorAll(":scope > th, :scope > td")][at];
-          const before = cell ? getComputedStyle(cell, "::before") : null;
           return {
             number: Number(href.match(/^\/log\/(\d+)$/)?.[1]),
             date: cell ? squashed(cell) : null,
-            shown: cell ? cell.getClientRects().length > 0 : false,
-            label:
-              before &&
-              !["none", "normal"].includes(before.content) &&
-              before.display !== "none" &&
-              before.visibility !== "hidden"
-                ? before.content
-                : "",
+            inTree: cell ? inTree(cell) : false,
+            shown: cell
+              ? shown(cell) && (squashed(cell) === "" || ink(cell))
+              : false,
+            paints: cell ? paintsBox(cell) || ink(cell) : false,
           };
         }),
+        headers: [
+          ...(section?.querySelectorAll('tbody th[scope="rowgroup"]') ?? []),
+        ].map((th) => ({
+          text: squashed(th),
+          shown: shown(th) && ink(th),
+        })),
       };
     },
     { every: EVERY, rows: ROWS },
   );
 }
 
+/** The Date cell of the i-th revision row, for its accessible name. */
+const dateCellOf = (page: Page, i: number) =>
+  page
+    .locator(ROWS)
+    .nth(i)
+    .locator(":scope > th, :scope > td")
+    .nth(HEADS.indexOf("Date"));
+
 // ---------------------------------------------------------------------------------------------
 // B5.12 The Date column
 
-test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the heads are Rev, Description, Drawn, Checked, Tested, Approved, Date; each row's Date is its record's day or empty, never a dash; below 1024 it folds labelled Date", async ({
+test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the heads are Rev, Description, Drawn, Checked, Tested, Approved, Date; each row's Date is its record's day or empty, never a dash; at 1024 and 1440 it shows, and at 390 it is kept for assistive tech and paints nothing under a group header that shows", async ({
   page,
   browser,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   // The contract's words: "24 Oct", the year only when it isn't the newest record's.
   expect(dateWords("2026-10-24T03:36:27Z", 2026), "the oracle's day").toBe(
     "24 Oct",
@@ -125,18 +202,17 @@ test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the 
   ).toBeGreaterThan(0);
 
   for (const width of [390, 1024, 1440]) {
+    // Rows fold below 640 (decision 10): there the group header names the day, and the cell is
+    // the assistive tech's alone.
+    const folded = width < 640;
     for (const scripts of ["on", "off"] as const) {
       const where = `at ${width} px, scripts ${scripts}`;
-      let table: Awaited<ReturnType<typeof readTable>>;
-      if (scripts === "on") {
-        await open(page, LOG, width);
-        table = await readTable(page);
-      } else {
-        const bare = await withoutScripts(browser, LOG, width);
-        expect(bare.status, `status of /log ${where}`).toBe(200);
-        table = await readTable(bare.page);
-        await bare.context.close();
-      }
+      const bare =
+        scripts === "off" ? await withoutScripts(browser, LOG, width) : null;
+      if (bare) expect(bare.status, `status of /log ${where}`).toBe(200);
+      else await open(page, LOG, width);
+      const tab = bare?.page ?? page;
+      const table = await readTable(tab);
       expect.soft(table.heads, `the column heads ${where}`).toEqual(HEADS);
       expect(
         table.rows.map((row) => row.number),
@@ -144,17 +220,24 @@ test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the 
       ).toEqual(VALID.map((entry) => entry.sprint));
       for (const [i, entry] of VALID.entries()) {
         const row = table.rows[i];
+        const name = `revision ${entry.sprint}'s Date ${where}`;
+        expect.soft(row?.date, name).toBe(dateCell(entry));
+        await expect
+          .soft(dateCellOf(tab, i), `${name}, as assistive tech reads it`)
+          // The page is static by now: no retries, so a broken table fails fast, not by timeout.
+          .toHaveAccessibleName(dateCell(entry), { timeout: 100 });
         expect
-          .soft(row?.date, `revision ${entry.sprint}'s Date ${where}`)
-          .toBe(dateCell(entry));
-        if (width < 1024 && entry.merge) {
-          // The fold sets each cell under the number with its head; the Date's reads "Date".
+          .soft(row?.inTree, `${name} is in the accessibility tree`)
+          .toBe(true);
+        if (folded) {
           expect
             .soft(
-              row?.shown && row.label.includes('"Date"'),
-              `revision ${entry.sprint}'s Date shows its label "Date" ${where} (::before ${row?.label || "none"})`,
+              row?.paints,
+              `${name} paints nothing (its box, if any, in the sr-only pattern)`,
             )
-            .toBe(true);
+            .toBe(false);
+        } else {
+          expect.soft(row?.shown, `${name} shows`).toBe(true);
         }
       }
       expect
@@ -165,6 +248,18 @@ test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the 
           `rows whose Date reads a dash ${where}`,
         )
         .toEqual([]);
+      if (folded) {
+        expect(table.headers.length, `group headers ${where}`).toBeGreaterThan(
+          0,
+        );
+        expect
+          .soft(
+            table.headers.filter((h) => !h.shown).map((h) => h.text),
+            `group headers that don't show ${where}`,
+          )
+          .toEqual([]);
+      }
+      await bare?.context.close();
     }
   }
 });
