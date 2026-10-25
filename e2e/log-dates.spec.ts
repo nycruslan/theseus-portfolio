@@ -21,6 +21,7 @@ import {
   LINES_PHRASE,
   linesLine,
   MERGED,
+  NEWEST_DATED_SPRINT,
   NEWEST_MERGE,
   readMergeFile,
   recordDate,
@@ -267,10 +268,10 @@ test("B5.12 the Date column: at 390, 1024 and 1440 with scripts on and off, the 
 // ---------------------------------------------------------------------------------------------
 // B5.13 The day groups
 
-test("B5.13 the day groups: every row in exactly one tbody opened by its rowgroup header; Undated first, then the days newest first; each header's weekday, day and count as the oracle's; every row's Date its group's day", async ({
+test("B5.13 the day groups: the rows in table order, cut into runs that share a UTC day or share no record, each run one tbody opened by its rowgroup header with the oracle's weekday, day (or Undated) and count; every row's Date its group's day", async ({
   page,
 }) => {
-  // The contract's words, and the oracle's order: Undated first, then days strictly descending.
+  // The contract's words.
   expect(
     groupHeader("2026-10-24T03:36:27Z", 4, 2026),
     "the contract's header",
@@ -278,24 +279,29 @@ test("B5.13 the day groups: every row in exactly one tbody opened by its rowgrou
   expect(groupHeader("2026-10-20T00:42:46Z", 1, 2026), "the singular").toBe(
     "Tue 20 Oct · 1 revision",
   );
-  const days = GROUPS.flatMap((group) =>
-    group.day === undefined
-      ? []
-      : [
-          dayKey(
-            MERGED.find((entry) => entry.sprint === group.sprints[0])?.merge
-              ?.mergedAt ?? "",
-          ),
-        ],
-  );
-  expect(days, "the oracle's days, newest first, each once").toEqual(
-    [...new Set(days)].sort().reverse(),
-  );
+  // The oracle's runs, read back against the rule: table order kept, one key per run, and
+  // neighbouring runs on different keys (decision 11).
+  const keyOf = (n: number) => {
+    const merge = MERGED.find((entry) => entry.sprint === n)?.merge;
+    return merge ? dayKey(merge.mergedAt) : UNDATED;
+  };
   expect(
-    GROUPS.findIndex((group) => group.header === UNDATED),
-    "the oracle's Undated group: first or absent",
-  ).toBeLessThanOrEqual(0);
-  expect(days.length, "day groups in the oracle").toBeGreaterThan(0);
+    GROUPS.flatMap((group) => group.sprints),
+    "the oracle's groups hold the rows in table order",
+  ).toEqual(VALID.map((entry) => entry.sprint));
+  const keys = GROUPS.map((group) => [...new Set(group.sprints.map(keyOf))]);
+  expect(
+    keys.filter((runKeys) => runKeys.length !== 1),
+    "oracle groups mixing days",
+  ).toEqual([]);
+  expect(
+    keys.filter((runKeys, i) => i > 0 && runKeys[0] === keys[i - 1]?.[0]),
+    "oracle groups on the same key as the group above",
+  ).toEqual([]);
+  expect(
+    GROUPS.filter((group) => group.day !== undefined).length,
+    "day groups in the oracle",
+  ).toBeGreaterThan(0);
   if (!GROUPS.some((group) => group.header === UNDATED)) {
     test.info().annotations.push({
       type: "unchecked",
@@ -362,12 +368,31 @@ test("B5.13 the day groups: every row in exactly one tbody opened by its rowgrou
     const numbers = found.groups.flatMap((group) =>
       group.rows.map((row) => row.number),
     );
+    // In the page's own terms, whatever the oracle says: the groups keep the table's order, each
+    // group's rows share one Date, and no group shares its Date with the group above.
     expect
       .soft(
-        [...numbers].sort((a, b) => a - b),
-        `every revision in exactly one group ${where}`,
+        numbers,
+        `every revision in exactly one group, in table order ${where}`,
       )
-      .toEqual(VALID.map((entry) => entry.sprint).sort((a, b) => a - b));
+      .toEqual(VALID.map((entry) => entry.sprint));
+    const dates = found.groups.map((group) => [
+      ...new Set(group.rows.map((row) => row.date)),
+    ]);
+    expect
+      .soft(
+        dates.filter((groupDates) => groupDates.length !== 1),
+        `groups whose rows differ in Date ${where}`,
+      )
+      .toEqual([]);
+    expect
+      .soft(
+        dates.filter(
+          (groupDates, i) => i > 0 && groupDates[0] === dates[i - 1]?.[0],
+        ),
+        `groups on the same Date as the group above ${where}`,
+      )
+      .toEqual([]);
     expect
       .soft(
         found.groups.map((group) => group.headers),
@@ -439,7 +464,7 @@ function readLines(page: Page) {
   );
 }
 
-test("B5.14 the lines figure: one line in the Log's header after the count line, worded from the newest record, in the first screen at 1440 x 900", async ({
+test("B5.14 the lines figure: one line in the Log's header after the count line, worded from the record merged last, in the first screen at 1440 x 900", async ({
   page,
 }) => {
   // The contract's words, against Quill's measurement at 0fcb84f.
@@ -491,7 +516,7 @@ test("B5.14 the lines figure: one line in the Log's header after the count line,
 // ---------------------------------------------------------------------------------------------
 // B5.15 The record's date
 
-test("B5.15 the record's date: on the newest record, /log/13, /log/1 and /log/24 the Date pair reads the merge's day, time and year in UTC, right before Pull request; a sprint without a record has no Date pair", async ({
+test("B5.15 the record's date: on the record merged last, /log/13, /log/1 and /log/24 the Date pair reads the merge's day, time and year in UTC, right before Pull request; a sprint without a record has no Date pair", async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -501,10 +526,11 @@ test("B5.15 the record's date: on the newest record, /log/13, /log/1 and /log/24
   expect(recordDate(MEASURED[13].mergedAt), "sprint 13's").toBe(
     "20 Oct 2026, 00:42 UTC",
   );
-  // The newest record is the highest sprint that has one (as the lines line's): on this PR's own
+  // The newest record is the one merged last (decision 11, as the lines line's): on this PR's own
   // preview, and on main until the next run writes its record, the newest sprint has none.
-  const newest = [...MERGED].reverse().find((retro) => retro.merge)?.sprint;
-  for (const n of [...new Set([newest ?? Number.NaN, 13, 1, 24])]) {
+  for (const n of [
+    ...new Set([NEWEST_DATED_SPRINT ?? Number.NaN, 13, 1, 24]),
+  ]) {
     const entry = MERGED.find((retro) => retro.sprint === n);
     const merge = entry?.merge;
     expect.soft(merge, `revision ${n}'s merge record`).toBeDefined();

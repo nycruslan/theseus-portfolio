@@ -356,10 +356,21 @@ const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
 const WEEKDAYS = "Sun Mon Tue Wed Thu Fri Sat".split(" ");
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** The newest record: the one of the highest sprint number that has one. */
-export const NEWEST_MERGE = [...MERGED]
-  .reverse()
-  .find((retro) => retro.merge)?.merge;
+/** The newest record: the one merged last, by `mergedAt` (decision 11), not the highest sprint. */
+const NEWEST_DATED = MERGED.filter((retro) => retro.merge).reduce<
+  Retro | undefined
+>(
+  (newest, retro) =>
+    !newest ||
+    Date.parse(retro.merge?.mergedAt ?? "") >
+      Date.parse(newest.merge?.mergedAt ?? "")
+      ? retro
+      : newest,
+  undefined,
+);
+export const NEWEST_MERGE = NEWEST_DATED?.merge;
+/** The sprint whose record is the newest. */
+export const NEWEST_DATED_SPRINT = NEWEST_DATED?.sprint;
 const NEWEST_YEAR = NEWEST_MERGE
   ? new Date(NEWEST_MERGE.mergedAt).getUTCFullYear()
   : Number.NaN;
@@ -388,37 +399,36 @@ export function groupHeader(
   return `${weekday} ${dateWords(mergedAt, year)} · ${count} ${count === 1 ? "revision" : "revisions"}`;
 }
 
-/** The header of the group of rows without a record. */
+/** The header of a run of rows without a record. */
 export const UNDATED = "Undated";
 
 export type Group = { header: string; day?: string; sprints: number[] };
 
 /**
- * The table's groups, top to bottom: "Undated" first (decision 9), then one per UTC merge day,
- * newest day first; in each, the sprints by number, descending, as the table orders its rows.
+ * The table's groups, top to bottom (decision 11): the rows in table order (sprint number,
+ * descending), cut into runs wherever a row's UTC day, or whether it has a record, differs from
+ * the row above's. Each run is one group, its header counting the run's rows.
  */
 export const GROUPS: Group[] = (() => {
-  const newestFirst = [...MERGED].reverse();
-  const undated = newestFirst.filter((retro) => !retro.merge);
-  const days = new Map<string, Retro[]>();
-  for (const retro of newestFirst) {
-    if (!retro.merge) continue;
-    const key = dayKey(retro.merge.mergedAt);
-    days.set(key, [...(days.get(key) ?? []), retro]);
+  const runKey = (retro: Retro) =>
+    retro.merge ? dayKey(retro.merge.mergedAt) : UNDATED;
+  const runs: Retro[][] = [];
+  for (const retro of [...MERGED].reverse()) {
+    const run = runs.at(-1);
+    const above = run?.at(-1);
+    if (run && above && runKey(above) === runKey(retro)) run.push(retro);
+    else runs.push([retro]);
   }
-  const dated = [...days.entries()]
-    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
-    .map(([day, retros]) => ({
-      header: groupHeader(retros[0]?.merge?.mergedAt ?? day, retros.length),
-      day: dateWords(retros[0]?.merge?.mergedAt ?? day),
-      sprints: retros.map((retro) => retro.sprint),
-    }));
-  return [
-    ...(undated.length > 0
-      ? [{ header: UNDATED, sprints: undated.map((retro) => retro.sprint) }]
-      : []),
-    ...dated,
-  ];
+  return runs.map((run) => {
+    const merge = run[0]?.merge;
+    return merge
+      ? {
+          header: groupHeader(merge.mergedAt, run.length),
+          day: dateWords(merge.mergedAt),
+          sprints: run.map((retro) => retro.sprint),
+        }
+      : { header: UNDATED, sprints: run.map((retro) => retro.sprint) };
+  });
 })();
 
 /** The record's Date pair: "24 Oct 2026, 03:36 UTC", the year always. */
@@ -438,5 +448,5 @@ export function linesLine(merge: Pick<Merge, "commit" | "lines">) {
 /** The words that find the line on the page, wherever its numbers fall. */
 export const LINES_PHRASE = "lines of the site's code are still original";
 
-/** The Log's lines line, or undefined when no sprint has a record (the line is absent). */
+/** The Log's lines line, from the newest record; undefined when no sprint has one (the line is absent). */
 export const LINES = NEWEST_MERGE ? linesLine(NEWEST_MERGE) : undefined;
