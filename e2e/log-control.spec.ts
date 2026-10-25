@@ -360,6 +360,7 @@ test("B5.25 one key, theseus:motion: Off pressed on / opens /log in Off with no 
       "the mode stored after Off on /",
     )
     .toBe("off");
+  const onHome = (await a.scripts()).list.length;
   await a.goto("/log");
   await motionReady(a.page);
   await pause(IDLE);
@@ -378,9 +379,10 @@ test("B5.25 one key, theseus:motion: Off pressed on / opens /log in Off with no 
   expect
     .soft(
       (await a.scripts()).list
+        .slice(onHome)
         .map((s) => new URL(s.url).pathname)
         .filter((p) => !base.has(p)),
-      "scripts on the visit beyond /log's Off page's (the chunk)",
+      "scripts /log fetches beyond its Off page's (the chunk)",
     )
     .toEqual([]);
   await a.close();
