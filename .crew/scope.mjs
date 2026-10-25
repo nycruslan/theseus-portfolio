@@ -1,12 +1,14 @@
-// What a PR may not change without the owner, applied in CI by the `gate` check (gate.mjs) and
-// locally by the file guard (guard.mjs):
-// - owner paths: those .github/CODEOWNERS gives an owner. They match without regard to case, as
-//   the macOS file system does, so `.Claude/settings.json` from a PR can't slip past;
+// What a PR changes that someone besides its builders must accept.
+// The owner (scopeNotes, held by the `gate` check, gate.mjs, and locally by the file guard, guard.mjs):
+// - owner paths: those .github/CODEOWNERS gives an owner, the crew's own rails and the owner's facts.
+//   They match without regard to case, as the macOS file system does, so `.Claude/settings.json`
+//   from a PR can't slip past;
 // - package.json's scripts: they decide what `pnpm verify`, CI and the e2e run check. Its
-//   dependencies stay the team's;
-// - weakened tests: deleting a test file, moving one out of the suite, ending with fewer `expect(`
-//   calls in an e2e spec, or adding lines that skip, focus or retry checks. Rewriting a check that
-//   keeps its assertions is the team's, and so is adding tests.
+//   dependencies stay the team's.
+// Lens (testNotes, in the review's context, lens.mjs): weakened tests, meaning a test file deleted or
+// moved out of the suite, an e2e spec ending with fewer `expect(` calls, or added lines that skip,
+// focus or retry checks. Lens accepts each one only when the PR names it and why the behaviour it
+// checked is gone. Rewriting a check that keeps its assertions is the team's, and so is adding tests.
 // It reads the PR through GitHub's REST API and never checks out or runs the PR's code.
 
 import { readFileSync } from "node:fs";
@@ -91,50 +93,53 @@ export function scopeNotes(files, scripts, isOwned) {
       `The PR changes ${files.length} or more files, more than GitHub lists, so its scope can't be checked.`,
     ];
   }
-  const notes = files.flatMap((file) => fileNotes(file, isOwned));
+  const notes = files.flatMap(({ filename, previous_filename: from }) =>
+    [filename, from]
+      .filter((path) => path && isOwned(path))
+      .map((owned) => `${owned} is the owner's: the owner approves it.`),
+  );
   if (scripts.length) {
     notes.push(
       `package.json changes its scripts (${scripts.join(", ")}): they decide what verify, CI and the e2e run check, so they're the owner's. Dependency changes are fine.`,
     );
   }
+  return shown(notes);
+}
+
+/**
+ * The checks these changed files weaken, one note each and every one, since Lens judges each; empty
+ * when they weaken none. Same files as scopeNotes.
+ */
+export function testNotes(files) {
+  return [...new Set(files.flatMap(fileTestNotes))];
+}
+
+function shown(notes) {
   const unique = [...new Set(notes)];
   return unique.length > SHOWN
     ? [...unique.slice(0, SHOWN), `…and ${unique.length - SHOWN} more.`]
     : unique;
 }
 
-function fileNotes(file, isOwned) {
+function fileTestNotes(file) {
   const { filename: path, status, previous_filename: from } = file;
-  const notes = [path, from]
-    .filter((p) => p && isOwned(p))
-    .map((owned) => `${owned} is the owner's: the owner approves it.`);
   if (status === "removed" && TEST_FILE.test(path)) {
-    notes.push(
-      `${path} is a test, and the PR deletes it: only the owner removes tests.`,
-    );
-  } else if (
-    status === "renamed" &&
-    TEST_FILE.test(from) &&
-    !TEST_FILE.test(path)
-  ) {
-    notes.push(
-      `${from} moves out of the test suite to ${path}: only the owner removes tests.`,
-    );
-  } else if (status === "renamed" && E2E.test(from) && !E2E.test(path)) {
-    notes.push(
-      `${from} moves out of e2e/, where Playwright runs it: only the owner removes tests.`,
-    );
-  } else if (E2E.test(path)) {
-    notes.push(...weakening(file));
+    return [`${path} is a test, and the PR deletes it.`];
   }
-  return notes;
+  if (status === "renamed" && TEST_FILE.test(from) && !TEST_FILE.test(path)) {
+    return [`${from} moves out of the test suite to ${path}.`];
+  }
+  if (status === "renamed" && E2E.test(from) && !E2E.test(path)) {
+    return [`${from} moves out of e2e/, where Playwright runs it.`];
+  }
+  return E2E.test(path) ? weakening(file) : [];
 }
 
 // Read from the patch: fewer assertions than before, or added lines that switch checks off.
 // Without a patch (GitHub leaves it out of very large diffs) any change could do either.
 // Counting `expect(` calls is a trade-off: it lets the team rewrite a check freely, but a weaker
-// assertion swapped in for a stronger one keeps the count. Lens reviews every e2e change for that,
-// and the owner sees it in the PR; a stricter rule would send every test edit to the owner.
+// assertion swapped in for a stronger one keeps the count. Lens reviews every e2e change for that
+// too; a stricter rule would make Lens judge every test edit as a retirement.
 function weakening({
   filename: path,
   status,
@@ -145,7 +150,7 @@ function weakening({
   if (patch === undefined) {
     return status === "removed" || additions || deletions
       ? [
-          `${path} changed, and GitHub shows no diff for it, so the gate can't tell whether it weakens a check.`,
+          `${path} changed, and GitHub shows no diff for it, so whether it weakens a check can't be read from the diff.`,
         ]
       : [];
   }
@@ -159,14 +164,14 @@ function weakening({
   const notes =
     lost > 0
       ? [
-          `${path} ends with ${lost} fewer \`expect(\` call${lost === 1 ? "" : "s"}: weakening a check needs the owner.`,
+          `${path} ends with ${lost} fewer \`expect(\` call${lost === 1 ? "" : "s"}.`,
         ]
       : [];
   for (const line of code("+").filter((line) =>
     WEAKENS.some((rule) => rule.test(line)),
   )) {
     notes.push(
-      `${path} adds \`${line.trim().slice(0, 80)}\`: skipping, focusing or retrying checks needs the owner.`,
+      `${path} adds \`${line.trim().slice(0, 80)}\`, which skips, focuses or retries checks.`,
     );
   }
   return notes;

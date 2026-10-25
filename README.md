@@ -46,8 +46,8 @@ Three parts, each in its own place:
 - a pull request, and the owner's review wherever `.github/CODEOWNERS` names them;
 - `check` (GitHub Actions): lint, typecheck, knip, build, harness tests and the end-to-end suite;
 - `gate` (the team's checks app): it holds a PR that touches an owner path, changes
-  `package.json`'s scripts, weakens a test or ever carried `needs-owner`, until the owner approves
-  its current head. The checks app opens the team's PRs as drafts (`.github/workflows/open-pr.yml`),
+  `package.json`'s scripts or ever carried `needs-owner`, until the owner approves its current
+  head. A test the PR weakens is for `lens` to accept or refuse. The checks app opens the team's PRs as drafts (`.github/workflows/open-pr.yml`),
   so nobody merges one mid-sprint, and marks them ready at the close-out (`ready-pr.yml`); the
   owner can approve them and merge them with the usual button. A PR under the owner's own login
   (open-pr.mjs's fallback when the app doesn't answer) can't be approved by them, since nobody can

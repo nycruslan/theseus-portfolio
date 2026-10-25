@@ -56,7 +56,7 @@ Iris may propose something stronger, with her reasons, on the canvas. The owner 
 
 1. Iris puts the direction on a Design canvas: the key screens at 1440 and 390 px, the signature
    transition as a storyboard, the rest state and the read view.
-2. The owner comments on the canvas, Iris revises, and the build starts once the owner approves
-   there.
+2. Iris recommends one direction and the build starts on it. The owner may pick another or
+   comment on the canvas, and Iris revises.
 3. Quill's contract splits the build into M sprints, the hero first, and the site stays shippable
    after each. The portfolio shows the crew from the Studio's data; the Studio stays its own app.

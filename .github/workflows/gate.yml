@@ -1,9 +1,9 @@
 name: gate
 
 # The required `gate` check: it holds a PR the owner has to decide (owner paths from CODEOWNERS,
-# package.json scripts, weakened tests, or needs-owner now or ever) until the owner approves its
-# head (.crew/gate.mjs). The result is a check run from the team's checks app, the only source
-# the ruleset accepts for `gate`.
+# package.json scripts, or needs-owner now or ever) until the owner approves its head
+# (.crew/gate.mjs). A weakened test is Lens's to judge (.crew/lens.mjs). The result is a check
+# run from the team's checks app, the only source the ruleset accepts for `gate`.
 #
 # pull_request_target runs this file and the checker from the default branch, so a PR can't edit
 # the rule that judges it, and the `checks` environment, which holds the app key, only serves the

@@ -7,6 +7,12 @@ makes stale, and keep the file under about 100 lines.
 
 ## How the crew works, from 2026-10-22
 
+- **The team decides, from 2026-10-25.** The owner asked for a crew that acts and rarely asks.
+  They're asked only about owner paths, their own facts, money, accounts, secrets and what can't be
+  undone, as an Owner's pick (the sprint skill): options with the recommended one built at once, so
+  a pick that can be undone never holds the work. Lens accepts retired checks, Iris calls taste, and
+  chores go on the `Owner chores` issue, never to the owner. #78 had waited a day on six asks, five
+  already answered on #75 or done by the owner's session.
 - **Milestones, not a stream of small PRs.** Sprints 18 to 21 spent the day's six sprints on polish
   while the redesign waited for the owner, and nothing a visitor would notice shipped. The
   roadmap's current milestone sets the work; when it can't move until the owner answers, the team

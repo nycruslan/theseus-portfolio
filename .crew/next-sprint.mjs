@@ -18,6 +18,10 @@
 //   is Atlas's word, which is enough for a guard on churn: the cap was never a boundary, GitHub's
 //   required checks are.
 // - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
+// - picks: the owner's answers to the questions the team asked in its PRs (an "Owner's pick", the
+//   sprint skill) that change what it built, not yet marked applied: in an open sprint PR, or a
+//   merged one however long ago, since ticking edits the body and brings it to the top of the
+//   closed list. Ticking the recommended option changes nothing, unless the pick waits.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
 //   start the next sprint. A PR or branch a run worked on in the last ACTIVE_HOURS (a commit, or a
 //   PR marked ready or for review) is left to the run most likely still on it, since two runs on
@@ -28,6 +32,7 @@
 
 import { carriedNeedsOwner, OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
+import { ownerPicks, unbuilt } from "./picks.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 // The checks app opens the team's PRs (.github/workflows/open-pr.yml). GitHub calls it no
@@ -69,24 +74,24 @@ function preflight(repo) {
   // case-insensitive, so they're compared that way.
   // Otherwise a stranger's PR could have Atlas check out its code, stand down, or skip numbers.
   // The title is free text a visitor can write, so it stays out of what Atlas is told.
-  const open = list(`repos/${repo}/pulls?state=open&per_page=100`)
+  const pulls = list(`repos/${repo}/pulls?state=open&per_page=100`)
     .filter(ours(repo))
-    .sort((a, b) => a.number - b.number)
-    .map((pr) => {
-      const labels = pr.labels.map(({ name }) => name);
-      return {
-        number: pr.number,
-        branch: pr.head.ref,
-        head: pr.head.sha,
-        ...workedOn(repo, pr),
-        draft: pr.draft === true,
-        waitsForOwner:
-          pr.draft !== true &&
-          (carriedNeedsOwner({ repo, number: pr.number, labels }) ||
-            gateWaits(repo, pr.head.sha)),
-        url: pr.html_url,
-      };
-    });
+    .sort((a, b) => a.number - b.number);
+  const open = pulls.map((pr) => {
+    const labels = pr.labels.map(({ name }) => name);
+    return {
+      number: pr.number,
+      branch: pr.head.ref,
+      head: pr.head.sha,
+      ...workedOn(repo, pr),
+      draft: pr.draft === true,
+      waitsForOwner:
+        pr.draft !== true &&
+        (carriedNeedsOwner({ repo, number: pr.number, labels }) ||
+          gateWaits(repo, pr.head.sha)),
+      url: pr.html_url,
+    };
+  });
   const branches = list(`repos/${repo}/branches?per_page=100`);
   const highest = {
     main: highestOf(sprintFolders(repo, base)),
@@ -94,13 +99,14 @@ function preflight(repo) {
     branches: highestOf(branches.map(({ name }) => sprintOf(name))),
   };
   const next = Math.max(...Object.values(highest)) + 1;
-  // One page of the team's closed sprint PRs, most recently updated first: what merged today, and
-  // the heads the branches of recently closed ones are still on.
+  // One page of the team's closed sprint PRs, most recently updated first: what merged today, the
+  // heads the branches of recently closed ones are still on, and the picks the owner answered.
   const closed = api(
     `repos/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
   ).filter(ours(repo));
   const unopened = freshBranches(repo, branches, open, closed);
   const daily = mergedToday(closed, base);
+  const merged = closed.filter((pr) => pr.base.ref === base && pr.merged_at);
   return {
     repo,
     base,
@@ -110,8 +116,31 @@ function preflight(repo) {
     next,
     daily: { merged: daily.merged, cap: daily.cap },
     ...ownerQueue(repo, open),
+    picks: answeredPicks([...pulls, ...merged]),
     action: action(open, unopened, next, daily, ownerGoal),
   };
+}
+
+// The picks the owner answered that the team still has to build: open PRs first, then merged ones,
+// most recently updated first.
+function answeredPicks(prs) {
+  return prs.flatMap((pr) =>
+    ownerPicks(pr.body).flatMap((pick) => {
+      const chose = unbuilt(pick);
+      if (!chose.length) return [];
+      return [
+        {
+          pr: pr.number,
+          url: pr.html_url,
+          merged: Boolean(pr.merged_at),
+          question: pick.question,
+          chose,
+          recommended: pick.options.find((option) => option.recommended)?.text,
+          waits: pick.waits,
+        },
+      ];
+    }),
+  );
 }
 
 // The sprint branches with no PR yet, whose last commit is within ACTIVE_MS, newest first: not

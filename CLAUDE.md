@@ -20,10 +20,11 @@ remember is.
   - Forge (`engineer`) builds the product; Pixel (`creative-engineer`) its 3D, shaders and motion.
   - Probe (`qa-engineer`): the end-to-end checks in `e2e/`, which builders don't edit.
   - Lens (`code-reviewer`): code review, as the required `lens` check in CI.
-- Shared state: `ROADMAP.md` (the milestones and what's next; the crew opens no GitHub issues),
-  `.crew/sprint/<n>/` (each sprint's contract, briefs, decisions and `retro.json`), and
-  `.crew/STATE.md` (lessons that still hold). `PRODUCT.md`, `design/brief.md`, `design/rubric.md`
-  and `design/calibration/` are the owner's record of what to build and how it's judged.
+- Shared state: `ROADMAP.md` (the milestones and what's next; the crew opens no GitHub issues but
+  the one titled `Owner chores`), `.crew/sprint/<n>/` (each sprint's contract, briefs, decisions
+  and `retro.json`), and `.crew/STATE.md` (lessons that still hold). `PRODUCT.md`,
+  `design/brief.md`, `design/rubric.md` and `design/calibration/` are the owner's record of what to
+  build and how it's judged.
 - Production is https://theseus-portfolio.vercel.app, and every PR gets a Vercel preview.
 - The Studio (nycruslan/theseus-studio) streams the crew's work to visitors live from its hooks.
   The crew doesn't work on it.
@@ -31,8 +32,9 @@ remember is.
 ## Working
 
 - You're operating autonomously: the owner isn't watching and can't answer mid-task. Make the
-  routine judgment calls yourself and state your assumptions; stop only for what only the owner can
-  decide. When you have enough information to act, act.
+  judgment calls yourself and state your assumptions. Only what only the owner can decide goes to
+  them, as an Owner's pick (the sprint skill), and an Owner's pick that can be undone never stops
+  the work. When you have enough information to act, act.
 - Keep each change to what the work needs. Other things worth doing are follow-ups for your report.
 - Visitors watch every command in the Studio, which shows it by its Bash `description`: give each
   Bash call a short line saying what it does, never the command itself.

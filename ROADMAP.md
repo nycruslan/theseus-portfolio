@@ -17,9 +17,9 @@ The site in `PRODUCT.md` and `design/brief.md`, built to the direction the owner
 The direction, its budgets and the build order are in `.crew/sprint/17/direction-iris.md`. Quill
 writes each sprint's contract from them. Current UI/UX and 3D practice, with sources, is in
 `design/research/2026-ui-ux-and-3d.md`. Its section B goes sprint by sprint, as input to weigh,
-not a spec: the direction decides, and a visible change to it still needs the owner. The
-owner sees the milestone at two demos, on the PR's Vercel preview: B1, which replaces today's
-page, and B3, the signature moment.
+not a spec: the direction decides, and a visible change to it is Iris's call, which the owner may
+overrule. The owner sees the milestone at two demos, on the PR's Vercel preview: B1, which
+replaces today's page, and B3, the signature moment.
 
 - [x] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
   block from the retros, with Off as everyone's default. It replaces today's home page, so its
