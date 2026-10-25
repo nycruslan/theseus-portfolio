@@ -107,11 +107,11 @@ export function scopeNotes(files, scripts, isOwned) {
 }
 
 /**
- * The checks these changed files weaken, one note each, for Lens to accept or refuse; empty when
- * they weaken none. Same files as scopeNotes.
+ * The checks these changed files weaken, one note each and every one, since Lens judges each; empty
+ * when they weaken none. Same files as scopeNotes.
  */
 export function testNotes(files) {
-  return shown(files.flatMap(fileTestNotes));
+  return [...new Set(files.flatMap(fileTestNotes))];
 }
 
 function shown(notes) {

@@ -332,7 +332,7 @@ test("a ready PR that gate leaves to the owner waits for them, held or approved,
         gates: { [head]: runs },
       }),
     ).state;
-  // Held for the owner's approval: a weakened test, an owner path, package.json's scripts.
+  // Held for the owner's approval: an owner path, package.json's scripts, needs-owner.
   const held = waits([gate("success", { id: 1 }), gate("failure")]);
   assert.equal(held.open[0].waitsForOwner, true);
   assert.equal(held.action.do, "start");
@@ -753,7 +753,7 @@ test("reads the owner's picks from a PR's body: each question, its options, whic
   assert.deepEqual(ownerPicks(null), []);
 });
 
-test("lists the owner's answers the team still has to act on: an override, any tick on a pick that waits, in open PRs and those merged in the last day", () => {
+test("lists the owner's answers the team still has to act on: an override, any tick on a pick that waits, in open PRs and merged ones however old", () => {
   const body = (text) => ({ body: text });
   const { state } = preflight(
     github({
@@ -777,6 +777,11 @@ test("lists the owner's answers the team still has to act on: an override, any t
           ...merged(40, 30),
           ...body("### Owner's pick: Old\n- [ ] A (Recommended)\n- [x] B"),
         },
+        {
+          ...merged(39, 50),
+          merged_at: null,
+          ...body("### Owner's pick: Closed\n- [ ] A (Recommended)\n- [x] B"),
+        },
       ],
     }),
   );
@@ -798,6 +803,7 @@ test("lists the owner's answers the team still has to act on: an override, any t
       ],
       [44, false, "Fonts", ["No (Recommended)"], true],
       [41, true, "Footer", ["One"], false],
+      [40, true, "Old", ["B"], false],
     ],
   );
   assert.equal(
