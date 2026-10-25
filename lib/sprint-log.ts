@@ -1,12 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
-// The build log's data: one entry per `.crew/sprint/<n>/retro.json`, read when the site is built.
-// Only node:fs and node:path, by node: specifiers, so a test can call it on a folder of fixtures.
-// Only `readdirSync` carries `turbopackIgnore`: the folder is a run-time argument, and without it
-// the bundler traces the whole project into the server output. The build doesn't warn on
-// `readFileSync`. The page is static, so nothing reads at request time.
-// The rules (what throws, what is tolerated) are in .crew/sprint/12/contract.md, "The data rules".
+// The build log's data: one entry per `.crew/sprint/<n>/retro.json`, with the sprint's merge record
+// (`merge.json`) when it has one, read when the site is built. Only node:fs and node:path, by node:
+// specifiers, so a test can call it on a folder of fixtures. Only `readdirSync` carries
+// `turbopackIgnore`: the folder is a run-time argument, and without it the bundler traces the
+// whole project into the server output. The build doesn't warn on `readFileSync`. The pages are
+// prerendered, but an unknown record's address (/log/999) runs the reader on the server at request
+// time, so the retros and records stay traced into the function (next.config.ts).
+// The rules (what throws, what is tolerated) are in .crew/sprint/12/contract.md, "The data rules";
+// the merge record's in .crew/sprint/32/contract.md.
 
 export interface SprintEntry {
   /** The retro's `sprint`: a positive integer equal to its folder's number. */
@@ -32,6 +35,18 @@ export interface SprintEntry {
   checked: boolean;
   /** Probe tested it. */
   tested: boolean;
+  /** When and where it merged, from its merge record; none until the crew writes one. */
+  merge?: MergeRecord;
+}
+
+/** A sprint's `merge.json`, written by .crew/sprint/32/merge-record.mjs after the merge. */
+export interface MergeRecord {
+  /** The merge's UTC instant, ISO 8601 ending in "Z": "2026-10-24T03:36:27Z". */
+  mergedAt: string;
+  /** The merge commit's full hash. */
+  commit: string;
+  /** At that commit, the lines of app, components and lib, and how many are the original site's. */
+  lines: { original: number; total: number };
 }
 
 const MAX_WENT_WRONG = 3;
@@ -120,6 +135,52 @@ function checkedByLens(retro: Record<string, unknown>): boolean {
   );
 }
 
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const HASH = /^[0-9a-f]{40}$/;
+
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * The sprint's merge record, or none when it has no `merge.json` or a bad one. Unlike a retro, a
+ * bad record never fails the build: it is ignored, so the row shows no date rather than a wrong one.
+ * A record is bad unless it is the retro's pull request, an instant in UTC, a full hash, and a
+ * lines figure with at least one line, none more original than there are.
+ */
+function readMerge(
+  file: string,
+  pr: number | undefined,
+): MergeRecord | undefined {
+  let record: unknown;
+  try {
+    record = JSON.parse(readFileSync(file, "utf8"));
+  } catch (error) {
+    // No record yet: the sprint merged after the crew's last run.
+    if (isRecord(error) && error.code === "ENOENT") return undefined;
+    if (error instanceof SyntaxError) return undefined;
+    throw error;
+  }
+  if (!isRecord(record) || !isRecord(record.lines)) return undefined;
+  const { mergedAt, commit } = record;
+  const { original, total } = record.lines;
+  if (
+    pr === undefined ||
+    record.pr !== pr ||
+    typeof mergedAt !== "string" ||
+    !INSTANT.test(mergedAt) ||
+    Number.isNaN(Date.parse(mergedAt)) ||
+    typeof commit !== "string" ||
+    !HASH.test(commit) ||
+    !isCount(original) ||
+    !isPositiveInteger(total) ||
+    original > total
+  ) {
+    return undefined;
+  }
+  return { mergedAt, commit, lines: { original, total } };
+}
+
 function parseRetro(file: string, folder: string): SprintEntry | undefined {
   let source: string;
   try {
@@ -151,24 +212,27 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
     throw new Error(`${file}: "goal" must be a non-blank string`);
   }
 
-  const { size, pr, outcome } = retro;
+  const { size, outcome } = retro;
+  const pr = isPositiveInteger(retro.pr) ? retro.pr : undefined;
   const crew = crewOf(retro);
   return {
     sprint,
     goal: presentGoal(goal),
     size: SIZES.find((candidate) => candidate === size),
-    pr: isPositiveInteger(pr) ? pr : undefined,
+    pr,
     ownersCall: typeof outcome === "string" && /\bneeds-owner\b/i.test(outcome),
     wentWrong: wentWrongOf(retro),
     drawn: drawnBy(crew),
     checked: checkedByLens(retro),
     tested: crew.includes("Probe"),
+    merge: readMerge(join(dirname(file), "merge.json"), pr),
   };
 }
 
 /**
- * Every `<dir>/<n>/retro.json`, newest sprint first. A retro that is wrong throws, naming its file,
- * so the build fails instead of the public log quietly shrinking.
+ * Every `<dir>/<n>/retro.json`, newest sprint first, each with its `merge.json` when that is good.
+ * A retro that is wrong throws, naming its file, so the build fails instead of the public log
+ * quietly shrinking.
  */
 export function readSprintLog(
   dir: string = join(process.cwd(), ".crew", "sprint"),

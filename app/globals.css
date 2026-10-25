@@ -852,6 +852,27 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
+/* The lines figure (.crew/sprint/32/contract.md; notes-iris.md, section 3): under a 1 px ink rule
+   after the count line, the figure in the display face as the frame sets it, the header's second
+   voice after "Log", and the rest of the sentence under it in graphite. */
+.log-lines {
+  order: 4;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--foreground);
+  color: var(--muted);
+}
+
+.log-lines-n {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+
 .record {
   order: 5;
   margin-top: 24px;
@@ -911,6 +932,72 @@ main:has(> [data-model]) {
   .rev-log thead th {
     width: auto;
     padding: 0;
+  }
+}
+
+/* The day groups (.crew/sprint/32/contract.md, "Day groups"; notes-iris.md, sections 1 and 2): each
+   tbody opens with a row header across the table, the day in ink and its count in graphite, at the
+   table's own size. It has no rule of its own: the previous row's hairline and the air above it
+   part the groups, and the day binds to the rows under it. The Date restates its group's day, so it
+   is graphite, and it never breaks. */
+.rev-log .rev-day th {
+  padding: 18px 0 4px;
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+/* Under the heads' ink rule the first group needs less air. Only from 1024: below it the rules
+   for 640 to 1023 and the fold set the first group's own. */
+@media (width >= 64rem) {
+  .rev-log tbody:first-of-type .rev-day th {
+    padding-top: 12px;
+  }
+}
+
+.rev-day-n {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.rev-log td[data-label="Date"] {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Folded, the header is a line of its own above the rows, not a cell in the number's column; the
+   Date is read by assistive tech only, as the folded heads are, since the header names the day. */
+@media (width < 40rem) {
+  .rev-log tbody tr.rev-day {
+    display: block;
+    padding: 24px 0 0;
+    border-bottom: 0;
+  }
+
+  .rev-log tbody:first-of-type tr.rev-day {
+    padding-top: 18px;
+  }
+
+  .rev-log tbody .rev-day th {
+    display: block;
+    padding: 0;
+  }
+
+  .rev-log td[data-label="Date"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+@media (40rem <= width < 64rem) {
+  .rev-log tbody .rev-day th {
+    padding: 14px 0 0;
+  }
+
+  .rev-log tbody:first-of-type .rev-day th {
+    padding-top: 8px;
   }
 }
 
@@ -1114,9 +1201,11 @@ main:has(> [data-model]) {
   font-weight: 600;
 }
 
+/* `pretty`, not `balance`: a goal that runs past two lines keeps its lines full at 390, where balance
+   set sprint 13's on four short lines that three hold (Iris's rider on #77). */
 .record h2 {
   margin-top: 4px;
-  text-wrap: balance;
+  text-wrap: pretty;
   overflow-wrap: break-word;
 }
 

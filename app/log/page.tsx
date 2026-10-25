@@ -20,6 +20,6 @@ export const metadata: Metadata = {
 };
 
 export default function LogPage() {
-  // Read at build time (the route is static): the deployed site never touches .crew.
+  // Read at build time: the route is static.
   return <Log entries={readSprintLog()} />;
 }
