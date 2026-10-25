@@ -584,7 +584,8 @@ for (const url of PAGES) {
             }
           // The grid is coarser than a plank where it tapers (6 px at 1440), so a pixel the grid
           // puts away from the seat is checked by hover: the mark's edges lie on the plank's own
-          // boundary, so a hover within 3 px of an edge pixel reads the seat. Up to 80 places.
+          // boundary, so a hover within 3 px of an edge pixel reads the seat, searched at 1 px steps
+          // (a plank tapers to 1 px). Up to 80 places.
           const places = [
             ...new Map(
               strays.map(([x, y]) => [
@@ -596,8 +597,8 @@ for (const url of PAGES) {
           const onEdge = new Set<string>();
           for (const [x, y] of places.slice(0, 80)) {
             let found = false;
-            for (const dy of [-3, 0, 3]) {
-              for (const dx of [-3, 0, 3]) {
+            for (const dy of [0, -1, 1, -2, 2, -3, 3]) {
+              for (const dx of [0, -1, 1, -2, 2, -3, 3]) {
                 await run.page.mouse.move(x + 0.5 + dx, y + 0.5 + dy);
                 await twoFrames(run.page);
                 if ((await pickOf(run.page)) === seat) found = true;
