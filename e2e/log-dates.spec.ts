@@ -7,7 +7,6 @@ import {
   ROWS,
   readRecord,
   recordOf,
-  SAMPLES,
   squash,
   VALID,
   withoutScripts,
@@ -407,7 +406,10 @@ test("B5.15 the record's date: on the newest record, /log/13, /log/1 and /log/24
   expect(recordDate(MEASURED[13].mergedAt), "sprint 13's").toBe(
     "20 Oct 2026, 00:42 UTC",
   );
-  for (const n of SAMPLES) {
+  // The newest record is the highest sprint that has one (as the lines line's): on this PR's own
+  // preview, and on main until the next run writes its record, the newest sprint has none.
+  const newest = [...MERGED].reverse().find((retro) => retro.merge)?.sprint;
+  for (const n of [...new Set([newest ?? Number.NaN, 13, 1, 24])]) {
     const entry = MERGED.find((retro) => retro.sprint === n);
     const merge = entry?.merge;
     expect.soft(merge, `revision ${n}'s merge record`).toBeDefined();
