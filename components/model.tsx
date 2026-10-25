@@ -3,11 +3,11 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { Open } from "@/lib/model/mount";
 
-// The model's client code, the only script / ships with the model Off, so it is one module and
-// stays this small (B2.10, 2,048 B decoded over /log's): the motion mode, the bar's control for
-// it, and the model's loader. A module of its own costs about 165 B, and neither component is
-// memoised by the React Compiler ("use no memo"): its cache and runtime cost 633 B here and save
-// no work, since each renders a handful of elements (.crew/sprint/27/).
+// The model's client code, the only script / and the Log ship with the model Off, so it is one
+// module and stays this small (B2.10, 2,048 B decoded over the 404's): the motion mode, the
+// control for it, and the model's loader. A module of its own costs about 165 B, and neither
+// component is memoised by the React Compiler ("use no memo"): its cache and runtime cost 633 B
+// here and save no work, since each renders a handful of elements (.crew/sprint/27/).
 
 // The motion mode (.crew/sprint/27/contract.md, "The mode"): Full, Calm or Off, read by the control
 // and the loader with useSyncExternalStore. A press is kept on the device; until there is one, the
@@ -74,8 +74,9 @@ const LABELS = ["Full", "Calm", "Off"];
 
 /**
  * Full, Calm, Off (.crew/sprint/27/contract.md, "The control"): three pressed-or-not buttons in a
- * slot. There are two, the bar's (from 768 px) and the drawing's foot (below it, app/page.tsx), and
- * each renders this; CSS shows one, and the other's buttons, display: none, are no Tab stops. They
+ * slot. There are two, the bar's (from 768 px) and, below it, the drawing's foot on the sheet
+ * (app/page.tsx) or the header's end on the Log (components/log.tsx). Each renders this; CSS shows
+ * one, and the other's buttons, display: none, are no Tab stops. They
  * only exist where scripts run, since without them none could do anything: the server and the
  * hydrating render draw the slot empty, at the group's size, so nothing moves when they arrive
  * (app/globals.css, "The motion control").
@@ -95,7 +96,9 @@ export function MotionControl() {
                 type="button"
                 aria-pressed={value === mode}
                 disabled={refused && value !== "off"}
-                onClick={() => press(value)}
+                // With WebGL refused, Off is all there is: pressing it again isn't a choice to keep
+                // (Lens's nit on #74).
+                onClick={() => refused || press(value)}
               >
                 {label}
               </button>
