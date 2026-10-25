@@ -57,7 +57,8 @@ makes stale, and keep the file under about 100 lines.
 - **Specs.**
   - Writing them first catches checks nobody can build. On browser-sensitive work, push them alone
     first, with a check of the harness itself as the readout.
-  - Any added `test.skip(` needs the owner (scope.mjs).
+  - An added `test.skip(` is a weakened check: Lens accepts it only with its reason in the PR
+    (scope.mjs's testNotes).
   - A check added after its fix can't be red on main: prove it with the mutant that turns it red.
   - In forced colors Chromium paints a background-only dot opaque Canvas. A check that it "shows"
     compares it with the page's background.
@@ -89,10 +90,9 @@ makes stale, and keep the file under about 100 lines.
     before pushing anything, since a push re-reviews from scratch. Sprint 24's died at 71 turns
     and 7.6M tokens; the re-run shipped the same head in 36.
 - **Designs.**
-  - A direction the owner can only reach in a repo file isn't reviewed. It goes on a Design canvas
-    for their comments, and nothing is built until they approve there (sprints 15 and 16 were
-    superseded this way).
-  - Memory about a direction stays "pending the owner" until the canvas is approved.
+  - A direction only in a repo file reaches nobody (sprints 15 and 16 were superseded this way):
+    it goes on a Design canvas, where the build starts on Iris's recommendation and the owner may
+    pick another.
   - Render sources left for another role need a recipe that runs from a fresh checkout.
 - **The browser.**
   - A scroll-driven animation is a frame stale after a jump scroll, so never move click targets
@@ -125,7 +125,8 @@ makes stale, and keep the file under about 100 lines.
     states (the control's buttons): mask it, and name the mask in the contract before the build
     (`.crew/sprint/27/decisions.md`, 10 and 11).
   - B2.10's script budget on `/` counts decoded bodies, not gzip, and 10 B of it is left: client
-    code added to `/` reopens the budget with the owner first.
+    code added to `/` reopens the budget, and loosening the B2.10 check is Lens's to accept, with
+    the reason in the PR.
   - Size an item that reads another system's data only after reading that system: B4 "from the
     Studio's data" had no API (the Studio's roadmap lists one as unbuilt), so sprint 28 wrote its
     contract for the owner (`.crew/sprint/28/feed-contract.md`). The Studio's repository attaches

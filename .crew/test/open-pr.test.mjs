@@ -13,6 +13,8 @@ import {
 
 const { dir: repo } = gitRepo({
   ".crew/sprint/3/pr.md": "**Work in progress**\n\n## Goal\nDots.\n",
+  ".crew/sprint/3/picks.md":
+    "## Goal\nDots.\n\n### Owner's pick: Dot size\n- [ ] Small (Recommended)\n- [ ] Large\n",
 });
 const R = `repos/${REPO}`;
 const BRANCH = "sprint/3-dots";
@@ -219,4 +221,20 @@ test("puts each PR it opens on air, and none it only kept", async () => {
   } finally {
     studio.close();
   }
+});
+
+test("keeps the owner's answers when it rewrites an open PR's body from the file", () => {
+  const live = {
+    ...pr(7),
+    body: "### Owner's pick: Dot size\n- [ ] Small (Recommended)\n- [x] Large\nApplied: Large, in #7.",
+  };
+  const args = ARGS.with(-1, ".crew/sprint/3/picks.md");
+  const { code, sent } = openPr(github({ open: [live] }), { args });
+  assert.equal(code, 0);
+  assert.deepEqual(sent("PATCH", `${R}/pulls/7`), [
+    {
+      title: FIELDS.title,
+      body: "## Goal\nDots.\n\n### Owner's pick: Dot size\n- [ ] Small (Recommended)\n- [x] Large\nApplied: Large, in #7.\n",
+    },
+  ]);
 });

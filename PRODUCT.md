@@ -26,7 +26,7 @@ Ruslan Shulga's portfolio. A visitor should leave believing three things, in thi
 ## Positioning
 
 A portfolio rebuilt in public, sprint by sprint, by an AI crew the owner designed and directs,
-where every change is made, reviewed and tested by named agents and approved by the owner. A
+where every change is made, reviewed and tested by named agents, under rules the owner set. A
 neighbouring site can copy a look; it can't truthfully copy that record.
 
 ## Operating Context

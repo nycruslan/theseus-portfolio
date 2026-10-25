@@ -6,14 +6,16 @@
 // It asks for the workflow, then polls every 5 s, for up to 3 minutes, until the PR is open. If the
 // workflow can't be asked for or the PR doesn't come in time, it opens the PR itself, under the
 // owner's login, and says so: a sprint never waits on the app. A branch that already has an open PR
-// keeps it, with the new title and body. A PR it opened goes on air as StudioPullRequest. Run it
-// with the Bash tool's timeout at 5 minutes.
+// keeps it, with the new title and body, and the answers to the owner's picks the live body holds.
+// A PR it opened goes on air as StudioPullRequest. Run it with the Bash tool's timeout at 5
+// minutes.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { api, configure, repoOf, toplevel } from "./github.mjs";
+import { keepAnswers } from "./picks.mjs";
 import { announce } from "./post.mjs";
 
 const POLL_MS = Number(process.env.THESEUS_OPEN_PR_POLL_MS || 5_000);
@@ -142,6 +144,12 @@ function onGitHub() {
   }
 }
 
-function update({ number }) {
-  api(`repos/${repo}/pulls/${number}`, { method: "PATCH", cwd, body: fields });
+// The owner may have answered a pick in the live body already: their ticks and the team's
+// "Applied:" lines stay.
+function update({ number, body }) {
+  api(`repos/${repo}/pulls/${number}`, {
+    method: "PATCH",
+    cwd,
+    body: { ...fields, body: keepAnswers(fields.body, body) },
+  });
 }

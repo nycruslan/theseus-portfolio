@@ -19,6 +19,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
+import { ownerPicks } from "./picks.mjs";
 import { announce } from "./post.mjs";
 
 const POLL_MS = Number(process.env.THESEUS_MERGE_POLL_MS || 15_000);
@@ -109,6 +110,13 @@ function refusal() {
     return `the branch moved to ${pr.head.sha.slice(0, 7)} while it waited`;
   if (pr.state !== "open")
     return `the PR is ${pr.merged ? "already merged" : pr.state}`;
+  // A pick that can't be undone holds the PR until the owner answered and the team built it.
+  const waiting = ownerPicks(pr.body).find(
+    ({ waits, applied }) => waits && !applied,
+  );
+  if (waiting) {
+    return `the owner's pick "${waiting.question}" waits for their answer`;
+  }
   const missing = unreported();
   if (missing.length) {
     return `${missing.join(", ")} never reported on ${head.slice(0, 7)}${lensHint(missing)}`;
