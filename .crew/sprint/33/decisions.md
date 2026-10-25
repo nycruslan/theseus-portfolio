@@ -55,3 +55,19 @@
 
 9. **Pixel's branch is `pixel/33-r2`:** the cloud refused a force-push to `pixel/33`. His commits
    are cherry-picked onto the sprint branch, whose product tree equals his head.
+
+10. **Lens's fix round 1 (changes on d430702).** The important finding, a mouse press dragged off
+    the canvas leaving hover dead, is fixed by clearing the press on pointerleave, so a drag-off is
+    a cancelled click (Pixel, 059f380). Probe added the check, red without the fix (c403c77). Lens's
+    noopener nit is taken in the same commit, since B5.20 says a new tab plays the move. Lens's
+    "merge main" nit was right: the branch was built on #82's pre-squash head. Main is merged
+    (050e971), with every conflict on this branch's side, since main's squash has #82's head's
+    tree.
+
+11. **The Log holds its first paint until its drawing is parsed** (Forge, ae0e0e0). B5.25 failed
+    once on `/log/13` at 320: CLS 0.0699. Forge reproduced the value exactly by splitting the HTML
+    before the record. Below 1024 the ghost sits above the caption by CSS `order` but after it in
+    the DOM, so a partial first paint had no ghost. `<link rel="expect" href="#every-revision"
+    blocking="render">` on the Log holds the first paint until the parser reaches the heading after
+    the drawing. It is Chromium only, with no layout change and no script. Re-ordering the DOM to
+    match below 1024 would re-lay the header's grid from 1024, which is bigger and Iris's.
