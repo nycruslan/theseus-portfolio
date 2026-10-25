@@ -63,3 +63,13 @@
     production's newest revision sits under "Undated" from each merge until the next. A writer run
     after each merge on main would close that gap; it is the owner's (a workflow, `.github/`), and
     goes in the retro's proposals.
+
+11. **Groups are runs of rows, and the figure follows the latest merge** (Lens's important
+    finding on c07c6fa). Sorting groups by day with Undated first keeps the table in sprint order
+    only while sprints merge in number order. They don't always: sprint 28 merged after 29, and
+    #78 (sprint 31) may merge after this sprint on a later day. The rows would then read 31, 32,
+    30 and C3.1 would go red. So a group is now a run of consecutive rows in table order with the
+    same day (or no record), as Lens proposed: C3.1 stays untouched, and B5.13, new in this PR, is
+    reworded with its oracle. A day shows twice only after an out-of-order merge. The lines figure
+    comes from the record merged last, not the highest sprint number, so it describes the newest
+    code. This supersedes decision 9's "Undated first", which now holds only for the newest rows.

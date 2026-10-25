@@ -35,13 +35,15 @@ when it merged. Every date comes from a record the crew writes after the merge
   year. A merged row with no record shows an empty cell, never "—". Below 640, where rows fold,
   the cell is visually hidden but kept for assistive tech, since the group header just above
   names the day (decision 10).
-- **Day groups:** the rows stay newest first, in a `tbody` per UTC merge day, each opened by one
+- **Day groups:** the rows stay in the table's order, sprint number descending (seats and rows
+  follow sprint number, not merge time: the plan's "Order"). A group is a run of consecutive rows
+  with the same UTC merge day, or a run of rows with no record; a new `tbody` starts wherever a
+  row's day, or whether it has one, differs from the row above (decision 11). Each opens with one
   row header, `th[scope="rowgroup"]` across the row: "Sat 24 Oct · 4 revisions" ("1 revision" in
-  the singular). Rows without a record go in a first group headed "Undated" (decision 9). Sprint order within a
-  group is the table's order (sprint number, descending): seats and rows still follow sprint
-  number, not merge time (the plan's "Order").
+  the singular), or "Undated", counting the run's rows. A day shows twice only after an
+  out-of-order merge.
 - **The lines figure**, a line in the Log's header after the count line, from the newest record
-  (the highest sprint number that has one): "{original} of {total} lines of the site's code are
+  (the latest `mergedAt`; decision 11): "{original} of {total} lines of the site's code are
   still original: {original ÷ total × 100, one decimal}%, by git blame on app, components and lib
   at {commit, 7 characters}." Numbers with a comma for thousands ("5,288"). With no record, the
   line is absent.
@@ -55,11 +57,11 @@ when it merged. Every date comes from a record the crew writes after the merge
 **B5.12 The Date column.** On `/log` with scripts on and off, at 390, 1024 and 1440: the heads
 are Rev, Description, Drawn, Checked, Tested, Approved, Date; each row's Date equals the oracle's
 from its `merge.json`, or is empty when it has none; no cell reads "—"; below 640 each Date cell keeps its text in the accessibility tree and paints nothing, and its group header is visible.
-**B5.13 The day groups.** Every row is in exactly one group; groups are in descending day order
-with "Undated" first; each header's day, weekday and count equal the oracle's; every row's Date
-equals its group's day.
+**B5.13 The day groups.** Every row is in exactly one group; the groups are the runs of
+consecutive rows (in table order) sharing a UTC day, or sharing no record; each header's day,
+weekday (or "Undated") and count equal the oracle's; every row's Date equals its group's day.
 **B5.14 The lines figure.** The header's line reads exactly as the oracle builds it from the
-newest record, and is the only one; it is in the first screen at 1440 × 900.
+record with the latest `mergedAt`, and is the only one; it is in the first screen at 1440 × 900.
 **B5.15 The record's date.** On the newest record, `/log/13`, `/log/1` and `/log/24`, the Date pair
 reads as the oracle says, before Pull request; a sprint without a record has no Date pair.
 **B5.16 The records themselves.** Every merged sprint on main from 1 to 30 has a `merge.json`
