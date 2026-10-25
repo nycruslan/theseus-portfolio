@@ -851,11 +851,12 @@ main:has(> [data-model]) {
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
  * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3). Below 1024 px one column:
- * the h1, the drawing, the caption, the count line, the record when one is open, then Every
- * revision, its 2 px rule edge to edge as the facts' are. The drawing follows the count line in the
- * DOM and is set after the h1 here; it is hidden from assistive tech, so the reading order is the
- * DOM's. From 1024 the sheet's inset box as a two-column grid: the drawing beside the header, then
- * Every revision beside the record, or across both columns on /log. Nothing on it moves.
+ * the h1, the drawing, the caption, the count line, the lines figure, the motion control's row,
+ * the record when one is open, then Every revision, its 2 px rule edge to edge as the facts' are.
+ * The drawing follows the header in the DOM and is set after the h1 here; it is hidden from
+ * assistive tech, so the reading order is the DOM's. From 1024 the sheet's inset box as a
+ * two-column grid: the drawing beside the header, then Every revision beside the record, or across
+ * both columns on /log. Nothing here moves: the ghost's 3D is the model layer's (above).
  */
 .log {
   display: flex;
@@ -918,6 +919,29 @@ main:has(> [data-model]) {
   font-weight: 700;
   line-height: 1.1;
   color: var(--foreground);
+}
+
+/*
+ * Sprint 33, the header's end (.crew/sprint/33/contract.md, calls 7 and 9; notes-iris.md,
+ * section 5). The lines figure's rule takes the header's whole column while its text keeps the
+ * header's 66ch: from 640 to 1023 px the column is wider than the text, and a rule that stopped
+ * with it read as cut short (Iris, on #82). Elsewhere the column is narrower than 66ch, and the
+ * padding is 0.
+ */
+.log-head .log-lines {
+  max-width: none;
+  padding-right: max(0px, 100% - 66ch);
+}
+
+/* The motion control below 768 px (components/log.tsx): a 44 px row 12 px under the lines figure,
+   the group at its right end, on the Log's own 16 px text edge. It takes the figure's order, which
+   it follows in the DOM. The sheet's slot rule (`main > [data-motion]`) would add its 16 px of
+   padding to the Log's gutter. When #78's `Foot` holds the control, `.log > .foot` takes this
+   12 px and this rule goes. */
+.log > [data-motion] {
+  order: 4;
+  margin: 12px 0 0;
+  padding: 0;
 }
 
 .record {
