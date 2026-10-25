@@ -28,3 +28,11 @@
    the header below), Lens's nit on #74 in `components/model.tsx`'s `MotionControl`, and Iris's
    rule-width rider. `app/globals.css` is shared: Pixel's rules stay under the model layer's
    selectors, Forge's under the Log's header and the control's row, each in its own block.
+
+5. **Amendment 1: three live Log checks rewritten for the control in `main`** (Forge's run of the
+   live suites on 6cb0428). The contract's rewrite table missed them. B5.6's C5.2 counts no
+   disclosure widgets: it now counts within the record and the table, since the control is a
+   button group, not a disclosure. B5.9's C9.2 composites every label on `--background`: the
+   pressed button's label is now read on its own fill, still at 4.5:1. C10's added Tab stops are
+   3 with WebGL and 1 (Off) with it refused, since Full and Calm are disabled then. Each is
+   rewritten with assertions no weaker than before; Probe's report lists the before and after.
