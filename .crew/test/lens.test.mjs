@@ -339,6 +339,11 @@ test("the review's context lists the checks the PR weakens, from the default bra
     retired.context,
     /## Checks this PR weakens\n\n- e2e\/sprints\.spec\.ts is a test, and the PR deletes it\.\n\n## Description/,
   );
+  // A removed file is gone from the checkout, so without a patch nothing shows what it checked.
+  assert.match(
+    retired.context,
+    /### e2e\/sprints\.spec\.ts \(removed\)\n\nNo diff shown, and the file is gone from the checkout/,
+  );
   const plain = step("plan", event({ action: "labeled", label: "review" }));
   assert.match(
     plain.context,

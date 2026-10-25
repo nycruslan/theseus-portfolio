@@ -183,7 +183,9 @@ function writeContext({ pr, compare }) {
     lines.push(
       patch
         ? `\`\`\`diff\n${patch}\n\`\`\``
-        : `No diff shown: read ${filename} in the checkout.`,
+        : status === "removed"
+          ? "No diff shown, and the file is gone from the checkout: what it checked can't be read here."
+          : `No diff shown: read ${filename} in the checkout.`,
     );
   }
   writeFileSync(CONTEXT, `${lines.join("\n")}\n`);

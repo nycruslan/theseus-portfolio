@@ -32,7 +32,7 @@
 
 import { carriedNeedsOwner, OWNER_APPROVED } from "./gate.mjs";
 import { api, configure, list, repoOf, toplevel } from "./github.mjs";
-import { ownerPicks } from "./picks.mjs";
+import { ownerPicks, unbuilt } from "./picks.mjs";
 
 const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 // The checks app opens the team's PRs (.github/workflows/open-pr.yml). GitHub calls it no
@@ -121,22 +121,22 @@ function preflight(repo) {
   };
 }
 
-// The picks the owner answered that the team still has to act on, oldest PR first.
+// The picks the owner answered that the team still has to build: open PRs first, then merged ones,
+// most recently updated first.
 function answeredPicks(prs) {
   return prs.flatMap((pr) =>
-    ownerPicks(pr.body).flatMap(({ question, waits, applied, options }) => {
-      const ticked = options.filter((option) => option.ticked);
-      const changes = waits || ticked.some((option) => !option.recommended);
-      if (applied || !ticked.length || !changes) return [];
+    ownerPicks(pr.body).flatMap((pick) => {
+      const chose = unbuilt(pick);
+      if (!chose.length) return [];
       return [
         {
           pr: pr.number,
           url: pr.html_url,
           merged: Boolean(pr.merged_at),
-          question,
-          chose: ticked.map((option) => option.text),
-          recommended: options.find((option) => option.recommended)?.text,
-          waits,
+          question: pick.question,
+          chose,
+          recommended: pick.options.find((option) => option.recommended)?.text,
+          waits: pick.waits,
         },
       ];
     }),

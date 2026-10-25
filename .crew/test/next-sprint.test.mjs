@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ownerPicks } from "../picks.mjs";
+import { ownerPicks, unbuilt } from "../picks.mjs";
 import { ghLog, gitRepo, REPO, routes, runHook } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
@@ -736,10 +736,10 @@ test("reads the owner's picks from a PR's body: each question, its options, whic
   assert.deepEqual(
     picks.map(({ question, waits, applied }) => [question, waits, applied]),
     [
-      ["The bar on phones", false, false],
-      ["The tagline", false, false],
-      ["Spend $20 a month on fonts", true, false],
-      ["The footer", false, true],
+      ["The bar on phones", false, null],
+      ["The tagline", false, null],
+      ["Spend $20 a month on fonts", true, null],
+      ["The footer", false, "One column"],
     ],
   );
   assert.deepEqual(picks[0].options, [
@@ -751,6 +751,44 @@ test("reads the owner's picks from a PR's body: each question, its options, whic
     { text: "Move it to the drawing's foot", ticked: true, recommended: false },
   ]);
   assert.deepEqual(ownerPicks(null), []);
+});
+
+test("a pick is unbuilt while the owner's tick differs from what the team built, the last applied or else the recommended", () => {
+  const pick = (lines) =>
+    ownerPicks(["### Owner's pick: Q", ...lines].join("\n"))[0];
+  const cases = [
+    [["- [ ] A (Recommended)", "- [ ] B"], []],
+    [["- [x] A (Recommended)", "- [ ] B"], []],
+    [["- [ ] A (Recommended)", "- [x] B"], ["B"]],
+    [["- [ ] A (Recommended)", "- [x] B", "Applied: B, in #41."], []],
+    // The owner changed their mind after it was applied, back to the recommended one or to another.
+    [
+      ["- [x] A (Recommended)", "- [ ] B", "Applied: B, in #41."],
+      ["A (Recommended)"],
+    ],
+    [
+      ["- [ ] A (Recommended)", "- [ ] B", "- [x] C", "Applied: B, in #41."],
+      ["C"],
+    ],
+    // The last Applied line counts, and it names the option in the team's words.
+    [
+      [
+        "- [x] A (Recommended)",
+        "- [ ] B",
+        "Applied: B, in #41.",
+        "Applied: a, in #42.",
+      ],
+      [],
+    ],
+  ];
+  for (const [lines, chose] of cases) {
+    assert.deepEqual(unbuilt(pick(lines)), chose, lines.join(" | "));
+  }
+  const waits = ownerPicks(
+    "### Owner's pick (waits): Q\n- [x] A (Recommended)\n- [ ] B",
+  )[0];
+  assert.deepEqual(unbuilt(waits), ["A (Recommended)"]);
+  assert.deepEqual(unbuilt({ ...waits, applied: "A" }), []);
 });
 
 test("lists the owner's answers the team still has to act on: an override, any tick on a pick that waits, in open PRs and merged ones however old", () => {

@@ -29,10 +29,10 @@ Two lists come beside the action, and neither stops it:
   `theseus:conflict <head sha>` so later runs leave that head alone.
 - `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
   what it needs, then comment on each that you reminded the owner, which restarts its day.
-- `picks`: the owner's answers to an Owner's pick (below) that change what was built. Build each
-  choice: in its PR while that's open, or riding with this sprint once it merged. Then add a line
-  `Applied: <the choice>, in #<n>.` under that pick in the PR's body, so no later run builds it
-  again.
+- `picks`: the owner's answers to an Owner's pick (below) that differ from what was built. Build
+  each choice: in its PR while that's open, or riding with this sprint once it merged. Then add a
+  line `Applied: <the option's text>, in #<n>.` under that pick in the PR's body, so no later run
+  builds it again; a later tick on another option comes back here.
 
 ## Choose the work
 
@@ -109,7 +109,8 @@ sprint.
 The team decides and merges its own work. Product calls are Quill's and yours, taste is Iris's, and
 a check the work retires is Lens's to accept: name each retired check in the PR and why the
 behaviour it checked is gone. Lens refuses one without a reason, and never accepts one that only
-makes a failing build pass. `gate` holds only a PR that touches an owner path (the crew's own rails
+makes a failing build pass. Editing the description starts no review: after adding a reason Lens
+asked for, remove and re-add the `review` label. `gate` holds only a PR that touches an owner path (the crew's own rails
 and the owner's facts, in `.github/CODEOWNERS`), changes `package.json`'s scripts, or ever carried
 `needs-owner`, until the owner approves its head; `merge.mjs` leaves such a PR for the owner to
 merge.
@@ -122,7 +123,8 @@ can be undone, build the recommended option and don't wait: if the owner ticks a
 run switches (`picks`). When it can't be undone, head it `### Owner's pick (waits): <the question>`,
 add the `needs-owner` label, and take other work meanwhile. A pick restates nothing the owner
 already decided; read earlier PRs' picks and the sprint folders first. Send one push notification
-per PR that asks: the question in a line, the options with the recommended one first, and the link.
+per PR that asks or waits for the owner: its link and Vercel preview, and each question in a line
+with its options, the recommended one first, or else what the owner needs to look at.
 Never ask the owner to do a chore. Something only an account can do (an env var, a dashboard
 setting, a domain) goes on the open issue titled `Owner chores` as one checkbox line saying what it
 unblocks, while the build ships a fallback that works without it. When a PR waits for the owner,
