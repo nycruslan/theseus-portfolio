@@ -5,7 +5,7 @@ Taken beside #78 (B4a), which waits for the owner. B5 reads the retros on main, 
 this sprint neither repeats nor builds on #78. Both touch `/log`: #78 changes the bar, this sprint
 the table and header. Whichever merges second merges main and keeps both sides.
 
-**Size:** M. Contract: `.crew/sprint/32/contract.md` (Atlas, amended by decisions 8 to 10).
+**Size:** M. Contract: `.crew/sprint/32/contract.md` (Atlas, amended by decisions 8 to 11).
 Decisions: `.crew/sprint/32/decisions.md`. Iris's notes: `notes-iris.md`.
 
 ### What a visitor gets
@@ -16,7 +16,9 @@ Decisions: `.crew/sprint/32/decisions.md`. Iris's notes: `notes-iris.md`.
 - **Every revision grouped by the UTC day it merged,** each group opened by a row header such as
   "Sat 24 Oct · 4 revisions". A **Date** column sits last, after Approved. Below 640 px, where rows
   fold, the Date cell is kept for screen readers only, because the group header already names the
-  day. A merged sprint with no record yet sits in a first group, "Undated".
+  day. A group is a run of consecutive rows in sprint order sharing a day, so the table keeps
+  sprint order even when sprints merge out of order; a day shows twice only then. A merged sprint
+  with no record yet heads an "Undated" run (decision 11).
 - **Each record** at `/log/<n>` gains "Date: 20 Oct 2026, 00:42 UTC" before its pull request.
 
 ### The merge record
@@ -42,7 +44,18 @@ assertion:
 - The record's pairs gain Date.
 
 No `expect(` is removed, nothing is retired, and C4.4's status-word rule is unedited. `pnpm verify`
-passes, and the full e2e suite passes 162 of 162 (Forge, on a tree identical to this head's).
+passes, and the full e2e suite passes 162 of 162 (Forge, on a tree identical to 98cef13).
+
+### Lens
+
+`Verdict: ship` on 98cef13 after one fix round. Lens's important finding on c07c6fa was that
+sorting groups by day breaks sprint order (and C3.1) when a lower sprint merges after a higher one
+on a later day, as #78 (sprint 31) may. Groups became runs of rows, and the figure follows the
+latest merge (decision 11). Its second, on a8395df, was that the oracle still grouped the old way;
+Probe's reword had already landed in the next head. The fix is proven with sprint 28 moved to a
+later day: the Log suites pass 59 of 59, and the old grouping fails C3.1 and B5.13 there. Three
+nits ride: two notes (fixed in the close-out) and one check for records past sprint 30 (Probe,
+next sprint that touches `/log`).
 
 ### Iris
 
