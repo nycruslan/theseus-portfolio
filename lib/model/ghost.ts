@@ -3,6 +3,7 @@
 // numbers riding their planks. The drawing is the record: the seats, their numbers, the record's
 // own seat and the leaders all come from it, so the 3D can't disagree with the 2D. No three.js.
 
+import { seamDepth } from "@/lib/half-model";
 import { GHOST, PLANKS } from "@/lib/hull-layouts";
 import { LEAD_GAP, LEAD_OUT, LED_OUT } from "./calls";
 import { bandAt, type Ghost, nearSide, type Vec3 } from "./hull";
@@ -141,6 +142,30 @@ function edgesOf(plank: Plank) {
   ];
 }
 
+const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
+
+/**
+ * The middle half of a plank's body, where its number may ride: the 2D's rule for the body
+ * (`plankBody` in lib/lines-plan.ts: nearly a whole lift deep, or nearly as deep as the plank ever
+ * gets), whose middle is the drawing's place. Searching the whole plank let numbers settle at its
+ * ends, clumped at the stern and the bow (.crew/sprint/33/review-iris.md, Must 1).
+ */
+function middleOf(plank: Plank): Point | null {
+  const stations = Array.from({ length: 49 }, (_, i) => {
+    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
+    const band = bandAt(plank, x);
+    return { x, depth: band ? band[1] - band[0] : 0 };
+  });
+  const deepest = Math.max(...stations.map((station) => station.depth));
+  const deep = stations.filter(
+    (station) => station.depth >= 0.9 * Math.min(deepest, LIFT_DEPTH),
+  );
+  const [first, last] = [deep[0]?.x, deep.at(-1)?.x];
+  if (first === undefined || last === undefined) return null;
+  const [mid, quarter] = [(first + last) / 2, (last - first) / 4];
+  return [mid - quarter, mid + quarter];
+}
+
 /** One canvas for measuring the digits' ink, made once. */
 let measure: CanvasRenderingContext2D | null | undefined;
 
@@ -187,12 +212,12 @@ function reach(box: Box, [ax, ay]: Point, [bx, by]: Point) {
  * the frame draws it, in custom properties that app/globals.css applies only while the model has a
  * state. A number's point is the screen midpoint between its plank's projected top and bottom edges,
  * since on the turned hull a band's projected middle isn't its middle's projection
- * (.crew/sprint/33/early-look-iris.md, must 2). At rest each takes the place along its plank 2 px
- * clear of the other numbers and 1 px clear of every line drawn (both sides' seams through the
- * vellum, the outline, the record's mark, the leaders), nearest the 2D's place; where none is, the
- * clearest, the hardest planks placed first. A led-out number (5.0's in the 2D, LED_OUT's in the 3D
- * alone) stands aft at its leader's end. In the move each rides from the 2D's place with e, so frame
- * 1 is the drawing.
+ * (.crew/sprint/33/early-look-iris.md, must 2). At rest each takes the place in the middle half of
+ * its plank's body 2 px clear of the other numbers and 1 px clear of every line drawn (both sides'
+ * seams through the vellum, the outline, the record's mark, the leaders), nearest the 2D's place;
+ * where none is, the 2D's place, the hardest planks placed first. A led-out number (5.0's in the
+ * 2D, LED_OUT's in the 3D alone) stands aft at its leader's end. In the move each rides from the
+ * 2D's place with e, so frame 1 is the drawing.
  */
 export function riders({ labels }: GhostPage) {
   const planks = labels.map((label) =>
@@ -377,11 +402,12 @@ export function riders({ labels }: GhostPage) {
         }
         return score;
       };
-      // Every place along the plank where it is at least 6 units deep, a unit apart.
+      // The 2D's place, then every place a unit apart in the middle half of the plank's body.
+      const [lo, hi] = middleOf(plank) ?? [label.anchor[0], label.anchor[0]];
+      const xs = [label.anchor[0]];
+      for (let x = Math.ceil(lo); x <= hi; x += 1) xs.push(x);
       const found: Place[] = [];
-      for (let x = Math.ceil(plank.x0 + 2); x <= plank.x1 - 2; x += 1) {
-        const band = bandAt(plank, x);
-        if (!band || band[1] - band[0] < 6) continue;
+      for (const x of xs) {
         const box = boxAt(pointAt(i, loft, x, 1).at);
         found.push({
           x,
@@ -396,22 +422,15 @@ export function riders({ labels }: GhostPage) {
       Math.max(box.l, other.l) - Math.min(box.r, other.r) >= gap ||
       Math.max(box.t, other.t) - Math.min(box.b, other.b) >= gap;
     /**
-     * Of a number's places 2 px clear of the others: the clear one nearest the 2D's place; else the
-     * clearest, where the plank's projected depth is greatest and the box is centred in it, nearest
-     * the 2D's place of those within 0.05 px of it.
+     * Of a number's places 2 px clear of the others, nearest the 2D's place: the first clear of the
+     * lines; where none is, the first, so the number keeps its plank's middle and touches a line
+     * (Iris accepts the stern's and keel's touches; review-iris.md, the decision on the touches).
      */
     const choose = (i: number, others: readonly Box[]) => {
-      const open = (places[i] ?? []).filter((place) =>
-        others.every((other) => apart(place.box, other)),
-      );
-      const clear = open
-        .filter((place) => place.score >= ink)
-        .sort((a, b) => a.d - b.d)[0];
-      if (clear) return clear;
-      const most = Math.max(...open.map((place) => place.score));
-      return open
-        .filter((place) => place.score >= most - 0.05)
-        .sort((a, b) => a.d - b.d)[0];
+      const open = (places[i] ?? [])
+        .filter((place) => others.every((other) => apart(place.box, other)))
+        .sort((a, b) => a.d - b.d);
+      return open.find((place) => place.score >= ink) ?? open[0];
     };
     // The hardest first, the planks whose clearest place is least clear (the keel's and the
     // stern's), so the roomier ones make way; then each again with all the others set.

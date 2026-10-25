@@ -80,12 +80,14 @@ export const SETTLE_GHOST = { dx: 0, dy: 0, yaw: -20, pitch: 12, lift: LIFT };
 
 /**
  * The vellum (call 1): the card's lit material made translucent, at α 0.7 settled, its colour
- * solved so the unlit composite over the film is `--vellum`; at half the card's lit mix, under the
- * rig at × 1.35 in light and the warm lamp at 1.6 in dark (`/`'s × 4 put 8 to 9 numbers under
- * 4.5:1: spike-pixel.md, section 4).
+ * solved so the unlit composite over the film is `--vellum`; at 0.4 of the card's lit mix, under
+ * the rig at × 1.35 in light and the warm lamp at 1.6 in dark (`/`'s × 4 put 8 to 9 numbers under
+ * 4.5:1: spike-pixel.md, section 4). Iris's 0.5 left the keel's planks at L 0.844 to 0.850 in
+ * light, under her band's 0.85, and the inside above the near sheer at the film's 0.952; the
+ * lower mix draws both ends toward the unlit `--vellum`, in both schemes.
  */
 export const GHOST_ALPHA = 0.7;
-export const GHOST_LIT = 0.5;
+export const GHOST_LIT = 0.4;
 export const GHOST_GAIN = 1.35;
 export const GHOST_DARK_GAIN = 1.6;
 

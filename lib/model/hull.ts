@@ -31,12 +31,6 @@ export type Level = { stations: number; rows: number };
  */
 export const DESKTOP: Level = { stations: 120, rows: 8 };
 export const PHONE: Level = { stations: 56, rows: 4 };
-/**
- * The ghost's pick hull (.crew/sprint/33/spike-pixel.md, section 3): never drawn. Every level's
- * stations include each plank's ends and its rows its seams, so its plank edges are the drawn
- * hull's; only the curve between them is coarser.
- */
-export const PICK: Level = { stations: 24, rows: 2 };
 
 /** The state lookup's slot for the deck and the transom, after the 22 planks: always card. */
 export const DECK = PLANKS.length;
