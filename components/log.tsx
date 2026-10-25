@@ -69,31 +69,41 @@ function LinesFigure({ commit, lines: { original, total } }: MergeRecord) {
 }
 
 type DayGroup = {
-  /** The UTC day, "2026-10-24", or none for the rows without a merge record. */
+  /** The UTC day, "2026-10-24", or none for a run of rows without a merge record. */
   day?: string;
-  /** Its rows, in the table's order. */
+  /** The run's rows, in the table's order; never empty. */
   entries: SprintEntry[];
 };
 
 /**
- * The table's groups, top to bottom (contract, "Day groups"; decisions 5 and 9): the rows without a
- * record first, as "Undated", since they are the newest; then one group per UTC merge day, newest
- * day first. Each keeps the table's order, sprint number descending.
+ * The table's groups, top to bottom (contract, "Day groups"; decision 11): runs of consecutive rows
+ * in the table's order, sprint number descending, so the groups never reorder the rows. A new
+ * group starts wherever a row's UTC merge day, or whether it has a record, differs from the row
+ * above's; a day shows twice only when a sprint merged after a higher one, on a later day.
  */
 function dayGroups(entries: readonly SprintEntry[]): DayGroup[] {
-  const undated = entries.filter((entry) => !entry.merge);
-  const days = new Map<string, SprintEntry[]>();
+  const groups: DayGroup[] = [];
   for (const entry of entries) {
-    if (!entry.merge) continue;
-    const day = utcDay(entry.merge.mergedAt);
-    const group = days.get(day);
-    if (group) group.push(entry);
-    else days.set(day, [entry]);
+    const day = entry.merge ? utcDay(entry.merge.mergedAt) : undefined;
+    const last = groups[groups.length - 1];
+    if (last && last.day === day) last.entries.push(entry);
+    else groups.push({ day, entries: [entry] });
   }
-  const dated = [...days]
-    .sort(([a], [b]) => (a < b ? 1 : -1))
-    .map(([day, group]) => ({ day, entries: group }));
-  return undated.length > 0 ? [{ entries: undated }, ...dated] : dated;
+  return groups;
+}
+
+/** The record merged last, whatever its sprint's number (decision 11). */
+function latestMerge(entries: readonly SprintEntry[]) {
+  let latest: MergeRecord | undefined;
+  for (const { merge } of entries) {
+    if (
+      merge &&
+      (!latest || Date.parse(merge.mergedAt) > Date.parse(latest.mergedAt))
+    ) {
+      latest = merge;
+    }
+  }
+  return latest;
 }
 
 /** "4 revisions", "1 revision". */
@@ -111,8 +121,8 @@ export function Log({ entries, open }: LogProps) {
     : undefined;
   // The record's place in merged order, for its previous and next revisions.
   const at = record ? merged.indexOf(record.sprint) : -1;
-  // The newest record is the highest sprint that has one; its year is the one a date leaves out.
-  const newest = entries.find((entry) => entry.merge)?.merge;
+  // The newest record is the one merged last: the lines figure's, and the year a date leaves out.
+  const newest = latestMerge(entries);
   const year = newest ? utcYear(newest.mergedAt) : Number.NaN;
 
   return (
@@ -193,7 +203,8 @@ export function Log({ entries, open }: LogProps) {
               </tr>
             </thead>
             {dayGroups(entries).map(({ day, entries: group }) => (
-              <tbody key={day ?? "undated"}>
+              // A day or "Undated" can head two runs, so the run's first sprint keys it.
+              <tbody key={group[0]?.sprint}>
                 <tr className="rev-day">
                   <th scope="rowgroup" colSpan={7}>
                     {day && group[0]?.merge ? (
