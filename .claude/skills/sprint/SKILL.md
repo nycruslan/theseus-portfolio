@@ -21,10 +21,12 @@ says why and how. If it exits 1, GitHub couldn't be read: start nothing and repo
 
 Two lists come beside the action, and neither stops it:
 - `update`: PRs waiting for the owner that conflict with main, usually in notes another sprint's
-  close-out changed. Merge `origin/main` into each one's branch. When only notes conflict, keep both
-  sides, push, and once its checks pass tell the owner its head changed and needs their approval
-  again. When product code conflicts, abort the merge and comment that it needs the owner's call,
-  ending the comment with `theseus:conflict <head sha>` so later runs leave that head alone.
+  close-out changed. Merge `origin/main` into each one's branch and resolve the conflicts as the
+  team would, keeping what both sides meant: notes yourself, product code with the builder who
+  wrote it, checks with Probe. Push, and once its checks pass tell the owner its head changed and
+  needs their approval again. Only when the two sides want different things the owner decided,
+  abort the merge, ask it as an Owner's pick, and end the comment with
+  `theseus:conflict <head sha>` so later runs leave that head alone.
 - `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
   what it needs, then comment on each that you reminded the owner, which restarts its day.
 - `picks`: the owner's answers to an Owner's pick (below) that change what was built. Build each
