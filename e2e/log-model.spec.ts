@@ -19,11 +19,14 @@ import {
   MOVE,
   markedSeat,
   markVisit,
+  medianAt,
   medianIn,
   NUMBERS_FROM,
   oklab,
   onEdge,
   PAGES,
+  pickOf,
+  plankCells,
   press,
   rgbOf,
   SEAT_BY_NUMBER,
@@ -32,6 +35,7 @@ import {
   scanSeats,
   sinceMark,
   token,
+  twoFrames,
 } from "./ghost";
 import { contrast } from "./helpers";
 import {
@@ -465,6 +469,14 @@ for (const url of PAGES) {
         )
         .toEqual([]);
       const box = whole((await canvasBox(run.page)) as Box);
+      // Each plank's own vellum, from the canvas's coverage (geometry, the same in both schemes).
+      const lit = await canvasAlone(run.page, box);
+      const vellumCells = plankCells(
+        scan.grid,
+        lit.alpha,
+        box,
+        stepAt(size.width),
+      );
       for (const scheme of ["light", "dark"] as const) {
         const where = `${at}, ${scheme}`;
         await run.page.emulateMedia({ colorScheme: scheme });
@@ -477,11 +489,17 @@ for (const url of PAGES) {
         ];
         const off: string[] = [];
         const reads: string[] = [];
-        for (const [seat, p] of scan.points) {
-          const lab = oklab(
-            medianIn(image, { x: p.x - 1, y: p.y - 1, width: 2, height: 2 }),
+        for (const seat of SEATS) {
+          const sample = vellumCells.get(seat);
+          if (!sample) {
+            off.push(`${seat}: no cell of the scan on the canvas's coverage`);
+            continue;
+          }
+          const p = sample.cells[0] ?? [0, 0];
+          const lab = oklab(medianAt(image, sample.cells));
+          reads.push(
+            `${seat} L ${lab.L.toFixed(3)} (${sample.cells.length} ${sample.method} cells)`,
           );
-          reads.push(`${seat} L ${lab.L.toFixed(3)}`);
           const why = [
             scheme === "light"
               ? lab.L >= 0.85 && lab.L <= 0.935 && lab.L < film.L
@@ -498,7 +516,9 @@ for (const url of PAGES) {
               : `b ${lab.b.toFixed(4)} against ${vellum.b.toFixed(4)}`,
           ].filter(Boolean);
           if (why.length)
-            off.push(`${seat} at (${p.x}, ${p.y}): ${why.join("; ")}`);
+            off.push(
+              `${seat} (${sample.method} cells from (${p[0]}, ${p[1]})): ${why.join("; ")}`,
+            );
         }
         note(testInfo, "vellum", `${where}: ${reads.join(", ")}`);
         expect.soft(off, `planks outside Iris's band, ${where}`).toEqual([]);
@@ -546,6 +566,7 @@ for (const url of PAGES) {
           const reach = stepAt(size.width) + 4;
           let changed = 0;
           let stray = 0;
+          const strays: [number, number][] = [];
           for (let y = 0; y < h; y++)
             for (let x = 0; x < w; x++) {
               if ((d[y * w + x] ?? 0) <= 24) continue;
@@ -556,13 +577,62 @@ for (const url of PAGES) {
                   ([gx, gy]) =>
                     Math.abs(gx - px) <= reach && Math.abs(gy - py) <= reach,
                 )
-              )
+              ) {
                 stray++;
+                strays.push([px, py]);
+              }
             }
+          // The grid is coarser than a plank where it tapers (6 px at 1440), so a pixel the grid
+          // puts away from the seat is checked by hover: the mark's edges lie on the plank's own
+          // boundary, so a hover within 3 px of an edge pixel reads the seat. Up to 80 places.
+          const places = [
+            ...new Map(
+              strays.map(([x, y]) => [
+                `${Math.round(x / 2)},${Math.round(y / 2)}`,
+                [x, y] as [number, number],
+              ]),
+            ).values(),
+          ];
+          const onEdge = new Set<string>();
+          for (const [x, y] of places.slice(0, 80)) {
+            let found = false;
+            for (const dy of [-3, 0, 3]) {
+              for (const dx of [-3, 0, 3]) {
+                await run.page.mouse.move(x + 0.5 + dx, y + 0.5 + dy);
+                await twoFrames(run.page);
+                if ((await pickOf(run.page)) === seat) found = true;
+                if (found) break;
+              }
+              if (found) break;
+            }
+            if (found) onEdge.add(`${Math.round(x / 2)},${Math.round(y / 2)}`);
+          }
+          await run.page.mouse.move(1, 1);
+          await pause(300);
+          const away = strays.filter(
+            ([x, y]) =>
+              !onEdge.has(`${Math.round(x / 2)},${Math.round(y / 2)}`),
+          );
+          stray = away.length;
+          const xs = away.map(([x]) => x);
+          const ys = away.map(([, y]) => y);
+          // Where the strays lie, and which seat a hover reads nearest each, for whoever fixes it.
+          const nearest = [
+            ...new Set(
+              away.map(([x, y]) => {
+                let best: [number, string] = [Number.POSITIVE_INFINITY, "none"];
+                for (const [gx, gy, s] of scan.grid) {
+                  const dist = Math.hypot(gx - x, gy - y);
+                  if (dist < best[0]) best = [dist, s];
+                }
+                return best[1];
+              }),
+            ),
+          ];
           note(
             testInfo,
             "mark",
-            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${stray} of them away from seat ${seat}`,
+            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${stray} of them away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
           );
           expect
             .soft(changed, `canvas pixels the record's mark changes, ${where}`)
