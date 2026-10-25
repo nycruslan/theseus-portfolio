@@ -185,3 +185,16 @@ test("an option may carry indented lines of its own", () => {
   assert.deepEqual(texts(pick), ["Two columns (Recommended)", "One column"]);
   assert.deepEqual(unbuilt(pick), ["One column"]);
 });
+
+test("a checkbox nested under an option is part of it, not another option", () => {
+  const [pick] = ownerPicks(
+    [
+      "### Owner's pick: The footer",
+      "- [ ] Two columns (Recommended)",
+      "  - [x] Needs the wider grid",
+      "- [ ] One column",
+    ].join("\n"),
+  );
+  assert.deepEqual(texts(pick), ["Two columns (Recommended)", "One column"]);
+  assert.deepEqual(unbuilt(pick), []);
+});

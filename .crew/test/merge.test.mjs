@@ -447,4 +447,18 @@ test("holds a PR whose waiting pick the team hasn't applied, whatever its checks
   );
   assert.equal(applied.code, 0);
   assert.equal(applied.merges.length, 1);
+  // A tick after the answer was applied is a new answer, and the choice can't be undone.
+  const changed = merge(
+    github({
+      pulls: pr({
+        body: `${answered.replace("- [ ] No", "- [x] No")}\nApplied: Yes, in #12.`,
+      }),
+    }),
+  );
+  assert.equal(changed.code, 1);
+  assert.match(
+    changed.stderr,
+    /the owner changed their answer to "Spend \$20 a month on fonts": build it and mark it Applied first/,
+  );
+  assert.equal(changed.merges.length, 0);
 });

@@ -8,7 +8,8 @@
 
 const PICK =
   /^#{2,4}\s+Owner['’]s pick(?<before>\s*\(waits\))?\s*:?\s*(?<after>\(waits\)\s*)?(?<question>.*)$/iu;
-const OPTION = /^\s*[-*]\s+\[(?<mark>[ xX])\]\s+(?<text>.+?)\s*$/u;
+// A top-level item: an indented checkbox belongs to the option above it.
+const OPTION = /^ ?[-*]\s+\[(?<mark>[ xX])\]\s+(?<text>.+?)\s*$/u;
 const HEADING = /^#{1,6}\s/u;
 const FENCE = /^\s*(```|~~~)/u;
 // "Applied: B, in #41.", give or take a list marker, bold, or more PRs after the first.

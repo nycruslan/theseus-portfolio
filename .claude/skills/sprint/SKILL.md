@@ -120,8 +120,8 @@ Ask the owner only what only they can decide: an owner path, their own facts, mo
 secrets, and anything that can't be undone. The one exception is L work's directions, which you
 offer as a pick without waiting (above). Put each question in the PR's body as an Owner's pick: a
 heading `### Owner's pick: <the question>`, then right under it two to four task-list options
-(`- [ ] …`) in one list, the one you'd choose ending in `(Recommended)`, each with a few words on
-what it means. When the choice
+(`- [ ] …`) in one tight list, with no blank lines or nested checkboxes, the one you'd choose ending
+in `(Recommended)`, each with a few words on what it means. When the choice
 can be undone, build the recommended option and don't wait: if the owner ticks another, the next
 run switches (`picks`). When it can't be undone, head it `### Owner's pick (waits): <the question>`,
 add the `needs-owner` label, and take other work meanwhile. A pick restates nothing the owner
