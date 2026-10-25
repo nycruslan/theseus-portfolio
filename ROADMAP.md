@@ -156,11 +156,21 @@ page, and B3, the signature moment.
     table in the left column at 1440), and the unknown-record 404's scripts-off blank (Next's
     error shell; status and `noindex` are right). Left open: a Design row needs a public retro
     field (owner path, proposed in sprint 29's retro).
-  - [ ] B5b (M): the merge record, `.crew/sprint/<n>/merge.json`, written by a crew script after
-    each merge (owner path, with the skill's step, so its PR waits for the owner): the Merged
-    column grouped by day, the time on each record, the lines figure. Opens by measuring whether
-    Vercel's build has `.git`. Owner calls: closed sprints' rows; a public `design` retro field
-    for Iris's score.
+  - [x] B5b (M): the merge record and `/log`'s dates. (Sprint 32, PR #82, built in one run on
+    2026-10-25: Lens ship on 98cef13 after one fix round, Iris ship at 8.2/10, 162 of 162 checks;
+    the contract is `.crew/sprint/32/contract.md` with decisions 1 to 11.) The Date column (not
+    the frame's "Merged", so C4.4 stands; decision 2), the day groups as runs of rows in sprint
+    order (decision 11), each record's date, and the lines figure in the Log's header ("44 of
+    6,170 lines … 0.7%"). The writer is `.crew/sprint/32/merge-record.mjs`, run by Atlas at each
+    run's start (`.crew/STATE.md`), since `.crew/*.mjs` is the owner's (decision 3); no `HEAD`
+    read at build (decision 4). This PR touched no owner path. Proposed for the owner in its
+    retro: a workflow that writes the record after each merge (until then the newest revision
+    sits under "Undated" until the next sprint's PR merges), moving the writer into `.crew/` with
+    a test and a skill step, and still the closed sprints' rows and a public `design` retro
+    field. Riding with the next sprint that touches `/log`: Lens's nit on #82 (B5.16 checks records
+    only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two (the lines
+    figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left open:
+    the unknown record's scripts-off blank 404.
   - [ ] B5c (M): the ghost hull in 3D on `/log` under Full/Calm/Off, the control in `/log`'s bar,
     a plank opening its record (Pixel). Whichever of B4d and B5c comes first mounts the model on a
     second route. Lens's nit on #74 rides here if B4d hasn't taken it.

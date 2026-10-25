@@ -1,0 +1,83 @@
+{
+  "sprint": 32,
+  "pr": 82,
+  "goal": "B5b: /log grouped by merge day, and how much of the code is still original",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 98cef13 after one fix round (two important findings acted on: day groups as runs of rows, and the oracle grouping the same way) with three nits riding; Iris ship at 8.2/10; 162 of 162 checks; no owner path touched",
+  "fixRounds": 1,
+  "minutes": 115,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 203052,
+      "minutes": 23
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 315866,
+      "minutes": 72
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 268352,
+      "minutes": 23
+    }
+  ],
+  "lens": {
+    "runs": 3,
+    "tokens": 7247365,
+    "important": 2,
+    "actedOn": 2,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "The contract named the Date column after the approved frame, but the frame calls it Merged and puts it last",
+      "evidence": "Forge read log-1440.webp mid-build; decision 2 was corrected and the column moved to the frame's place (decisions.md, 2)"
+    },
+    {
+      "what": "The first grouping sorted days newest first, which breaks the table's sprint order when a lower sprint merges after a higher one on a later day",
+      "evidence": "Lens traced it on c07c6fa (sprint 28 merged after 29; #78 may merge after this sprint); groups are now runs of consecutive rows, proven with sprint 28 moved to a later day (decisions.md, 11)"
+    },
+    {
+      "what": "The contract said a line is original at or before sprint 1's merge, which doesn't reproduce the measured figures",
+      "evidence": "Forge measured 114 and 90 with that rule against 70 of 2,027 and 64 of 5,288 with strictly before (decisions.md, 8)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "A workflow that runs the merge-record writer after each merge on main, so a sprint's date lands with its merge rather than with the next sprint's PR",
+      "moves": "How long production's newest revision sits under Undated: today from each merge until the next"
+    },
+    {
+      "change": "Move .crew/sprint/32/merge-record.mjs to .crew/merge-record.mjs with a harness test, and add a pre-flight step for it to the sprint skill",
+      "moves": "Whether the records keep coming without a STATE.md line Atlas has to remember"
+    },
+    {
+      "change": "Sprint 29's still stand: a public design retro field for Iris's score, and the owner's call on rows for closed sprints",
+      "moves": "The record's Design row and the frame's struck-through 16"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "If Merged reads better than Date as the column's head, ask for it with C4.4's change in a later PR (decision 2)"
+    },
+    {
+      "who": "Iris",
+      "what": "Between 640 and 1023 the lines figure's rule stops at the text's width; the commit hash could link to its commit when B5c touches the header"
+    },
+    {
+      "who": "Probe",
+      "what": "No fixture test covers a malformed merge.json; the reader ignores one, proven only by Forge's scratch run"
+    },
+    {
+      "who": "Probe",
+      "what": "Lens's nit on 98cef13: B5.16 checks records only up to sprint 30, so a malformed record for a later sprint shows it Undated with no check red; assert every merge.json on disk parses and is accepted"
+    }
+  ]
+}

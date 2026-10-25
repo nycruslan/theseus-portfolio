@@ -21,6 +21,10 @@ makes stale, and keep the file under about 100 lines.
   - A PR or branch a run worked on in the last two hours is left to the run still on it. A commit
     counts, and so does marking the PR ready or labelling it `review`. Lens's reviews and the
     owner's comments don't, since they aren't a run.
+- **The merge records (sprint 32).** At the start of every run, after the pre-flight, run
+  `node .crew/sprint/32/merge-record.mjs` from the repository root and commit any record it writes
+  with the sprint: `/log`'s dates and lines figure read them. It writes only for merged sprints
+  without one, and checks its calibration first. It moves to `.crew/` once the owner takes it in.
 - **One run, one sprint.** The owner's "Merged" in a finished run's session started sprint 23 while
   the merge's own run did the same: two PRs for one sprint (#66, #67) and one usage limit shared.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the

@@ -9,7 +9,8 @@ import { MERGED, REPO, type Retro } from "./retros";
 export const LOG = "/log";
 export const RECORD = 'section[aria-labelledby="record"]';
 export const EVERY = 'section[aria-labelledby="every-revision"]';
-export const ROWS = `${EVERY} table tbody tr`;
+/** The revision rows: a day group's header row (sprint 32, B5.13) is not one. */
+export const ROWS = `${EVERY} table tbody tr:has(> th[scope="row"])`;
 /** The record's items: its lists without a link (the record's own links may sit in a list). */
 export const ITEMS = `${RECORD} ul:not(:has(a)) > li`;
 export const WRONG = "What went wrong, in the crew's words";

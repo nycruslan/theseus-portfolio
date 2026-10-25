@@ -51,6 +51,7 @@ import {
 } from "./log";
 import {
   cellsOf,
+  dateCell,
   GHOST,
   GHOST_CAPTION,
   GHOST_COUNT,
@@ -68,7 +69,9 @@ import {
 // to C13 for the build log): it moved with the route (.crew/sprint/30/decisions.md, 5), each
 // rewritten test keeps its C-number in its title beside its B5 number, C12's seven tests run
 // unedited, and the contract's batch F (C1.2, C6.1 to C6.4, C7.1 to C7.3, C11.2 "only the h2s
-// rise") retired with the old column, for the owner to approve.
+// rise") retired with the old column, for the owner to approve. Sprint 32 (B5b, B5.17) rewrites
+// B5.5's six heads into seven, Date last after Approved, and each row's cells gain the Date; the dates'
+// own checks, B5.12 to B5.16, are in log-dates.spec.ts.
 //
 // The oracle is e2e/retros.ts: the contract's data rules in this suite's own lines over the retro
 // files in the checkout under test, never the page's reader. No check holds the number of
@@ -82,7 +85,15 @@ import {
 // A led-out number is read as on / (plan.spec.ts): a `path.ln-leader` from the number into its plank.
 
 const GHOST_HULL = "[data-ghost]";
-const HEADS = ["Rev", "Description", "Drawn", "Checked", "Tested", "Approved"];
+const HEADS = [
+  "Rev",
+  "Description",
+  "Drawn",
+  "Checked",
+  "Tested",
+  "Approved",
+  "Date",
+];
 const DESCRIPTION =
   "A crew of AI agents rebuilds this site one sprint at a time. The Log keeps every revision: who drew, checked, tested and approved it, and what went wrong.";
 const WIDTHS = [320, 390, 768, 1024, 1440] as const;
@@ -1079,7 +1090,7 @@ test.describe("B5.4 The ghost hull", () => {
 // B5.5 Every revision
 
 test.describe("B5.5 Every revision", () => {
-  test("B5.5 (C3.1) one row per merged sprint, newest first, each row's cells as the oracle's, under the h2 Every revision, its lede and the six heads", async ({
+  test("B5.5 (C3.1) one row per merged sprint, newest first, each row's cells as the oracle's, under the h2 Every revision, its lede and the seven heads", async ({
     page,
   }) => {
     // The anchors: sprints 1 to 11 are history, so they must be there whatever the oracle saw.
@@ -1107,6 +1118,7 @@ test.describe("B5.5 Every revision", () => {
           cells.checked,
           cells.tested,
           cells.approved,
+          dateCell(entry),
         ]);
       expect
         .soft(rows[i]?.links, `links in revision ${entry.sprint}'s th`)
