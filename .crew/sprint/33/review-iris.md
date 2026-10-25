@@ -1,7 +1,8 @@
 # Sprint 33 review, Iris: the ghost hull in 3D on `/log` (B5c)
 
-**Verdict: changes, 8.4/10.** It's better than production at 390, 1024 and 1440 in both schemes,
-and every hard gate passes. **One must:** the last placement change pulled the numbers to the ends
+**Verdict: ship, 8.7/10, on 57ced20.** The must below is in; see "Decision on the lit mix" at the
+end. On 937be40 it was changes, at 8.4, and the rest of this review is that review. It's better than
+production at 390, 1024 and 1440 in both schemes, and every hard gate passes. **One must:** the last placement change pulled the numbers to the ends
 of their planks, so at 1440 they clump at the stern and the bow, and they slide along the hull
 during the move. It is a cheap revert inside `riders()`. With it fixed I'd say ship, at about 8.7.
 
@@ -124,3 +125,24 @@ It reads in a second at 1440 and on a phone.
 - Neither production nor this PR's preview deploys while Vercel's rate limit holds, so the owner
   has nothing to demo on until one does.
 - Pixel's full suite was running in parallel; I didn't rerun it.
+
+## Decision on the lit mix (Iris, after Pixel's db4ab8e, built at 57ced20)
+
+**`GHOST_LIT` 0.4 is accepted, and the bands don't change.**
+
+- **What I looked at:** 57ced20 on 4823, Calm, at 390, 1024 and 1440 in both schemes
+  (`.crew/screenshots/33-iris/review/lit04-*.png`).
+- **The form still reads at 0.4,** against 937be40 at 0.5. The 3D comes mostly from the open
+  inside, the far sheer and the seams' curve, not from the depth of the shading. The bilge still
+  darkens toward the keel.
+- **0.4 keeps the hull's inside off the paper.** At 0.5 the inside above the sheer reached the film's
+  0.952, so the hull's inside read as the page. On 57ced20 at 1440 light, sampled clear of lines:
+  - the inside is `#dfebea` to `#e1edec`, about OKLab L 0.93 to 0.94, under the film's `#eaf1ee`;
+  - the keel planks are `#c6d4d2` to `#c9d7d5`, about L 0.86.
+- **The bands stay as B5.18 has them.** One clean cell at 0.844 is a cell, not a seat: every seat's
+  median is 0.854 or more and B5.18 passes. Dark reads 0.429 to 0.482, inside its band and under
+  `--card`.
+- **The must is in:** the numbers are back at their planks' middles with the 2D's rhythm at 1440,
+  1024 and 390, none closer than 2 px.
+- **My verdict stands at ship, 8.7,** on the review's "after the must" scores, assuming the full
+  suite on the final head is green (I didn't rerun it).
