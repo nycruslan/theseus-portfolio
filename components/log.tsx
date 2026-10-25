@@ -129,6 +129,13 @@ export function Log({ entries, open }: LogProps) {
 
   return (
     <>
+      {/* Below 1024 px CSS sets the drawing above the caption, but in the DOM it follows the
+        header and the record, so a first paint of HTML cut before it would draw the header
+        without it, and the drawing's arrival would push the caption down: B5.25's layout shift
+        of 0.0699 on /log/13 at 320 (.crew/sprint/33/). The page paints only once the parser is
+        past the drawing and the model's layer, whose next element is Every revision's heading.
+        React puts the link in the head; Chromium honours it, other browsers paint as before. */}
+      <link rel="expect" href="#every-revision" blocking="render" />
       <SkipLink />
       <Bar
         at={record ? "record" : "log"}
