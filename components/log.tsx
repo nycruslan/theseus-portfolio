@@ -235,8 +235,8 @@ export function Log({ entries, open }: LogProps) {
                         {cell}
                       </td>
                     ))}
-                    {/* Empty, never "—", until the sprint has a merge record (decision 5). Folded,
-                    it is read by assistive tech only: the group's header names the day. */}
+                    {/* Empty, never "—", until the sprint has a merge record (decision 5).
+                      Folded, it is read by assistive tech only: the header names the day. */}
                     <td data-label="Date">
                       {entry.merge ? (
                         <time dateTime={entry.merge.mergedAt}>
