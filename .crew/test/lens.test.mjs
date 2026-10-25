@@ -86,8 +86,8 @@ test("the review's effort and turns follow the lines added outside the notes", (
     high,
   );
   assert.deepEqual(reviewFor([change("components/hero.tsx", 601)]), xhigh);
-  // Retiring old specs removes thousands of lines; that needs the owner through gate, not the
-  // deepest review.
+  // Retiring old specs removes thousands of lines; Lens judges each from the context's list of
+  // weakened checks, which doesn't need the deepest review.
   assert.deepEqual(
     reviewFor([
       change("e2e/hero.spec.ts", 0, 5000),
@@ -316,6 +316,26 @@ test("a code change, another base or merge-base, a forged ship or a fresh label 
   // The stand-in diff changes no counted line, so the review runs at the lightest effort.
   assert.match(labelled.outputs, /^effort=medium$/m);
   assert.match(labelled.outputs, /^turns=40$/m);
+});
+
+test("the review's context lists the checks the PR weakens, from the default branch's scope check", () => {
+  const retired = step("plan", event({ action: "labeled", label: "review" }), {
+    table: {
+      [`${R}/compare/f0e1...c0ffee`]: {
+        status: "ahead",
+        files: [
+          { filename: "e2e/sprints.spec.ts", status: "removed", deletions: 40 },
+          { filename: "app/page.tsx", status: "modified", patch: "+x" },
+        ],
+      },
+    },
+  });
+  assert.match(
+    retired.context,
+    /## Checks this PR weakens\n\n- e2e\/sprints\.spec\.ts is a test, and the PR deletes it\.\n\n## Diff/,
+  );
+  const plain = step("plan", event({ action: "labeled", label: "review" }));
+  assert.match(plain.context, /## Checks this PR weakens\n\nNone\.\n\n## Diff/);
 });
 
 test("the verdict step posts one review with the findings inline, then the lens check", () => {

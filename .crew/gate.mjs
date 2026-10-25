@@ -1,5 +1,6 @@
 // The `gate` check (.github/workflows/gate.yml). It holds a PR the owner has to decide:
-// - it touches an owner path, changes package.json's scripts or weakens a test (scope.mjs);
+// - it touches an owner path (the crew's own rails and the owner's facts) or changes package.json's
+//   scripts (scope.mjs). A weakened test isn't the owner's: Lens judges it (lens.mjs);
 // - it carries needs-owner now, or ever did.
 // The owner releases a PR with an approving review of its current head; a later push needs a new
 // one. The team's checks app opens the team's PRs (open-pr.mjs), so the owner can approve them; a

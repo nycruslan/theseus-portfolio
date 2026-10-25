@@ -27,6 +27,9 @@ Two lists come beside the action, and neither stops it:
   ending the comment with `theseus:conflict <head sha>` so later runs leave that head alone.
 - `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
   what it needs, then comment on each that you reminded the owner, which restarts its day.
+- `picks`: the owner's answers to an Owner's pick (below) that change what was built. Build each
+  choice: in its PR while that's open, or riding with this sprint once it merged. Then add a line
+  `Applied: <the choice>, in #<n>.` under that pick in the PR's body, so no later run builds it again.
 
 ## Choose the work
 
@@ -56,14 +59,13 @@ truly fits it:
   out of scope. Write it yourself, or ask Quill when the milestone needs a product call. Probe
   writes the checks as failing Playwright tests in `e2e/` before the build; the builder makes them
   pass.
-- **L: new visual language, or an ambiguous, cross-cutting call.** It starts on a Design canvas the
-  owner reviews: Iris develops the directions and publishes them (publish her files yourself if her
-  session can't), and you send the owner one push notification with the link. Read the canvas's
-  comments whenever you take up the item; Iris revises on them, and the build starts only once the
-  owner approves there. Keep the canvas link and the approving comment in the sprint folder, beside
-  the frames Iris keeps in its `design/` for the Studio. Then Quill turns the direction into a
-  milestone of S and M sprints. When two approaches compete and the call matters, run the `decide`
-  skill.
+- **L: new visual language, or an ambiguous, cross-cutting call.** It starts on a Design canvas:
+  Iris develops the directions, publishes them (publish her files yourself if her session can't)
+  and recommends one. Build on her recommendation without waiting, and offer the directions to the
+  owner as an Owner's pick with the canvas link; read the canvas's comments whenever you take up the
+  item, and Iris revises on them. Keep the canvas link in the sprint folder, beside the frames Iris
+  keeps in its `design/` for the Studio. Then Quill turns the direction into a milestone of S and M
+  sprints. When two approaches compete and the call matters, run the `decide` skill.
 
 The builder is Forge, or Pixel for 3D, shaders and motion. On visual work, bring Iris in while it's
 built, not only after: she looks at the running build early and says what to change.
@@ -101,14 +103,27 @@ cheap, and post it on the PR as advice; her `changes` alone is no reason for `ne
 that reports after the label (Iris) adds its memory lines with a fix-round push or in the next
 sprint.
 
-`gate` holds a PR that touches an owner path, changes `package.json`'s scripts, weakens a test or
-ever carried `needs-owner`, until the owner approves its head. Taste calls on large work go to the
-owner on the canvas; owner facts and anything risky go under "Needs owner decision" in the PR, with
-the `needs-owner` label. Ask the owner as rarely as the work allows, and batch what needs them, such
-as the checks a redesign retires, into one PR. When a PR waits for them, mark it ready once every
-required check but `gate` passed on its final head, and send one push notification: its link, what
-it needs, and its Vercel preview to look at. `merge.mjs` leaves a PR that `gate` passed on the
-owner's approval for the owner to merge.
+The team decides and merges its own work. Product calls are Quill's and yours, taste is Iris's, and
+a check the work retires is Lens's to accept: name each retired check in the PR and why the
+behaviour it checked is gone. Lens refuses one without a reason, and never accepts one that only
+makes a failing build pass. `gate` holds only a PR that touches an owner path (the crew's own rails
+and the owner's facts, in `.github/CODEOWNERS`), changes `package.json`'s scripts, or ever carried
+`needs-owner`, until the owner approves its head; `merge.mjs` leaves such a PR for the owner to
+merge.
+
+Ask the owner only what only they can decide: an owner path, their own facts, money, accounts and
+secrets, and anything that can't be undone. Put each question in the PR as an Owner's pick: a
+heading `### Owner's pick: <the question>`, then two to four task-list options (`- [ ] …`), the
+one you'd choose ending in `(Recommended)`, each with a few words on what it means. When the choice
+can be undone, build the recommended option and don't wait: if the owner ticks another, the next
+run switches (`picks`). When it can't be undone, head it `### Owner's pick (waits): <the question>`,
+add the `needs-owner` label, and take other work meanwhile. A pick restates nothing the owner
+already decided; read earlier PRs' picks and the sprint folders first. Send one push notification
+per PR that asks: the question in a line, the options with the recommended one first, and the link.
+Never ask the owner to do a chore. Something only an account can do (an env var, a dashboard
+setting, a domain) goes on the open issue titled `Owner chores` as one checkbox line saying what it
+unblocks, while the build ships a fallback that works without it. When a PR waits for the owner,
+mark it ready once every required check but `gate` passed on its final head.
 
 Everything on GitHub goes through REST (`gh api`): cloud sessions can't reach GraphQL, which
 `gh pr` and `gh issue` use. Take `<owner>/<repo>` from the last two path segments of
@@ -123,7 +138,8 @@ own, with the Bash timeout at 5 minutes (10 for merging):
   results, and the decisions.
 - `node .crew/ready-pr.mjs <n>`, once Lens says ship and the close-out is pushed.
 - `node .crew/merge.mjs <n>`, unless the PR waits for the owner. It waits for the checks and
-  squash-merges the head, or says why not; act on what it says, or stop.
+  squash-merges the head, or says why not; act on what it says, or stop. An open Owner's pick that
+  can be undone doesn't hold the merge.
 
 A smaller ship, or no ship with the reason, is a fine outcome; a quiet downgrade isn't. Before you
 report progress, check each claim against a tool result from this session, and say what nobody
@@ -136,7 +152,7 @@ The close-out touches only notes, so Lens's ship stands: the sprint folder's `.m
 sprint under its milestone with its PR, and note what's left open), and `.crew/STATE.md` only when
 the sprint taught a lesson the next ones need. A run that ends without shipping says why in the PR
 and in `.crew/STATE.md`. Finish with a report a reader who saw none of the run can follow: the
-outcome first, then anything the owner needs to do.
+outcome first, then any Owner's pick you asked, with the recommended option you built.
 
 A run ships one sprint. Every merge of a sprint PR starts the next run by itself, so once yours
 merges, or the owner says they merged it, end with your report. Starting the next sprint here would

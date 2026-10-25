@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
-import { codeowners, ownersIn, scopeNotes } from "../scope.mjs";
+import { codeowners, ownersIn, scopeNotes, testNotes } from "../scope.mjs";
 import { CREW } from "./kit.mjs";
 
 // The repository's own .github/CODEOWNERS, as the gate and the guard read it.
@@ -134,7 +134,7 @@ test("turning a fixme or skip back on strengthens the suite, and comments may go
       ),
     }),
   ];
-  assert.deepEqual(notesOf(files), []);
+  assert.deepEqual(testNotes(files), []);
 });
 
 test("names each owner path", () => {
@@ -157,8 +157,8 @@ test("names each owner path", () => {
   ]);
 });
 
-test("refuses deleted, moved or weakened tests", () => {
-  const notes = notesOf([
+test("names deleted, moved or weakened tests for Lens, and holds none of them for the owner", () => {
+  const files = [
     changed("e2e/smoke.spec.ts", { status: "removed", deletions: 40 }),
     changed("lib/format.test.ts", { status: "removed" }),
     changed("e2e/old.ts", {
@@ -173,17 +173,18 @@ test("refuses deleted, moved or weakened tests", () => {
       deletions: 1,
       patch: patch("-  await expect(page).toHaveTitle(/Ruslan/);"),
     }),
+  ];
+  assert.deepEqual(testNotes(files), [
+    "e2e/smoke.spec.ts is a test, and the PR deletes it.",
+    "lib/format.test.ts is a test, and the PR deletes it.",
+    "e2e/content.spec.ts moves out of the test suite to e2e/old.ts.",
+    "e2e/smoke.spec.ts moves out of e2e/, where Playwright runs it.",
+    "e2e/nav.spec.ts ends with 1 fewer `expect(` call.",
   ]);
-  assert.deepEqual(notes, [
-    "e2e/smoke.spec.ts is a test, and the PR deletes it: only the owner removes tests.",
-    "lib/format.test.ts is a test, and the PR deletes it: only the owner removes tests.",
-    "e2e/content.spec.ts moves out of the test suite to e2e/old.ts: only the owner removes tests.",
-    "e2e/smoke.spec.ts moves out of e2e/, where Playwright runs it: only the owner removes tests.",
-    "e2e/nav.spec.ts ends with 1 fewer `expect(` call: weakening a check needs the owner.",
-  ]);
+  assert.deepEqual(notesOf(files), []);
 });
 
-test("refuses added lines that skip, focus or retry checks", () => {
+test("names added lines that skip, focus or retry checks", () => {
   for (const line of [
     "test.skip();",
     '  test.fixme("later", async () => {});',
@@ -196,13 +197,13 @@ test("refuses added lines that skip, focus or retry checks", () => {
     "  testIgnore: /.*/,",
     "  grepInvert: /axe/,",
   ]) {
-    const notes = notesOf([
+    const notes = testNotes([
       changed("e2e/smoke.spec.ts", { additions: 1, patch: patch(`+${line}`) }),
     ]);
     assert.equal(notes.length, 1, line);
     assert.match(
       notes[0],
-      /^e2e\/smoke\.spec\.ts adds `.+`: skipping, focusing or retrying checks needs the owner\.$/,
+      /^e2e\/smoke\.spec\.ts adds `.+`, which skips, focuses or retries checks\.$/,
       line,
     );
   }
@@ -234,7 +235,7 @@ test("reads calls, not words: a skip-link selector, a serial suite or a comment 
       ),
     }),
   ];
-  assert.deepEqual(notesOf(files), []);
+  assert.deepEqual(testNotes(files), []);
 });
 
 test("rewriting a check that keeps its assertions is the team's", () => {
@@ -251,11 +252,11 @@ test("rewriting a check that keeps its assertions is the team's", () => {
       ),
     }),
   ];
-  assert.deepEqual(notesOf(files), []);
+  assert.deepEqual(testNotes(files), []);
 });
 
-test("holds a check whose diff GitHub didn't show", () => {
-  const [note] = notesOf([
+test("names a check whose diff GitHub didn't show", () => {
+  const [note] = testNotes([
     changed("e2e/smoke.spec.ts", { additions: 900, patch: undefined }),
   ]);
   assert.match(note, /GitHub shows no diff for it/);
