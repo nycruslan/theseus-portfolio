@@ -638,7 +638,11 @@ function start(
     }
   };
   const left = (event: PointerEvent) => {
-    if (event.pointerType !== "touch") hover(null);
+    if (event.pointerType === "touch") return;
+    // A mouse or pen press dragged off the canvas is a cancelled click: its release lands off the
+    // canvas, and a press left set would stop every hover until the next press here.
+    if (press?.id === event.pointerId) press = null;
+    hover(null);
   };
   const down = (event: PointerEvent) => {
     if (event.button !== 0 && event.button !== 1) return;
@@ -670,7 +674,8 @@ function start(
     const href = `/log/${ghost.numbers.get(done.target.seat)}`;
     // As the table's links: the middle button, Cmd and Ctrl open the record in a new tab.
     if (done.button === 1 || event.metaKey || event.ctrlKey || event.shiftKey) {
-      window.open(href, "_blank");
+      // No opener, so the tab starts its own session and plays the move (B5.20).
+      window.open(href, "_blank", "noopener");
     } else location.assign(href);
   };
   const cancel = () => {
