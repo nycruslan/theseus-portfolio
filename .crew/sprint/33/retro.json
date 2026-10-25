@@ -6,15 +6,46 @@
   "size": "M",
   "outcome": "merged: Lens ship on 9b8743a after one fix round (one important finding acted on: hover dead after a press dragged off the canvas) with two nits riding; Iris ship at 8.7/10; 184 of 184 checks; no owner path touched",
   "fixRounds": 1,
-  "minutes": 350,
+  "minutes": 440,
   "agents": [
-    { "role": "product-owner", "model": "opus", "tokens": 247910, "minutes": 42 },
-    { "role": "design-director", "model": "opus", "tokens": 527822, "minutes": 63 },
-    { "role": "creative-engineer", "model": "opus", "tokens": 1100000, "minutes": 240 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 422074, "minutes": 111 },
-    { "role": "engineer", "model": "opus", "tokens": 363599, "minutes": 95 }
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 247910,
+      "minutes": 42
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 527822,
+      "minutes": 63
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 1100000,
+      "minutes": 240
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 529318,
+      "minutes": 195
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 363599,
+      "minutes": 95
+    }
   ],
-  "lens": { "runs": 2, "tokens": 11384911, "important": 1, "actedOn": 1, "nits": 4 },
+  "lens": {
+    "runs": 2,
+    "tokens": 11384911,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 4
+  },
   "wentWrong": [
     {
       "what": "The first number placement on the turned hull put numbers on its seams, then drifted them to their planks' ends",
@@ -35,13 +66,26 @@
       "moves": "Branches a role leaves behind: pixel/33 and probe/33 stalled when force-pushes were refused, and the work moved to -r2 mid-sprint"
     },
     {
+      "change": "Give CI's check job a timeout that scales with the suite, or split the 3D specs into their own job",
+      "moves": "Cancelled runs: B5c's specs first took CI's e2e step past its 25-minute cap (decision 12)"
+    },
+    {
       "change": "Sprint 32's still stand: a workflow that writes the merge record after each merge, and moving merge-record.mjs into .crew/ with a test",
       "moves": "How long the newest revision sits under Undated"
     }
   ],
   "followUps": [
-    { "who": "Owner", "what": "B5's demo on a preview that deploys: the ghost on a GPU and a phone, the move's feel, the pick, and Iris's departures (two translucent sides, no lede words, no numbers below 768, \"8\" led out)" },
-    { "who": "Pixel", "what": "Lens's two nits on 9b8743a: a restored context redraws the last hovered plank's mark, and a tap's mark clears before its navigation (lib/model/mount.ts)" },
-    { "who": "Forge", "what": "The render-blocking expect link holds the Log's shift in Chromium only; matching the DOM order to the visual order below 1024 would fix it everywhere (Iris's call)" }
+    {
+      "who": "Owner",
+      "what": "B5's demo on a preview that deploys: the ghost on a GPU and a phone, the move's feel, the pick, and Iris's departures (two translucent sides, no lede words, no numbers below 768, \"8\" led out)"
+    },
+    {
+      "who": "Pixel",
+      "what": "Lens's two nits on 9b8743a: a restored context redraws the last hovered plank's mark, and a tap's mark clears before its navigation (lib/model/mount.ts)"
+    },
+    {
+      "who": "Forge",
+      "what": "The render-blocking expect link holds the Log's shift in Chromium only; matching the DOM order to the visual order below 1024 would fix it everywhere (Iris's call)"
+    }
   ]
 }
