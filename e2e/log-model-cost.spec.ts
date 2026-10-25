@@ -20,6 +20,9 @@ import { type ModelRun, openModel, type Script } from "./webgl";
 
 const SWIFTSHADER =
   "SwiftShader, headless Chromium's software WebGL: a floor, not a GPU's number";
+/** Layout's precision: Chromium keeps lengths in 1/64 CSS px, so a whole buffer's CSS size at 1.5x
+ * can't be exact (107 rows ask 71.333 px and get 71.328). */
+const LAYOUT = 1 / 64;
 /** Each rest window, in real time. */
 const WINDOW = 3000;
 /** Past load, the idle callback's 2,000 ms timeout and a margin. */
@@ -140,9 +143,9 @@ for (const url of PAGES) {
           expect
             .soft(
               (fit.buffer?.[0] ?? Number.POSITIVE_INFINITY) <=
-                cap * (fit.css?.[0] ?? 0) + 1e-3 &&
+                cap * (fit.css?.[0] ?? 0) + cap * LAYOUT + 1e-3 &&
                 (fit.buffer?.[1] ?? Number.POSITIVE_INFINITY) <=
-                  cap * (fit.css?.[1] ?? 0) + 1e-3,
+                  cap * (fit.css?.[1] ?? 0) + cap * LAYOUT + 1e-3,
               `the backing store ${fit.buffer?.join(" x ")} is at most ${cap}x its CSS size ${fit.css?.join(" x ")}, ${where}`,
             )
             .toBe(true);
