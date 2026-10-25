@@ -31,7 +31,8 @@ Two lists come beside the action, and neither stops it:
   what it needs, then comment on each that you reminded the owner, which restarts its day.
 - `picks`: the owner's answers to an Owner's pick (below) that change what was built. Build each
   choice: in its PR while that's open, or riding with this sprint once it merged. Then add a line
-  `Applied: <the choice>, in #<n>.` under that pick in the PR's body, so no later run builds it again.
+  `Applied: <the choice>, in #<n>.` under that pick in the PR's body, so no later run builds it
+  again.
 
 ## Choose the work
 
