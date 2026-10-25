@@ -54,17 +54,28 @@ What departs from the approved frames:
   dated moments, all three facts (Evidence, Approval and Rules) on phones, and "This run on the
   Studio".
 
+### Merged with #83, and the feed's kept answer
+
+Sprint 33 (#83, the 3D ghost hull on `/log`) merged, so this branch merged main again, as the owner
+asked on this PR: below 768 the Log's header ends in one row, `<Foot control={<MotionControl />} />`,
+with Read as page and then Full, Calm and Off; `/crew` keeps its bar with Crew current and no
+control until B4d. Probe's checks keep every assertion from both sides and add the combined row's
+(order, 44 px targets, inside the viewport at 320 and 390, the Tab path from Contact); the bar names
+Crew once on every page, so main's `crew: false` is now `1` (`decisions.md` 12).
+
+From the owner's measurement of the feed: a failed read (non-200, the 2 s timeout, a network error,
+a non-JSON body) now keeps the last good answer while its `asOf` is under 10 minutes old, instead
+of caching `down` for 30 s (`lib/crew-feed.ts`). The new check "B4.2 kept" was red on 91d7d64.
+**Changed check, for Lens:** B4.2's down-503, down-json and down-late now start from a live answer
+9 min 50 s old, since a fresh one is now kept by design; each still asserts down and the default
+panel (`decisions.md` 13). The full suite passed 209 of 210 on 2596594's tree; the one failure was
+the new row check's own overlap rule (the control's buttons share a 1 px border), fixed and passing
+on rerun.
+
 ### Needs owner decision
 
-`needs-owner`: the PR waits for you.
-
-1. **Read as page moves below 768** from the bar to the drawing's foot on `/`, as `rest-390.webp`
-   draws it. On `/crew` and `/log` it moves the same way.
-2. **Set `CREW_FEED_URL`** on the portfolio's Vercel project, server-side, for Preview and
-   Production, to the feed's URL. Until it is set, `/crew` shows the down state, which is what this
-   preview shows.
-3. **The now line's quotes** are shown and marked "Atlas: “…”" (feed contract, decision 4).
-4. **The Rules copy**, which replaces the frame's untrue line.
-5. **The link to the run's page on the Studio** in Evidence (decision 7).
-6. **This PR merges only once the real feed answers on its preview,** with `/crew` showing `live`
-   or `open` for this sprint's run. You merge it.
+`needs-owner`: the PR waits for you. Answered on this PR on 2026-10-25: Read as page below 768
+stands as Iris drew it; `CREW_FEED_URL` is set for Production and Preview; the now line's quotes,
+the Rules copy and the Studio link are accepted as on #75. What remains is the owner's approval:
+this PR merges only once the real feed answers on its preview, with `/crew` showing `live` or
+`open` for a real run and the checks passing on the head. You merge it.
