@@ -1011,13 +1011,19 @@ function recordTransitions() {
   const w = window as Window & {
     __transitions?: {
       type: string;
+      end: number;
       property: string;
       target: string;
       t: number;
     }[];
   };
-  const list: { type: string; property: string; target: string; t: number }[] =
-    [];
+  const list: {
+    type: string;
+    end: number;
+    property: string;
+    target: string;
+    t: number;
+  }[] = [];
   w.__transitions = list;
   for (const type of ["transitionrun", "transitionend", "transitioncancel"])
     addEventListener(
@@ -1025,8 +1031,19 @@ function recordTransitions() {
       (event) => {
         const e = event as TransitionEvent;
         const el = e.target as Element | null;
+        // The transition's own end, delay and duration included, as the page declared it: a busy
+        // main thread (SwiftShader building the scene) delivers transitionend late.
+        const own =
+          type === "transitionrun"
+            ? (el?.getAnimations?.() ?? []).find(
+                (a) =>
+                  (a as Animation & { transitionProperty?: string })
+                    .transitionProperty === e.propertyName,
+              )
+            : undefined;
         list.push({
           type,
+          end: Number(own?.effect?.getComputedTiming().endTime ?? Number.NaN),
           property: e.propertyName,
           target: `<${el?.tagName?.toLowerCase()}${el?.className && typeof el.className === "string" ? ` .${el.className.split(" ")[0]}` : ""}>${el?.closest?.("[data-model], [data-ghost]") ? " in the ghost" : ""}`,
           t: e.timeStamp,
@@ -1091,6 +1108,7 @@ for (const url of PAGES) {
                 window as Window & {
                   __transitions?: {
                     type: string;
+                    end: number;
                     property: string;
                     target: string;
                     t: number;
@@ -1118,20 +1136,13 @@ for (const url of PAGES) {
               `transitions of anything but opacity, ${where}`,
             )
             .toEqual([]);
-          const late = runs.filter((r) => {
-            const end = list.find(
-              (e) =>
-                e.type !== "transitionrun" &&
-                e.target === r.target &&
-                e.property === r.property &&
-                e.t >= r.t,
-            );
-            return !end || end.t - r.t > 300;
-          });
+          const late = runs.filter((r) => !(r.end <= 300));
           expect
             .soft(
-              late.map((t) => `${t.property} on ${t.target}`),
-              `transitions that don't end within 300 ms, ${where}`,
+              late.map(
+                (t) => `${t.property} on ${t.target}: ends at ${t.end} ms`,
+              ),
+              `transitions that don't end within 300 ms of their start, as declared, ${where}`,
             )
             .toEqual([]);
         }
