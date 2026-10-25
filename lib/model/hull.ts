@@ -31,6 +31,12 @@ export type Level = { stations: number; rows: number };
  */
 export const DESKTOP: Level = { stations: 120, rows: 8 };
 export const PHONE: Level = { stations: 56, rows: 4 };
+/**
+ * The ghost's pick hull (.crew/sprint/33/spike-pixel.md, section 3): never drawn. Every level's
+ * stations include each plank's ends and its rows its seams, so its plank edges are the drawn
+ * hull's; only the curve between them is coarser.
+ */
+export const PICK: Level = { stations: 24, rows: 2 };
 
 /** The state lookup's slot for the deck and the transom, after the 22 planks: always card. */
 export const DECK = PLANKS.length;
@@ -42,7 +48,8 @@ const toLocal = (x: number, y: number, z: number): Vec3 => [
   z,
 ];
 
-const bandAt = (plank: Plank, x: number): [number, number] | null => {
+/** A plank's depth at station x, top and bottom, or null where it has none. */
+export const bandAt = (plank: Plank, x: number): [number, number] | null => {
   const top = Math.max(plank.yTop, sheer(x));
   const bottom = Math.min(plank.yBot, profile(x));
   return bottom - top > 0.05 ? [top, bottom] : null;
@@ -103,16 +110,12 @@ class Card {
   }
 }
 
-/** One plank, both sides, into the card mesh with its slot. */
-function plankMesh(
-  card: Card,
-  plank: Plank,
-  slot: number,
-  stations: number[],
-  rows: number,
-) {
-  // Where a lift runs out against the stem, the counter or the keel its band closes to a point:
-  // keep that point, or the card stops a station short and leaves a notch in the silhouette (S4).
+/**
+ * A plank's band at each of its stations. Where a lift runs out against the stem, the counter or
+ * the keel its band closes to a point: keep that point, or the card stops a station short and
+ * leaves a notch in the silhouette (S4).
+ */
+function plankStations(plank: Plank, stations: number[]) {
   const band = (x: number): [number, number] | null => {
     const open = bandAt(plank, x);
     if (open || (x !== plank.x0 && x !== plank.x1)) return open;
@@ -120,7 +123,20 @@ function plankMesh(
     return [y, y];
   };
   const xs = stationsIn(stations, plank.x0, plank.x1).filter((x) => band(x));
-  for (const side of [1, -1]) {
+  return { band, xs };
+}
+
+/** One plank, on the sides given (both on the sheet), into the card mesh with its slot. */
+function plankMesh(
+  card: Card,
+  plank: Plank,
+  slot: number,
+  stations: number[],
+  rows: number,
+  sides: readonly number[],
+) {
+  const { band, xs } = plankStations(plank, stations);
+  for (const side of sides) {
     const base = card.count;
     for (const x of xs) {
       const [top, bottom] = band(x) ?? [0, 0];
@@ -203,22 +219,47 @@ const lift = (plank: Plank) => Number(plank.id.split(".")[0]);
  * every plank's edge. On the surface itself: the card's polygon offset lets them win the depth
  * test, where a lift along the normal would move the lower seams down in the side view (S4).
  */
-function seamLines(stations: number[], rows: number) {
+function seamLines(
+  stations: number[],
+  rows: number,
+  seats?: ReadonlySet<string>,
+) {
   const out: number[] = [];
   const on = (x: number, y: number, side: number) => surface(x, y, side).p;
+  // The ghost's seats: a seam is drawn only beside a plank it has, so a gap leaves none.
+  const beside = (k: number, x: number) =>
+    PLANKS.some(
+      (plank) =>
+        seats?.has(plank.id) &&
+        lift(plank) === k &&
+        x >= plank.x0 &&
+        x <= plank.x1,
+    );
   for (let k = 1; k < BUTTS.length; k++) {
     const y = seamDepth(k);
     const [a, b] = ends(y);
     const xs = stationsIn(stations, a, b);
-    for (const side of [1, -1])
-      segments(
-        xs.map((x) => on(x, y, side)),
-        out,
-      );
+    for (const side of [1, -1]) {
+      if (!seats) {
+        segments(
+          xs.map((x) => on(x, y, side)),
+          out,
+        );
+        continue;
+      }
+      for (let i = 0; i < xs.length - 1; i++) {
+        const [x0, x1] = [xs[i] ?? 0, xs[i + 1] ?? 0];
+        const mid = (x0 + x1) / 2;
+        if (beside(k - 1, mid) || beside(k, mid)) {
+          segments([on(x0, y, side), on(x1, y, side)], out);
+        }
+      }
+    }
   }
   PLANKS.forEach((plank, i) => {
     const previous = PLANKS[i - 1];
     if (!previous || lift(previous) !== lift(plank)) return;
+    if (seats && !seats.has(plank.id) && !seats.has(previous.id)) return;
     const band = bandAt(plank, plank.x0);
     if (!band) return;
     const ys = Array.from(
@@ -275,6 +316,67 @@ function skeleton() {
   return out;
 }
 
+/**
+ * One plank's four edges on one side, as segment pairs: the ghost's ink mark for a record's plank or
+ * the one under the pointer (.crew/sprint/33/notes-iris.md, section 4), as the 2D ghost strokes a
+ * plank path.
+ */
+export function plankEdges(
+  { stations: count, rows }: Level,
+  id: string,
+  side: number,
+) {
+  const plank = PLANKS.find((candidate) => candidate.id === id);
+  if (!plank) return new Float32Array(0);
+  const out: number[] = [];
+  const on = (x: number, y: number) => surface(x, y, side).p;
+  const { band, xs } = plankStations(plank, stationsAt(count));
+  const bands: [number, number][] = xs.map((x) => band(x) ?? [0, 0]);
+  segments(
+    xs.map((x, i) => on(x, bands[i]?.[0] ?? 0)),
+    out,
+  );
+  segments(
+    xs.map((x, i) => on(x, bands[i]?.[1] ?? 0)),
+    out,
+  );
+  // The butts: the plank's two ends, where it has depth there.
+  for (const i of [0, xs.length - 1]) {
+    const x = xs[i];
+    const [top, bottom] = bands[i] ?? [0, 0];
+    if (x === undefined || bottom - top < 0.05) continue;
+    segments(
+      Array.from({ length: rows + 1 }, (_, j) =>
+        on(x, top + ((bottom - top) * j) / rows),
+      ),
+      out,
+    );
+  }
+  return new Float32Array(out);
+}
+
+/**
+ * A point on the hull's near side (z > 0, toward the camera at every pose of the ghost's move),
+ * `out` hull units off it, in the model's frame; aft of the stern, on the transom's breadth.
+ */
+export const nearSide = (x: number, y: number, out = 0): Vec3 =>
+  toLocal(x, y, halfBreadth(Math.min(Math.max(x, 0), LENGTH), y) + out);
+
+/** The ghost's seats: the planks the crew took out. */
+export type Ghost = { seats: ReadonlySet<string> };
+
+/**
+ * A level's stations: cosine-spaced along the whole length, with every lift's ends among them, so
+ * the card and the outline turn the stem and the counter at the same points (S4, rule 2; build
+ * note 3).
+ */
+function stationsAt(count: number) {
+  const liftEnds = Array.from({ length: BUTTS.length - 1 }, (_, k) =>
+    ends(seamDepth(k + 1)),
+  ).flat();
+  return [...spaced(0, LENGTH, count), ...liftEnds].sort((a, b) => a - b);
+}
+
 export type Hull = ReturnType<typeof buildHull>;
 
 /**
@@ -282,26 +384,36 @@ export type Hull = ReturnType<typeof buildHull>;
  * a per-vertex slot into the state lookup (contract, build note 1), so the planks are one draw on
  * every stack (S3), at either level.
  */
-export function buildHull({ stations: count, rows }: Level) {
-  // Every lift's ends join the stations, so the card and the outline turn the stem and the counter
-  // at the same points (S4, rule 2; build note 3).
-  const liftEnds = Array.from({ length: BUTTS.length - 1 }, (_, k) =>
-    ends(seamDepth(k + 1)),
-  ).flat();
-  const stations = [...spaced(0, LENGTH, count), ...liftEnds].sort(
-    (a, b) => a - b,
-  );
+export function buildHull({ stations: count, rows }: Level, ghost?: Ghost) {
+  const stations = stationsAt(count);
   const card = new Card();
-  PLANKS.forEach((plank, slot) => {
-    plankMesh(card, plank, slot, stations, rows);
-  });
-  deckMesh(card, stations, rows);
+  // The ghost (.crew/sprint/33/notes-iris.md, section 1): the originals the crew took out on both
+  // sides, with no deck or transom face. The far side's triangles come first, so the scene draws
+  // each side's range once, the far side and then the near (spike-pixel.md, section 2).
+  let far = 0;
+  if (ghost) {
+    for (const side of [-1, 1]) {
+      if (side === 1) far = card.index.length;
+      PLANKS.forEach((plank, slot) => {
+        if (ghost.seats.has(plank.id)) {
+          plankMesh(card, plank, slot, stations, rows, [side]);
+        }
+      });
+    }
+  } else {
+    PLANKS.forEach((plank, slot) => {
+      plankMesh(card, plank, slot, stations, rows, [1, -1]);
+    });
+    deckMesh(card, stations, rows);
+  }
   return {
     position: new Float32Array(card.position),
     normal: new Float32Array(card.normal),
     slot: new Float32Array(card.slot),
     index: new Uint16Array(card.index),
-    seams: seamLines(stations, rows),
+    /** Where the near side's triangles start in `index`: the ghost's far range is before it. */
+    far,
+    seams: seamLines(stations, rows, ghost?.seats),
     outline: outlineLines(stations, rows),
     points: skeleton(),
   };

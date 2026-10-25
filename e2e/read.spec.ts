@@ -843,7 +843,7 @@ async function scriptBytes(browser: Browser, url: string, refuse = false) {
   };
 }
 
-test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on / (WebGL refused), /read, /crew and the 404 within 2,048 B of /log's", async ({
+test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /log and /log/13 (WebGL refused), /read and /crew within 2,048 B of the 404's", async ({
   page,
   browser,
 }, testInfo) => {
@@ -968,30 +968,29 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the draw
     )
     .not.toEqual([]);
 
-  // Script bytes against /log's in the same run: the framework's alone (sprint 30, B5.10, which
-  // moved the baseline from /sprints with the route).
-  const log = await scriptBytes(browser, "/log");
-  // Today a missing /log is the 404, whose files are the same: the baseline must be the page.
-  expect(log.status, "status of /log").toBe(200);
-  expect(log.files, "script files /log requests").toBeGreaterThan(0);
-  // Sprint 31 (.crew/sprint/31/contract.md, B4.14): /crew ships no client code of its own.
-  for (const route of ["/", READ, "/crew", "/no-such-page"]) {
-    const route_ = await scriptBytes(browser, route, route === "/");
-    // A missing route is the 404, whose files are the baseline's: each route at its own status.
-    expect
-      .soft(route_.status, `status of ${route}`)
-      .toBe(route === "/no-such-page" ? 404 : 200);
+  // Script bytes against the 404's in the same run: the framework's alone. Sprint 30 (B5.10) moved
+  // the baseline from /sprints to /log; sprint 33 (B5c) moves it to the 404, since /log now loads
+  // the model's loader, and /log and /log/13 join / with WebGL refused. Sprint 31
+  // (.crew/sprint/31/contract.md, B4.14) adds /crew, which has no model and ships no client code of
+  // its own: B4.14 in crew.spec.ts holds it to the 404's files and bytes exactly.
+  const missing = await scriptBytes(browser, "/no-such-page");
+  expect(missing.status, "status of the 404").toBe(404);
+  expect(missing.files, "script files the 404 requests").toBeGreaterThan(0);
+  for (const route of ["/", "/log", "/log/13", READ, "/crew"]) {
+    const refused = route !== READ && route !== "/crew";
+    const route_ = await scriptBytes(browser, route, refused);
     testInfo.annotations.push({
       type: "script-bytes",
-      description: `${route}${route === "/" ? " (WebGL refused)" : ""}: ${route_.bytes} B in ${route_.files} files; /log: ${log.bytes} B in ${log.files}`,
+      description: `${route}${refused ? " (WebGL refused)" : ""}: ${route_.bytes} B in ${route_.files} files; the 404: ${missing.bytes} B in ${missing.files}`,
     });
+    expect.soft(route_.status, `status of ${route}`).toBe(200);
     expect
       .soft(route_.bytes, `script bytes on ${route} are a number`)
       .not.toBeNaN();
     expect
       .soft(
-        route_.bytes - log.bytes,
-        `script bytes on ${route} beyond /log's (${log.bytes} B)`,
+        route_.bytes - missing.bytes,
+        `script bytes on ${route} beyond the 404's (${missing.bytes} B)`,
       )
       .toBeLessThanOrEqual(2_048);
   }

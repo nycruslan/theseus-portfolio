@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { ownerPicks, unbuilt } from "../picks.mjs";
 import { ghLog, gitRepo, REPO, routes, runHook } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
@@ -331,7 +332,7 @@ test("a ready PR that gate leaves to the owner waits for them, held or approved,
         gates: { [head]: runs },
       }),
     ).state;
-  // Held for the owner's approval: a weakened test, an owner path, package.json's scripts.
+  // Held for the owner's approval: an owner path, package.json's scripts, needs-owner.
   const held = waits([gate("success", { id: 1 }), gate("failure")]);
   assert.equal(held.open[0].waitsForOwner, true);
   assert.equal(held.action.do, "start");
@@ -706,4 +707,145 @@ test("a just-merged sprint's branch, still listed, doesn't hold up the run its m
     }),
   ).state;
   assert.equal(reopened.action.do, "stand down");
+});
+
+// A PR body with the sprint skill's "Owner's pick" blocks.
+const picksBody = [
+  "## Decisions",
+  "",
+  "### Owner's pick: The bar on phones",
+  "- [ ] Keep Read as page in the bar (Recommended)",
+  "- [x] Move it to the drawing's foot",
+  "",
+  "### Owner's pick: The tagline",
+  "- [x] As drafted (Recommended)",
+  "- [ ] Shorter",
+  "",
+  "### Owner's pick (waits): Spend $20 a month on fonts",
+  "- [ ] No (Recommended)",
+  "- [ ] Yes",
+  "",
+  "### Owner's pick: The footer",
+  "- [ ] Two columns (Recommended)",
+  "- [x] One column",
+  "Applied: One column, in #41.",
+].join("\n");
+
+test("reads the owner's picks from a PR's body: each question, its options, which is recommended and what's ticked", () => {
+  const picks = ownerPicks(picksBody);
+  assert.deepEqual(
+    picks.map(({ question, waits, applied }) => [question, waits, applied]),
+    [
+      ["The bar on phones", false, null],
+      ["The tagline", false, null],
+      ["Spend $20 a month on fonts", true, null],
+      ["The footer", false, "One column"],
+    ],
+  );
+  assert.deepEqual(picks[0].options, [
+    {
+      text: "Keep Read as page in the bar (Recommended)",
+      ticked: false,
+      recommended: true,
+    },
+    { text: "Move it to the drawing's foot", ticked: true, recommended: false },
+  ]);
+  assert.deepEqual(ownerPicks(null), []);
+});
+
+test("a pick is unbuilt while the owner's tick differs from what the team built, the last applied or else the recommended", () => {
+  const pick = (lines) =>
+    ownerPicks(["### Owner's pick: Q", ...lines].join("\n"))[0];
+  const cases = [
+    [["- [ ] A (Recommended)", "- [ ] B"], []],
+    [["- [x] A (Recommended)", "- [ ] B"], []],
+    [["- [ ] A (Recommended)", "- [x] B"], ["B"]],
+    [["- [ ] A (Recommended)", "- [x] B", "Applied: B, in #41."], []],
+    // The owner changed their mind after it was applied, back to the recommended one or to another.
+    [
+      ["- [x] A (Recommended)", "- [ ] B", "Applied: B, in #41."],
+      ["A (Recommended)"],
+    ],
+    [
+      ["- [ ] A (Recommended)", "- [ ] B", "- [x] C", "Applied: B, in #41."],
+      ["C"],
+    ],
+    // The last Applied line counts, and it names the option in the team's words.
+    [
+      [
+        "- [x] A (Recommended)",
+        "- [ ] B",
+        "Applied: B, in #41.",
+        "Applied: a, in #42.",
+      ],
+      [],
+    ],
+  ];
+  for (const [lines, chose] of cases) {
+    assert.deepEqual(unbuilt(pick(lines)), chose, lines.join(" | "));
+  }
+  const waits = ownerPicks(
+    "### Owner's pick (waits): Q\n- [x] A (Recommended)\n- [ ] B",
+  )[0];
+  assert.deepEqual(unbuilt(waits), ["A (Recommended)"]);
+  assert.deepEqual(unbuilt({ ...waits, applied: "A" }), []);
+});
+
+test("lists the owner's answers the team still has to act on: an override, any tick on a pick that waits, in open PRs and merged ones however old", () => {
+  const body = (text) => ({ body: text });
+  const { state } = preflight(
+    github({
+      pulls: [
+        { ...pr(43, "sprint/43-bar"), ...body(picksBody) },
+        {
+          ...pr(44, "sprint/44-fonts"),
+          ...body(
+            "### Owner's pick (waits): Fonts\n- [x] No (Recommended)\n- [ ] Yes",
+          ),
+        },
+      ],
+      closed: [
+        {
+          ...merged(41, 3),
+          ...body(
+            "### Owner's pick: Footer\n- [ ] Two (Recommended)\n- [x] One",
+          ),
+        },
+        {
+          ...merged(40, 30),
+          ...body("### Owner's pick: Old\n- [ ] A (Recommended)\n- [x] B"),
+        },
+        {
+          ...merged(39, 50),
+          merged_at: null,
+          ...body("### Owner's pick: Closed\n- [ ] A (Recommended)\n- [x] B"),
+        },
+      ],
+    }),
+  );
+  assert.deepEqual(
+    state.picks.map(({ pr, merged, question, chose, waits }) => [
+      pr,
+      merged,
+      question,
+      chose,
+      waits,
+    ]),
+    [
+      [
+        43,
+        false,
+        "The bar on phones",
+        ["Move it to the drawing's foot"],
+        false,
+      ],
+      [44, false, "Fonts", ["No (Recommended)"], true],
+      [41, true, "Footer", ["One"], false],
+      [40, true, "Old", ["B"], false],
+    ],
+  );
+  assert.equal(
+    state.picks[0].recommended,
+    "Keep Read as page in the bar (Recommended)",
+  );
 });

@@ -220,11 +220,17 @@ async function onFixture(
 }
 
 /**
- * A down variant: its site shows live first, then the channel switches to `answer` and the check
- * waits for down, so the down it reads came from the variant, not the build's prerender.
+ * A down variant: its site shows live first (from `first`), then the channel switches to `answer`
+ * and the check waits for down, so the down it reads came from the variant, not the build's
+ * prerender.
  */
-async function downFrom(crew: Crew, name: string, answer: Partial<Answer>) {
-  const live = await onFixture(crew, name, { fixture: "live" });
+async function downFrom(
+  crew: Crew,
+  name: string,
+  answer: Partial<Answer>,
+  first: Partial<Answer> = {},
+) {
+  const live = await onFixture(crew, name, { fixture: "live", ...first });
   crew.feed.set(name, answer);
   const shown = await untilState(live.base, "down", STATE_WAIT);
   test.info().annotations.push({
@@ -519,25 +525,99 @@ test("B4.2 down, honestly, on the default server: down, the down line, the recor
   await panelIs(page, DEFAULT);
 });
 
-for (const [name, answer, what] of [
-  ["down-503", { status: 503 }, "answers 503"],
-  ["down-stale", { ageMs: 11 * 60_000 }, "answers with asOf 11 minutes old"],
-  ["down-v2", { patch: { top: { version: 2 } } }, "answers version 2"],
+// The reads that bring no answer back: a status other than 200, past the 2,000 ms timeout, or a
+// body that isn't JSON. Since the owner's measurement on #78 (2026-10-25, 17:48: an uncached read
+// of a cold Studio takes up to 8.4 s), such a read keeps the last good answer while that answer's
+// asOf is within the 10 minutes of the down rule, and only then reads down. An answer that fails
+// the data rules (version 2, a stale asOf) is still down at once.
+const FAILED_READS = [
+  ["503", { status: 503 }, "answers 503"],
   [
-    "down-json",
+    "json",
     { raw: "<!doctype html><p>Not JSON" },
     "answers a body that isn't JSON",
   ],
-  ["down-late", { delayMs: 2_500 }, "answers after 2,500 ms"],
-] as const) {
+  ["late", { delayMs: 2_500 }, "answers after 2,500 ms"],
+] as const;
+/** A live answer at 9 min 50 s: the next read, 30 s or more later, finds it past the window. */
+const EDGE_OF_WINDOW = 590_000;
+
+for (const [name, answer, what, first] of [
+  ...FAILED_READS.map(
+    ([kind, answer, what]) =>
+      [
+        `down-${kind}`,
+        answer,
+        `${what}, its last good answer's asOf then past 10 minutes`,
+        { ageMs: EDGE_OF_WINDOW },
+      ] as const,
+  ),
+  [
+    "down-stale",
+    { ageMs: 11 * 60_000 },
+    "answers with asOf 11 minutes old",
+    {},
+  ] as const,
+  [
+    "down-v2",
+    { patch: { top: { version: 2 } } },
+    "answers version 2",
+    {},
+  ] as const,
+]) {
   test(`B4.2 down, honestly, when the feed ${what}: after showing live, /crew turns down and reads as on the default server`, async ({
     page,
     crew,
   }) => {
     test.setTimeout(150_000);
-    const shown = await downFrom(crew, name, answer);
+    const shown = await downFrom(crew, name, answer, first);
     await openCrew(page, shown);
     await panelIs(page, shown);
+  });
+}
+
+for (const [kind, answer, what] of FAILED_READS) {
+  test(`B4.2 kept, when the feed ${what} within 10 minutes of a good answer: after showing live, /crew still shows live, as the oracle reads the live fixture, once the failed read is in and the page regenerated after it`, async ({
+    page,
+    crew,
+  }) => {
+    test.setTimeout(150_000);
+    const name = `kept-${kind}`;
+    const live = await onFixture(crew, name, { fixture: "live" });
+    const before = crew.feed.reads(name);
+    crew.feed.set(name, answer);
+    // Each request may start the regeneration; the feed counts the read when it arrives.
+    const started = Date.now();
+    const seen: string[] = [];
+    while (
+      crew.feed.reads(name) === before &&
+      Date.now() - started < STATE_WAIT
+    ) {
+      seen.push((await untilState(live.base, "live", 0)).seen);
+      await new Promise((done) => setTimeout(done, 1000));
+    }
+    expect(
+      crew.feed.reads(name),
+      `reads of the ${name} channel within ${STATE_WAIT} ms of the switch`,
+    ).toBeGreaterThan(before);
+    // The failed read settles within the 2,000 ms timeout; then the regenerated page is served.
+    await new Promise((done) => setTimeout(done, 4000));
+    for (let i = 0; i < 5; i++) {
+      seen.push((await untilState(live.base, "live", 0)).seen);
+      await new Promise((done) => setTimeout(done, 1000));
+    }
+    test.info().annotations.push({
+      type: "state-wait",
+      description: `${name}: read ${Date.now() - started} ms after the switch, seen ${seen.join(", ")}`,
+    });
+    expect
+      .soft(
+        seen.filter((state) => state !== "live"),
+        `/crew's states other than live from the switch to ${what} to 5 s past the failed read and its regeneration`,
+      )
+      .toEqual([]);
+    await openCrew(page, live);
+    await panelIs(page, live);
   });
 }
 

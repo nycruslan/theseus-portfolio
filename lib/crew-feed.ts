@@ -90,6 +90,20 @@ const STALE_MS = 10 * 60 * 1000;
 const TIMEOUT_MS = 2000;
 const MAX_MOMENTS = 10;
 
+/** A read that brought no answer back: unreachable, timed out, a status other than 200, not JSON. */
+const FAILED = Symbol("failed read");
+
+/**
+ * The last answer that read as live, open or resting, kept in this server process's memory. A
+ * failed read judges it again at that read's clock, so it is told until its asOf is past STALE_MS
+ * and reads as down after. The owner measured why (on #78, 2026-10-25): after about 10 idle
+ * minutes the Studio's first uncached answer can take longer than TIMEOUT_MS, and caching down for
+ * 30 s then told visitors the feed was down when it was only slow. An answer that reads as down
+ * drops it, so a failed read never brings back an older live after a down. A new process (a cold
+ * serverless instance) has none, and its failed read is down.
+ */
+let kept: unknown;
+
 type Fields = Record<string, unknown>;
 
 function isRecord(value: unknown): value is Fields {
@@ -212,26 +226,29 @@ function crewOf(answer: unknown, feed: URL, now: number): Crew {
   return last ? { state: "resting", run: runOf(last, feed) } : DOWN;
 }
 
+/** The feed's parsed answer, or FAILED. */
 async function fetchAnswer(url: URL): Promise<unknown> {
   try {
-    // The timeout covers the body too: a Studio that answers slowly reads as down.
+    // The timeout covers the body too: a Studio that answers slowly has failed the read.
     const response = await fetch(url, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (response.status !== 200) return undefined;
+    if (response.status !== 200) return FAILED;
     return await response.json();
   } catch {
-    // Unreachable, timed out, or not JSON: all down.
-    return undefined;
+    // Unreachable, timed out, or not JSON: no answer.
+    return FAILED;
   }
 }
 
 /**
  * The crew's state, read from `CREW_FEED_URL` (unset or empty: down). Cached for the shortest life
  * Next.js still prerenders (cacheLife's "Prerendering behavior"), so /crew stays static and
- * regenerates in the background: a visitor sees an answer at most about five minutes old, and a
- * failed read is retried on the first request 30 s after it. The clock is read inside the cache,
- * since a prerender can't read it outside one, so an answer's age is judged when it is read.
+ * regenerates in the background: a visitor sees a read at most about five minutes old. A failed
+ * read tells the last good answer (`kept`) while it is fresh, and down after, and either is retried
+ * on the first request 30 s after it. An answer the data rules refuse reads as down at once. The
+ * clock is read inside the cache, since a prerender can't read it outside one, so an answer's age
+ * is judged when it is read.
  */
 export async function readCrew(): Promise<Crew> {
   "use cache";
@@ -239,7 +256,11 @@ export async function readCrew(): Promise<Crew> {
   const address = process.env.CREW_FEED_URL;
   if (!address || !URL.canParse(address)) return DOWN;
   const feed = new URL(address);
-  return crewOf(await fetchAnswer(feed), feed, Date.now());
+  const answer = await fetchAnswer(feed);
+  if (answer === FAILED) return crewOf(kept, feed, Date.now());
+  const crew = crewOf(answer, feed, Date.now());
+  kept = crew.state === "down" ? undefined : answer;
+  return crew;
 }
 
 const PULL =

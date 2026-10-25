@@ -35,7 +35,8 @@ neighbouring site can copy a look; it can't truthfully copy that record.
   ships one pull request.
 - The Studio (a separate app) streams the crew's work live. Visitors only watch: they never start
   or steer the crew.
-- The owner approves designs on a Design canvas and is otherwise not involved.
+- The crew makes its own calls: Iris sets the design on a Design canvas, and the owner may pick
+  another there. The owner answers only what only they can decide, and is otherwise not involved.
 
 ## Capabilities and Constraints
 

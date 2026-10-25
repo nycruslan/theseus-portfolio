@@ -2,24 +2,27 @@ import type { ReactNode } from "react";
 
 // The labelled bar at the top of the sheet (.crew/sprint/22/contract.md, B1.3; .crew/sprint/23/
 // notes-iris.md, section 5): the wordmark, then a link to each place on the site that exists today,
-// Crew among them since its route does (.crew/sprint/31/contract.md, "The bar"). Below 768 px five
-// don't fit, so Read as page leaves the bar for the drawing's foot (components/foot.tsx) and stays
-// in the nav's DOM, hidden. On the sheet the wordmark is plain text, since it would link to the
-// page it sits on. It sticks to the top while the page scrolls, so html's scroll-padding-top in
-// app/globals.css keeps every fragment target and focused link clear of it. It isn't printed: on
-// paper it is a strip of links nobody can follow. After the links, the sheet passes the motion
-// control into its slot, shown from 768 px: from 1024 at the bar's right end after Read as page, as
-// the approved frame draws it. Below 768 the bar is full, and the control sits at the drawing's foot
-// (app/page.tsx; .crew/sprint/27/). The control is a slot, not an import, so its client module
-// ships only where the sheet renders it.
+// Crew among them since its route does (.crew/sprint/31/contract.md, "The bar"). On the sheet the
+// wordmark is plain text, since it would link to the page it sits on. Elsewhere
+// (.crew/sprint/29/b5-first-contract.md, "The bar") it is the way home, Work and Contact point at
+// the sheet's sections, and the page's own place is current: Log on the Log and its records, Crew
+// on /crew, whose bar is the Log's. It sticks to the top while the page scrolls, so html's
+// scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
+// It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
+// a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
+// end after Read as page, as the approved frame draws it. /crew has no model to move until B4d, so
+// no control. The control is a slot, not an import, so its client module ships only where a page
+// with a model renders it.
 //
-// On the Log and its records (.crew/sprint/29/b5-first-contract.md, "The bar"), the wordmark is the
-// way home, Work and Contact point at the sheet's sections, and Log is current. No control: there is
-// no model on the Log to move. /crew's bar is the Log's, with Crew current.
+// Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and
+// Read as page stays in the nav's DOM, hidden. Read as page, with the control where the page has
+// one, takes one row in the page instead (components/foot.tsx): at the drawing's foot on the sheet
+// (app/page.tsx; .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
+// (components/log.tsx; .crew/sprint/33/).
 type BarProps = {
   /** Where the bar is: the sheet, the Log, one of the Log's records, or the crew's page. */
   at?: "sheet" | "log" | "record" | "crew";
-  /** The motion control, from the sheet. */
+  /** The motion control, from a page with a model: the sheet, the Log and its records. */
   control?: ReactNode;
   className?: string;
 };

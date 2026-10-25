@@ -18,7 +18,10 @@ import {
   contrast,
   horizontalOverflow,
   installRgba,
+  MODES,
+  MOTION,
   measureLcp,
+  motionReady,
   parseColor,
   type Rgb,
   resolveColors,
@@ -61,6 +64,7 @@ import {
   PLANK_IDS,
   SEAT_OF,
 } from "./retros";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 30, B5a: /log, the ghost hull in 2D, and a record per revision at /log/<n>, replacing
 // /sprints (.crew/sprint/29/b5-first-contract.md). Checks B5.1 to B5.5 and B5.8 to B5.11, one
@@ -83,6 +87,19 @@ import {
 // `aria-labelledby` (`every-revision`, `record`), `th[scope="row"] a[href="/log/<n>"]`, the bar as a
 // `header` before `main` with `a[href="/"]` and `nav[aria-label="Main"]`, and `--vellum` on :root.
 // A led-out number is read as on / (plan.spec.ts): a `path.ln-leader` from the number into its plank.
+//
+// Sprint 33 (B5c, .crew/sprint/33/contract.md, "The live checks") puts the ghost hull in 3D on /log
+// and every record, and it restyles the 2D ghost this suite reads. So every context here refuses
+// WebGL (the Off path, as B3 kept `/`'s guards): the beforeEach for `page`, and `refuseWebGl` in
+// each context a test opens itself. The model's own checks are log-model.spec.ts and its siblings.
+// B5.1, B5.9 (C10) and B5.10 are rewritten for the motion control in the bar, with the same
+// assertions; B5.9 (C9.2) reads the control's labels on their own fill (amendment 1).
+//
+// The merge of sprint 31 (#78, /crew) with sprint 33 (the owner on #78, 2026-10-25): the bar has
+// five links, Crew after Work and named once, and the control after them from 768 px; below 768
+// the bar's Read as page and control are hidden, and one row at the Log header's end holds Read as
+// page then Full, Calm and Off. B5.1 keeps every assertion of both sides and adds the row's
+// (expectHeaderEndRow).
 
 const GHOST_HULL = "[data-ghost]";
 const HEADS = [
@@ -109,6 +126,7 @@ const AXE_TAGS = [
 
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
+  await context.addInitScript(refuseWebGl);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -187,6 +205,9 @@ async function skeleton(page: Page) {
         })),
       buttons: header?.querySelectorAll("button").length ?? -1,
       motion: header?.querySelectorAll("[data-motion]").length ?? -1,
+      groups: [
+        ...(header?.querySelectorAll("fieldset, [role='group']") ?? []),
+      ].map((g) => g.getAttribute("aria-label")),
       // Per text node: the links' text runs together ("WorkCrewLog"), so a \b on the header's
       // whole text never matches.
       crew: (() => {
@@ -202,7 +223,16 @@ async function skeleton(page: Page) {
   }, EVERY);
 }
 
-function expectSkeleton(found: Skeleton, how: string, current: string) {
+/**
+ * Sprint 33 (B5c): with scripts the bar's nav also holds the motion control's group, Motion, with
+ * Full, Calm and Off after Read as page; without them its slot is there, empty, and no button.
+ */
+function expectSkeleton(
+  found: Skeleton,
+  how: string,
+  current: string,
+  scripts = true,
+) {
   expect.soft(found.mains, `main elements (${how})`).toBe(1);
   expect.soft(found.mainWithId, `main#main[tabindex="-1"] (${how})`).toBe(1);
   expect.soft(found.firstLink, `the first a in the DOM (${how})`).toBe("#main");
@@ -221,16 +251,32 @@ function expectSkeleton(found: Skeleton, how: string, current: string) {
         inNav: true,
         current: link.href === LOG ? current : null,
       })),
+      ...(scripts
+        ? MODES.map((mode) => ({
+            tag: "button",
+            text: mode,
+            href: null,
+            inNav: true,
+            current: null,
+          }))
+        : []),
     ]);
-  expect.soft(found.buttons, `buttons in the bar (${how})`).toBe(0);
-  expect.soft(found.motion, `[data-motion] in the bar (${how})`).toBe(0);
+  expect
+    .soft(found.buttons, `buttons in the bar (${how})`)
+    .toBe(scripts ? MODES.length : 0);
+  expect.soft(found.motion, `[data-motion] slots in the bar (${how})`).toBe(1);
+  expect
+    .soft(found.groups, `groups in the bar (${how})`)
+    .toEqual(scripts ? ["Motion"] : []);
   // Sprint 31: the bar names the crew once, in its Crew link (the controls above), and nowhere else.
   expect.soft(found.crew, `"Crew" in the bar's text (${how})`).toBe(1);
 }
 
 /**
- * The bar's shown targets at the current width, and below 768 px the foot's Read as page, which
- * stands in for the bar's hidden one (sprint 31): boxes, and each label's lines of text.
+ * The bar's shown targets at the current width: its five links and, from 768 px, the motion
+ * control's three buttons (sprint 33). Below 768 the bar's Read as page and its control's slot are
+ * hidden, and the row at the Log header's end stands in for both (sprint 31's foot holding sprint
+ * 33's control): its Read as page, then Full, Calm and Off. Boxes, and each label's lines of text.
  */
 function readBarTargets(page: Page) {
   return page.evaluate(() => {
@@ -248,11 +294,15 @@ function readBarTargets(page: Page) {
     const shown = (a: Element) => a.getClientRects().length > 0;
     const targets = [
       ...[
-        ...(header?.querySelectorAll('a[href]:not([href="#main"])') ?? []),
+        ...(header?.querySelectorAll(
+          'a[href]:not([href="#main"]), [data-motion] button',
+        ) ?? []),
       ].filter(shown),
       ...(innerWidth < 768
         ? [
-            ...document.querySelectorAll('main [data-foot] a[href="/read"]'),
+            ...document.querySelectorAll(
+              'main [data-foot] a[href="/read"], main [data-foot] [data-motion] button',
+            ),
           ].filter(shown)
         : []),
     ];
@@ -279,6 +329,162 @@ function readBarTargets(page: Page) {
   });
 }
 
+/**
+ * Below 768 px, the row at the Log header's end (the owner on #78, 2026-10-25: sprint 31's foot
+ * holding sprint 33's control): exactly one shown, `.log-head`'s next element and set under all of
+ * it; Read as page, then Full, Calm and Off, the eye's order the DOM's, in one band, apart, each
+ * 44 x 44 px and wholly inside the viewport; and Tab from the bar's Contact goes Read as page, the
+ * control's one enabled button (Off, with WebGL refused), then on out of the row.
+ */
+async function expectHeaderEndRow(page: Page, where: string) {
+  await probeAnswered(page);
+  const row = await page.evaluate(() => {
+    const shown = (el: Element) => el.getClientRects().length > 0;
+    const feet = [...document.querySelectorAll("main [data-foot]")].filter(
+      shown,
+    );
+    const foot = feet[0];
+    const head = document.querySelector("main .log-head");
+    const cw = document.documentElement.clientWidth;
+    const ch = document.documentElement.clientHeight;
+    const items = [
+      ...(foot?.querySelectorAll("a[href], [data-motion] button") ?? []),
+    ]
+      .filter(shown)
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          text: (el.textContent ?? "").replace(/\s+/g, " ").trim(),
+          tag: el.tagName.toLowerCase(),
+          href: el.getAttribute("href"),
+          left: r.left,
+          right: r.right,
+          top: r.top,
+          bottom: r.bottom,
+          width: r.width,
+          height: r.height,
+          inside:
+            r.left >= -0.5 &&
+            r.top >= -0.5 &&
+            r.right <= cw + 0.5 &&
+            r.bottom <= ch + 0.5,
+        };
+      });
+    const headBottom = Math.max(
+      ...[...(head?.children ?? [])]
+        .filter(shown)
+        .map((el) => el.getBoundingClientRect().bottom),
+    );
+    return {
+      feet: feet.length,
+      afterHead: Boolean(foot && head?.nextElementSibling === foot),
+      group:
+        foot
+          ?.querySelector(
+            "[data-motion] fieldset, [data-motion] [role='group']",
+          )
+          ?.getAttribute("aria-label") ?? null,
+      items,
+      top: Math.min(...items.map((i) => i.top)),
+      headBottom,
+    };
+  });
+  expect.soft(row.feet, `rows at the header's end shown ${where}`).toBe(1);
+  expect
+    .soft(row.afterHead, `the row is .log-head's next element ${where}`)
+    .toBe(true);
+  expect
+    .soft(
+      row.top >= row.headBottom - 0.5,
+      `the row (top ${row.top}) under the header's last line (bottom ${row.headBottom}) ${where}`,
+    )
+    .toBe(true);
+  expect.soft(row.group, `the row's group name ${where}`).toBe("Motion");
+  const dom = row.items.map((i) => `<${i.tag}> ${i.text}`);
+  expect
+    .soft(dom, `the row's targets in DOM order ${where}`)
+    .toEqual(["<a> Read as page", ...MODES.map((m) => `<button> ${m}`)]);
+  expect
+    .soft(
+      [...row.items]
+        .sort((a, b) => a.left - b.left)
+        .map((i) => `<${i.tag}> ${i.text}`),
+      `the row's targets left to right ${where}`,
+    )
+    .toEqual(dom);
+  expect.soft(row.items[0]?.href, `the row's link ${where}`).toBe("/read");
+  expect
+    .soft(
+      Math.max(...row.items.map((i) => i.top)) <
+        Math.min(...row.items.map((i) => i.bottom)),
+      `the row's targets share one band ${where}: ${JSON.stringify(row.items.map((i) => [i.text, Math.round(i.top), Math.round(i.bottom)]))}`,
+    )
+    .toBe(true);
+  // Apart: no two targets' boxes overlap, but for the 1 px border that neighbouring buttons of the
+  // one group share (`[data-motion] button + button`, sprint 27's segmented control).
+  expect
+    .soft(
+      row.items.flatMap((a, i) =>
+        row.items
+          .slice(i + 1)
+          .filter((b, j) => {
+            const shared = a.tag === "button" && b.tag === "button" && j === 0;
+            const across =
+              Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            return across > (shared ? 1 : 0) + 0.5 && down > 0.5;
+          })
+          .map((b) => `${a.text} / ${b.text}`),
+      ),
+      `overlapping targets in the row ${where}`,
+    )
+    .toEqual([]);
+  expect
+    .soft(
+      row.items
+        .filter((i) => i.width < 44 - 0.05 || i.height < 44 - 0.05)
+        .map((i) => `${i.text}: ${i.width} x ${i.height}`),
+      `row targets under 44 x 44 px ${where}`,
+    )
+    .toEqual([]);
+  expect
+    .soft(
+      row.items.filter((i) => !i.inside).map((i) => i.text),
+      `row targets not wholly inside the viewport ${where}`,
+    )
+    .toEqual([]);
+
+  await page.locator('header nav a[href="/#contact"]').focus();
+  const stops: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("Tab");
+    stops.push(
+      await page.evaluate(() => {
+        const el = document.activeElement;
+        const place = el?.closest("[data-foot]")
+          ? "row"
+          : el?.closest("header")
+            ? "bar"
+            : "page";
+        const name =
+          el?.tagName === "BUTTON"
+            ? `<button> ${(el.textContent ?? "").trim()}`
+            : (el?.getAttribute("href") ?? `<${el?.tagName.toLowerCase()}>`);
+        return `${place} ${name}`;
+      }),
+    );
+  }
+  expect
+    .soft(stops.slice(0, 2), `Tab after the bar's Contact ${where}`)
+    .toEqual(["row /read", "row <button> Off"]);
+  expect
+    .soft(
+      stops[2]?.startsWith("page "),
+      `the Tab after Off leaves the row for the page ${where}: ${stops[2]}`,
+    )
+    .toBe(true);
+}
+
 /** "in view" when the element's top is below the bar's bottom edge and inside the viewport. */
 function clearOfTheBar(page: Page, id: string) {
   return page.evaluate((target) => {
@@ -294,11 +500,12 @@ function clearOfTheBar(page: Page, id: string) {
 }
 
 test.describe("B5.1 The route and the bar", () => {
-  test("B5.1 (C1.1) /log is 200 with scripts on and off: one main#main, the skip link first, one h1 Log, and the bar's wordmark and five links with Log current and no button; a record's bar the same with Log its parent", async ({
+  test("B5.1 (C1.1) /log is 200 with scripts on and off: one main#main, the skip link first, one h1 Log, and the bar's wordmark and five links with Log current and Crew named once, then with scripts the group Motion holding Full, Calm and Off, and without them its slot empty and no button; a record's bar the same with Log its parent", async ({
     page,
     browser,
   }) => {
     await open(page, LOG, 1440);
+    await motionReady(page);
     expectSkeleton(await skeleton(page), "/log, scripts on", "page");
     const section = page.locator(EVERY);
     await expect(section, "the Every revision section").toHaveRole("region");
@@ -310,6 +517,7 @@ test.describe("B5.1 The route and the bar", () => {
       .toEqual(["every-revision"]);
 
     await open(page, recordOf(13), 1440);
+    await motionReady(page);
     expectSkeleton(await skeleton(page), "/log/13, scripts on", "true");
     expect
       .soft((await skeleton(page)).sections, "sections in main on /log/13")
@@ -326,17 +534,19 @@ test.describe("B5.1 The route and the bar", () => {
         await skeleton(bare.page),
         `${url}, scripts off`,
         url === LOG ? "page" : "true",
+        false,
       );
       await bare.context.close();
     }
   });
 
-  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), below 768 with Read as page at the page's foot, exactly one Read as page shown on /log and a record, and the wordmark, Work, Contact and Read as page land", async ({
+  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), Full, Calm and Off among them from 768; below 768 Read as page, Full, Calm and Off are one row at the Log header's end, in the eye's order, 44 x 44 px, apart and inside the viewport, on /log and a record; exactly one Read as page shown on both; and the wordmark, Work, Contact and Read as page land", async ({
     page,
   }) => {
     test.setTimeout(150_000);
     for (const width of WIDTHS) {
       await open(page, LOG, width);
+      await motionReady(page);
       const targets = await readBarTargets(page);
       const at = `at ${width} px`;
       expect
@@ -344,7 +554,8 @@ test.describe("B5.1 The route and the bar", () => {
           targets.map((t) => t.text),
           `the bar's targets ${at}`,
         )
-        .toEqual(["Theseus", ...BAR.map((link) => link.text)]);
+        // From 768 the bar's own; below it the bar's four links, then the header end's row.
+        .toEqual(["Theseus", ...BAR.map((link) => link.text), ...MODES]);
       const tall = width < 1024 ? 44 : 24;
       expect
         .soft(
@@ -354,8 +565,8 @@ test.describe("B5.1 The route and the bar", () => {
           `bar targets under 24 px wide or ${tall} px tall ${at}`,
         )
         .toEqual([]);
-      // The foot's place below 768 is Iris's (the header's end today), so only the bar's own
-      // targets must sit inside the first viewport.
+      // The bar's own targets sit inside the first viewport; below 768 the header end's row is
+      // held to it on its own (expectHeaderEndRow).
       expect
         .soft(
           targets.filter((t) => t.inBar && !t.inside).map((t) => t.text),
@@ -363,7 +574,7 @@ test.describe("B5.1 The route and the bar", () => {
         )
         .toEqual([]);
       // A wrapped label still passes "equal tops" in a flex row (sprint 27), so each label is one
-      // line, and the five share one band: every label's text overlaps every other's vertically.
+      // line, and they all share one band: every label's text overlaps every other's vertically.
       expect
         .soft(
           targets
@@ -396,6 +607,7 @@ test.describe("B5.1 The route and the bar", () => {
             `Read as page links shown on ${url} ${at}`,
           )
           .toBe(1);
+        if (width < 768) await expectHeaderEndRow(page, `on ${url} ${at}`);
       }
 
       // From the bar: the wordmark and Read as page (the foot's below 768) land on their pages,
@@ -1404,6 +1616,22 @@ test.describe("B5.8 Metadata", () => {
 
 const SWEPT = [LOG, recordOf(13)] as const;
 
+/**
+ * Sprint 33 (amendment 1): this suite refuses WebGL, so once the loader's probe is answered Full and
+ * Calm are disabled and Off is pressed. Until then Full is, and a check that reads the control twice
+ * can catch it switching between the reads.
+ */
+async function probeAnswered(page: Page) {
+  await page.waitForFunction(
+    (slot) =>
+      [...document.querySelectorAll(`${slot} button`)].filter(
+        (b) => b.getClientRects().length > 0 && b.matches(":disabled"),
+      ).length === 2,
+    MOTION,
+    { timeout: 10_000 },
+  );
+}
+
 for (const scheme of SCHEMES) {
   test.describe(`B5.9 Widths, ${scheme}`, () => {
     test.use({ colorScheme: scheme, reducedMotion: "reduce" });
@@ -1496,6 +1724,8 @@ test.describe("B5.9 Accessibility", () => {
       await page.emulateMedia({ colorScheme: scheme });
       for (const url of SWEPT) {
         await open(page, url, 390);
+        // The text colours and the buttons' fills are read apart, so read them once it's settled.
+        await probeAnswered(page);
         const colors = await resolveColors(page);
         const rgba = (token: string) => {
           const value = colors[token]?.rgba;
@@ -1514,12 +1744,27 @@ test.describe("B5.9 Accessibility", () => {
             .soft(on(token), `${token} on ${url} (${scheme})`)
             .toBeGreaterThanOrEqual(4.5);
         }
-        // And the colours this route's text really has, not only the tokens.
+        // And the colours this route's text really has, not only the tokens. Sprint 33's
+        // amendment 1: a motion button's label is read on its own fill (the pressed one's is
+        // --foreground), composited on --background; every other text on --background.
         const { texts } = await textStyles(page);
+        const fills = new Map(
+          await page.evaluate((slot) => {
+            const label = (el: Element) =>
+              `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 40)}"`;
+            return [...document.querySelectorAll(`${slot} button`)]
+              .filter((el) => el.getClientRects().length > 0)
+              .map((el) => [label(el), getComputedStyle(el).backgroundColor]);
+          }, MOTION),
+        );
         for (const { element, color } of texts) {
           const parsed = parseColor(color);
+          const fill = fills.has(element)
+            ? parseColor(fills.get(element) ?? "")
+            : null;
+          const ground: Rgb = fill ? composite(fill, background) : background;
           const ratio = parsed
-            ? contrast(composite(parsed, background), background)
+            ? contrast(composite(parsed, ground), ground)
             : 0;
           expect
             .soft(ratio, `contrast of ${element} on ${url} (${scheme})`)
@@ -1647,19 +1892,25 @@ test.describe("B5.9 Accessibility", () => {
 
 test.describe("B5.9 Keyboard", () => {
   for (const scheme of SCHEMES) {
-    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's wordmark and five links, the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
+    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's wordmark and five links, the motion control's enabled buttons (Off alone with WebGL refused), the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
       page,
     }) => {
       test.setTimeout(120_000);
       await open(page, recordOf(13), 1440, scheme);
+      // Off is the one stop the control adds once the probe is answered (3 with WebGL: B5.25).
+      await probeAnswered(page);
       const order = await page.evaluate(
         ({ record, rows }) => {
           const hrefs = (selector: string) =>
             [...document.querySelectorAll(selector)]
               .filter((a) => a.checkVisibility())
-              .map((a) => a.getAttribute("href") ?? "");
+              .map((a) =>
+                a.tagName === "BUTTON"
+                  ? `<button> ${(a.textContent ?? "").trim()}`
+                  : (a.getAttribute("href") ?? ""),
+              );
           return {
-            all: hrefs("a[href]"),
+            all: hrefs("a[href], button:not([disabled])"),
             record: hrefs(`${record} a[href]`),
             revs: hrefs(`${rows} th a[href]`),
           };
@@ -1684,10 +1935,14 @@ test.describe("B5.9 Keyboard", () => {
         "#main",
         "/",
         ...BAR.map((link) => link.href),
+        "<button> Off",
         ...order.record,
         ...order.revs,
       ];
-      expect(order.all, "the visible links in DOM order").toEqual(expected);
+      expect(
+        order.all,
+        "the visible links and enabled buttons in DOM order",
+      ).toEqual(expected);
 
       const skip = page.locator('a[href="#main"]');
       const before = await skip.evaluate((el) => {
@@ -1714,14 +1969,17 @@ test.describe("B5.9 Keyboard", () => {
         await settled(page);
         const stop = await page.evaluate(() => {
           const el = document.activeElement;
-          if (el?.tagName !== "A") return null;
+          if (el?.tagName !== "A" && el?.tagName !== "BUTTON") return null;
           const rgba = (
             window as Window & { __rgba?: (c: string) => number[] | null }
           ).__rgba;
           const box = el.getBoundingClientRect();
           const style = getComputedStyle(el);
           return {
-            href: el.getAttribute("href") ?? "",
+            href:
+              el.tagName === "BUTTON"
+                ? `<button> ${(el.textContent ?? "").trim()}`
+                : (el.getAttribute("href") ?? ""),
             seen:
               el.checkVisibility({
                 opacityProperty: true,
@@ -1856,9 +2114,13 @@ test.describe("B5.9 Nothing moves, nothing needs scripts", () => {
 // ---------------------------------------------------------------------------------------------
 // B5.10 Text first, the framework's script alone
 
-/** The script files a fresh visit to `url` fetches, by path, and their decoded bytes. */
+/**
+ * The script files a fresh visit to `url` fetches with WebGL refused, by path, and their decoded
+ * bytes: past load and the loader's idle probe (2,000 ms at most), so a late request counts.
+ */
 async function scripts(browser: Browser, url: string) {
   const context = await browser.newContext();
+  await context.addInitScript(refuseWebGl);
   const page = await context.newPage();
   const bodies: Promise<{ path: string; bytes: number }>[] = [];
   page.on("response", (response) => {
@@ -1873,11 +2135,12 @@ async function scripts(browser: Browser, url: string) {
       );
     }
   });
-  await page.goto(url);
-  await page.evaluate(() => new Promise((done) => setTimeout(done, 1500)));
+  const response = await page.goto(url);
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 3500)));
   const files = await Promise.all(bodies);
   await context.close();
   return {
+    status: response?.status(),
     paths: files.map((f) => f.path).sort(),
     bytes: files.reduce((sum, f) => sum + f.bytes, 0),
   };
@@ -1955,33 +2218,35 @@ test.describe("B5.10 Text first, the framework's script alone", () => {
     }
   });
 
-  test("B5.10 (B1.10's /sprints block) /log, /log/13 and the newest record load the 404's script files and bytes; /log loads two woff2 within 86,016 B, the display face preloaded, its text in Sofia Sans and Sofia Sans Extra Condensed only", async ({
+  test("B5.10 (B1.10's /sprints block) with WebGL refused, /log, /log/13 and the newest record load /'s WebGL-refused script files and bytes; /log loads two woff2 within 86,016 B, the display face preloaded, its text in Sofia Sans and Sofia Sans Extra Condensed only", async ({
     browser,
   }, testInfo) => {
     test.setTimeout(120_000);
-    const missing = await scripts(browser, "/no-such-page");
-    expect(
-      missing.paths.length,
-      "script files the 404 requests",
-    ).toBeGreaterThan(0);
+    // Sprint 33: the baseline moves from the 404 to / with WebGL refused, the framework and the
+    // model's loader; still an equality, by path and bytes.
+    const home = await scripts(browser, "/");
+    expect(home.status, "status of /").toBe(200);
+    expect(home.paths.length, "script files / requests").toBeGreaterThan(0);
     for (const url of [...new Set([LOG, recordOf(13), recordOf(NEWEST)])]) {
       const found = await scripts(browser, url);
       testInfo.annotations.push({
         type: "script-bytes",
-        description: `${url}: ${found.bytes} B in ${found.paths.length} files; the 404: ${missing.bytes} B in ${missing.paths.length}`,
+        description: `${url}: ${found.bytes} B in ${found.paths.length} files; / with WebGL refused: ${home.bytes} B in ${home.paths.length}`,
       });
+      expect(found.status, `status of ${url}`).toBe(200);
       expect
         .soft(found.paths, `script files ${url} requests, by path`)
-        .toEqual(missing.paths);
+        .toEqual(home.paths);
       expect
         .soft(found.bytes, `script bytes on ${url}, decoded`)
-        .toBe(missing.bytes);
+        .toBe(home.bytes);
     }
 
     // Fonts on /log, in a fresh context so every response has a body.
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
     });
+    await context.addInitScript(refuseWebGl);
     const page = await context.newPage();
     const fonts: Promise<{ url: string; bytes: number }>[] = [];
     page.on("response", (response) => {

@@ -17,9 +17,9 @@ The site in `PRODUCT.md` and `design/brief.md`, built to the direction the owner
 The direction, its budgets and the build order are in `.crew/sprint/17/direction-iris.md`. Quill
 writes each sprint's contract from them. Current UI/UX and 3D practice, with sources, is in
 `design/research/2026-ui-ux-and-3d.md`. Its section B goes sprint by sprint, as input to weigh,
-not a spec: the direction decides, and a visible change to it still needs the owner. The
-owner sees the milestone at two demos, on the PR's Vercel preview: B1, which replaces today's
-page, and B3, the signature moment.
+not a spec: the direction decides, and a visible change to it is Iris's call, which the owner may
+overrule. The owner sees the milestone at two demos, on the PR's Vercel preview: B1, which
+replaces today's page, and B3, the signature moment.
 
 - [x] B1: the sheet in 2D. The labelled bar, the lines plan, the title block, and the revision
   block from the retros, with Off as everyone's default. It replaces today's home page, so its
@@ -127,10 +127,12 @@ page, and B3, the signature moment.
   - [ ] B4c (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
     "Pause updates" (WCAG 2.2.2) and its own script budget.
   - [ ] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
-    joins `/crew`'s bar. Lens's nit on #74 rides here, or with B4b if it touches the loader.
+    joins `/crew`'s bar. It reuses B5c's second-route mount (sprint 33), which took Lens's nit
+    on #74.
   - [ ] B4e (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
     the pace.
-- [ ] B5: `/log` and the ghost hull.
+- [x] B5: `/log` and the ghost hull. B5's demo is the owner's, on a preview that deploys (Vercel
+  rate-limited #82 and #83 on 2026-10-25).
   - [x] Sprint 29 (M, notes only): Quill's plan, B5 as three M sprints
     (`.crew/sprint/29/b5-plan.md`), and B5a's contract ready for Probe and Forge
     (`.crew/sprint/29/b5-first-contract.md`). Taken beside B4 while #75 waits for the owner, since
@@ -171,9 +173,26 @@ page, and B3, the signature moment.
     only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two (the lines
     figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left open:
     the unknown record's scripts-off blank 404.
-  - [ ] B5c (M): the ghost hull in 3D on `/log` under Full/Calm/Off, the control in `/log`'s bar,
-    a plank opening its record (Pixel). Whichever of B4d and B5c comes first mounts the model on a
-    second route. Lens's nit on #74 rides here if B4d hasn't taken it.
+  - [x] B5c (M): the ghost hull in 3D on `/log` and every record, under Full/Calm/Off, the control
+    in `/log`'s bar, and a plank opening its record. (Sprint 33, PR #83, built in one run on
+    2026-10-25: Lens ship on 9b8743a after one fix round, Iris ship at 8.7/10, 184 of 184 checks;
+    the contract is `.crew/sprint/33/contract.md` with amendment 1 and decisions 1 to 11.)
+    - The 3D chunk reads the 2D drawing's seats and numbers, so the loader grew only by Lens's #74
+      nit (2,039 B; B2.10 has 9 B left) and `/`'s hull and loft are unchanged.
+    - The hull: both sides in translucent vellum, lit mix 0.4, pitch 12°, and "8" and "20" on
+      leaders from 768 (decisions 6 and 7). It costs 5 draws and 25,000 triangles from 768.
+    - B5c wrote the model's mount on a second route, so B4d reuses it on `/crew`.
+    - The Log holds its first paint until its drawing is parsed (decision 11).
+    - Riders taken: Lens's nit on #74, Lens's nit on #82 (B5.26 a), and Iris's rule width (B5.26 b).
+    - Riding with the next sprint that touches `lib/model/mount.ts`: Lens's two nits on 9b8743a (a
+      restored context redraws the last hovered plank's mark; a tap's mark clears before its
+      navigation).
+    - Left open: the shift is held in Chromium only, so DOM order matching the visual order below
+      1024 is Iris's call; the commit-hash link (it loosens C5.3, for a PR that waits for the
+      owner); the unknown record's scripts-off blank 404.
+    - **B5's demo is the owner's:** the ghost on a GPU and a phone, the move's feel, the pick, and
+      Iris's departures from the frames (two translucent sides, no "or a plank in the hull", no
+      numbers below 768, "8" led out).
 
 Riding along with the sprints that touch the same code:
 - With the next sprint that touches the facts or the fonts: the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's

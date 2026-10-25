@@ -85,3 +85,24 @@
     1024), two cheap CSS changes and two sentences tightened, all taken in one fix round. She
     keeps the Log's foot where Forge put it. Her answers to the contract's four calls are in
     `review-iris.md`.
+
+12. **Main's sprint 33 merged in (third run, 2026-10-25),** as the owner asked on #78: below 768
+    the Log's header ends in one row, `<Foot control={<MotionControl />} />`, holding Read as page
+    and the motion control; the bar's `at` keeps `"crew"`, and `/crew` has no control until B4d.
+    Forge resolved the product code (B5c's interim `.log > [data-motion]` rule is gone; script
+    bytes unchanged, `/crew` 0 B over the 404). Probe resolved the specs with every assertion from
+    both sides and added the combined row's check (one row after `.log-head`, Read as page then
+    Full, Calm, Off in DOM and visual order, 44 px targets, the Tab path from Contact); the bar
+    names Crew once, so main's `crew: false` became `1`.
+
+13. **A failed feed read keeps the last good answer** (the owner's measurement on #78): a non-200,
+    the 2 s timeout, a network error or a non-JSON body shows the last good answer while its
+    `asOf` is within `STALE_MS`, instead of caching `down` for 30 s; an answer the data rules
+    refuse still reads down and drops the kept one (`lib/crew-feed.ts`). The new check "B4.2 kept"
+    (503, non-JSON, late) was red on 91d7d64. B4.2's down-503, down-json and down-late now start
+    from a live answer 9 min 50 s old, so they still assert down: the contract's down rule moved,
+    and the assertion is unchanged. Limits, for a later sprint if the preview shows them: the kept
+    answer lives in one server instance's memory, and after more than 10 idle minutes the first
+    read still reads down on a timeout. 209 of 210 e2e passed on the full run; the one failure was
+    the new row check's own overlap rule (the control's buttons share a 1 px border since sprint
+    27), fixed and passing on rerun.

@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { api, list, postCheck } from "./github.mjs";
+import { testNotes } from "./scope.mjs";
 
 // The team's notes, which no build reads and no prompt loads: changing them doesn't make a review
 // stale. Agent memory isn't one: it loads into the agents' prompts, so it gets reviewed.
@@ -56,8 +57,9 @@ export const SCHEMA = {
 // How hard Lens thinks, and how many turns it may take, follow the size of what the change adds:
 // a small diff doesn't need the deepest pass, and a large one needs the turns to read it (B1, at
 // xhigh, ran out of 40 turns twice; at about 8 s a turn, 100 turns fit the job's 30 minutes). Removed
-// lines don't count: deleting tests or owner paths waits for the owner through gate, and other
-// deletions get a lighter pass. Nor do notes, which never make a review stale either.
+// lines don't count: a retired test is judged from the list in the context (testNotes), owner paths
+// wait for the owner through gate, and other deletions get a lighter pass. Nor do notes, which never
+// make a review stale either.
 const REVIEW = [
   { upTo: 100, effort: "medium", turns: 40 },
   { upTo: 600, effort: "high", turns: 60 },
@@ -144,16 +146,33 @@ function reusableShip({ repo, number, head, against, slug }) {
 // the head it reviews, from the merge-base (the PR's file list follows the live head instead).
 function writeContext({ pr, compare }) {
   const { files = [] } = compare;
+  const cut = files.length >= COMPARE_LIMIT;
+  // One line per note, since a path is the PR's to name. A list GitHub cut short never says None.
+  const weakened = testNotes(files).map(
+    (note) => `- ${note.replace(/\s+/gu, " ")}`,
+  );
+  if (cut)
+    weakened.push(
+      `- GitHub lists only the first ${files.length} files, so tests past them may be weakened too: compare the checkout's tests with the base's.`,
+    );
   const lines = [
     `# PR #${pr.number}: ${pr.title}`,
     "",
     `Base ${pr.base.ref}, head ${pr.head.sha}.`,
-    ...(files.length >= COMPARE_LIMIT
+    ...(cut
       ? [
           "",
           `GitHub lists only the first ${files.length} files: read the checkout for the rest.`,
         ]
       : []),
+    "",
+    // From the default branch's scope check, ahead of anything the PR wrote, so the description
+    // can't pass off a list of its own: the prompt says how to judge each one.
+    "## Checks this PR weakens",
+    "",
+    ...(weakened.length ? weakened : ["None."]),
+    "",
+    "## Description",
     "",
     pr.body ?? "",
     "",
@@ -164,7 +183,9 @@ function writeContext({ pr, compare }) {
     lines.push(
       patch
         ? `\`\`\`diff\n${patch}\n\`\`\``
-        : `No diff shown: read ${filename} in the checkout.`,
+        : status === "removed"
+          ? "No diff shown, and the file is gone from the checkout: what it checked can't be read here."
+          : `No diff shown: read ${filename} in the checkout.`,
     );
   }
   writeFileSync(CONTEXT, `${lines.join("\n")}\n`);
