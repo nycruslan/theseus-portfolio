@@ -44,6 +44,18 @@ assertion:
 No `expect(` is removed, nothing is retired, and C4.4's status-word rule is unedited. `pnpm verify`
 passes, and the full e2e suite passes 162 of 162 (Forge, on a tree identical to this head's).
 
+### Iris
+
+`Verdict: ship`, 8.2/10 (`.crew/sprint/32/review-iris.md`), on a fresh build of 141a1f8:
+- 0 axe violations on `/log` and three records, 320 to 1440, both schemes, and on a scratch build
+  with an Undated row.
+- Forced colours, scripts off, no sideways scroll and no motion all hold.
+- `/log` still loads only the framework's 5 scripts.
+- CLS is 0 and LCP is text.
+- The home page's revision block is byte-identical to production's.
+
+Her four follow-ups ride with later sprints (see the retro).
+
 ### Departures from the frame
 
 - **The column is "Date", not the frame's "Merged"** (decision 2). "Merged" would need C4.4, the rule
