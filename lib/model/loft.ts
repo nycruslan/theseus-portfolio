@@ -44,6 +44,9 @@ export type Pose = {
 
 /** The deck's greatest half-breadth and a margin, in hull units: the model clears the sheet. */
 const STANDOFF = 76;
+/** CSS px a turn in place keeps clear inside its canvas: the 1.4 px outline, half on each side,
+ * and 0.2 for the canvas's rounding to whole buffer pixels. */
+const ROOM = 1.6;
 /** Samples of the solved loft; the frame loop interpolates between them. */
 const SAMPLES = 48;
 
@@ -215,8 +218,12 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
         invD,
       );
       s *= want / box[settle.hold];
-      // The ghost turns in place: its framed box keeps the registered centre, the drawing's.
+      // The ghost turns in place inside the box its canvas lies on: never taller than the canvas
+      // less ROOM, so the outline's ink isn't clipped (0.35% of its length at 1440 × 900, 1.5% at 390),
+      // and its framed box keeps the registered centre, the drawing's.
       if (settle.centre) {
+        const tall = (box.height * want) / box[settle.hold];
+        if (tall > height - ROOM) s *= (height - ROOM) / tall;
         screen.cx += registered.cx - box.cx;
         screen.cy += registered.cy - box.cy;
       }
