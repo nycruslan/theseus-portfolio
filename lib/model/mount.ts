@@ -179,15 +179,6 @@ function start(
   const canvas = document.createElement("canvas");
   host.append(canvas);
   const numbers = ghost ? riders(ghost) : null;
-  /**
-   * The ghost's hull for the drawing shown: 5.0's leader only from 768 px, where its number shows
-   * (the 2D hides both below: .crew/sprint/33/early-look-iris.md, must 1).
-   */
-  const shape = () =>
-    ghost && sheet === sheets.narrow
-      ? { seats: ghost.hull.seats }
-      : ghost?.hull;
-
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
   let sheet = shownSheet();
@@ -268,6 +259,7 @@ function start(
       height: css(buffer[1]),
       viewport: innerHeight,
       buffer,
+      ratio,
     };
   };
 
@@ -277,7 +269,7 @@ function start(
    */
   const apply = (next: Fit, keep = false) => {
     if (!stage) return;
-    const level = hullAt(sheet.level, shape());
+    const level = hullAt(sheet.level, ghost?.hull);
     const reshade = !ghost && (!keep || level !== hull);
     const changed = level !== hull;
     if (changed) stage.load(level);
@@ -304,8 +296,37 @@ function start(
     apply(measure());
   };
 
+  /** Every line the settled frame draws but the leaders: the numbers clear them all. */
+  const drawn = () => {
+    const record = ghost?.current
+      ? plankEdges(sheet.level, ghost.current, 1)
+      : new Float32Array(0);
+    const parts = [hull?.seams, hull?.outline, record];
+    const all = new Float32Array(
+      parts.reduce((n, part) => n + (part?.length ?? 0), 0),
+    );
+    let at = 0;
+    for (const part of parts) {
+      if (!part) continue;
+      all.set(part, at);
+      at += part.length;
+    }
+    return all;
+  };
+
   const draw = (e: number) => {
     if (!stage || !loft) return;
+    // The leaders ride with their numbers, so they are laid before the frame is drawn.
+    if (numbers) {
+      const lines = numbers.leaders(e, matchMedia(THREE_VIEWS).matches);
+      const all: number[] = [];
+      for (const { points } of lines) {
+        for (let i = 1; i < points.length; i++) {
+          all.push(...(points[i - 1] ?? []), ...(points[i] ?? []));
+        }
+      }
+      stage.lead(new Float32Array(all));
+    }
     stage.draw(e, loft);
     if (fit && numbers) {
       numbers.place(
@@ -313,7 +334,7 @@ function start(
         fit.drawing / GHOST.box[2],
         e,
         matchMedia(THREE_VIEWS).matches,
-        hull?.outline ?? new Float32Array(0),
+        drawn,
       );
     }
   };
@@ -570,8 +591,8 @@ function start(
     if (!ghost || !stage || !loft || !resting()) return null;
     const r = canvas.getBoundingClientRect();
     // A number set aft of the hull picks its plank: its box, and 4 px round its leader, from
-    // 768 px, where they show.
-    for (const leader of sheet === sheets.wide ? ghost.leaders : []) {
+    // 768 px, where they show (both led-out numbers: 5.0's, and 3.0's by Iris's decision).
+    for (const leader of numbers?.leaders(1, sheet === sheets.wide) ?? []) {
       const box = ghost.labels
         .find((label) => label.seat === leader.seat)
         ?.span.getBoundingClientRect();
@@ -703,7 +724,7 @@ function start(
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = hullAt(sheet.level, shape());
+    hull = hullAt(sheet.level, ghost?.hull);
     await pause();
     if (!alive) return;
     stage = createStage(

@@ -362,11 +362,8 @@ export function plankEdges(
 export const nearSide = (x: number, y: number, out = 0): Vec3 =>
   toLocal(x, y, halfBreadth(Math.min(Math.max(x, 0), LENGTH), y) + out);
 
-/** The ghost's seats, and the 2D drawing's leaders as polylines in the model's frame. */
-export type Ghost = {
-  seats: ReadonlySet<string>;
-  leaders?: readonly (readonly Vec3[])[];
-};
+/** The ghost's seats: the planks the crew took out. */
+export type Ghost = { seats: ReadonlySet<string> };
 
 /**
  * A level's stations: cosine-spaced along the whole length, with every lift's ends among them, so
@@ -409,9 +406,6 @@ export function buildHull({ stations: count, rows }: Level, ghost?: Ghost) {
     });
     deckMesh(card, stations, rows);
   }
-  const outline = outlineLines(stations, rows);
-  const leaders: number[] = [];
-  for (const leader of ghost?.leaders ?? []) segments([...leader], leaders);
   return {
     position: new Float32Array(card.position),
     normal: new Float32Array(card.normal),
@@ -420,9 +414,7 @@ export function buildHull({ stations: count, rows }: Level, ghost?: Ghost) {
     /** Where the near side's triangles start in `index`: the ghost's far range is before it. */
     far,
     seams: seamLines(stations, rows, ghost?.seats),
-    outline: leaders.length
-      ? Float32Array.from([...outline, ...leaders])
-      : outline,
+    outline: outlineLines(stations, rows),
     points: skeleton(),
   };
 }
