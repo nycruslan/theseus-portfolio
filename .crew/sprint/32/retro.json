@@ -1,0 +1,49 @@
+{
+  "sprint": 32,
+  "pr": 82,
+  "goal": "B5b: /log grouped by merge day, and how much of the code is still original",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "in review: Lens pending on abd925c; Iris ship at 8.2/10; 162 of 162 checks; no owner path touched",
+  "fixRounds": 0,
+  "minutes": 0,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 174658, "minutes": 23 },
+    { "role": "engineer", "model": "opus", "tokens": 289019, "minutes": 43 },
+    { "role": "design-director", "model": "opus", "tokens": 268352, "minutes": 23 }
+  ],
+  "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The contract named the Date column after the approved frame, but the frame calls it Merged and puts it last",
+      "evidence": "Forge read log-1440.webp mid-build; decision 2 was corrected and the column moved to the frame's place (decisions.md, 2)"
+    },
+    {
+      "what": "The first contract put undated revisions last, which would have put this sprint's own row below revision 1",
+      "evidence": "Probe walked the rule through the PR's own CI, where the newest sprint has no record yet; Undated now leads the table (decisions.md, 9)"
+    },
+    {
+      "what": "The contract said a line is original at or before sprint 1's merge, which doesn't reproduce the measured figures",
+      "evidence": "Forge measured 114 and 90 with that rule against 70 of 2,027 and 64 of 5,288 with strictly before (decisions.md, 8)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "A workflow that runs the merge-record writer after each merge on main, so a sprint's date lands with its merge rather than with the next sprint's PR",
+      "moves": "How long production's newest revision sits under Undated: today from each merge until the next"
+    },
+    {
+      "change": "Move .crew/sprint/32/merge-record.mjs to .crew/merge-record.mjs with a harness test, and add a pre-flight step for it to the sprint skill",
+      "moves": "Whether the records keep coming without a STATE.md line Atlas has to remember"
+    },
+    {
+      "change": "Sprint 29's still stand: a public design retro field for Iris's score, and the owner's call on rows for closed sprints",
+      "moves": "The record's Design row and the frame's struck-through 16"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "If Merged reads better than Date as the column's head, ask for it with C4.4's change in a later PR (decision 2)" },
+    { "who": "Iris", "what": "Between 640 and 1023 the lines figure's rule stops at the text's width; the commit hash could link to its commit when B5c touches the header" },
+    { "who": "Probe", "what": "No fixture test covers a malformed merge.json; the reader ignores one, proven only by Forge's scratch run" }
+  ]
+}
