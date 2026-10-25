@@ -7,11 +7,13 @@ import { signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { PLANKS } from "@/lib/hull-layouts";
 import { ghostPlanks, seatHolders } from "@/lib/lines-plan";
-import type { SprintEntry } from "@/lib/sprint-log";
+import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
+import type { MergeRecord, SprintEntry } from "@/lib/sprint-log";
 
 // The Log (.crew/sprint/29/b5-first-contract.md; the approved frames log-1440.webp and log-390.webp
-// in .crew/sprint/17/design/): the ghost hull with its caption and count, then every merged sprint as
-// a revision table, newest first. A record is the same page with the record open, at /log/<n>, so
+// in .crew/sprint/17/design/): the ghost hull with its caption and count, the lines figure, then
+// every merged sprint as a revision table, newest first, grouped by the UTC day it merged
+// (.crew/sprint/32/contract.md). A record is the same page with the record open, at /log/<n>, so
 // opening one is a document navigation and Back closes it with no script. The page loads the
 // framework's script and nothing else (B5.10), and nothing on it moves or is copper.
 
@@ -45,6 +47,60 @@ function countLine(merged: readonly number[]): ReactNode {
   );
 }
 
+const count = new Intl.NumberFormat("en-US");
+
+/**
+ * The ship of Theseus in one number, from the newest merge record (contract, "The lines figure"),
+ * one sentence: the figure in the display face, the rest under it (.crew/sprint/32/notes-iris.md,
+ * section 3). The hash is kept from a page translator.
+ */
+function LinesFigure({ commit, lines: { original, total } }: MergeRecord) {
+  // One decimal, rounded half up on whole numbers rather than on a binary fraction.
+  const percent = (Math.round((original * 1000) / total) / 10).toFixed(1);
+  return (
+    <p className="log-lines">
+      <span className="log-lines-n">
+        {`${count.format(original)} of ${count.format(total)} lines`}
+      </span>
+      {` of the site's code are still original: ${percent}%, by git blame on app, components and lib at `}
+      <span translate="no">{commit.slice(0, 7)}</span>.
+    </p>
+  );
+}
+
+type DayGroup = {
+  /** The UTC day, "2026-10-24", or none for the rows without a merge record. */
+  day?: string;
+  /** Its rows, in the table's order. */
+  entries: SprintEntry[];
+};
+
+/**
+ * The table's groups, top to bottom (contract, "Day groups"; decisions 5 and 9): the rows without a
+ * record first, as "Undated", since they are the newest; then one group per UTC merge day, newest
+ * day first. Each keeps the table's order, sprint number descending.
+ */
+function dayGroups(entries: readonly SprintEntry[]): DayGroup[] {
+  const undated = entries.filter((entry) => !entry.merge);
+  const days = new Map<string, SprintEntry[]>();
+  for (const entry of entries) {
+    if (!entry.merge) continue;
+    const day = utcDay(entry.merge.mergedAt);
+    const group = days.get(day);
+    if (group) group.push(entry);
+    else days.set(day, [entry]);
+  }
+  const dated = [...days]
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .map(([day, group]) => ({ day, entries: group }));
+  return undated.length > 0 ? [{ entries: undated }, ...dated] : dated;
+}
+
+/** "4 revisions", "1 revision". */
+function revisions(n: number) {
+  return `${n} ${n === 1 ? "revision" : "revisions"}`;
+}
+
 export function Log({ entries, open }: LogProps) {
   // The planks are seated oldest first.
   const merged = entries.map((entry) => entry.sprint).reverse();
@@ -55,6 +111,9 @@ export function Log({ entries, open }: LogProps) {
     : undefined;
   // The record's place in merged order, for its previous and next revisions.
   const at = record ? merged.indexOf(record.sprint) : -1;
+  // The newest record is the highest sprint that has one; its year is the one a date leaves out.
+  const newest = entries.find((entry) => entry.merge)?.merge;
+  const year = newest ? utcYear(newest.mergedAt) : Number.NaN;
 
   return (
     <>
@@ -76,6 +135,7 @@ export function Log({ entries, open }: LogProps) {
             numbered by the sprint that replaced it.
           </p>
           <p data-ghost-count="">{countLine(merged)}</p>
+          {newest ? <LinesFigure {...newest} /> : null}
         </div>
 
         {record && seat ? (
@@ -127,35 +187,67 @@ export function Log({ entries, open }: LogProps) {
                 <th scope="col" className="w-[64px]">
                   Approved
                 </th>
+                <th scope="col" className="w-[52px]">
+                  Date
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.sprint}>
-                  <th scope="row">
-                    {/* The eyes see the number; the name is "Revision 13". */}
-                    <a
-                      href={`/log/${entry.sprint}`}
-                      className="rev-link"
-                      aria-current={entry.sprint === open ? "page" : undefined}
-                    >
-                      <span className="sr-only">Revision </span>
-                      {entry.sprint}
-                    </a>
+            {dayGroups(entries).map(({ day, entries: group }) => (
+              <tbody key={day ?? "undated"}>
+                <tr className="rev-day">
+                  <th scope="rowgroup" colSpan={7}>
+                    {day && group[0]?.merge ? (
+                      <>
+                        <time dateTime={day}>
+                          {weekdayWords(group[0].merge.mergedAt, year)}
+                        </time>
+                        <span className="rev-day-n">
+                          {` · ${revisions(group.length)}`}
+                        </span>
+                      </>
+                    ) : (
+                      "Undated"
+                    )}
                   </th>
-                  <td>{entry.goal}</td>
-                  {signatures(entry).map(([head, cell, names]) => (
-                    <td
-                      key={head}
-                      data-label={head}
-                      translate={names ? "no" : undefined}
-                    >
-                      {cell}
-                    </td>
-                  ))}
                 </tr>
-              ))}
-            </tbody>
+                {group.map((entry) => (
+                  <tr key={entry.sprint}>
+                    <th scope="row">
+                      {/* The eyes see the number; the name is "Revision 13". */}
+                      <a
+                        href={`/log/${entry.sprint}`}
+                        className="rev-link"
+                        aria-current={
+                          entry.sprint === open ? "page" : undefined
+                        }
+                      >
+                        <span className="sr-only">Revision </span>
+                        {entry.sprint}
+                      </a>
+                    </th>
+                    <td>{entry.goal}</td>
+                    {signatures(entry).map(([head, cell, names]) => (
+                      <td
+                        key={head}
+                        data-label={head}
+                        translate={names ? "no" : undefined}
+                      >
+                        {cell}
+                      </td>
+                    ))}
+                    {/* Empty, never "—", until the sprint has a merge record (decision 5). Folded,
+                    it is read by assistive tech only: the group's header names the day. */}
+                    <td data-label="Date">
+                      {entry.merge ? (
+                        <time dateTime={entry.merge.mergedAt}>
+                          {dayWords(entry.merge.mergedAt, year)}
+                        </time>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </section>
       </main>

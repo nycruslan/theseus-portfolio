@@ -5,7 +5,9 @@ import { openGraph, title } from "@/lib/metadata";
 import { DARK, LIGHT, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-// The whole site is static content; fail the build if anything makes it render per request.
+// Every page is static content; fail the build if anything makes one render per request. Only an
+// address no page was prerendered for renders on the server, to answer 404: an unknown record's
+// (/log/999) reads the sprint folders to find out (app/log/[n]/page.tsx).
 export const ensureStatic = "navigation";
 
 // The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The condensed display
