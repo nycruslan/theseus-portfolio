@@ -44,9 +44,14 @@ export type Pose = {
 
 /** The deck's greatest half-breadth and a margin, in hull units: the model clears the sheet. */
 const STANDOFF = 76;
-/** Half the outline's width in CSS px: what a turn in place keeps clear of its canvas's edge, and
- * half a buffer row more, so the outline's ink covers no edge row (B5.18 at 320 x 568). */
-const OUTLINE_HALF = 0.7;
+/**
+ * What a turn in place keeps clear of its canvas's edge, in CSS px, besides half a buffer row: half
+ * the outline's 1.4 px, and 0.25 for its sheer standing 0.4 units outboard of the deck's edge that
+ * the skeleton frames (0.11 px above it at 1440). Chromium composites the canvas on whole pixels,
+ * so its first and last buffer rows are the edge rows, and the outline's ink must cover under half
+ * of them (B5.18, where at 390 it covered 54% of the top row).
+ */
+const EDGE = 0.95;
 /** Samples of the solved loft; the frame loop interpolates between them. */
 const SAMPLES = 48;
 
@@ -175,7 +180,7 @@ export type Loft = ReturnType<typeof makeLoft>;
  * progress e. */
 export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
   const { width, height, ratio = 1 } = frame;
-  const margin = OUTLINE_HALF + 0.5 / ratio;
+  const margin = EDGE + 0.5 / ratio;
   const settle = settleOn(layout);
   const { from, to, scale, lens } = poses(frame, layout, settle);
   const lerp = (a: number, b: number, e: number) => a + (b - a) * e;
@@ -222,7 +227,7 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
       );
       s *= want / box[settle.hold];
       // The ghost turns in place inside the box its canvas lies on: never taller than the canvas
-      // less a margin on each side, so the outline's ink covers no edge row (0.85% of its length at
+      // less a margin on each side, so the outline's ink covers no edge row (0.9% of its length at
       // 1440 × 900 at DPR 1, 0.6% at DPR 2), its framed box keeping the registered centre across
       // and riding to the canvas's centre down, so both margins are kept.
       if (settle.centre) {
