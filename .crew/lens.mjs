@@ -146,24 +146,35 @@ function reusableShip({ repo, number, head, against, slug }) {
 // the head it reviews, from the merge-base (the PR's file list follows the live head instead).
 function writeContext({ pr, compare }) {
   const { files = [] } = compare;
-  const weakened = testNotes(files);
+  const cut = files.length >= COMPARE_LIMIT;
+  // One line per note, since a path is the PR's to name. A list GitHub cut short never says None.
+  const weakened = testNotes(files).map(
+    (note) => `- ${note.replace(/\s+/gu, " ")}`,
+  );
+  if (cut)
+    weakened.push(
+      `- GitHub lists only the first ${files.length} files, so tests past them may be weakened too: compare the checkout's tests with the base's.`,
+    );
   const lines = [
     `# PR #${pr.number}: ${pr.title}`,
     "",
     `Base ${pr.base.ref}, head ${pr.head.sha}.`,
-    ...(files.length >= COMPARE_LIMIT
+    ...(cut
       ? [
           "",
           `GitHub lists only the first ${files.length} files: read the checkout for the rest.`,
         ]
       : []),
     "",
-    pr.body ?? "",
-    "",
-    // From the default branch's scope check, not the PR: the prompt says how to judge each one.
+    // From the default branch's scope check, ahead of anything the PR wrote, so the description
+    // can't pass off a list of its own: the prompt says how to judge each one.
     "## Checks this PR weakens",
     "",
-    ...(weakened.length ? weakened.map((note) => `- ${note}`) : ["None."]),
+    ...(weakened.length ? weakened : ["None."]),
+    "",
+    "## Description",
+    "",
+    pr.body ?? "",
     "",
     "## Diff",
   ];
