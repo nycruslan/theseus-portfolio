@@ -659,3 +659,39 @@ export async function twoPlanks(run: ModelRun, step = 2) {
     },
   };
 }
+
+/**
+ * The seats whose number is led out at rest from 768 px, so it sits off the hull at its leader's
+ * end: those the 2D drawing leads out, read off `[data-ghost] .ln-leader` (each subpath runs from the
+ * number, `M x y`, into its plank, `H x`; the plank holding that inner end is the seat), and those
+ * the 3D alone leads out, which the page draws in the canvas and doesn't expose.
+ */
+export function ledOutSeats(page: Page) {
+  return page
+    .evaluate((drawing) => {
+      const svg = document.querySelector<SVGSVGElement>(`${drawing} svg`);
+      const d = svg?.querySelector(".ln-leader")?.getAttribute("d") ?? "";
+      const planks = [
+        ...(svg?.querySelectorAll<SVGPathElement>("[data-plank]") ?? []),
+      ];
+      const seats: string[] = [];
+      for (const m of d.matchAll(
+        /M\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*H\s*(-?[\d.]+)/g,
+      )) {
+        const inner = new DOMPoint(Number(m[3]), Number(m[2]));
+        const plank = planks.find((p) => p.isPointInFill(inner));
+        seats.push(
+          plank?.getAttribute("data-plank") ?? `(no plank at ${m[3]} ${m[2]})`,
+        );
+      }
+      return seats;
+    }, DRAWING)
+    .then((seats) => [...new Set([...seats, ...LED_OUT_IN_3D])].sort());
+}
+
+/**
+ * Led out in 3D only: seat 3.0's "8", aft of the stern from 768 px, where the turned stern leaves
+ * its plank no place to clear the outline (.crew/sprint/33/early-look-iris.md, "Decision on must
+ * 2"). The 2D drawing keeps it on its plank.
+ */
+const LED_OUT_IN_3D = ["3.0"];

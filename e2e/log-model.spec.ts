@@ -14,6 +14,7 @@ import {
   ghostNumbers,
   hullBox,
   landedOn,
+  ledOutSeats,
   MARKED,
   MOVE,
   markedSeat,
@@ -637,7 +638,10 @@ for (const url of PAGES) {
         expect
           .soft(clashes, `number pairs within 2 px of each other, ${where}`)
           .toEqual([]);
-        // On its plank: each number's centre is on the settled hull (5.0's sits at its leader's end).
+        // On its plank: each number's centre is on the settled hull, but a led-out number's, which
+        // sits at its leader's end (5.0's, and 3.0's from 768 by Iris's decision).
+        const led = await ledOutSeats(run.page);
+        note(testInfo, "led out", `${where}: seats ${led.join(", ")}`);
         const canvasBox = await run.page.evaluate((c) => {
           const r = document.querySelector(c)?.getBoundingClientRect();
           return r
@@ -649,7 +653,9 @@ for (const url of PAGES) {
           const clip = whole(canvasBox);
           const alone = await canvasAlone(run.page, clip);
           const leftOff = shown
-            .filter((n) => SEAT_BY_NUMBER.get(Number(n.text)) !== "5.0")
+            .filter(
+              (n) => !led.includes(SEAT_BY_NUMBER.get(Number(n.text)) ?? ""),
+            )
             .filter((n) => {
               const c = centreOf(n.box);
               const v =
