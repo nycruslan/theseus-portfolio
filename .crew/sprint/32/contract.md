@@ -30,7 +30,7 @@ when it merged. Every date comes from a record the crew writes after the merge
 
 ## What the page shows
 
-- **Date** (the frame's own head, `log-1440.webp`), a seventh column after Description: the
+- **Date** (the frame `log-1440.webp` heads it Merged; decision 2), the seventh column, last, after Approved as the frame places it: the
   merge's UTC day as "24 Oct", with " 2025" added only when the year isn't the newest record's
   year. A merged row with no record shows an empty cell, never "—". Below 1024 the cell folds
   under the row's number like the others, labelled "Date".
@@ -52,7 +52,7 @@ when it merged. Every date comes from a record the crew writes after the merge
 ## The checks (Probe writes them red first, the oracle reading `merge.json` itself)
 
 **B5.12 The Date column.** On `/log` with scripts on and off, at 390, 1024 and 1440: the heads
-are Rev, Description, Date, Drawn, Checked, Tested, Approved; each row's Date equals the oracle's
+are Rev, Description, Drawn, Checked, Tested, Approved, Date; each row's Date equals the oracle's
 from its `merge.json`, or is empty when it has none; no cell reads "—".
 **B5.13 The day groups.** Every row is in exactly one group; groups are in descending day order
 with "Undated" first; each header's day, weekday and count equal the oracle's; every row's Date

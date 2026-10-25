@@ -7,10 +7,13 @@
    #78. Both touch `/log` (#78 its bar, this its table and header), so whichever merges second
    merges main and keeps both sides. Branch `sprint/32-b5b-merge-record`.
 
-2. **The column is "Date", not "Merged".** The plan named it Merged, which needs B5.6's
-   status-word rule (C4.4) loosened: a weakened test, the owner's to approve. The approved frame
-   `log-1440.webp` heads it Date, which a drawing's revision table uses, so C4.4 stands unedited
-   and the PR needn't wait for the owner on that alone.
+2. **The column is "Date", not "Merged".** The plan named it Merged, and so does the approved
+   frame `log-1440.webp` (Forge read it: "Merged" last, after Approved, and the record's "Merged"
+   row). "Merged" needs B5.6's status-word rule (C4.4) loosened, a weakened test that is the
+   owner's to approve. "Date", the word a drawing's revision table uses, keeps C4.4 unedited; it is
+   a one-word departure from the frame, listed in the PR for the owner, who can ask for "Merged"
+   with the C4.4 change in a later PR. The column keeps the frame's place, last. (Corrected: this
+   decision first said the frame heads it Date.)
 
 3. **The writer lives in the sprint folder until the owner moves it.** `.crew/*.mjs`, its harness
    test and the sprint skill's step are owner paths, which the file guard keeps from every role.
