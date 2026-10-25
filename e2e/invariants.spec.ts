@@ -26,6 +26,7 @@ import {
   STEP_TOKENS,
   textStyles,
 } from "./helpers";
+import { refuseWebGl } from "./webgl";
 
 // What stays true of the site whatever a sprint changes: it is built from its design tokens,
 // follows the system's light or dark preference without JavaScript, and stays readable and
@@ -252,9 +253,13 @@ test("B2.9 one main, each section a region named by its heading, and no skipped 
   }
 });
 
-test("B2.9 nothing animates on /read, /log, /log/13 or the 404: no animation at load, 2 s later, or after a scroll to the bottom and back", async ({
+test("B2.9 nothing animates on /read, /log, /log/13 (WebGL refused) or the 404: no animation at load, 2 s later, or after a scroll to the bottom and back", async ({
   page,
 }) => {
+  // Sprint 33 (B5c): /log and /log/13 load with WebGL refused, the Off path; the 3D's own stillness
+  // is B5.20, B5.21 and B5.23, as B3 did for /. The refusal is the context's, so /read and the 404,
+  // which have no model, load as before.
+  await page.context().addInitScript(refuseWebGl);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   for (const route of ROUTES.filter((r) => r !== "/")) {
     const response = await page.goto(route);

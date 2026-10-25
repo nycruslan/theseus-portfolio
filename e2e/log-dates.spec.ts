@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import {
   EVERY,
@@ -27,6 +29,7 @@ import {
   recordDate,
   UNDATED,
 } from "./retros";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 32, B5b: the merge record on /log (.crew/sprint/32/contract.md, B5.12 to B5.16, with
 // decisions.md), written before the build. The Log's Date column, its day groups, the lines figure
@@ -40,6 +43,13 @@ import {
 // Hooks these checks rely on beyond B5a's: one `tbody` per group, opened by a row holding only its
 // `th[scope="rowgroup"]`; the Date as the column under the head "Date"; the lines line found by its
 // words in the page's text.
+//
+// Sprint 33 (.crew/sprint/33/contract.md, "The live checks"): every context refuses WebGL, the Off
+// path, since the ghost in 3D restyles the drawing on the page. Its riders are B5.26 at the foot.
+
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(refuseWebGl);
+});
 
 const HEADS = [
   "Rev",
@@ -653,4 +663,103 @@ test("B5.16 every merged sprint from 1 to 30 has a merge.json: its retro's pr, m
     )
     .toEqual({ original: 64, total: 5288 });
   expect(NEWEST_MERGE, "the newest record").toBeDefined();
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5.26 The riders (.crew/sprint/33/contract.md, "Riders")
+
+test("B5.26 (a) every .crew/sprint/*/merge.json on disk parses and passes B5.16's field rules: its retro's pr, mergedAt an ISO UTC instant from 2026-10-13, a 40-hex commit, original lines at most the total, a record the oracle accepts", () => {
+  // Lens on #82: B5.16 reads sprints 1 to 30; this reads every record a folder holds, so a record
+  // written after the backfill (sprint 32's on) is held to the same rules.
+  const root = join(process.cwd(), ".crew", "sprint");
+  const folders = readdirSync(root)
+    .filter((folder) => /^\d+$/.test(folder))
+    .map(Number)
+    .filter((n) => readdirSync(join(root, String(n))).includes("merge.json"))
+    .sort((a, b) => a - b);
+  expect(folders.length, "merge.json files on disk").toBeGreaterThan(0);
+  const floor = Date.parse("2026-10-13T00:00:00Z");
+  for (const n of folders) {
+    const file = `.crew/sprint/${n}/merge.json`;
+    const raw = readMergeFile(n) as
+      | {
+          pr?: unknown;
+          mergedAt?: unknown;
+          commit?: unknown;
+          lines?: { original?: unknown; total?: unknown };
+        }
+      | undefined;
+    expect.soft(raw, `${file} parses as JSON`).toBeDefined();
+    if (!raw) continue;
+    const retro = MERGED.find((entry) => entry.sprint === n);
+    expect.soft(retro, `${file}'s sprint has a valid retro`).toBeDefined();
+    expect.soft(raw.pr, `${file}'s pr, against its retro's`).toBe(retro?.pr);
+    const at = typeof raw.mergedAt === "string" ? raw.mergedAt : "";
+    expect
+      .soft(at, `${file}'s mergedAt is an ISO UTC instant ending in Z`)
+      .toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/);
+    expect
+      .soft(
+        Date.parse(at) >= floor,
+        `${file}'s mergedAt (${at}) is on or after 2026-10-13`,
+      )
+      .toBe(true);
+    expect
+      .soft(raw.commit, `${file}'s commit is 40 hex characters`)
+      .toMatch(/^[0-9a-f]{40}$/);
+    const { original, total } = raw.lines ?? {};
+    expect
+      .soft(
+        Number.isInteger(original) &&
+          Number.isInteger(total) &&
+          (original as number) >= 0 &&
+          (original as number) <= (total as number),
+        `${file}'s lines: ${original} original of ${total}`,
+      )
+      .toBe(true);
+    expect
+      .soft(retro?.merge, `${file} is a record the oracle accepts`)
+      .toBeDefined();
+  }
+});
+
+test("B5.26 (b) the lines figure's rule is as wide as the header's column within 1 px at 640, 768 and 1023 px, and at 390 and 1440, as it is today", async ({
+  page,
+}) => {
+  // Iris on #82: from 640 to 1023 the rule stopped at the paragraph's 66ch while the header's
+  // column runs on. The rule is .log-lines's top border, so its width is the paragraph's border
+  // box; the column is the content box of the box the header's text lies in: main's below 1024 px,
+  // where .log-head is display: contents, and .log-head's own from 1024.
+  for (const width of [390, 640, 768, 1023, 1440]) {
+    await open(page, LOG, width);
+    const read = await page.evaluate(() => {
+      const lines = document.querySelector(".log-lines");
+      const head = document.querySelector(".log-head");
+      const host =
+        head && getComputedStyle(head).display !== "contents"
+          ? head
+          : document.querySelector("main");
+      if (!lines || !host) return null;
+      const s = getComputedStyle(host);
+      return {
+        rule: lines.getBoundingClientRect().width,
+        border: getComputedStyle(lines).borderTopWidth,
+        column:
+          host.clientWidth -
+          Number.parseFloat(s.paddingLeft) -
+          Number.parseFloat(s.paddingRight),
+      };
+    });
+    expect(
+      read,
+      `the lines figure and its column at ${width} px`,
+    ).not.toBeNull();
+    expect.soft(read?.border, `the rule's weight at ${width} px`).toBe("1px");
+    expect
+      .soft(
+        Math.abs((read?.rule ?? 0) - (read?.column ?? 0)),
+        `the rule's width (${read?.rule}) against the header's column (${read?.column}) at ${width} px`,
+      )
+      .toBeLessThanOrEqual(1);
+  }
 });
