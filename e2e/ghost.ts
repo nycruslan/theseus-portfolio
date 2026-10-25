@@ -695,3 +695,131 @@ export function ledOutSeats(page: Page) {
  * 2"). The 2D drawing keeps it on its plank.
  */
 const LED_OUT_IN_3D = ["3.0"];
+
+/**
+ * Each seat's own vellum, as points of a scan's grid (B5.19's band read), from the canvas's coverage
+ * alone (`alpha`, over `clip` at DPR 1). The vellum is translucent, so its coverage has a few fill
+ * levels (Pixel measured 0.70 for one layer and 0.91 for the near side over the far), and every line
+ * moves a pixel off them: the near seams, the outline and the far side's seams showing through.
+ * - The fill levels are the canvas's own: its two most common coverages over covered pixels.
+ * - A point counts only where its pixel is on a fill level, so a led-out number's box and leader
+ *   (3.0 and 5.0 from 768), which read a seat off the hull, and every line, read nothing.
+ * - Points join where the pixels between them stay on that level, so a line parts them: the near
+ *   sheer parts the near top strake from the far side's inside above it, both one layer.
+ * - The sample is the part on the highest level, lowest on screen: the near side.
+ * - A seat with no such point (a stern sliver at 390, its 2 px cells all on lines) takes the pixels
+ *   of its cells' blocks that are on a fill level; the method says which.
+ * A seat with neither is missing, and the caller fails it.
+ */
+export function plankCells(
+  grid: Scan["grid"],
+  alpha: Float32Array,
+  clip: Box,
+  step: number,
+) {
+  const w = clip.width;
+  const at = (x: number, y: number) =>
+    alpha[(Math.floor(y) - clip.y) * w + (Math.floor(x) - clip.x)] ?? 0;
+  const bins = new Map<number, number>();
+  let covered = 0;
+  for (const a of alpha) {
+    if (a < 0.5) continue;
+    covered++;
+    const bin = Math.round(a * 100);
+    bins.set(bin, (bins.get(bin) ?? 0) + 1);
+  }
+  const levels = [...bins.entries()]
+    .filter(([, n]) => n >= 0.05 * covered)
+    .sort((p, q) => q[1] - p[1])
+    .slice(0, 2)
+    .map(([bin]) => bin / 100);
+  const levelOf = (a: number) =>
+    levels.find((level) => Math.abs(a - level) <= 0.015);
+  const between = (a: [number, number], b: [number, number]) => {
+    const level = levelOf(at(a[0], a[1]));
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
+    for (let i = 1; i < n; i++) {
+      const [x, y] = [
+        a[0] + ((b[0] - a[0]) * i) / n,
+        a[1] + ((b[1] - a[1]) * i) / n,
+      ];
+      if (levelOf(at(x, y)) !== level) return false;
+    }
+    return true;
+  };
+  const out = new Map<
+    string,
+    { cells: [number, number][]; method: "near side" | "sliver pixels" }
+  >();
+  for (const seat of new Set(grid.map(([, , s]) => s))) {
+    const own = grid
+      .filter(([, , s]) => s === seat)
+      .map(([x, y]) => [x, y] as [number, number]);
+    const clean = own.filter(([x, y]) => levelOf(at(x, y)) !== undefined);
+    if (clean.length === 0) {
+      const pixels: [number, number][] = [];
+      const seen = new Set<string>();
+      for (const [cx, cy] of own)
+        for (let y = Math.floor(cy - step / 2); y < cy + step / 2; y++)
+          for (let x = Math.floor(cx - step / 2); x < cx + step / 2; x++) {
+            const k = `${x},${y}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            if (levelOf(at(x + 0.5, y + 0.5)) !== undefined)
+              pixels.push([x + 0.5, y + 0.5]);
+          }
+      if (pixels.length)
+        out.set(seat, { cells: pixels, method: "sliver pixels" });
+      continue;
+    }
+    const key = ([x, y]: [number, number]) =>
+      `${Math.round(x / step)},${Math.round(y / step)}`;
+    const byKey = new Map(clean.map((c) => [key(c), c]));
+    const left = new Set(byKey.keys());
+    const parts: { level: number; cells: [number, number][] }[] = [];
+    for (const start of clean) {
+      if (!left.has(key(start))) continue;
+      left.delete(key(start));
+      const cells: [number, number][] = [];
+      const queue = [start];
+      while (queue.length) {
+        const c = queue.pop() as [number, number];
+        cells.push(c);
+        for (const [dx, dy] of [
+          [step, 0],
+          [-step, 0],
+          [0, step],
+          [0, -step],
+        ] as const) {
+          const k = key([c[0] + dx, c[1] + dy]);
+          const next = byKey.get(k);
+          if (next && left.has(k) && between(c, next)) {
+            left.delete(k);
+            queue.push(next);
+          }
+        }
+      }
+      parts.push({ level: levelOf(at(start[0], start[1])) ?? 0, cells });
+    }
+    const meanY = (p: [number, number][]) =>
+      p.reduce((sum, [, y]) => sum + y, 0) / p.length;
+    const near = parts.sort(
+      (p, q) => q.level - p.level || meanY(q.cells) - meanY(p.cells),
+    )[0];
+    if (near) out.set(seat, { cells: near.cells, method: "near side" });
+  }
+  return out;
+}
+
+/** The median colour of an image's pixels at a list of CSS px points, at DPR 1. */
+export function medianAt(image: Image, points: [number, number][]) {
+  const channels: number[][] = [[], [], []];
+  for (const [x, y] of points) {
+    const px = pixel(image, Math.floor(x), Math.floor(y));
+    for (let i = 0; i < 3; i++) channels[i]?.push(px[i] ?? 0);
+  }
+  return channels.map((list) => {
+    const s = [...list].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)] ?? Number.NaN;
+  });
+}
