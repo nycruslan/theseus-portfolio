@@ -223,8 +223,11 @@ export const centreOf = (b: Box) => ({
  * that opened /log/<n> lands on.
  */
 export async function landedOn(page: Page, n: number) {
+  // The URL as the navigation commits; the h2 is in the server's HTML, so the locator finds it
+  // without waiting for the record page's load event.
   await page.waitForURL((url) => url.pathname === `/log/${n}`, {
     timeout: 15_000,
+    waitUntil: "commit",
   });
   const h2 = page.locator(`${RECORD} h2`);
   await expect(h2, `the record's h2 on /log/${n}`).toHaveText(
@@ -275,7 +278,7 @@ export type Scan = {
 
 /**
  * Each seat's point on the settled hull, found as B5.24 says: a mouse scan of the canvas on a
- * `step` px grid, reading `data-pick`. Of each seat's points, the one taken is in the seat's lowest
+ * `step` px grid, reading `data-pick` (dispatched pointer moves, then a real hover on each point). Of each seat's points, the one taken is in the seat's lowest
  * run on screen (the near side: the far side's inside shows above the near sheer), with a
  * neighbour of the same seat on all four sides, nearest that run's centre; each is then checked on
  * its own with a hover. A seat with no such point is missing from the map, and the caller asserts
@@ -283,7 +286,6 @@ export type Scan = {
  */
 export async function scanSeats(run: ModelRun, step: number): Promise<Scan> {
   const { page } = run;
-  await page.evaluate(recordPicks);
   const canvas = await box(page, "[data-model] canvas");
   expect(canvas, "the canvas's box, for the scan").not.toBeNull();
   const c = canvas as Box;
@@ -291,39 +293,81 @@ export async function scanSeats(run: ModelRun, step: number): Promise<Scan> {
   const ys: number[] = [];
   for (let x = c.x + step / 2; x < c.x + c.width; x += step) xs.push(x);
   for (let y = c.y + step / 2; y < c.y + c.height; y += step) ys.push(y);
-  await page.mouse.move(c.x - 20, c.y - 20);
-  for (const y of ys) for (const x of xs) await page.mouse.move(x, y);
+  const key = (i: number, j: number) => `${i},${j}`;
+  // Each grid point's pick, first by pointermove events dispatched in the page at the element
+  // under the point, reading data-pick after each: a second for the canvas where real moves take
+  // over 90 s (sprint 33, decision 12). Only the seats' chosen points need the real mouse, and they
+  // get it below; if the page sets data-pick only a frame later, the scan falls back to real moves.
+  const grid = new Map<string, string>(
+    await page.evaluate(
+      ({ xs, ys }) => {
+        const host = document.querySelector("[data-model]");
+        const out: [string, string][] = [];
+        for (const [j, y] of ys.entries())
+          for (const [i, x] of xs.entries()) {
+            const target = document.elementFromPoint(x, y) ?? document.body;
+            target.dispatchEvent(
+              new PointerEvent("pointermove", {
+                clientX: x,
+                clientY: y,
+                pointerType: "mouse",
+                isPrimary: true,
+                bubbles: true,
+                composed: true,
+              }),
+            );
+            const pick = host?.getAttribute("data-pick");
+            if (pick) out.push([`${i},${j}`, pick]);
+          }
+        // The dispatched pointer leaves as a real one would.
+        document.querySelector("[data-model] canvas")?.dispatchEvent(
+          new PointerEvent("pointerleave", {
+            pointerType: "mouse",
+            isPrimary: true,
+          }),
+        );
+        return out;
+      },
+      { xs, ys },
+    ),
+  );
+  if (grid.size === 0) {
+    await page.evaluate(recordPicks);
+    await page.mouse.move(c.x - 20, c.y - 20);
+    for (const y of ys) for (const x of xs) await page.mouse.move(x, y);
+    await page.mouse.move(c.x - 20, c.y - 20);
+    await twoFrames(page);
+    const { moves, picks } = await page.evaluate(() => {
+      const w = window as Window & {
+        __moves?: [number, number][];
+        __picks?: { at: number; pick: string | null }[];
+      };
+      return { moves: w.__moves ?? [], picks: w.__picks ?? [] };
+    });
+    // Each grid point's pick: the newest change at or before its move.
+    let p = 0;
+    let current: string | null = null;
+    // A move's grid cell by rounding: the event's coordinates may be fractional or coalesced.
+    const [x0, y0] = [xs[0] ?? 0, ys[0] ?? 0];
+    for (const [m, [x, y]] of moves.entries()) {
+      while (p < picks.length && (picks[p]?.at ?? 0) <= m) {
+        current = picks[p]?.pick ?? null;
+        p++;
+      }
+      const [i, j] = [Math.round((x - x0) / step), Math.round((y - y0) / step)];
+      const onGrid =
+        i >= 0 &&
+        j >= 0 &&
+        i < xs.length &&
+        j < ys.length &&
+        Math.abs(x - (xs[i] ?? 0)) < 0.75 &&
+        Math.abs(y - (ys[j] ?? 0)) < 0.75;
+      if (onGrid && current) grid.set(key(i, j), current);
+    }
+  }
+  // The real pointer comes in from off the canvas, so the dispatched moves leave no hover behind.
   await page.mouse.move(c.x - 20, c.y - 20);
   await twoFrames(page);
-  const { moves, picks } = await page.evaluate(() => {
-    const w = window as Window & {
-      __moves?: [number, number][];
-      __picks?: { at: number; pick: string | null }[];
-    };
-    return { moves: w.__moves ?? [], picks: w.__picks ?? [] };
-  });
-  // Each grid point's pick: the newest change at or before its move.
-  const grid = new Map<string, string>();
-  const key = (i: number, j: number) => `${i},${j}`;
-  let p = 0;
-  let current: string | null = null;
-  // A move's grid cell by rounding: the event's coordinates may be fractional or coalesced.
-  const [x0, y0] = [xs[0] ?? 0, ys[0] ?? 0];
-  for (const [m, [x, y]] of moves.entries()) {
-    while (p < picks.length && (picks[p]?.at ?? 0) <= m) {
-      current = picks[p]?.pick ?? null;
-      p++;
-    }
-    const [i, j] = [Math.round((x - x0) / step), Math.round((y - y0) / step)];
-    const onGrid =
-      i >= 0 &&
-      j >= 0 &&
-      i < xs.length &&
-      j < ys.length &&
-      Math.abs(x - (xs[i] ?? 0)) < 0.75 &&
-      Math.abs(y - (ys[j] ?? 0)) < 0.75;
-    if (onGrid && current) grid.set(key(i, j), current);
-  }
   const found: SeatPoints = new Map();
   for (const seat of SEATS) {
     const cells = [...grid.entries()]
@@ -822,4 +866,59 @@ export function medianAt(image: Image, points: [number, number][]) {
     const s = [...list].sort((a, b) => a - b);
     return s[Math.floor(s.length / 2)] ?? Number.NaN;
   });
+}
+
+/**
+ * Document navigations to a record, answered 204 No Content so the page stays where it is, at rest
+ * (sprint 33, decision 12: a real landing reloads /log and rebuilds the model, 4 s a pick). Each is
+ * recorded with whether it was a navigation of the main frame. A record's landing and h2 are checked
+ * for real where the check names one width (1440), and every record's h2 by B5.6; elsewhere the
+ * pick's work is the navigation's URL.
+ */
+export async function catchRecords(page: Page) {
+  const seen: { path: string; navigation: boolean }[] = [];
+  await page.route(/\/log\/\d+$/, async (route) => {
+    const request = route.request();
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+      seen.push({ path: new URL(request.url()).pathname, navigation: true });
+      await route.fulfill({ status: 204 });
+    } else {
+      await route.continue();
+    }
+  });
+  return {
+    /** Runs `act`, then waits up to 5 s for a navigation to a record it caused: its path, or null. */
+    async after(act: () => Promise<unknown>) {
+      const before = seen.length;
+      await act();
+      const end = Date.now() + 5000;
+      while (seen.length === before && Date.now() < end) await pause(25);
+      return seen[before]?.path ?? null;
+    },
+    /** Navigations to a record caught so far. */
+    count: () => seen.length,
+    /** Takes the route away, so later navigations go through. */
+    stop: () => page.unroute(/\/log\/\d+$/),
+  };
+}
+
+/**
+ * Whether the document at a record's path, fetched from the same server, holds that record's h2:
+ * what a caught navigation would have landed on, read without leaving the page at rest.
+ */
+export async function servesRecord(page: Page, path: string, n: number) {
+  const response = await page.request.get(path);
+  if (response.status() !== 200) return `status ${response.status()}`;
+  const html = await response.text();
+  const h2 = await page.evaluate(
+    ({ html, record }) =>
+      new DOMParser()
+        .parseFromString(html, "text/html")
+        .querySelector(`${record} h2`)
+        ?.textContent?.replace(/\s+/g, " ")
+        .trim() ?? null,
+    { html, record: RECORD },
+  );
+  const goal = entryOf(n)?.goal ?? null;
+  return h2 === goal ? null : `h2 "${h2}" against "${goal}"`;
 }

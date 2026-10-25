@@ -1,4 +1,10 @@
-import { type Browser, expect, type Page, test } from "@playwright/test";
+import {
+  type Browser,
+  expect,
+  type Page,
+  type TestInfo,
+  test,
+} from "@playwright/test";
 import {
   aPlank,
   bareView,
@@ -192,7 +198,12 @@ type Shot = {
 };
 
 /** One registration of frame 1 on the refused page's ghost, with the planks' fills at both. */
-async function register(browser: Browser, url: string, shot: Shot) {
+async function register(
+  browser: Browser,
+  url: string,
+  shot: Shot,
+  atRest?: (run: ModelRun) => Promise<void>,
+) {
   const off = await openOn(browser, url, { ...shot, refuse: true });
   const offBox = await ghostBox(off.page);
   expect(offBox, `[data-ghost] with WebGL refused, ${url}`).not.toBeNull();
@@ -211,6 +222,14 @@ async function register(browser: Browser, url: string, shot: Shot) {
   ).toEqual(offBox);
   const model = await canvasAlone(on.page, clip);
   const onView = await on.page.screenshot();
+  if (atRest) {
+    // To rest by Calm, which settles the move at once: on the clock a whole move is ~110 frames of
+    // SwiftShader, where real time ends it still after 6.
+    await press(on.page, "Calm");
+    await on.until([...REST], 4, 10_000);
+    await on.step(300);
+    await atRest(on);
+  }
   const errors = [...on.errors];
   await on.close();
 
@@ -242,38 +261,104 @@ async function register(browser: Browser, url: string, shot: Shot) {
   };
 }
 
+/**
+ * B5.18's fit on a page at rest: where the layer mounts, one canvas, a whole buffer at the cap on
+ * [data-ghost]'s box, and the settled hull inside it.
+ */
+async function fitAt(
+  run: ModelRun,
+  where: string,
+  width: number,
+  dpr: number,
+  url: string,
+  testInfo: TestInfo,
+) {
+  const ratio = capAt(width, dpr);
+  const placed = await run.page.evaluate(
+    ({ drawing, model }) => {
+      const ghost = document.querySelector(drawing);
+      return {
+        next: ghost?.nextElementSibling?.matches(model) ?? false,
+        inMain: Boolean(ghost?.closest("main")),
+        models: document.querySelectorAll(model).length,
+      };
+    },
+    { drawing: DRAWING, model: MODEL },
+  );
+  expect
+    .soft(
+      placed,
+      `[data-model] is the element right after [data-ghost] in main, ${where}`,
+    )
+    .toEqual({ next: true, inMain: true, models: 1 });
+  expect(await run.page.locator(CANVAS).count(), `one canvas, ${where}`).toBe(
+    1,
+  );
+  const fit = await ghostFit(run.page);
+  const [bw = 0, bh = 0] = fit.buffer ?? [];
+  const [cw = 0, ch = 0] = fit.css ?? [];
+  const [gw = 0, gh = 0] = fit.ghost ?? [];
+  note(
+    testInfo,
+    "canvas",
+    `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch}, [data-ghost] ${gw} x ${gh}, ratio ${ratio}`,
+  );
+  expect
+    .soft(
+      Number.isInteger(bw) && Number.isInteger(bh),
+      `whole buffer, ${where}`,
+    )
+    .toBe(true);
+  expect
+    .soft(
+      [Math.abs(cw * ratio - bw), Math.abs(ch * ratio - bh)].every(
+        (d) => d <= LAYOUT * ratio + 1e-3,
+      ),
+      `the canvas's CSS size x ${ratio} equals its buffer (${cw} x ${ch} against ${bw} x ${bh}), ${where}`,
+    )
+    .toBe(true);
+  expect
+    .soft(
+      Math.max(Math.abs(cw - gw), Math.abs(ch - gh)),
+      `the canvas's CSS size against [data-ghost]'s box (px), ${where}`,
+    )
+    .toBeLessThanOrEqual(1 / ratio + 1e-3);
+  expect
+    .soft(
+      Math.max(
+        Math.abs((fit.at?.[0] ?? 0) - (fit.ghostAt?.[0] ?? -99)),
+        Math.abs((fit.at?.[1] ?? 0) - (fit.ghostAt?.[1] ?? -99)),
+      ),
+      `the canvas's corner on [data-ghost]'s (px), ${where}`,
+    )
+    .toBeLessThanOrEqual(1 / ratio + 1e-3);
+  const box = await canvasBox(run.page);
+  if (box) {
+    const shot = await canvasAlone(run.page, whole(box));
+    const [w, h] = [shot.image.width, shot.image.height];
+    expect
+      .soft(
+        extent(shot.alpha, w, h).width,
+        `the settled hull covers pixels, ${where}`,
+      )
+      .toBeGreaterThan(0);
+    expect
+      .soft(
+        onEdge(shot.alpha, w, h),
+        `settled pixels covered 50% or more on the canvas's edge rows and columns, ${where}`,
+      )
+      .toBe(0);
+    if (width === 1440 && dpr === 1)
+      await attach(testInfo, `settled ${url} 1440.png`, shot.image);
+  }
+  expect.soft(run.errors, `console errors at rest, ${where}`).toEqual([]);
+}
+
 for (const url of PAGES) {
   test(`B5.18 It stands on the Log, on ${url}: [data-model] follows [data-ghost] and comes to rest; frame 1 is registered on the 2D ghost within B3.1's bound (1.0 CSS px at DPR 2, 1.5 at DPR 1) with its planks' fills the Off page's within 8 levels; the canvas lies on the ghost's box in whole buffer pixels at 320, 390, 768, 1024 and 1440, and the settled hull is inside it; /read and the 404 have no [data-model] and request no WebGL context`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
-    // Where it mounts, at both sizes.
-    for (const size of SIZES) {
-      const where = `${url} at ${size.width} x ${size.height}`;
-      const run = await openOn(browser, url, size);
-      const placed = await run.page.evaluate(
-        ({ drawing, model }) => {
-          const ghost = document.querySelector(drawing);
-          return {
-            next: ghost?.nextElementSibling?.matches(model) ?? false,
-            inMain: Boolean(ghost?.closest("main")),
-            models: document.querySelectorAll(model).length,
-          };
-        },
-        { drawing: DRAWING, model: MODEL },
-      );
-      expect
-        .soft(
-          placed,
-          `[data-model] is the element right after [data-ghost] in main, ${where}`,
-        )
-        .toEqual({ next: true, inMain: true, models: 1 });
-      const end = await run.waitFor([...REST], FIRST);
-      note(testInfo, "rest", `${where}: came to rest ${end}`);
-      expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
-      await run.close();
-    }
-
     // Frame 1 on the 2D ghost: registration and fills, at DPR 1 and 2 in light, DPR 1 in dark.
     for (const size of SIZES)
       for (const [dpr, scheme] of [
@@ -283,7 +368,15 @@ for (const url of PAGES) {
       ] as const) {
         const shot = { ...size, dpr, scheme };
         const name = `${url} at ${size.width} x ${size.height}, DPR ${dpr}, ${scheme}`;
-        const r = await register(browser, url, shot);
+        const r = await register(
+          browser,
+          url,
+          shot,
+          scheme === "light"
+            ? (run) =>
+                fitAt(run, `${name}, at rest`, size.width, dpr, url, testInfo)
+            : undefined,
+        );
         const bound = dpr === 2 ? 1.0 : 1.5;
         note(
           testInfo,
@@ -316,82 +409,17 @@ for (const url of PAGES) {
         expect.soft(r.errors, `console errors, ${name}`).toEqual([]);
       }
 
-    // The canvas on the ghost's box in whole buffer pixels, and the settled hull inside it.
+    // The canvas on the ghost's box in whole buffer pixels, and the settled hull inside it; at
+    // 1440 x 900 and 390 x 844 on the registration's pages, brought to rest by Calm.
     for (const [width, height] of [
       [320, 568],
-      [390, 844],
       [768, 1024],
       [1024, 768],
-      [1440, 900],
     ] as const)
       for (const dpr of [1, 2]) {
         const where = `${url} at ${width} x ${height}, DPR ${dpr}`;
-        const ratio = capAt(width, dpr);
         const run = await settledOn(browser, url, { width, height, dpr });
-        expect(
-          await run.page.locator(CANVAS).count(),
-          `one canvas, ${where}`,
-        ).toBe(1);
-        const fit = await ghostFit(run.page);
-        const [bw = 0, bh = 0] = fit.buffer ?? [];
-        const [cw = 0, ch = 0] = fit.css ?? [];
-        const [gw = 0, gh = 0] = fit.ghost ?? [];
-        note(
-          testInfo,
-          "canvas",
-          `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch}, [data-ghost] ${gw} x ${gh}, ratio ${ratio}`,
-        );
-        expect
-          .soft(
-            Number.isInteger(bw) && Number.isInteger(bh),
-            `whole buffer, ${where}`,
-          )
-          .toBe(true);
-        expect
-          .soft(
-            [Math.abs(cw * ratio - bw), Math.abs(ch * ratio - bh)].every(
-              (d) => d <= LAYOUT * ratio + 1e-3,
-            ),
-            `the canvas's CSS size x ${ratio} equals its buffer (${cw} x ${ch} against ${bw} x ${bh}), ${where}`,
-          )
-          .toBe(true);
-        expect
-          .soft(
-            Math.max(Math.abs(cw - gw), Math.abs(ch - gh)),
-            `the canvas's CSS size against [data-ghost]'s box (px), ${where}`,
-          )
-          .toBeLessThanOrEqual(1 / ratio + 1e-3);
-        expect
-          .soft(
-            Math.max(
-              Math.abs((fit.at?.[0] ?? 0) - (fit.ghostAt?.[0] ?? -99)),
-              Math.abs((fit.at?.[1] ?? 0) - (fit.ghostAt?.[1] ?? -99)),
-            ),
-            `the canvas's corner on [data-ghost]'s (px), ${where}`,
-          )
-          .toBeLessThanOrEqual(1 / ratio + 1e-3);
-        const canvasBox = await run.page.evaluate((canvas) => {
-          const r = document.querySelector(canvas)?.getBoundingClientRect();
-          return r
-            ? { x: r.left, y: r.top, width: r.width, height: r.height }
-            : null;
-        }, CANVAS);
-        if (canvasBox) {
-          const shot = await canvasAlone(run.page, whole(canvasBox));
-          const [w, h] = [shot.image.width, shot.image.height];
-          const covered = extent(shot.alpha, w, h).width;
-          expect
-            .soft(covered, `the settled hull covers pixels, ${where}`)
-            .toBeGreaterThan(0);
-          expect
-            .soft(
-              onEdge(shot.alpha, w, h),
-              `settled pixels covered 50% or more on the canvas's edge rows and columns, ${where}`,
-            )
-            .toBe(0);
-          if (width === 1440 && dpr === 1)
-            await attach(testInfo, `settled ${url} 1440.png`, shot.image);
-        }
+        await fitAt(run, where, width, dpr, url, testInfo);
         expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
         await run.close();
       }
@@ -436,6 +464,127 @@ const near = (a: Box, b: Box, gap: number) =>
     a.y - (b.y + b.height),
   ) <
   gap - 0.01;
+
+/**
+ * B5.19's numbers at rest on a settled page at `width`: GHOST, each on its plank with a transform,
+ * at least 10 px, no pointer events, 2 px clear, 4.5:1 on what it sits on, 600 (the record's 700);
+ * hidden below 768.
+ */
+async function numbersAt(
+  page: Page,
+  where: string,
+  width: number,
+  record: boolean,
+  expected: string[],
+  testInfo: TestInfo,
+) {
+  const numbers = await ghostNumbers(page);
+  if (width < NUMBERS_FROM) {
+    expect
+      .soft(
+        numbers.filter((n) => n.shown).map((n) => n.text),
+        `numbers shown below 768 px, ${where}`,
+      )
+      .toEqual([]);
+    return;
+  }
+  const shown = numbers.filter((n) => n.shown);
+  expect
+    .soft(
+      shown.map((n) => n.text).sort(),
+      `the numbers shown at rest, against GHOST, ${where}`,
+    )
+    .toEqual(expected);
+  expect
+    .soft(
+      shown
+        .filter((n) => !/^matrix|^translate/.test(n.transform))
+        .map((n) => `${n.text} ${n.transform}`),
+      `numbers at rest without a transform onto their planks, ${where}`,
+    )
+    .toEqual([]);
+  expect
+    .soft(
+      shown.filter((n) => n.size < 10 - 0.01).map((n) => `${n.text} ${n.size}`),
+      `numbers under 10 px, ${where}`,
+    )
+    .toEqual([]);
+  expect
+    .soft(
+      shown.filter((n) => n.pointer !== "none").map((n) => n.text),
+      `numbers that take pointer events, ${where}`,
+    )
+    .toEqual([]);
+  const clashes: string[] = [];
+  for (const [i, a] of shown.entries())
+    for (const b of shown.slice(i + 1))
+      if (near(a.box, b.box, 2)) clashes.push(`${a.text}/${b.text}`);
+  expect
+    .soft(clashes, `number pairs within 2 px of each other, ${where}`)
+    .toEqual([]);
+  // On its plank: each number's centre is on the settled hull, but a led-out number's, which
+  // sits at its leader's end (5.0's, and 3.0's from 768 by Iris's decision).
+  const led = await ledOutSeats(page);
+  note(testInfo, "led out", `${where}: seats ${led.join(", ")}`);
+  const canvasBox = await page.evaluate((c) => {
+    const r = document.querySelector(c)?.getBoundingClientRect();
+    return r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null;
+  }, CANVAS);
+  const image = await bareView(page);
+  if (canvasBox) {
+    const clip = whole(canvasBox);
+    const alone = await canvasAlone(page, clip);
+    const leftOff = shown
+      .filter((n) => !led.includes(SEAT_BY_NUMBER.get(Number(n.text)) ?? ""))
+      .filter((n) => {
+        const c = centreOf(n.box);
+        const v =
+          alone.alpha[
+            Math.round(c.y - clip.y) * alone.image.width +
+              Math.round(c.x - clip.x)
+          ] ?? 0;
+        return v < 0.5;
+      })
+      .map((n) => n.text);
+    expect
+      .soft(leftOff, `numbers whose centre is off the settled hull, ${where}`)
+      .toEqual([]);
+  }
+  const faint: string[] = [];
+  for (const n of shown) {
+    const ink = await rgbOf(page, n.color);
+    const ground = medianIn(image, n.box);
+    const ratio = contrast(
+      ink as [number, number, number],
+      ground as [number, number, number],
+    );
+    if (ratio < 4.5) faint.push(`${n.text} ${ratio.toFixed(2)}:1`);
+  }
+  expect
+    .soft(faint, `numbers under 4.5:1 on what they sit on, ${where}`)
+    .toEqual([]);
+  const weights = shown.map((n) => `${n.text} ${n.weight}`).sort();
+  expect
+    .soft(
+      weights,
+      `the numbers' weights: 600, ${record ? `and ${MARKED}'s 700` : "every one"}, ${where}`,
+    )
+    .toEqual(
+      shown
+        .map(
+          (n) => `${n.text} ${record && n.text === String(MARKED) ? 700 : 600}`,
+        )
+        .sort(),
+    );
+  if (record) {
+    expect
+      .soft(
+        shown.filter((n) => n.current).map((n) => n.text),
+        `the record's number, ${where}`,
+      )
+      .toEqual([String(MARKED)]);
+  }
+}
 
 for (const url of PAGES) {
   test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935 and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the 22 number spans at rest read GHOST, each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700`, async ({
@@ -646,152 +795,61 @@ for (const url of PAGES) {
             .toBe(0);
         }
       }
+      for (const scheme of ["light", "dark"] as const) {
+        await run.page.emulateMedia({ colorScheme: scheme });
+        await pause(600);
+        await numbersAt(
+          run.page,
+          `${at}, ${scheme}`,
+          size.width,
+          record,
+          expected,
+          testInfo,
+        );
+      }
       expect.soft(run.errors, `console errors, ${at}`).toEqual([]);
       await run.close();
     }
-    // The numbers at rest, at the four widths from 768, and hidden below.
+    // The numbers at rest at 768, 1024 and 1280 (at 1440 and 390 on the band pages above), one
+    // page per width, the scheme switched in place (sprint 33, decision 12).
     for (const [width, height] of [
       [768, 1024],
       [1024, 768],
       [1280, 800],
-      [1440, 900],
-      [390, 844],
-    ] as const)
-      for (const scheme of width === 1440 || width === 1024
+    ] as const) {
+      const run = await settledOn(browser, url, { width, height });
+      for (const scheme of width === 1024
         ? (["light", "dark"] as const)
         : (["light"] as const)) {
-        const where = `${url} at ${width} x ${height}, ${scheme}`;
-        const run = await settledOn(browser, url, { width, height, scheme });
-        const numbers = await ghostNumbers(run.page);
-        if (width < NUMBERS_FROM) {
-          expect
-            .soft(
-              numbers.filter((n) => n.shown).map((n) => n.text),
-              `numbers shown below 768 px, ${where}`,
-            )
-            .toEqual([]);
-          await run.close();
-          continue;
-        }
-        const shown = numbers.filter((n) => n.shown);
-        expect
-          .soft(
-            shown.map((n) => n.text).sort(),
-            `the numbers shown at rest, against GHOST, ${where}`,
-          )
-          .toEqual(expected);
-        expect
-          .soft(
-            shown
-              .filter((n) => !/^matrix|^translate/.test(n.transform))
-              .map((n) => `${n.text} ${n.transform}`),
-            `numbers at rest without a transform onto their planks, ${where}`,
-          )
-          .toEqual([]);
-        expect
-          .soft(
-            shown
-              .filter((n) => n.size < 10 - 0.01)
-              .map((n) => `${n.text} ${n.size}`),
-            `numbers under 10 px, ${where}`,
-          )
-          .toEqual([]);
-        expect
-          .soft(
-            shown.filter((n) => n.pointer !== "none").map((n) => n.text),
-            `numbers that take pointer events, ${where}`,
-          )
-          .toEqual([]);
-        const clashes: string[] = [];
-        for (const [i, a] of shown.entries())
-          for (const b of shown.slice(i + 1))
-            if (near(a.box, b.box, 2)) clashes.push(`${a.text}/${b.text}`);
-        expect
-          .soft(clashes, `number pairs within 2 px of each other, ${where}`)
-          .toEqual([]);
-        // On its plank: each number's centre is on the settled hull, but a led-out number's, which
-        // sits at its leader's end (5.0's, and 3.0's from 768 by Iris's decision).
-        const led = await ledOutSeats(run.page);
-        note(testInfo, "led out", `${where}: seats ${led.join(", ")}`);
-        const canvasBox = await run.page.evaluate((c) => {
-          const r = document.querySelector(c)?.getBoundingClientRect();
-          return r
-            ? { x: r.left, y: r.top, width: r.width, height: r.height }
-            : null;
-        }, CANVAS);
-        const image = await bareView(run.page);
-        if (canvasBox) {
-          const clip = whole(canvasBox);
-          const alone = await canvasAlone(run.page, clip);
-          const leftOff = shown
-            .filter(
-              (n) => !led.includes(SEAT_BY_NUMBER.get(Number(n.text)) ?? ""),
-            )
-            .filter((n) => {
-              const c = centreOf(n.box);
-              const v =
-                alone.alpha[
-                  Math.round(c.y - clip.y) * alone.image.width +
-                    Math.round(c.x - clip.x)
-                ] ?? 0;
-              return v < 0.5;
-            })
-            .map((n) => n.text);
-          expect
-            .soft(
-              leftOff,
-              `numbers whose centre is off the settled hull, ${where}`,
-            )
-            .toEqual([]);
-        }
-        const faint: string[] = [];
-        for (const n of shown) {
-          const ink = await rgbOf(run.page, n.color);
-          const ground = medianIn(image, n.box);
-          const ratio = contrast(
-            ink as [number, number, number],
-            ground as [number, number, number],
-          );
-          if (ratio < 4.5) faint.push(`${n.text} ${ratio.toFixed(2)}:1`);
-        }
-        expect
-          .soft(faint, `numbers under 4.5:1 on what they sit on, ${where}`)
-          .toEqual([]);
-        const weights = shown.map((n) => `${n.text} ${n.weight}`).sort();
-        expect
-          .soft(
-            weights,
-            `the numbers' weights: 600, ${record ? `and ${MARKED}'s 700` : "every one"}, ${where}`,
-          )
-          .toEqual(
-            shown
-              .map(
-                (n) =>
-                  `${n.text} ${record && n.text === String(MARKED) ? 700 : 600}`,
-              )
-              .sort(),
-          );
-        if (record) {
-          expect
-            .soft(
-              shown.filter((n) => n.current).map((n) => n.text),
-              `the record's number, ${where}`,
-            )
-            .toEqual([String(MARKED)]);
-        }
-        await run.close();
+        await run.page.emulateMedia({ colorScheme: scheme });
+        await pause(600);
+        await numbersAt(
+          run.page,
+          `${url} at ${width} x ${height}, ${scheme}`,
+          width,
+          record,
+          expected,
+          testInfo,
+        );
       }
+      await run.close();
+    }
 
-    // Nothing copper at frame 1 and mid-move, on the clock.
-    for (const size of SIZES)
+    // Nothing copper at frame 1 and mid-move, on the clock: light from the load, then dark in the
+    // move replayed by Calm then Full after the switch (one page per size; decision 12).
+    for (const size of SIZES) {
+      const run = await openOn(browser, url, { ...size, clock: true });
       for (const scheme of ["light", "dark"] as const) {
         const where = `${url} at ${size.width} x ${size.height}, ${scheme}`;
-        const run = await openOn(browser, url, {
-          ...size,
-          scheme,
-          clock: true,
-        });
-        await run.until(SHOWN, 4, FIRST);
+        if (scheme === "dark") {
+          await run.page.emulateMedia({ colorScheme: "dark" });
+          await press(run.page, "Calm");
+          await run.step(100);
+          await press(run.page, "Full");
+        }
+        expect(await run.until(SHOWN, 4, FIRST), `frame 1, ${where}`).toBe(
+          "landed",
+        );
         const accent = await token(run.page, "--accent");
         const ground = await token(run.page, "--background");
         const clip = whole((await ghostBox(run.page)) as Box);
@@ -802,10 +860,15 @@ for (const url of PAGES) {
             `canvas pixels within ΔE 10 of --accent at frame 1, ${where}`,
           )
           .toBe(0);
+        const before = (await run.states()).length;
         await run.until(["lofting"], 4, 20_000);
         const t0 =
-          (await run.states()).find((s) => s.state === "lofting")?.t ?? 0;
-        await runTo(run, t0 + MOVE / 2);
+          (await run.states()).slice(before).find((s) => s.state === "lofting")
+            ?.t ??
+          (await run.states()).findLast((s) => s.state === "lofting")?.t ??
+          0;
+        // Mid-move: where the eased progress is half way (the move's colour is half lit there).
+        await runTo(run, t0 + uFor(0.5) * MOVE);
         const mid = await canvasAlone(run.page, clip);
         expect
           .soft(
@@ -813,8 +876,13 @@ for (const url of PAGES) {
             `canvas pixels within ΔE 10 of --accent mid-move, ${where}`,
           )
           .toBe(0);
-        await run.close();
+        // A key settles it, for the replay.
+        await run.page.keyboard.press("Tab");
+        await pause(150);
+        await run.step(100);
       }
+      await run.close();
+    }
   });
 }
 
@@ -857,10 +925,113 @@ for (const url of PAGES) {
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
+    // Each input during the move settles it within 2 frames, and opens nothing.
+    type Input = {
+      name: string;
+      touch?: boolean;
+      act: (run: ModelRun) => Promise<void>;
+    };
+    const middle = async (run: ModelRun) =>
+      centreOf((await ghostBox(run.page)) as Box);
+    const inputs: Input[] = [
+      { name: "a key (Tab)", act: (run) => run.page.keyboard.press("Tab") },
+      {
+        name: "a click on the hull",
+        act: async (run) => {
+          const at = await middle(run);
+          await run.page.mouse.click(at.x, at.y);
+        },
+      },
+      {
+        name: "a wheel over the hull",
+        act: async (run) => {
+          const at = await middle(run);
+          await run.page.mouse.move(at.x, at.y);
+          await run.page.mouse.wheel(0, 120);
+        },
+      },
+      {
+        name: "a tap on the hull",
+        touch: true,
+        act: async (run) => {
+          const at = await middle(run);
+          await run.page.touchscreen.tap(at.x, at.y);
+        },
+      },
+      {
+        name: "a scroll",
+        act: (run) => run.page.evaluate(() => scrollTo(0, 60)),
+      },
+    ];
+    // After the first move, on the same page: each input lands in the move replayed by Calm then
+    // Full, and each replay is itself the check that Full pressed from Calm replays the move from
+    // frame 1; the page ends with Off then Full. The page has touch, so the tap needs no page of its
+    // own (sprint 33, decision 12: 14 pages a page became 2).
+    const inputsOn = async (run: ModelRun, at: string) => {
+      const replay = async (from: "Calm" | "Off") => {
+        const where = `Full pressed from ${from}, ${at}`;
+        await run.page.evaluate(() => {
+          scrollTo(0, 0);
+          (document.activeElement as HTMLElement | null)?.blur();
+        });
+        await press(run.page, from);
+        await run.step(from === "Off" ? 500 : 100);
+        const before = (await run.states()).length;
+        const drawn = (await run.frames()).length;
+        await press(run.page, "Full");
+        await run.until(["lofting"], 4, FIRST);
+        const after = (await run.states()).slice(before).map((s) => s.state);
+        expect.soft(after[0], `the first state after ${where}`).toBe("landed");
+        expect.soft(after, `the states after ${where}`).toContain("lofting");
+        // From frame 1: the first frame drawn after the press is the landed one.
+        expect
+          .soft(
+            (await run.frames())[drawn]?.state,
+            `the first frame drawn after ${where}`,
+          )
+          .toBe("landed");
+      };
+      for (const input of inputs) {
+        const where = `${input.name} during the move, ${at}`;
+        await replay("Calm");
+        const pages = run.context.pages().length;
+        await input.act(run);
+        await pause(150);
+        await run.step(TWO_FRAMES);
+        expect
+          .soft(await run.state(), `${where} sets settled within 2 frames`)
+          .toBe("settled");
+        await run.step(500);
+        await pause(300);
+        expect
+          .soft(new URL(run.page.url()).pathname, `the page after ${where}`)
+          .toBe(url);
+        expect
+          .soft(run.context.pages().length, `pages open after ${where}`)
+          .toBe(pages);
+      }
+      // Full from Off: the move again from frame 1; a key ends it settled (a whole move on the
+      // clock is ~110 SwiftShader frames, and the first move already ran to the duration).
+      await replay("Off");
+      await run.page.keyboard.press("Tab");
+      await pause(150);
+      await run.step(TWO_FRAMES);
+      expect
+        .soft(
+          await run.state(),
+          `a key during the move after Full pressed from Off settles it, ${at}`,
+        )
+        .toBe("settled");
+    };
+
     // The move, on the clock.
     for (const size of SIZES) {
       const where = `${url} at ${size.width} x ${size.height}`;
-      const run = await openOn(browser, url, { ...size, clock: true });
+      const run = await openOn(browser, url, {
+        ...size,
+        touch: true,
+        clock: true,
+      });
       expect(
         await run.until(SHOWN, 4, FIRST),
         `frame 1 is landed, ${where}`,
@@ -926,6 +1097,7 @@ for (const url of PAGES) {
             )
             .toBeLessThanOrEqual(0.01);
       }
+      await inputsOn(run, where);
       expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
       await run.close();
     }
@@ -982,101 +1154,6 @@ for (const url of PAGES) {
         .toEqual([]);
       await visit.close();
     }
-
-    // Each input during the move settles it within 2 frames, and opens nothing.
-    type Input = {
-      name: string;
-      touch?: boolean;
-      act: (run: ModelRun) => Promise<void>;
-    };
-    const middle = async (run: ModelRun) =>
-      centreOf((await ghostBox(run.page)) as Box);
-    const inputs: Input[] = [
-      { name: "a key (Tab)", act: (run) => run.page.keyboard.press("Tab") },
-      {
-        name: "a click on the hull",
-        act: async (run) => {
-          const at = await middle(run);
-          await run.page.mouse.click(at.x, at.y);
-        },
-      },
-      {
-        name: "a wheel over the hull",
-        act: async (run) => {
-          const at = await middle(run);
-          await run.page.mouse.move(at.x, at.y);
-          await run.page.mouse.wheel(0, 120);
-        },
-      },
-      {
-        name: "a tap on the hull",
-        touch: true,
-        act: async (run) => {
-          const at = await middle(run);
-          await run.page.touchscreen.tap(at.x, at.y);
-        },
-      },
-      {
-        name: "a scroll",
-        act: (run) => run.page.evaluate(() => scrollTo(0, 60)),
-      },
-    ];
-    for (const size of SIZES)
-      for (const input of inputs) {
-        const where = `${input.name} during the move, ${url} at ${size.width} x ${size.height}`;
-        const run = await openOn(browser, url, {
-          ...size,
-          touch: input.touch,
-          clock: true,
-        });
-        expect(await run.until(SHOWN, 4, FIRST), `frame 1, ${where}`).toBe(
-          "landed",
-        );
-        await run.until(["lofting"], 4, 20_000);
-        await input.act(run);
-        await pause(150);
-        await run.step(TWO_FRAMES);
-        expect
-          .soft(await run.state(), `${where} sets settled within 2 frames`)
-          .toBe("settled");
-        await run.step(500);
-        await pause(500);
-        expect
-          .soft(new URL(run.page.url()).pathname, `the page after ${where}`)
-          .toBe(url);
-        expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
-        await run.close();
-      }
-
-    // Full pressed from Calm and from Off replays the move from frame 1.
-    for (const size of SIZES)
-      for (const from of ["calm", "off"] as const) {
-        const where = `Full pressed from ${from}, ${url} at ${size.width} x ${size.height}`;
-        const run = await openOn(browser, url, {
-          ...size,
-          stored: from,
-          clock: true,
-        });
-        if (from === "calm") {
-          await run.until([...REST], 4, FIRST);
-        } else {
-          await run.step(IDLE);
-          await pause(300);
-        }
-        const before = (await run.states()).length;
-        await press(run.page, "Full");
-        await run.until(["lofting"], 4, FIRST);
-        const after = (await run.states()).slice(before).map((s) => s.state);
-        expect.soft(after[0], `the first state after ${where}`).toBe("landed");
-        expect.soft(after, `the states after ${where}`).toContain("lofting");
-        await run.step(MOVE + 200);
-        await run.until([...REST], 4, 10_000);
-        expect
-          .soft(await run.state(), `at rest after ${where}`)
-          .toBe("settled");
-        expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
-        await run.close();
-      }
   });
 }
 

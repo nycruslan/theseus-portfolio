@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   atRest,
+  catchRecords,
   centreOf,
   cursorOf,
   ghostNumbers,
@@ -10,9 +11,11 @@ import {
   markedSeat,
   offHull,
   pickOf,
+  press,
   SEAT_BY_NUMBER,
   SEATS,
   scanSeats,
+  servesRecord,
   twoFrames,
 } from "./ghost";
 import {
@@ -44,7 +47,7 @@ for (const [width, height] of [
   [1024, 768],
   [768, 1024],
 ] as const) {
-  test(`B5.24 A plank opens its record, with a mouse at ${width} x ${height}: settled on /log, at each of the 22 number spans' centres data-pick is that number's seat, the cursor pointer, and a click lands on /log/<that number> with its record's h2; at a point on no plank no data-pick, the default cursor, and a click leaves the URL; Ctrl-click opens a new page and leaves this one; Back from a picked record returns to /log settled with one live context; on /log/13 a pick on another plank opens that plank's record`, async ({
+  test(`B5.24 A plank opens its record, with a mouse at ${width} x ${height}: settled on /log, at each of the 22 number spans' centres data-pick is that number's seat, the cursor pointer, and a click navigates the document to /log/<that number>, whose document holds its record's h2${width === 1440 ? " (the first landing for real)" : ""}; at a point on no plank no data-pick, the default cursor, and a click leaves the URL; Ctrl-click opens a new page and leaves this one${width === 1440 ? "; Back from a picked record returns to /log settled with one live context" : ""}${width === 1440 ? "; on /log/13 a pick on another plank opens that plank's record" : ""}`, async ({
     browser,
   }) => {
     test.setTimeout(900_000);
@@ -63,6 +66,11 @@ for (const [width, height] of [
       at: centreOf(n.box),
     }));
 
+    // Each click's document navigation is caught (answered 204, so /log stays at rest) and the
+    // document at its path is fetched for its record's h2: what the click lands on, without a
+    // reload and a model build per pick (sprint 33, decision 12). At 1440 the first pick also lands
+    // for real, and comes Back.
+    const records = await catchRecords(run.page);
     const wrong: string[] = [];
     for (const { n, at } of aims) {
       const seat = SEAT_BY_NUMBER.get(n);
@@ -73,27 +81,49 @@ for (const [width, height] of [
         wrong.push(`${n} (seat ${seat}): data-pick ${pick}, cursor ${cursor}`);
         continue;
       }
-      await run.page.mouse.click(at.x, at.y);
-      await landedOn(run.page, n);
-      await run.page.goBack();
-      await run.page.waitForURL((u) => u.pathname === "/log");
-      await atRest(run, `after Back from /log/${n}, ${where}`);
-      await pause(200);
+      const path = await records.after(() => run.page.mouse.click(at.x, at.y));
+      if (path !== `/log/${n}`) {
+        wrong.push(`${n}: a click navigated to ${path ?? "nothing"}`);
+        continue;
+      }
+      const served = await servesRecord(run.page, path, n);
+      if (served) wrong.push(`${n}: ${path} serves ${served}`);
+    }
+    // One navigation a click: none doubled, none from a hover.
+    expect
+      .soft(records.count(), `record navigations over the 22 picks, ${where}`)
+      .toBe(aims.length - wrong.filter((w) => w.includes("data-pick")).length);
+    await records.stop();
+    const real = aims[0];
+    if (width === 1440 && real) {
+      await run.page.mouse.move(real.at.x, real.at.y);
+      await twoFrames(run.page);
+      await run.page.mouse.click(real.at.x, real.at.y);
+      await landedOn(run.page, real.n);
+      await run.page.goBack({ waitUntil: "commit" });
+      await run.page.waitForURL((u) => u.pathname === "/log", {
+        waitUntil: "commit",
+      });
+      await atRest(run, `after Back from /log/${real.n}, ${where}`);
+      await pause(100);
     }
     expect
       .soft(
         wrong,
-        `numbers whose centre doesn't pick their own seat with a pointer cursor, ${where}`,
+        `numbers whose centre doesn't pick their own seat with a pointer cursor, or whose click goes elsewhere, ${where}`,
       )
       .toEqual([]);
 
-    // Back from a picked record: /log, settled, one live context.
-    expect
-      .soft(await run.state(), `data-state after Back, ${where}`)
-      .toBe("settled");
-    expect
-      .soft(await run.live(), `live WebGL contexts after Back, ${where}`)
-      .toBe(1);
+    // Back from a picked record (at 1440, where the picks land for real): /log, settled, one live
+    // context.
+    if (width === 1440) {
+      expect
+        .soft(await run.state(), `data-state after Back, ${where}`)
+        .toBe("settled");
+      expect
+        .soft(await run.live(), `live WebGL contexts after Back, ${where}`)
+        .toBe(1);
+    }
 
     // On no plank.
     const off = await offHull(run.page);
@@ -149,7 +179,9 @@ for (const [width, height] of [
     expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
     await run.close();
 
-    // On a record, another plank opens its own record.
+    // On a record, another plank opens its own record: once, at 1440 (the contract names no
+    // width for it; the 22 picks above run at all three).
+    if (width !== 1440) return;
     const record = await openModel(browser, { width, height });
     await record.goto(`/log/${MARKED}`);
     await record.waitFor([...REST], FIRST);
@@ -179,7 +211,7 @@ for (const [width, height] of [
   });
 }
 
-test("B5.24 A plank opens its record, with touch at 390 x 844: for each seat, at a point where a mouse hover without touch reads data-pick as that seat (a 2 px scan), a tap opens /log/GHOST[seat], a 40 px touch drag starting there scrolls the page by its distance and opens nothing, and a tap during the move opens nothing", async ({
+test("B5.24 A plank opens its record, with touch at 390 x 844: for each seat, at a point where a mouse hover without touch reads data-pick as that seat (a 2 px scan), a tap navigates the document to /log/GHOST[seat], whose document holds its record's h2, a 40 px touch drag starting there scrolls the page by its distance and opens nothing, and a tap during the move opens nothing", async ({
   browser,
 }) => {
   test.setTimeout(1_200_000);
@@ -201,12 +233,13 @@ test("B5.24 A plank opens its record, with touch at 390 x 844: for each seat, at
   await touch.goto("/log");
   await touch.waitFor([...REST], FIRST);
   await pause(300);
+  const records = await catchRecords(touch.page);
   for (const [seat, at] of scan.points) {
     const n = GHOST[seat] ?? Number.NaN;
     const where = `seat ${seat} (${n}) at (${at.x}, ${at.y})`;
     // A drag from the point scrolls, and opens nothing.
     await touchDrag(touch.page, at.x, at.y, 40);
-    await pause(400);
+    await pause(250);
     const scrolled = await touch.page.evaluate(() => scrollY);
     expect
       .soft(
@@ -221,44 +254,57 @@ test("B5.24 A plank opens its record, with touch at 390 x 844: for each seat, at
       )
       .toBe("/log");
     await touch.page.evaluate(() => scrollTo(0, 0));
-    await pause(300);
-    // A tap opens the record.
-    await touch.page.touchscreen.tap(at.x, at.y);
-    const landed = await landedOn(touch.page, n).then(
-      () => true,
-      () => false,
+    await pause(150);
+    // A tap opens the record: its document navigation, answered 204 so /log stays at rest (the
+    // landing and its h2 are checked for real at 1440, and every record's h2 by B5.6).
+    const path = await records.after(() =>
+      touch.page.touchscreen.tap(at.x, at.y),
     );
-    expect.soft(landed, `a tap at ${where} opens /log/${n}`).toBe(true);
-    if (landed) {
-      await touch.page.goBack();
-      await touch.page.waitForURL((u) => u.pathname === "/log");
-    } else {
-      await touch.goto("/log");
-    }
-    await atRest(touch, `back on /log after ${where}`);
-    await touch.page.evaluate(() => scrollTo(0, 0));
-    await pause(300);
+    expect
+      .soft(path, `the navigation a tap at ${where} makes`)
+      .toBe(`/log/${n}`);
+    if (path)
+      expect
+        .soft(
+          await servesRecord(touch.page, path, n),
+          `what ${path} serves, after a tap at ${where}`,
+        )
+        .toBeNull();
+    await pause(100);
   }
+  await records.stop();
   expect.soft(touch.errors, "console errors over the taps").toEqual([]);
   await touch.close();
 
-  // A tap during the move opens nothing, at each seat's point.
+  // A tap during the move opens nothing, at each seat's point: one page on the clock, the move
+  // replayed for each seat by Calm then Full (B5.20: Full pressed from Calm replays it from frame 1).
+  const run = await openModel(browser, { ...size, touch: true, clock: true });
+  await run.goto("/log");
+  await run.until(SHOWN, 4, FIRST);
+  let first = true;
   for (const [seat, at] of scan.points) {
     const where = `a tap during the move at seat ${seat}'s point`;
-    const run = await openModel(browser, { ...size, touch: true, clock: true });
-    await run.goto("/log");
-    await run.until(SHOWN, 4, FIRST);
-    await run.until(["lofting"], 4, 20_000);
+    if (!first) {
+      await press(run.page, "Calm");
+      await run.step(100);
+      await press(run.page, "Full");
+    }
+    first = false;
+    await run.until(["lofting"], 4, FIRST);
     await run.page.touchscreen.tap(at.x, at.y);
     await pause(150);
     await run.step(TWO_FRAMES);
     await run.step(500);
-    await pause(500);
+    await pause(300);
     expect
       .soft(new URL(run.page.url()).pathname, `the URL after ${where}`)
       .toBe("/log");
-    await run.close();
+    await run.until([...REST], 4, 10_000);
   }
+  expect
+    .soft(run.errors, "console errors over the taps during the move")
+    .toEqual([]);
+  await run.close();
 });
 
 test("B5.24 A plank opens its record, the press's edges, at 1440 x 900 on /log: a mouse press on a plank, main or middle button, dragged off the canvas and released there opens nothing, and hover lives on: back over a plank, data-pick is its seat and the cursor pointer; a Ctrl-click and a middle-click on a plank each open the record in a new page with no opener, which plays the move", async ({

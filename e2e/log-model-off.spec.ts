@@ -17,28 +17,41 @@ const TWO_FRAMES = Math.ceil(2 * FRAME);
 type Media = { forcedColors?: "active"; print?: boolean };
 
 /** What the Off page has, per media: its scripts and its ghost. */
-type Baseline = { scripts: Set<string>; drawing: GhostDrawing };
+/**
+ * What the Off page has: its scripts and context requests, and its ghost in each media, read on the
+ * one WebGL-refused page with the media switched in place (sprint 33, decision 12: the drawing's
+ * CSS is the same whether forced colours or print came at load or after, and the refused page has
+ * no model to restyle it either way).
+ */
+type Baseline = {
+  scripts: Set<string>;
+  requests: string[];
+  drawing: GhostDrawing;
+  forced: GhostDrawing;
+  print: GhostDrawing;
+};
 
 async function baseline(
   browser: Browser,
   url: string,
   size: { width: number; height: number },
-  media: Media,
 ): Promise<Baseline> {
-  const run = await openModel(browser, {
-    ...size,
-    refuse: true,
-    forcedColors: media.forcedColors,
-  });
-  if (media.print) await run.page.emulateMedia({ media: "print" });
+  const run = await openModel(browser, { ...size, refuse: true });
   await run.goto(url);
   await pause(IDLE);
   const drawing = await ghostDrawing(run.page);
+  await run.page.emulateMedia({ forcedColors: "active" });
+  await pause(300);
+  const forced = await ghostDrawing(run.page);
+  await run.page.emulateMedia({ forcedColors: "none", media: "print" });
+  await pause(300);
+  const print = await ghostDrawing(run.page);
   const scripts = new Set(
     (await run.scripts()).list.map((s) => new URL(s.url).pathname),
   );
+  const requests = (await run.requests()).map((r) => r.type);
   await run.close();
-  return { scripts, drawing };
+  return { scripts, requests, drawing, forced, print };
 }
 
 /** The ghost against the Off page's: each plank's fill, the svg, the numbers, no transform. */
@@ -86,13 +99,26 @@ for (const url of PAGES) {
     test.setTimeout(600_000);
     for (const size of SIZES) {
       const at = `${url} at ${size.width} x ${size.height}`;
-      const plain = await baseline(browser, url, size, {});
+      // WebGL refused: the baseline page itself, no canvas, the one probe at most.
+      const plain = await baseline(browser, url, size);
       expect(
         plain.scripts.size,
         `scripts the WebGL-refused page fetches, ${at}`,
       ).toBeGreaterThan(0);
+      expect
+        .soft(
+          plain.requests.filter((r) => r !== "webgl2"),
+          `context requests but the probe's webgl2, WebGL refused, ${at}`,
+        )
+        .toEqual([]);
+      expect
+        .soft(
+          plain.requests.length,
+          `context requests, WebGL refused, ${at}: the one probe at most`,
+        )
+        .toBeLessThanOrEqual(1);
+      expectOffGhost(plain.drawing, plain.drawing, `WebGL refused, ${at}`);
       const cases: { name: string; options: ModelOptions; media: Media }[] = [
-        { name: "WebGL refused", options: { refuse: true }, media: {} },
         {
           name: "off stored before load",
           options: { stored: "off" },
@@ -109,10 +135,11 @@ for (const url of PAGES) {
       ];
       for (const { name, options, media } of cases) {
         const where = `${name}, ${at}`;
-        const base =
-          media.forcedColors || media.print
-            ? await baseline(browser, url, size, media)
-            : plain;
+        const base = media.forcedColors
+          ? plain.forced
+          : media.print
+            ? plain.print
+            : plain.drawing;
         const run = await openModel(browser, { ...size, ...options });
         if (media.print) await run.page.emulateMedia({ media: "print" });
         if (options.noScript) await run.page.goto(url);
@@ -148,7 +175,7 @@ for (const url of PAGES) {
             )
             .toBeLessThanOrEqual(1);
         }
-        expectOffGhost(seen, base.drawing, where);
+        expectOffGhost(seen, base, where);
       }
 
       // Off pressed at rest, then mid-move.
