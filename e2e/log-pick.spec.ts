@@ -5,6 +5,7 @@ import {
   cursorOf,
   ghostNumbers,
   landedOn,
+  ledOutSeats,
   MARKED,
   markedSeat,
   offHull,
@@ -258,4 +259,133 @@ test("B5.24 A plank opens its record, with touch at 390 x 844: for each seat, at
       .toBe("/log");
     await run.close();
   }
+});
+
+test("B5.24 A plank opens its record, the press's edges, at 1440 x 900 on /log: a mouse press on a plank, main or middle button, dragged off the canvas and released there opens nothing, and hover lives on: back over a plank, data-pick is its seat and the cursor pointer; a Ctrl-click and a middle-click on a plank each open the record in a new page with no opener, which plays the move", async ({
+  browser,
+}) => {
+  test.setTimeout(300_000);
+  const run = await openModel(browser, { width: 1440, height: 900 });
+  await run.goto("/log");
+  await run.waitFor([...REST], FIRST);
+  await pause(300);
+  // Two numbers on the hull itself, not led out to a leader's end.
+  const led = await ledOutSeats(run.page);
+  const numbers = (await ghostNumbers(run.page)).filter(
+    (n) => n.shown && !led.includes(SEAT_BY_NUMBER.get(Number(n.text)) ?? ""),
+  );
+  const [first, second] = numbers;
+  expect(first && second, "two numbers shown on the hull").toBeTruthy();
+  if (!first || !second) return;
+  const a = {
+    at: centreOf(first.box),
+    seat: SEAT_BY_NUMBER.get(Number(first.text)),
+  };
+  const b = {
+    at: centreOf(second.box),
+    seat: SEAT_BY_NUMBER.get(Number(second.text)),
+  };
+
+  // Lens on #83: a press on a plank, dragged off the canvas and released there, with the main
+  // button and the middle one; it opens nothing, and the hover lives on.
+  for (const button of ["left", "middle"] as const) {
+    const pages = run.context.pages().length;
+    await run.page.mouse.move(a.at.x, a.at.y);
+    await twoFrames(run.page);
+    await run.page.mouse.down({ button });
+    await run.page.mouse.move(a.at.x, 20, { steps: 8 });
+    await run.page.mouse.up({ button });
+    await pause(800);
+    expect
+      .soft(
+        new URL(run.page.url()).pathname,
+        `the URL after a ${button} press dragged off the canvas`,
+      )
+      .toBe("/log");
+    expect
+      .soft(
+        run.context.pages().length,
+        `pages after a ${button} press dragged off the canvas`,
+      )
+      .toBe(pages);
+    await run.page.mouse.move(b.at.x, b.at.y, { steps: 4 });
+    await twoFrames(run.page);
+    await pause(200);
+    expect
+      .soft(
+        await pickOf(run.page),
+        `data-pick back over ${second.text} after the ${button} drag`,
+      )
+      .toBe(b.seat ?? null);
+    expect
+      .soft(
+        await cursorOf(run.page),
+        `the cursor back over ${second.text} after the ${button} drag`,
+      )
+      .toBe("pointer");
+    await run.page.mouse.move(a.at.x, a.at.y, { steps: 4 });
+    await twoFrames(run.page);
+    expect
+      .soft(
+        await pickOf(run.page),
+        `data-pick over ${first.text} after the ${button} drag`,
+      )
+      .toBe(a.seat ?? null);
+  }
+
+  // A new page from a Ctrl-click or a middle-click: no opener, so its own visit, and the move plays.
+  for (const how of ["Ctrl-click", "middle-click"] as const) {
+    await run.page.mouse.move(a.at.x, a.at.y);
+    await twoFrames(run.page);
+    const opened = run.context.waitForEvent("page", { timeout: 15_000 });
+    if (how === "Ctrl-click") {
+      await run.page.keyboard.down("Control");
+      await run.page.mouse.click(a.at.x, a.at.y);
+      await run.page.keyboard.up("Control");
+    } else {
+      await run.page.mouse.click(a.at.x, a.at.y, { button: "middle" });
+    }
+    const tab = await opened.catch(() => null);
+    expect
+      .soft(tab, `a new page from a ${how} on ${first.text}`)
+      .not.toBeNull();
+    if (!tab) continue;
+    await tab
+      .waitForURL((u) => u.pathname === `/log/${first.text}`, {
+        timeout: 15_000,
+      })
+      .catch(() => undefined);
+    expect
+      .soft(new URL(tab.url()).pathname, `the new page's URL after a ${how}`)
+      .toBe(`/log/${first.text}`);
+    expect
+      .soft(
+        await tab.evaluate(() => window.opener === null),
+        `the new page has no opener after a ${how}`,
+      )
+      .toBe(true);
+    const end = Date.now() + FIRST;
+    let seen: string[] = [];
+    while (Date.now() < end && !seen.some((s) => REST.includes(s))) {
+      seen = await tab.evaluate(
+        () =>
+          (window as Window & { __states?: { state: string }[] }).__states?.map(
+            (s) => s.state,
+          ) ?? [],
+      );
+      await pause(100);
+    }
+    expect
+      .soft(seen, `the new page from a ${how} plays the move`)
+      .toContain("lofting");
+    await tab.close();
+    expect
+      .soft(
+        new URL(run.page.url()).pathname,
+        `this page's URL after the ${how}`,
+      )
+      .toBe("/log");
+  }
+  expect.soft(run.errors, "console errors").toEqual([]);
+  await run.close();
 });
