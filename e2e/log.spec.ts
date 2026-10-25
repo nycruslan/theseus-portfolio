@@ -1401,6 +1401,22 @@ test.describe("B5.8 Metadata", () => {
 
 const SWEPT = [LOG, recordOf(13)] as const;
 
+/**
+ * Sprint 33 (amendment 1): this suite refuses WebGL, so once the loader's probe is answered Full and
+ * Calm are disabled and Off is pressed. Until then Full is, and a check that reads the control twice
+ * can catch it switching between the reads.
+ */
+async function probeAnswered(page: Page) {
+  await page.waitForFunction(
+    (slot) =>
+      [...document.querySelectorAll(`${slot} button`)].filter(
+        (b) => b.getClientRects().length > 0 && b.matches(":disabled"),
+      ).length === 2,
+    MOTION,
+    { timeout: 10_000 },
+  );
+}
+
 for (const scheme of SCHEMES) {
   test.describe(`B5.9 Widths, ${scheme}`, () => {
     test.use({ colorScheme: scheme, reducedMotion: "reduce" });
@@ -1493,6 +1509,8 @@ test.describe("B5.9 Accessibility", () => {
       await page.emulateMedia({ colorScheme: scheme });
       for (const url of SWEPT) {
         await open(page, url, 390);
+        // The text colours and the buttons' fills are read apart, so read them once it's settled.
+        await probeAnswered(page);
         const colors = await resolveColors(page);
         const rgba = (token: string) => {
           const value = colors[token]?.rgba;
@@ -1648,16 +1666,8 @@ test.describe("B5.9 Keyboard", () => {
     }) => {
       test.setTimeout(120_000);
       await open(page, recordOf(13), 1440, scheme);
-      // Sprint 33 (amendment 1): this suite refuses WebGL, so once the loader's probe is answered
-      // Full and Calm are disabled and Off is the one stop the control adds (3 with WebGL: B5.25).
-      await page.waitForFunction(
-        (slot) =>
-          [...document.querySelectorAll(`${slot} button`)].filter(
-            (b) => b.getClientRects().length > 0 && b.matches(":disabled"),
-          ).length === 2,
-        MOTION,
-        { timeout: 10_000 },
-      );
+      // Off is the one stop the control adds once the probe is answered (3 with WebGL: B5.25).
+      await probeAnswered(page);
       const order = await page.evaluate(
         ({ record, rows }) => {
           const hrefs = (selector: string) =>
