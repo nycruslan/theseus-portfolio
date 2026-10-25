@@ -24,8 +24,8 @@
 
 4. **No `HEAD` fill.** The plan filled the newest sprint's date at build from `HEAD` if Vercel's
    build has `.git`. That can't be measured from here (the cloud can't reach a preview, and a
-   preview's `HEAD` is a branch commit anyway), and an empty cell for a few hours until the next
-   run writes the record is true. Cut; nothing reads git at build.
+   preview's `HEAD` is a branch commit anyway), and an empty cell until the next sprint's PR
+   carries the record is true. Cut; nothing reads git at build.
 
 5. **Undated rows.** A merged sprint with no record yet (the newest, between its merge and the
    next run) sits in a group of its own, "Undated" (first, by decision 9), so the day groups never claim a day they don't
@@ -53,3 +53,13 @@
    C3.1 (newest first) and C3.2 (1 last) red, or needing them loosened by the owner. The rows
    without a record are always the newest (merged after the last writer run), so leading with
    them keeps both assertions as they are, and the groups still never claim a day they don't know.
+
+10. **Iris's notes taken** (`notes-iris.md`): below 640, where rows fold, the Date cell is visually
+    hidden and kept for assistive tech, since the group header above already names the day (a
+    visible one under the number adds 10 px a row and repeats the day up to six times); the 66ch
+    cap on Description is dropped, since in her mock-up it wrapped 12 of 29 goals beside 506 px of
+    empty column; "Date" stays. Both are new checks' words, changed before Probe finished them, so
+    no test is loosened. Known cost (Iris): a sprint's record lands with the next sprint's PR, so
+    production's newest revision sits under "Undated" from each merge until the next. A writer run
+    after each merge on main would close that gap; it is the owner's (a workflow, `.github/`), and
+    goes in the retro's proposals.

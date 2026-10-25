@@ -32,8 +32,9 @@ when it merged. Every date comes from a record the crew writes after the merge
 
 - **Date** (the frame `log-1440.webp` heads it Merged; decision 2), the seventh column, last, after Approved as the frame places it: the
   merge's UTC day as "24 Oct", with " 2025" added only when the year isn't the newest record's
-  year. A merged row with no record shows an empty cell, never "—". Below 1024 the cell folds
-  under the row's number like the others, labelled "Date".
+  year. A merged row with no record shows an empty cell, never "—". Below 640, where rows fold,
+  the cell is visually hidden but kept for assistive tech, since the group header just above
+  names the day (decision 10).
 - **Day groups:** the rows stay newest first, in a `tbody` per UTC merge day, each opened by one
   row header, `th[scope="rowgroup"]` across the row: "Sat 24 Oct · 4 revisions" ("1 revision" in
   the singular). Rows without a record go in a first group headed "Undated" (decision 9). Sprint order within a
@@ -46,14 +47,14 @@ when it merged. Every date comes from a record the crew writes after the merge
   line is absent.
 - **The record** gains a `dl` pair before "Pull request": `Date`, "24 Oct 2026, 03:36 UTC"
   (the year always). No record, no pair.
-- Description stays whole on as many lines as it takes; at 1440 its measure stays near 66ch
-  (Iris's rider on #77), and the record's `h2` takes `text-wrap: pretty`.
+- Description stays whole on as many lines as it takes, at full width (decision 10), and the
+  record's `h2` takes `text-wrap: pretty`.
 
 ## The checks (Probe writes them red first, the oracle reading `merge.json` itself)
 
 **B5.12 The Date column.** On `/log` with scripts on and off, at 390, 1024 and 1440: the heads
 are Rev, Description, Drawn, Checked, Tested, Approved, Date; each row's Date equals the oracle's
-from its `merge.json`, or is empty when it has none; no cell reads "—".
+from its `merge.json`, or is empty when it has none; no cell reads "—"; below 640 each Date cell keeps its text in the accessibility tree and paints nothing, and its group header is visible.
 **B5.13 The day groups.** Every row is in exactly one group; groups are in descending day order
 with "Undated" first; each header's day, weekday and count equal the oracle's; every row's Date
 equals its group's day.
