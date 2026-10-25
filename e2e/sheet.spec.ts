@@ -41,7 +41,9 @@ import { bioParts, MERGED, ROWS } from "./retros";
 // "/sprints: Sofia Sans only" retires with the old column (batch F; B5.10 checks /log's two faces).
 
 const REVISIONS = 'section[aria-labelledby="revisions"]';
-const LOG_ROWS = 'section[aria-labelledby="every-revision"] table tbody tr';
+// The Log's revision rows, not its day groups' header rows (sprint 32, B5.17).
+const LOG_ROWS =
+  'section[aria-labelledby="every-revision"] table tbody tr:has(> th[scope="row"])';
 const HEADS = ["Rev", "Description", "Drawn", "Checked", "Tested", "Approved"];
 const [BIO_1 = "", BIO_2 = "", ...BIO_REST] = bioParts(profile.bio);
 const TITLE_BIO = `${BIO_1} ${BIO_2}`;
