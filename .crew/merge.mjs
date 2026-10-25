@@ -115,7 +115,9 @@ function refusal() {
     ({ waits, applied }) => waits && !applied,
   );
   if (waiting) {
-    return `the owner's pick "${waiting.question}" waits for their answer`;
+    return waiting.options.some(({ ticked }) => ticked)
+      ? `the owner answered "${waiting.question}": build their answer and mark it Applied first`
+      : `the owner's pick "${waiting.question}" waits for their answer`;
   }
   const missing = unreported();
   if (missing.length) {

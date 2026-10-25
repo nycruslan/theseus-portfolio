@@ -155,3 +155,33 @@ test("a rewritten body keeps the owner's ticks and the team's Applied lines from
   assert.equal(keepAnswers(file, null), file);
   assert.equal(keepAnswers(file, ""), file);
 });
+
+test("an answer the team applied in the body's file wins over the live body that hasn't it", () => {
+  const live = [
+    "### Owner's pick: The footer",
+    "- [ ] Two columns (Recommended)",
+    "- [x] One column",
+  ].join("\n");
+  const file = [
+    "### Owner's pick: The footer",
+    "- [ ] Two columns (Recommended)",
+    "- [x] One column",
+    "Applied: One column, in #90.",
+  ].join("\n");
+  assert.equal(keepAnswers(file, live), file);
+  assert.deepEqual(unbuilt(ownerPicks(keepAnswers(file, live))[0]), []);
+});
+
+test("an option may carry indented lines of its own", () => {
+  const [pick] = ownerPicks(
+    [
+      "### Owner's pick: The footer",
+      "- [ ] Two columns (Recommended)",
+      "  Reads faster on a wide screen.",
+      "- [x] One column",
+      "  Fits a phone.",
+    ].join("\n"),
+  );
+  assert.deepEqual(texts(pick), ["Two columns (Recommended)", "One column"]);
+  assert.deepEqual(unbuilt(pick), ["One column"]);
+});

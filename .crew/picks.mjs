@@ -47,24 +47,26 @@ export function unbuilt({ waits, applied, options }) {
 }
 
 /**
- * `body` with each pick the live body also asks taken from the live body, ticks and "Applied:"
- * lines included: rewriting a PR's body from its file must not erase the owner's answers.
+ * `body` with each pick the live body also asks taken from whichever of the two applied more
+ * answers, the live one on a tie: rewriting a PR's body from its file must neither erase the
+ * owner's ticks nor the team's "Applied:" lines, wherever the team wrote them. A pick's wording is
+ * fixed once asked, since the answers are to it.
  */
 export function keepAnswers(body, live) {
   const liveLines = (live ?? "").split(/\r?\n/u);
-  const answered = new Map(
+  const asked = new Map(
     scan(live).map((pick) => [
       plain(pick.question),
-      liveLines.slice(pick.start, pick.end + 1),
+      { ...pick, lines: liveLines.slice(pick.start, pick.end + 1) },
     ]),
   );
   const lines = body.split(/\r?\n/u);
   const kept = [];
   let next = 0;
   for (const pick of scan(body)) {
-    const block = answered.get(plain(pick.question));
-    if (!block) continue;
-    kept.push(...lines.slice(next, pick.start), ...block);
+    const before = asked.get(plain(pick.question));
+    if (!before || pick.appliedLines > before.appliedLines) continue;
+    kept.push(...lines.slice(next, pick.start), ...before.lines);
     next = pick.end + 1;
   }
   kept.push(...lines.slice(next));
@@ -72,8 +74,9 @@ export function keepAnswers(body, live) {
 }
 
 // Each pick with the lines it spans. Its options are one list right under the heading, after any
-// prose; "Applied:" lines and blank lines may follow them, and anything else ends the pick, so a
-// checklist further down never reads as its options. Fenced code is never a pick.
+// prose, each perhaps with indented lines of its own; "Applied:" lines and blank lines may follow
+// them, and anything else ends the pick, so a checklist further down never reads as its options.
+// Fenced code is never a pick.
 function scan(body) {
   const picks = [];
   let pick;
@@ -93,6 +96,7 @@ function scan(body) {
         question: question.trim(),
         waits: Boolean(before || after),
         applied: null,
+        appliedLines: 0,
         options: [],
         start: index,
         end: index,
@@ -117,8 +121,11 @@ function scan(body) {
       pick.end = index;
     } else if (applied) {
       pick.applied = applied.groups.choice;
+      pick.appliedLines += 1;
       pick.end = index;
       listed = pick.options.length > 0;
+    } else if (pick.options.length && !listed && /^\s+\S/u.test(line)) {
+      pick.end = index;
     } else if (line.trim() === "") {
       listed = pick.options.length > 0;
     } else if (pick.options.length) {
