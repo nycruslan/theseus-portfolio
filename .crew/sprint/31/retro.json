@@ -4,7 +4,7 @@
   "goal": "B4a: /crew from the Studio's feed, in four honest states, and Crew in the bar",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "needs-owner: Lens ship on e7fb17c with four nits riding with the next sprint that touches /crew; Iris changes at 7.0, both musts taken in one fix round (7.9 with them, her ship); 180 of 180 checks after merging #77; the PR waits for the owner's six calls, CREW_FEED_URL and the real feed on the preview first",
+  "outcome": "needs-owner: Lens ship on 405355f after main's #83 merge and the kept feed answer (decisions 12 and 13), with its nits riding with the next sprint that touches /crew; Iris changes at 7.0, both musts taken in one fix round (7.9 with them, her ship); 209 of 210 checks, then green on rerun; the owner approves once the real feed answers live or open on the preview",
   "fixRounds": 1,
   "minutes": 170,
   "agents": [

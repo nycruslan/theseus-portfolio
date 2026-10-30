@@ -115,7 +115,8 @@ replaces today's page, and B3, the signature moment.
     768 on `/`, `/crew` and `/log`. (Sprint 31, PR #78, built over two runs on 2026-10-24: Quill's
     contract B4.1 to B4.14, Probe's checks red first against fixtures, Forge's build, main's #77
     merged in with both sides kept; Iris changes at 7.0, both musts taken in one round; Lens ship
-    with no Important; 180 of 180 checks; `decisions.md` 1 to 11.) B4's sprints now take letters
+    with no Important, again on 405355f after #83 merged in and a failed read kept the last good
+    answer; 209 of 210 checks, then green on rerun; `decisions.md` 1 to 13.) B4's sprints now take letters
     (B4a to B4e). **Its PR waits for the owner:** `CREW_FEED_URL` on Vercel, the feed deployed and
     answering `live` or `open` on the preview, and the six calls in the PR body. Riding with the
     next sprint that touches `/crew`: Lens's four nits on #78 (the `lib/sprint-log.ts` and
