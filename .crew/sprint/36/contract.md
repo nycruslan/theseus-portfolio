@@ -233,7 +233,7 @@ Probe writes these first:
   - Each is inside the pencil plank's box (outset by its stroke), at the oracle's x_i within 1 px.
   - Each resolves to `--muted` in both schemes, never within ΔE 10 of `--accent`, and to
     `CanvasText` in forced colours.
-  - No tick is within 4 px of the dot's ring or under the number's chip, which also settles rider
+  - No tick's stroke box comes within 4 px of the dot's centre (at 1440 and 390), so none touches the 8 px dot, or under the number's chip, which also settles rider
     (b) on `/crew`.
 - **B4.35 The drawing follows the poll** (`page.route` and `page.clock`, on the default server and
   the kept live site):
