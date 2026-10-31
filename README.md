@@ -56,6 +56,9 @@ Three parts, each in its own place:
   push that only touches the team's notes (the sprint folder's `.md` files and `retro.json`,
   `STATE.md`, `ROADMAP.md`) keeps the last ship.
 
+After a sprint merges, `prune-branches.yml` deletes its role branches (`forge/36`, `probe/36-r2`)
+and earlier sprints', leaving any sprint whose own branch is still open.
+
 Only the checks app can post `gate` and `lens`, and its key lives in a `checks` environment that
 serves `main` alone, where both workflows run on `pull_request_target`. Lens reads the PR's code
 outside its workspace and never runs it. The ruleset has no bypass: the owner approves and merges
