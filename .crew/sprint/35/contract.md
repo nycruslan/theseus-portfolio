@@ -5,8 +5,9 @@ Quill, 2026-10-31, during sprint 35, for the run that builds it (PR #90). The pl
 B4a's read, states, panel and harness (`.crew/sprint/31/contract.md`) and B4b's layer
 (`.crew/sprint/34/contract.md`) by reference. Numbers were measured on this branch (`0ba725d`), on
 a scratch build of it with a sketch of the poller and the route (not committed; "Measured", below),
-or on production (`https://theseus-portfolio.vercel.app`, 2026-10-31), as cited. Iris's calls
-(her message to Quill this sprint; `notes-iris.md` when it lands) are written in where they apply.
+or on production (`https://theseus-portfolio.vercel.app`, 2026-10-31), as cited. Iris's final
+calls (her two messages to Quill this sprint, prototyped on production's `/crew`; `notes-iris.md`
+when it lands) are written in where they apply.
 
 ## Outcome
 
@@ -45,9 +46,9 @@ it changes nothing a visitor can see. The browser only ever talks to the portfol
   test hook; it uses only `setTimeout`, `clearTimeout` and `Date.now()`, which `page.clock` fakes.
 - **A blank goal is no goal, at the read.** Lens's #87 nit asks for `goal?.trim()` in `layerOf`;
   doing it in `readCrew()` fixes `/`, `/crew` and the route at once.
-- **"Paused" changes words.** Iris: the open-not-waiting status "Paused" would sit beside a pressed
-  "Pause updates" and read as the visitor's own pause. She proposes "Crew between sessions." (her
-  final words in `notes-iris.md` govern; Atlas relays them to Forge and Probe together).
+- **"Paused" changes words** (Iris). The open-not-waiting status "Paused" would sit beside a
+  pressed "Pause updates" and read as the visitor's own pause. It becomes "Between sessions", with
+  no period, like "Waiting on the owner".
 
 ## Data rules (the page, the route and Probe's oracle implement these word for word)
 
@@ -121,7 +122,11 @@ resting). It is set at hydration when the server rendered a told state.
   down panel: "The live feed isn't answering. Here is the latest revision on record.", the
   record's chip, seven rows in roster order with no state or line, no activity, the record's PR.
 - New rows, lines, the now line and moments replace the old in place, with no fade, highlight,
-  scroll or animation of any kind, in every motion setting (Iris, call 4).
+  scroll, "new" mark, "updated at" stamp or animation of any kind, in every motion setting (Iris).
+  An answer that renders the same changes no DOM node. A new moment inserts one `li` at the top,
+  every moment still shown keeps its node (stable keys), and past 10 the oldest leaves. Focus stays
+  on the node it was on. A failed or kept poll shows no error words.
+- Copper stays while paused: the visitor froze the panel, and the pressed button says so.
 
 **The announcement.** One `[data-announce]`, `aria-live="polite"` and `aria-atomic="true"`, visually
 hidden with the site's `sr-only`, the panel `section`'s last child, and empty in the server's HTML.
@@ -137,22 +142,33 @@ it was. Nothing is announced at hydration, on a change to or from `down`, on a k
 paused. If the new text equals the old, Forge clears the region before setting it, so it's heard
 again. The now line, the moments and the status carry no `aria-live`.
 
-**Pause updates** (Iris, calls 1 to 3):
+**Pause updates** (Iris):
 - `button[data-pause][aria-pressed]`, named and reading "Pause updates" whether pressed or not (the
   name never changes to "Resume").
-- In every state, after `[data-status]` and before the table, in DOM order, beside the status.
-- The server renders an empty slot at the button's exact size, and the button is rendered into it
-  on hydration (the motion control's pattern, sprint 27). With scripts off there's no button, and
-  the status row is as tall as with scripts on.
-- Ink, never copper. 32 px tall from 1024 px (the motion control's cell), 44 px tall below 1024,
-  and at least 24 px wide. The 2 px ink ring sits 2 px out.
-- Pressed, it takes the motion control's pressed cell: ink fill, film text. In forced colours it
-  is `Highlight`/`HighlightText` with `forced-color-adjust: none` and outline `Highlight`, as
-  `[data-motion] [aria-pressed="true"]`.
-- Paused shows no other change: "Live" stays "Live". Iris's `notes-iris.md` gives the place in px.
+- In every state, in a status row: a `div` holding `[data-status]` then the button, after the chip
+  and before the table. It's a grid with columns `minmax(0, 1fr) auto`, `column-gap: 16px`,
+  `align-items: start` and `margin-top: 8px` (the status's own 8 px moves to the row).
+- The button's right edge is the panel's content edge, Close's: 1400 at 1440, 984 at 1024, 374 at
+  390. Its top is the row's top, so no state change moves it.
+- The status's first line is centred on the button: `padding-top: calc((32px - 1lh) / 2)` from
+  1024, `calc((44px - 1lh) / 2)` below. Long statuses wrap in the left column.
+- Iris measured 1290 to 1400 × 191 to 223 at 1440 (110 × 32) and 235 to 374 × 460 to 504 at 390
+  (139 × 44).
+- **Before the poller starts,** the server renders the button itself with `visibility: hidden`
+  until the poller marks it `data-ready` (`[data-pause]:not([data-ready])`). With scripts off it's
+  hidden: not visible, not focusable, not in the accessibility tree. The row's box is the same as
+  with scripts on. In print it is `display: none`.
+- **The look** is the motion control's cell: 1 px ink border, no radius, transparent ground, ink at
+  weight 600, `line-height: 1`, `nowrap`. From 1024 it is 32 px tall with padding `0 12px` at
+  `--step-sm`; below 1024, 44 px with `0 16px` at `--step-base`.
+- Hover (`hover: hover`, unpressed only) fills `--rule`. Pressed is an ink fill with film text.
+  There's no transition. The ring is the global 2 px ink, 2 px out. Never copper.
+- Forced colours, pressed: `forced-color-adjust: none`, `Highlight` border and fill,
+  `HighlightText`, outline `Highlight`.
+- Paused shows no other change: "Live" stays "Live".
 
 **The status words,** B4a's with one change (Iris): `open` with a `health.state` other than
-`"waiting"` reads **"Crew between sessions."** where it read "Paused". Approval in that state keeps
+`"waiting"` reads **"Between sessions"** where it read "Paused". Approval in that state keeps
 B4a's live sentence.
 
 **`/` doesn't change.** It renders no poller, requests no `/api/crew`, and its scripts are B4b's.
@@ -183,10 +199,10 @@ carries its number.
   (`runFor(29_000)`: none; `runFor(1_000)`: one).
 - At rest: answering open, resting or down, it comes after 60 s and not before 59 s.
 - A run that ends: switched from live to resting, the panel shows resting after one 30 s poll.
-- After a poll telling each fixture, the panel's text equals the server-rendered panel of the same
-  fixture's kept site, apart from the Pause slot. The oracle's B4.3, B4.4 and B4.5 expectations
+- After a poll telling each fixture, the panel's `textContent` equals the server-rendered panel's
+  on the same fixture's kept site (the button is in both). The oracle's B4.3, B4.4 and B4.5 expectations
   (status, chip, rows' order and words and lines, now line, activity, Evidence, Approval) hold on
-  it. On the open fixture switched to `quiet`, the status reads "Crew between sessions.".
+  it. On the open fixture switched to `quiet`, the status reads "Between sessions".
 - From the default server's `down` first paint, the hydration poll's live answer turns the panel
   live.
 - The page makes no request to any origin but its own.
@@ -221,21 +237,34 @@ carries its number.
   Pause changes nothing.
 - `[data-now]` and `[data-status]` have no `aria-live`.
 
-**B4.30 The first paint stays, and hydrating changes nothing.** On the kept live site and the
+**B4.30 The first paint stays, and updates arrive in place.** On the kept live site and the
 default server, at 1440 × 900 and 390 × 844, with `/api/crew` held (never fulfilled):
-- A `MutationObserver` installed before navigation records, inside the panel, nothing up to 3 s
-  after load but the button's insertion into the Pause slot.
+- A `MutationObserver` on `.crew` (subtree, `childList`, `characterData`, `attributes`), installed
+  before navigation, records nothing up to 3 s after load but `button[data-pause]`'s own
+  attributes.
 - No `layout-shift` entry has a source inside the panel.
 - The panel's text, scripts on, equals its text scripts off.
-- With scripts off: no `button[data-pause]`, and `[data-status]`'s row is as tall as with scripts
-  on.
-- Then, with the route answering the kept site's own fixture, the first poll mutates nothing in
-  the panel.
+- With scripts off, `button[data-pause]` is in the HTML but not visible, not focusable and not in
+  the accessibility tree, and the status row's box equals its box with scripts on.
+
+Then, with scripts on:
+- **Same answer:** the route answers the kept site's own fixture, and the first poll records 0
+  mutations.
+- **A new moment:** an answer adding one moment inserts one `li` at the top of `ol[data-moments]`.
+  Every moment still shown keeps its node (Probe tags them before the poll and checks identity
+  after). At 10, the oldest leaves.
+- **Focus:** with `button[data-pause]` focused, and again with an Evidence link focused, an update
+  that changes a role and adds a moment leaves focus on the same node.
+- **Paused:** with Pause pressed, 10 minutes record no mutation but the button's `aria-pressed`.
+- **Failed:** a failed poll records 0 mutations and shows no error words.
+- **Still:** nothing animates (no running animation or transition) after any of these updates.
 
 **B4.31 Pause, and the budget.**
 - In each of the four states, both schemes, at 1440 and 390: `button[data-pause]` follows
   `[data-status]` in DOM order and precedes the `table`, and is named "Pause updates" pressed and
   not.
+- Its right edge is within 0.5 px of `a[data-close]`'s, at 1440, 1024 and 390, and its top doesn't
+  move between the live and resting answers.
 - Its box is 32 px tall from 1024 and 44 px below, at least 24 px wide, inside the viewport, and
   overflows nothing at 320.
 - Space and Enter toggle `aria-pressed`. Focused, it shows one 2 px ink ring 2 px out.
@@ -261,8 +290,8 @@ one process, so a poll after the page shows a state tells that state or a newer 
 
 | Check | Disposition |
 |---|---|
-| `crew.spec.ts` B4 harness, B4.1 to B4.3, B4.5 to B4.12 | **keep**, unedited. B4.1's parts and order hold, with the slot and `[data-announce]` inside the panel |
-| `crew.spec.ts` B4.4 | **rewrite**, same assertions: "Paused" becomes "Crew between sessions." (Iris's final words) in the title, the check and `crew.ts`'s oracle |
+| `crew.spec.ts` B4 harness, B4.1 to B4.3, B4.5 to B4.12 | **keep**, unedited. B4.1's parts and order hold, with the status row's `div` and `[data-announce]` inside the panel. B4.12's first screen holds: the row moves the table down 7 px at 1440 and 20 px at 390 in live (Iris) |
+| `crew.spec.ts` B4.4 | **rewrite**, same assertions: "Paused" becomes "Between sessions" (Iris) in the title, the check and `crew.ts`'s oracle |
 | `crew.spec.ts` B4.13 | **rewrite**, same assertions: the Tab order gains `<button>` (Pause) after Close and before Evidence's links |
 | `crew.spec.ts` B4.14 | **rewrite**, same `expect(`s: `crew.paths` `toEqual(missing.paths)` becomes "the 404's paths not among `/crew`'s" `toEqual([])`; `crew.bytes` `toBe(missing.bytes)` becomes `crew.bytes − missing.bytes` at most 16,384; the `/log` bound, LCP and fonts unchanged; the title says so |
 | `read.spec.ts` B2.10 | **rewrite**: its route list drops `/crew`, which B4.14 and B4.31 now hold; `/`, `/log`, `/log/13` and `/read` keep every assertion and the 2,048 B; the title drops `/crew` |
@@ -284,7 +313,7 @@ with this reason in the PR.
 | Kept panel | at most 10 minutes past the last told answer | B4.28 | the server's own rule, B4a decision 13 |
 | Answer | at most 8,192 B; `max-age=0, s-maxage=30` | B4.25 | 1,560 B for the live fixture (scratch) |
 | Freshness | the visitor sees a feed change within about a minute | B4.26 (on fixtures) | Studio 15 s, `readCrew()` 30 s, CDN 30 s and poll 30 s each bound a step; typically under a minute while live |
-| Hydration | no visible change before the first answer; CLS 0 in the panel | B4.30 | scratch: only the button's insertion |
+| Hydration and arrival | 0 mutations in the panel at hydration (but the button's own attributes) and on an answer that renders the same; CLS 0 in the panel | B4.30 | Iris, on production's `/crew` |
 | Targets, overflow | Pause 32 px from 1024 and 44 px below; 0 overflow from 320 | B4.31, sweeps | Iris |
 | The new spec's time | at most 90 s at CI's worker count, reported by Probe; the suite under CI's 25-minute cap | the run | about 21 minutes for main's job (`.crew/STATE.md`) |
 
@@ -331,8 +360,9 @@ visibility shim. On it, production's `/crew` lists one `[aria-live]`, Next's
 
 ## Needs decision
 
-- **Iris:** final words for the open-not-waiting status (proposed "Crew between sessions.") and
-  Pause's place in px, in `notes-iris.md`. Calls 1 to 5 are written in from her message.
+- **Iris:** none open. Her final calls (place, look, the scripts-off button, "Between sessions",
+  arrival) are written in from her messages. `notes-iris.md` records them, and if it differs, Atlas
+  relays the difference to Forge and Probe together.
 - **Atlas:** whether the plan's loosened `/crew` script bound (0 B to 16,384 B beyond the 404's)
   needs an Owner's pick. My view: no. The owner merged the plan that sets it, and `/` is untouched.
 - **Owner:** none to merge. On the preview, with the real feed, they see a live run move.
