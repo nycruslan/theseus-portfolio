@@ -226,6 +226,11 @@ export function revisionBlock(page: Page) {
         tag: el.tagName.toLowerCase(),
         text: squash(el),
         inBlock: Boolean(block?.contains(el)),
+        // The element before it holds the heading and the caption.
+        afterCaption: Boolean(
+          el.previousElementSibling?.matches(":has(> h2#revisions)"),
+        ),
+        links: el.querySelectorAll("a").length,
         beforeTable: Boolean(
           table &&
             el.compareDocumentPosition(table) &
@@ -423,37 +428,72 @@ export function copperOnHome(page: Page, accent: number[]) {
   }, accent);
 }
 
-/** The pencil plank's paint in the shown drawing, and `--pencil` as rgba. */
-export function pencilPaint(page: Page) {
-  return page.evaluate(() => {
+/**
+ * The pencil plank's paint in the shown drawing (its stroke, dash and fill), the wide drawing's
+ * number on it (the lettering whose text is `n`: its colour and its chip's ground), and the
+ * tokens `--muted` and `--background`, all as rgba.
+ */
+export function pencilPaint(page: Page, n: number) {
+  return page.evaluate((n) => {
     const rgba = (
       window as Window & { __rgba?: (c: string) => number[] | null }
     ).__rgba;
-    const probe = document.createElement("div");
-    probe.style.color = "var(--pencil)";
-    document.body.append(probe);
-    const pencil = getComputedStyle(probe).color;
-    probe.remove();
-    const card = document.createElement("div");
-    card.style.color = "var(--card)";
-    document.body.append(card);
-    const cardColor = getComputedStyle(card).color;
-    card.remove();
-    return [...document.querySelectorAll("[data-plan] .plan-view")]
-      .filter((view) => view.getClientRects().length > 0)
-      .flatMap((view) =>
+    const token = (name: string) => {
+      const probe = document.createElement("div");
+      probe.style.color = `var(${name})`;
+      document.body.append(probe);
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return rgba ? rgba(value) : null;
+    };
+    const views = [
+      ...document.querySelectorAll("[data-plan] .plan-view"),
+    ].filter((view) => view.getClientRects().length > 0);
+    return {
+      muted: token("--muted"),
+      ground: token("--background"),
+      planks: views.flatMap((view) =>
         [...view.querySelectorAll("path[data-plank][data-pencil]")].map((p) => {
           const s = getComputedStyle(p);
           return {
             stroke: rgba ? rgba(s.stroke) : null,
-            pencil: rgba ? rgba(pencil) : null,
             dash: s.strokeDasharray,
             strokeWidth: Number.parseFloat(s.strokeWidth),
             fill: s.fill,
-            card: cardColor,
-            flat: rgba ? rgba(s.fill) : null,
           };
         }),
-      );
-  });
+      ),
+      numbers: views
+        .filter((view) => view.classList.contains("plan-wide"))
+        .flatMap((view) =>
+          [...view.querySelectorAll("*")]
+            .filter(
+              (el) =>
+                !(el instanceof SVGElement) &&
+                (el.textContent ?? "").trim() === String(n) &&
+                el.children.length === 0 &&
+                el.checkVisibility({
+                  opacityProperty: true,
+                  visibilityProperty: true,
+                }),
+            )
+            .map((el) => {
+              const s = getComputedStyle(el);
+              return {
+                color: rgba ? rgba(s.color) : null,
+                background: rgba ? rgba(s.backgroundColor) : null,
+              };
+            }),
+        ),
+    };
+  }, n);
 }
+
+/** Two rgba colours alike: within 1 level a channel and 0.02 of alpha. */
+export const sameColor = (a: number[] | null, b: number[] | null) =>
+  Boolean(
+    a &&
+      b &&
+      a.length === b.length &&
+      a.every((v, i) => Math.abs(v - (b[i] ?? -9)) <= (i < 3 ? 1 : 0.02)),
+  );

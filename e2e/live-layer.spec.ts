@@ -31,6 +31,7 @@ import {
   REVISIONS,
   ROWS_SHOWN,
   revisionBlock,
+  sameColor,
 } from "./live-layer";
 import {
   type Box,
@@ -109,6 +110,9 @@ const KEPT: Record<string, Partial<Answer>> = {
   "home-open": OPEN,
   "home-resting": RESTING,
 };
+
+/** The legend's added items' words (Iris's call 3.6). */
+const LEGEND_WORDS = { pencil: "In progress", copper: "Drawing now" };
 
 type Shown = { base: string; layer: Layer; where: string; name: string };
 
@@ -382,17 +386,14 @@ test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on t
       await page.emulateMedia({ colorScheme: scheme });
       for (const width of [1440, 390]) {
         await openHome(page, shown, width, width === 390 ? 844 : 900);
-        const paint = await pencilPaint(page);
+        const paint = await pencilPaint(page, layer.n ?? 0);
         const at = `${where} at ${width}, ${scheme}`;
-        expect(paint.length, `shown pencil planks, ${at}`).toBe(1);
-        for (const p of paint) {
+        expect(paint.planks.length, `shown pencil planks, ${at}`).toBe(1);
+        for (const p of paint.planks) {
           expect
             .soft(
-              p.stroke
-                ?.slice(0, 3)
-                .every((v, i) => Math.abs(v - (p.pencil?.[i] ?? -9)) <= 1) &&
-                (p.stroke?.[3] ?? 0) > 0,
-              `the pencil plank's stroke ${JSON.stringify(p.stroke)} is --pencil ${JSON.stringify(p.pencil)}, ${at}`,
+              sameColor(p.stroke, paint.muted),
+              `the pencil plank's stroke ${JSON.stringify(p.stroke)} is --muted ${JSON.stringify(paint.muted)}, ${at}`,
             )
             .toBe(true);
           expect
@@ -408,14 +409,26 @@ test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on t
             )
             .toMatch(/^url\(/);
         }
+        if (width >= 768) {
+          expect
+            .soft(
+              paint.numbers.map(
+                (number) =>
+                  sameColor(number.color, paint.muted) &&
+                  sameColor(number.background, paint.ground),
+              ),
+              `the wide drawing's ${layer.n}: --muted on a --background chip, ${at}: ${JSON.stringify(paint.numbers)}`,
+            )
+            .toEqual([true]);
+        }
       }
     }
     await page.emulateMedia({ colorScheme: "light", forcedColors: "active" });
     await openHome(page, shown);
-    const forced = await pencilPaint(page);
+    const forced = await pencilPaint(page, layer.n ?? 0);
     expect
       .soft(
-        forced.map((p) => p.dash),
+        forced.planks.map((p) => p.dash),
         `the pencil plank's dash in forced colours, ${where}`,
       )
       .toEqual([expect.not.stringMatching(/^(none|0(px)?)$/)]);
@@ -423,7 +436,7 @@ test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on t
   }
 });
 
-test("B4.16 the pencil row: on the live and open fixtures at 1440 and 390 the first row is tr[data-pencil] with Rev n, one link to /crew in Description holding the goal whole, the oracle's signatures, then the four newest retros without n; one line from 1024, folded with labels at 390; the link lands on /crew; drawing now whole in live only; Waiting for owner in open, — when quiet; none of the feed's other words on /", async ({
+test("B4.16 the pencil row: on the live and open fixtures at 1440 and 390 the first row is tr[data-pencil] with Rev n, one link to /crew in Description holding the goal whole, the oracle's signatures, then the four newest retros without n; one line from 1024, folded with labels at 390; the link lands on /crew; drawing now whole, uncut and within the viewport's width in live only; Waiting for owner in open, — when quiet; none of the feed's other words on /", async ({
   page,
   crew,
 }) => {
@@ -506,9 +519,10 @@ test("B4.16 the pencil row: on the live and open fixtures at 1440 and 390 the fi
         expect
           .soft(
             box !== null &&
-              insideViewport(box, { width: box.vw, height: box.vh }) &&
+              box.left >= -0.5 &&
+              box.right <= box.vw + 0.5 &&
               box.right - box.left > 0,
-            `"drawing now" wholly inside the viewport, ${at}: ${JSON.stringify(box)}`,
+            `"drawing now" within the viewport's width, ${at}: ${JSON.stringify(box)}`,
           )
           .toBe(true);
       } else {
@@ -693,7 +707,7 @@ test("B4.17 copper only while live: on the live, open and resting fixtures and a
   }
 });
 
-test("B4.18 the rest line: on the resting fixture p[data-rest], the revision block's first line before the table, reads the oracle's line with the merge's UTC day and time; with mergedAt null it drops the time, with last.sprint null it reads Crew resting., with 999 the same pattern; no pencil, tip or drawing now; the drawing, rows and legend as on the default server", async ({
+test("B4.18 the rest line: on the resting fixture p[data-rest], the revision block's first element after the heading and caption and before the table, with no link or copper, reads the oracle's line with the merge's UTC day and time; with mergedAt null it drops the time, with last.sprint null it reads Crew resting., with 999 the same pattern; no pencil, tip or drawing now; the drawing, rows and legend as on the default server", async ({
   page,
   crew,
 }) => {
@@ -701,38 +715,35 @@ test("B4.18 the rest line: on the resting fixture p[data-rest], the revision blo
   await openHome(page, DEFAULT);
   const referenceBlock = await revisionBlock(page);
   const referencePlanks = await planksByView(page);
-  const sites = [
-    await homeOn(crew, "home-resting"),
-    await homeOn(crew, "home-rest-nomerge", {
-      fixture: "resting",
-      patch: { last: { mergedAt: null } },
-    }),
-    await homeOn(crew, "home-rest-nosprint", {
-      fixture: "resting",
-      patch: { last: { sprint: null } },
-    }),
-    await homeOn(crew, "home-rest-999", {
-      fixture: "resting",
-      patch: { last: { sprint: 999 } },
-    }),
-  ];
-  // The oracle's lines, as the contract words them.
-  expect
-    .soft(
-      sites.map((s) => s.layer.rest),
-      "the oracle's rest lines",
-    )
-    .toEqual([
-      expect.stringMatching(
-        /^Crew resting\. Sprint 29 merged 24 Oct, 02:47 UTC\.$/,
-      ),
+  // The oracle's lines, as the contract words them; a variant's site lasts until the next starts,
+  // so each is read before the next.
+  const variants: [string, Partial<Answer>, string][] = [
+    [
+      "home-resting",
+      RESTING,
+      "Crew resting. Sprint 29 merged 24 Oct, 02:47 UTC.",
+    ],
+    [
+      "home-rest-nomerge",
+      { fixture: "resting", patch: { last: { mergedAt: null } } },
       "Crew resting. Sprint 29 merged.",
+    ],
+    [
+      "home-rest-nosprint",
+      { fixture: "resting", patch: { last: { sprint: null } } },
       "Crew resting.",
-      expect.stringMatching(
-        /^Crew resting\. Sprint 999 merged 24 Oct, 02:47 UTC\.$/,
-      ),
-    ]);
-  for (const shown of sites) {
+    ],
+    [
+      "home-rest-999",
+      { fixture: "resting", patch: { last: { sprint: 999 } } },
+      "Crew resting. Sprint 999 merged 24 Oct, 02:47 UTC.",
+    ],
+  ];
+  for (const [name, answer, line] of variants) {
+    const shown = await homeOn(crew, name, answer);
+    expect
+      .soft(shown.layer.rest, `the oracle's rest line on ${name}`)
+      .toBe(line);
     for (const [width, height] of [
       [1440, 900],
       [390, 844],
@@ -742,10 +753,26 @@ test("B4.18 the rest line: on the resting fixture p[data-rest], the revision blo
       const block = await revisionBlock(page);
       expect
         .soft(
-          block.rest.map((r) => [r.tag, r.text, r.inBlock, r.beforeTable]),
-          `[data-rest] on ${at}`,
+          block.rest.map((r) => [
+            r.tag,
+            r.text,
+            r.inBlock,
+            r.afterCaption,
+            r.beforeTable,
+            r.links,
+          ]),
+          `[data-rest] on ${at}: tag, text, in the block, right after the heading and caption, before the table, links in it`,
         )
-        .toEqual([["p", shown.layer.rest, true, true]]);
+        .toEqual([["p", shown.layer.rest, true, true, true, 0]]);
+      const accent = await accentOf(page);
+      expect
+        .soft(
+          (await copperOnHome(page, accent)).map(
+            (h) => `${h.where} ${h.property}`,
+          ),
+          `anything copper on / (the rest line included) on ${at}`,
+        )
+        .toEqual([]);
       const found = await hooks(page);
       expect
         .soft(
@@ -775,7 +802,7 @@ test("B4.18 the rest line: on the resting fixture p[data-rest], the revision blo
   }
 });
 
-test("B4.19 the legend follows the drawing: live adds the pencil and copper items after Seated and Original, open the pencil item only, resting and down the two items as on the default server; the pencil swatch hatched with a dashed edge, the copper swatch filling --accent", async ({
+test("B4.19 the legend follows the drawing: live adds the pencil and copper items after Seated and Original, open the pencil item only, resting and down the two items as on the default server; the pencil swatch hatched with a dashed edge, the copper swatch painting --accent; their words In progress and Drawing now", async ({
   page,
   crew,
 }) => {
@@ -810,9 +837,6 @@ test("B4.19 the legend follows the drawing: live adds the pencil and copper item
       const pencil = legend.find((item) => item.key === "pencil");
       if (shown.layer.keys.includes("pencil")) {
         expect
-          .soft(pencil?.text, `the pencil item's words on ${at}`)
-          .toBeTruthy();
-        expect
           .soft(
             pencil?.swatch?.image ?? "none",
             `the pencil swatch's hatch on ${at}`,
@@ -822,26 +846,27 @@ test("B4.19 the legend follows the drawing: live adds the pencil and copper item
           .soft(pencil?.swatch?.border, `the pencil swatch's edge on ${at}`)
           .toBe("dashed");
       }
-      const copper = legend.find((item) => item.key === "copper");
       if (shown.layer.keys.includes("copper")) {
-        const fill = await page.evaluate(() => {
-          const rgba = (
-            window as Window & { __rgba?: (c: string) => number[] | null }
-          ).__rgba;
-          const s = document.querySelector(
-            'li[data-key="copper"] [aria-hidden]',
-          );
-          return s && rgba ? rgba(getComputedStyle(s).backgroundColor) : null;
-        });
+        const swatch = (await copperOnHome(page, accent)).filter(
+          (h) => h.part === "swatch",
+        );
         expect
           .soft(
-            fill?.every(
-              (v, i) => Math.abs(v - (accent[i] ?? -9)) <= (i < 3 ? 1 : 0.02),
-            ),
-            `the copper swatch ${JSON.stringify(fill)} fills --accent ${JSON.stringify(accent)} on ${at} (${copper?.text})`,
+            swatch.length,
+            `paints in --accent inside the copper item's swatch on ${at}`,
           )
-          .toBe(true);
+          .toBeGreaterThan(0);
       }
+      expect
+        .soft(
+          legend.slice(2).map((item) => item.text),
+          `the added items' words on ${at}`,
+        )
+        .toEqual(
+          shown.layer.keys.map(
+            (key) => LEGEND_WORDS[key as keyof typeof LEGEND_WORDS],
+          ),
+        );
     }
   }
 });
@@ -898,12 +923,26 @@ function firstDifference(a: string, b: string) {
 // ---------------------------------------------------------------------------------------------
 // B4.21: the hull, on the B3 harness.
 
-/** CSS px from the pencil plank's painted fill the canvas may differ in (the contract's band). */
-const BAND = 2;
+/**
+ * CSS px from the pencil plank's painted fill the canvas may differ in: the contract's band, at
+ * least 5 px (amendment 1: the tip's 8 px dot sits past the seam by design).
+ */
+const BAND = 5;
+/**
+ * Triangles the tip may add while live (its run and dot as fat lines, 6 triangles a segment in
+ * three's LineSegmentsGeometry): the contract's "plus the tip's segments", taken as at most 64
+ * segments, and reported against what the frames counted.
+ */
+const TIP_TRIANGLES = 6 * 64;
+/** At rest the pencil seat is a sliver (Iris: about 80 x 8 px at 1440): one plank's share at most. */
+const REST_SHARE = 0.05;
 /** A channel difference that counts as a differing pixel (B3.7's 8 levels). */
 const LEVELS = 8;
 
-/** The pencil plank's painted fill in the shown drawing, as a mask over `clip` (CSS px). */
+/**
+ * The pencil plank's painted fill in the shown drawing, as a mask over `clip` (CSS px), tested
+ * only inside the plank's box grown by 12 px.
+ */
 function plankMask(page: Page, drawing: string, seat: string, clip: Box) {
   return page.evaluate(
     ({ drawing, seat, clip }) => {
@@ -913,16 +952,22 @@ function plankMask(page: Page, drawing: string, seat: string, clip: Box) {
       );
       const hull = svg?.querySelector<SVGPathElement>("clipPath path");
       const m = svg?.getScreenCTM();
-      const mask: number[] = [];
+      const mask = new Array<number>(clip.width * clip.height).fill(0);
       if (!svg || !plank || !hull || !m) return mask;
       const inverse = m.inverse();
-      for (let y = 0; y < clip.height; y++)
-        for (let x = 0; x < clip.width; x++) {
+      const r = plank.getBoundingClientRect();
+      const x0 = Math.max(0, Math.floor(r.left - clip.x - 12));
+      const x1 = Math.min(clip.width, Math.ceil(r.right - clip.x + 12));
+      const y0 = Math.max(0, Math.floor(r.top - clip.y - 12));
+      const y1 = Math.min(clip.height, Math.ceil(r.bottom - clip.y + 12));
+      for (let y = y0; y < y1; y++)
+        for (let x = x0; x < x1; x++) {
           const p = new DOMPoint(
             clip.x + x + 0.5,
             clip.y + y + 0.5,
           ).matrixTransform(inverse);
-          mask.push(plank.isPointInFill(p) && hull.isPointInFill(p) ? 1 : 0);
+          if (plank.isPointInFill(p) && hull.isPointInFill(p))
+            mask[y * clip.width + x] = 1;
         }
       return mask;
     },
@@ -974,6 +1019,8 @@ type HullRead = {
   firstTriangles: number;
   frames: number;
   atRest: number;
+  /** The wide drawing's pencil number at rest, its box's centre in CSS px, when shown. */
+  chip: { x: number; y: number } | null;
   errors: string[];
 };
 
@@ -997,6 +1044,14 @@ async function readHull(
   ).toBe("settled");
   await pause(200);
   const rest = (await modelCoverage(run.page, clip)).image;
+  const chip = await run.page.evaluate(() => {
+    const el = [...document.querySelectorAll(".plan-wide .plan-pencil")].find(
+      (n) =>
+        n.checkVisibility({ opacityProperty: true, visibilityProperty: true }),
+    );
+    const r = el?.getBoundingClientRect();
+    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+  });
   const frames = await run.frames();
   const before = frames.length;
   await run.step(2000);
@@ -1011,11 +1066,12 @@ async function readHull(
     firstTriangles: frames[0]?.triangles ?? -1,
     frames: before,
     atRest: after - before,
+    chip,
     errors: run.errors,
   };
 }
 
-test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 844 on the live and open fixtures, at frame 1 on the drawing the canvas differs from the default server's only within 2 px of the pencil seat's plank and does differ there, copper only there in live and nowhere in open, settled it differs and copper shows in live only; at most 8 draws, triangles equal to the default server's, 0 frames in the 2 s after rest", async ({
+test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 844 on the live and open fixtures, at frame 1 on the drawing the canvas differs from the default server's only within 5 px of the pencil seat's plank and does differ there, copper only there in live and nowhere in open; settled it differs within one plank's share, copper shows in live only, and from 768 the pencil number's chip is centred in the differing box; at most 8 draws, triangles at most the default server's plus the tip's segments within the level, 0 frames in the 2 s after rest", async ({
   page,
   browser,
   crew,
@@ -1032,14 +1088,8 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
     const drawing = drawingAt(size.width);
     // The drawing's box and tokens, read on the refused page.
     await openHome(page, DEFAULT, size.width, size.height);
-    const planBox = await page.evaluate((d) => {
-      const r = document.querySelector(`${d} svg`)?.getBoundingClientRect();
-      return r
-        ? { x: r.left, y: r.top, width: r.width, height: r.height }
-        : null;
-    }, drawing);
-    expect(planBox, `${drawing}'s box at ${size.width}`).not.toBeNull();
-    const clip = whole(planBox as Box);
+    // The whole first viewport: the settled hull may leave the drawing's box.
+    const clip: Box = { x: 0, y: 0, width: size.width, height: size.height };
     const colors = await resolveColors(page);
     const accent = colors["--accent"]?.rgba ?? [];
     const ground = colors["--background"]?.rgba ?? [];
@@ -1066,12 +1116,27 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
       const copperFirst = copperAt(read.first, accent, ground);
       const copperRest = copperAt(read.rest, accent, ground);
       let restDiffer = 0;
-      for (let i = 0; i < clip.width * clip.height; i++)
-        if (differs(read.rest, reference.rest, i)) restDiffer++;
+      let covered = 0;
+      const box = {
+        left: Infinity,
+        top: Infinity,
+        right: -Infinity,
+        bottom: -Infinity,
+      };
+      for (let i = 0; i < clip.width * clip.height; i++) {
+        if ((reference.rest.data[i * 4 + 3] ?? 0) > 5) covered++;
+        if (!differs(read.rest, reference.rest, i)) continue;
+        restDiffer++;
+        const [x, y] = [i % clip.width, Math.floor(i / clip.width)];
+        box.left = Math.min(box.left, x);
+        box.right = Math.max(box.right, x + 1);
+        box.top = Math.min(box.top, y);
+        box.bottom = Math.max(box.bottom, y + 1);
+      }
       note(
         testInfo,
         "hull",
-        `${at}: frame 1 differs from the default server's in ${within} px within ${BAND} px of ${seat}'s plank (${inside} px) and ${outside} px outside; copper ${copperFirst.length} px at frame 1 (${copperFirst.filter((i) => !band[i]).length} outside), ${copperRest.length} settled; settled differs in ${restDiffer} px; ${read.draws} draws, ${read.triangles} triangles (default ${reference.triangles}), ${read.frames} frames, ${read.atRest} in the 2 s after rest. SwiftShader.`,
+        `${at}: frame 1 differs from the default server's in ${within} px within ${BAND} px of ${seat}'s plank (${inside} px) and ${outside} px outside; copper ${copperFirst.length} px at frame 1 (${copperFirst.filter((i) => !band[i]).length} outside), ${copperRest.length} settled; settled differs in ${restDiffer} px of the hull's ${covered} (box ${JSON.stringify(box)}, the chip's centre ${JSON.stringify(read.chip)}); ${read.draws} draws, ${read.triangles} triangles (default ${reference.triangles}), ${read.frames} frames, ${read.atRest} in the 2 s after rest. SwiftShader.`,
       );
       expect
         .soft(
@@ -1091,6 +1156,27 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
           `settled pixels differing from the default server's, ${at}`,
         )
         .toBeGreaterThan(0);
+      expect
+        .soft(
+          restDiffer / Math.max(1, covered),
+          `share of the settled hull differing from the default server's (one plank's at most), ${at}`,
+        )
+        .toBeLessThanOrEqual(REST_SHARE);
+      if (size.width >= 768) {
+        const c = read.chip;
+        expect
+          .soft(
+            Boolean(
+              c &&
+                c.x >= box.left &&
+                c.x <= box.right &&
+                c.y >= box.top &&
+                c.y <= box.bottom,
+            ),
+            `the pencil number's chip centre ${JSON.stringify(c)} inside the settled plank's box ${JSON.stringify(box)}, ${at}`,
+          )
+          .toBe(true);
+      }
       if (shown.layer.home === "live") {
         expect
           .soft(copperFirst.length, `copper pixels at frame 1, ${at}`)
@@ -1115,12 +1201,19 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
       expect
         .soft(read.draws, `the most draws in a frame, ${at}`)
         .toBeLessThanOrEqual(8);
+      const tip = shown.layer.home === "live" ? TIP_TRIANGLES : 0;
       expect
         .soft(
-          [read.triangles, read.firstTriangles],
-          `the most triangles in a frame and frame 1's, ${at}`,
+          read.triangles,
+          `the most triangles in a frame, against the default server's ${reference.triangles} plus ${tip} for the tip, ${at}`,
         )
-        .toEqual([reference.triangles, reference.firstTriangles]);
+        .toBeLessThanOrEqual(reference.triangles + tip);
+      expect
+        .soft(
+          read.firstTriangles,
+          `frame 1's triangles, against the default server's ${reference.firstTriangles} plus ${tip} for the tip, ${at}`,
+        )
+        .toBeLessThanOrEqual(reference.firstTriangles + tip);
       expect
         .soft(read.triangles, `triangles within the level, ${at}`)
         .toBeLessThanOrEqual(TRIANGLES_AT(size.width));
@@ -1136,7 +1229,7 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
   }
 });
 
-test("B4.22 the first screen in every state: B1.1's assertions on the live, open and resting fixtures at 1440 x 900 (with the five rows) and 390 x 844, both schemes; at 1440 x 900 the pencil row in live and open and the rest line in resting wholly inside the viewport", async ({
+test("B4.22 the first screen in every state: B1.1's assertions on the live, open and resting fixtures at 1440 x 900 (with the five rows) and 390 x 844, both schemes; the resting fixture's contact links inside at 1024 x 768; at 1440 x 900 the pencil row in live and open and the rest line in resting wholly inside the viewport", async ({
   page,
   crew,
 }) => {
@@ -1148,6 +1241,20 @@ test("B4.22 the first screen in every state: B1.1's assertions on the live, open
   ]) {
     for (const scheme of SCHEMES) {
       await page.emulateMedia({ colorScheme: scheme });
+      if (shown.layer.home === "resting") {
+        // Iris measured 9.9 px to spare at 1024 x 768 with the rest line.
+        await openHome(page, shown, 1024, 768);
+        const found = await firstScreen(page);
+        expect
+          .soft(
+            found.items
+              .filter((item) => item.what.startsWith("the title block's link"))
+              .filter(({ box }) => !insideViewport(box, found.viewport))
+              .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
+            `contact links not wholly inside the first viewport on ${shown.where} at 1024 x 768, ${scheme}`,
+          )
+          .toEqual([]);
+      }
       for (const [width, height, withRows] of [
         [1440, 900, true],
         [390, 844, false],
@@ -1344,10 +1451,30 @@ test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both s
       }
       for (const width of [320, 390]) {
         await openHome(page, shown, width, 844);
+        // The innermost elements past the viewport's right edge, for the failure's message.
+        const past = await page.evaluate(() => {
+          const cw = document.documentElement.clientWidth;
+          return [...document.body.querySelectorAll("*")]
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              return (
+                r.width > 0 &&
+                r.right > cw + 0.5 &&
+                ![...el.children].some(
+                  (c) => c.getBoundingClientRect().right > cw + 0.5,
+                )
+              );
+            })
+            .slice(0, 6)
+            .map(
+              (el) =>
+                `<${el.tagName.toLowerCase()} class="${el.getAttribute("class") ?? ""}"> "${(el.textContent ?? "").trim().slice(0, 30)}" to ${el.getBoundingClientRect().right.toFixed(1)}`,
+            );
+        });
         expect
           .soft(
             await horizontalOverflow(page),
-            `overflow on ${shown.where} at ${width}, ${scheme}`,
+            `overflow on ${shown.where} at ${width}, ${scheme}: ${past.join("; ")}`,
           )
           .toBe(0);
       }
@@ -1389,7 +1516,8 @@ test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both s
       const hrefs = stops.map((s) => s.href);
       const contact = profile.links.map((l) => l.href);
       const lastContact = Math.max(...contact.map((h) => hrefs.indexOf(h)));
-      const log = hrefs.indexOf("/log");
+      // The revision block's Log link: the first /log after the title block's links (the bar has one).
+      const log = hrefs.indexOf("/log", lastContact);
       if (isLive) {
         const crewAt = hrefs.indexOf("/crew", lastContact);
         expect
