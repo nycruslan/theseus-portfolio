@@ -137,6 +137,10 @@ makes stale, and keep the file under about 100 lines.
     to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
+- **CI's `check` job has a 25-minute cap, and main's job takes about 21 of it** (sprint 34: the
+  first finished build was cancelled there). A spec that starts its own servers (the feed specs)
+  starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
+  full suite at CI's worker count before the label.
 - **Add the `review` label alone, after the push and the other labels have landed.** Lens's
   concurrency group keeps only the newest pending run, so a label event right behind it can cancel
   the review run (sprint 31: cancelled in a second, re-run by hand, `.crew/sprint/31/retro.json`).

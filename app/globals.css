@@ -389,6 +389,38 @@ nav > [data-motion] {
   fill: var(--card-old);
 }
 
+/* The sprint in progress (.crew/sprint/34/contract.md, "The drawing"; notes-iris.md, 3.1 to 3.4):
+   the pencil's hatch on the film inside a dashed graphite edge, its number in graphite on a film
+   chip, and, while the crew is live and only then, the copper pen on its lower edge, a run and a
+   dot. The hatch, the dash and the tip's run and weights are PENCIL's (lib/hull-layouts.ts), which
+   the 3D hull draws too, set as attributes in components/lines-plan.tsx. The hatch scales with the
+   drawing, as a fill does; the edge and the tip are line weights, which hold at every width. */
+.plank-pencil {
+  stroke: var(--muted);
+  stroke-width: 1px;
+}
+
+/* Under the dash's gaps, the neighbours' ink seams erased in the card's colour. */
+.plank-erase {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.4px;
+}
+
+.hatch-ground {
+  fill: var(--background);
+}
+
+.plan .hatch-line {
+  stroke: var(--pencil);
+  vector-effect: none;
+}
+
+.plank-tip {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
    a point in the drawing; the text centres on it vertically. */
 .plan-view > span {
@@ -416,6 +448,17 @@ nav > [data-motion] {
 .plan-figure {
   color: var(--muted);
   font-weight: 500;
+}
+
+/* The pencil's number: graphite at the numbers' weight, on a film chip that keeps the hatch off
+   its digits. A led-out number sits outside the hull and needs none. */
+.plan-view > .plan-pencil {
+  color: var(--muted);
+}
+
+.plan-view > .plan-pencil.plan-middle {
+  padding: 0 2px;
+  background: var(--background);
 }
 
 .plan-start {
@@ -461,6 +504,47 @@ nav > [data-motion] {
   print-color-adjust: exact;
 }
 
+/* The pencil's swatch is its plank, a symbol of it: the hatch, 1 px in 4, inside a dashed graphite
+   edge. Copper's is the tip itself, a 2 px run ending in an 8 px dot, with no frame or fill: the
+   drawing has no copper fill to key (notes-iris.md, 3.6 and 5). The dot is a 4 px border, so it
+   renders as a disc, not a ring, and forced colours keep it. */
+.swatch-pencil {
+  border: 1px dashed var(--muted);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    var(--background) 1px 4px
+  );
+}
+
+.swatch-tip {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 12px;
+  print-color-adjust: exact;
+}
+
+.swatch-tip::before,
+.swatch-tip::after {
+  content: "";
+  position: absolute;
+}
+
+.swatch-tip::before {
+  top: 5px;
+  right: 6px;
+  left: 2px;
+  border-top: 2px solid var(--accent);
+}
+
+.swatch-tip::after {
+  top: 2px;
+  right: 2px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+}
+
 /* Forced colors keep the drawing as line art: every line in the system's text color, a seated
    plank on the system's ground and an original one in its secondary grey, which differs from both
    ground and text in every theme. The legend's swatches say the same: forced colors would turn
@@ -482,8 +566,35 @@ nav > [data-motion] {
     fill: GrayText;
   }
 
+  /* The pencil stays: its hatch on the system's ground, its dashed edge in text colour (above)
+     over the erased seams, its number on a ground chip; the tip, the one mark that isn't text
+     coloured, as copper is the one that isn't ink, in the highlight. */
+  .plan .hatch-ground {
+    fill: Canvas;
+  }
+
+  .plan .hatch-line {
+    stroke: CanvasText;
+  }
+
+  .plan .plank-erase {
+    stroke: Canvas;
+  }
+
+  .plan .plank-tip path {
+    stroke: Highlight;
+  }
+
   .plan-view > span {
     color: CanvasText;
+  }
+
+  .plan-view > .plan-pencil {
+    color: CanvasText;
+  }
+
+  .plan-view > .plan-pencil.plan-middle {
+    background: Canvas;
   }
 
   .swatch {
@@ -497,6 +608,24 @@ nav > [data-motion] {
 
   .swatch.bg-card-old {
     background: GrayText;
+  }
+
+  .swatch.swatch-pencil {
+    border-color: CanvasText;
+    background: repeating-linear-gradient(
+      135deg,
+      CanvasText 0 1px,
+      Canvas 1px 4px
+    );
+  }
+
+  .swatch-tip {
+    forced-color-adjust: none;
+  }
+
+  .swatch-tip::before,
+  .swatch-tip::after {
+    border-color: Highlight;
   }
 }
 
@@ -638,10 +767,31 @@ main:has(> [data-model]) {
     & path[data-plank] {
       fill: transparent;
     }
+    & .plank-erase {
+      stroke: transparent;
+    }
     & .plan-plank,
-    & .ln-leader {
+    & .ln-leader,
+    & .plank-tip {
       visibility: hidden;
     }
+  }
+
+  /* The pencil's number stays and rides its plank on the hull, on an offset the chunk sets, as the
+     Log's numbers do (.crew/sprint/34/decisions.md, 4): the hull has no lettering of its own, and
+     the sprint in progress keeps its number in every state. */
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) .plan-pencil {
+    visibility: visible;
+  }
+
+  [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
+    transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
   }
 }
 
@@ -658,18 +808,27 @@ main:has(> [data-model]) {
     opacity: 0;
   }
 
-  [data-plan]:has(+ [data-model]) .plan-plank {
+  [data-plan]:has(+ [data-model]) :is(.plan-plank, .plank-tip) {
     transition:
       opacity 240ms linear,
       visibility 240ms linear;
   }
 
-  [data-plan]:has(+ [data-model][data-state]) .plan-plank {
+  [data-plan]:has(+ [data-model][data-state]) :is(.plan-plank, .plank-tip) {
     opacity: 0;
+  }
+
+  /* The pencil's number doesn't fade: it stays on its plank (above). */
+  [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
+    opacity: 1;
   }
 
   [data-plan]:has(+ [data-model]) path[data-plank] {
     transition: fill 240ms linear;
+  }
+
+  [data-plan]:has(+ [data-model]) .plank-erase {
+    transition: stroke 240ms linear;
   }
 }
 
@@ -795,6 +954,105 @@ main:has(> [data-model]) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+/*
+ * The live layer in the revision block (.crew/sprint/34/contract.md; notes-iris.md, calls 1 and
+ * 3.5). At rest, the rest line: one 13 px line in ink above the table. In progress, the pencil row
+ * leads: its number boxed on the pencil's hatch, as /crew's chip draws it; its goal, in ink, the
+ * link to /crew, a 24 px target that takes no more of the row than its text (an inline box's
+ * padding doesn't move its line; as a flex item from 1024 px, a negative margin cancels it); while
+ * live "drawing now" in copper with its dot, 8 px after the goal, whole: from 1024 px the goal takes
+ * the ellipsis, and below it "drawing now" follows the goal's last word and wraps as a unit. The
+ * cell doesn't clip there, so the link's focus ring shows whole. Its signatures are graphite, pencil
+ * entries inked when the sprint merges, and "Waiting for owner" holds one line where rows do.
+ */
+.rev-rest {
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+/* The chip's line is 2 px short of the table's, so its border keeps the row's height. Its edge is
+   the plank's, dashed graphite, in every mode: one pencil mark across the site. */
+.rev-chip {
+  display: inline-block;
+  padding: 0 4px;
+  line-height: calc(1.3em - 2px);
+  border: 1px dashed var(--muted);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    transparent 1px 4px
+  );
+  print-color-adjust: exact;
+}
+
+.rev-goal {
+  padding-block: 4px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .rev-goal:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.rev tbody tr[data-pencil] td[data-label] {
+  color: var(--muted);
+}
+
+@media (width >= 40rem) {
+  .rev tbody tr[data-pencil] td[data-label="Approved"] {
+    white-space: nowrap;
+  }
+}
+
+/* The space before it is a word space, 0.21em in Sofia Sans; the margin makes the gap 8 px. */
+.rev-drawing {
+  margin-left: calc(8px - 0.21em);
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 8 px, drawn as a 4 px border like /crew's Working dot, so it is a disc and forced colours paint
+   it. */
+.rev-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+  vertical-align: 0.05em;
+}
+
+@media (width >= 64rem) {
+  .rev tbody tr[data-pencil] td:not([data-label]) {
+    overflow: visible;
+  }
+
+  .rev-pencil {
+    display: flex;
+    align-items: baseline;
+  }
+
+  .rev-goal {
+    min-width: 0;
+    margin-block: -4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A flex container drops the word space, so the margin is the whole gap. */
+  .rev-drawing {
+    flex: none;
+    margin-left: 8px;
   }
 }
 
@@ -2115,20 +2373,15 @@ main:has(> [data-model]) {
   print-color-adjust: exact;
 }
 
+/* In progress, the pencil plank's mark, as on /'s drawing and revision block: the hatch inside a
+   dashed graphite edge. Forced colours drop the hatch, and the dashed edge still says it. */
 :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
-  border-color: var(--pencil);
+  border: 1px dashed var(--muted);
   background: repeating-linear-gradient(
     135deg,
     var(--pencil) 0 1px,
     transparent 1px 4px
   );
-}
-
-/* Forced colours drop the hatch, so the pencil's dashed edge says "in progress" there. */
-@media (forced-colors: active) {
-  :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
-    border-style: dashed;
-  }
 }
 
 .crew-goal {

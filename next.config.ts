@@ -5,9 +5,10 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   reactCompiler: true,
   // No request optimizes an image (the site has no next/image, and Vercel serves images itself).
-  // The pages are prerendered at build, but an unknown record's address (/log/999) runs the sprint
-  // log's reader on the server to answer 404 (lib/sprint-log.ts), so the retros and merge records
-  // stay traced; the folders' notes, frames and scripts don't. Traced, `sharp` and those made each
+  // The pages are prerendered at build, but the server runs the sprint log's reader after it
+  // (lib/sprint-log.ts): / and /crew regenerate as the crew feed's cached read expires, and an
+  // unknown record's address (/log/999) runs it to answer 404. So the retros and merge records stay
+  // traced; the folders' notes, frames and scripts don't. Traced, `sharp` and those made each
   // deployment's functions about 13 MB zipped, the bulk of the team's Vercel Functions Storage.
   outputFileTracingExcludes: {
     "/**": [
