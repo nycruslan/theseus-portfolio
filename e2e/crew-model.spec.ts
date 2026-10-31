@@ -30,6 +30,8 @@ import {
   openCrewModel,
   plankPoints,
   planksAlone,
+  pollNow,
+  pollUntilRun,
   rested,
   svgBox,
 } from "./crew-model";
@@ -403,13 +405,15 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
     const g = seatGeometry(seat);
     // One page per site, resized from width to width (the layer moves to the other drawing,
     // settled, across 768 px, and refits on a resize: lib/model/mount.ts), instead of a fresh
-    // build per width (decision 10). The hydration poll is held, so the page stays as the server
-    // drew it; once every width's settled pencil frame is read, it is released turned record and
-    // each framing width read again at the same pose, for the depth.
+    // build per width (decision 10). Every poll is answered with the site's own state, so the page
+    // stays as the server drew it (a held poll would be aborted at 30 s, B4.42, and a late
+    // release would answer nothing: Lens on c040055); once every width's settled pencil frame is
+    // read, the answer turns record, a poll is asked for at once, and each framing width is read
+    // again at the same pose, for the depth.
     const run = await openCrewModel(
       browser,
       { width: 1440, height: 900, stored: "calm" },
-      { hold: true },
+      { json: told("live", { current: { sprint: site.n } }) },
     );
     await run.context.addInitScript(installRgba);
     await rested(run, `${site.base}/crew`);
@@ -457,9 +461,11 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
     }
     // The plank's depth at the tally's middle: the pencil plank's pixels (the settled frame's
     // difference from the same pose with the run turned record) in the focus point's column.
-    await run.release({
-      json: told("live", { current: { sprint: site.n + 1 } }),
-    });
+    run.answer({ json: told("live", { current: { sprint: site.n + 1 } }) });
+    expect(
+      await pollUntilRun(run, "record"),
+      `[data-plan]'s data-run after a poll told another sprint, ${site.where}: the record frame's precondition`,
+    ).toBe("record");
     await run.waitFor(["settled", "still"], 5_000);
     await pause(400);
     for (const [width, f] of framed) {
@@ -873,24 +879,13 @@ async function stillWindows(
   // A tick: a told answer with one moment fewer than shown changes the ticks; 1 frame, then 0.
   run.answer({ json: liveWith(9) });
   const before = (await run.frames()).length;
-  await run.page.evaluate(() => {
-    // The poll's next schedule is 30 s of real time away: hide and show, which polls at once (B4.27).
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "hidden",
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "visible",
-    });
-    Object.defineProperty(document, "hidden", {
-      configurable: true,
-      get: () => false,
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  await pause(1500);
+  // The poll's next schedule is 30 s of real time away: hide and show, which polls at once (B4.27).
+  await pollNow(run.page);
+  // Until the frame lands (up to 10 s: CI's SwiftShader is slower than a fixed wait allows).
+  const end = Date.now() + 10_000;
+  while ((await marksDrawn(run.page)) !== 9 && Date.now() < end)
+    await pause(100);
+  await pause(300);
   const afterTick = (await run.frames()).length - before;
   expect
     .soft(

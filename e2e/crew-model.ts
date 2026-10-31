@@ -18,24 +18,23 @@ export const LAYOUT = 1 / 64;
 /** Full's one move (Iris: 1,800 ms on ease(), once a visit). */
 export const MOVE = 1800;
 
-export type Reply = { json: unknown } | { status: number } | { hold: true };
+// No reply holds a poll: B4.42 aborts a poll held 30 s, and a later answer would reach nothing.
+export type Reply = { json: unknown } | { status: number };
 
 export type CrewRun = ModelRun & {
   /** Polls the route has seen. */
   polls(): number;
   /** What the route answers from now on. */
   answer(reply: Reply): void;
-  /** Answers every held poll with `reply`. */
-  release(reply: Reply): Promise<void>;
   /**
-   * On the clock: runs it `ms`, waits for a poll that fires to reach the route and settle, then
-   * runs one more frame for the redraw it asks for. The new polls.
+   * On the clock: runs it `ms`, waits for a poll that fires to reach the route and be answered,
+   * gives the page time to apply it, then runs one more frame for the redraw it asks for. The new
+   * polls. The waits are real time, generous for CI's slower SwiftShader runners.
    */
   tick(ms: number): Promise<number>;
 };
 
 async function fulfil(route: Route, reply: Reply) {
-  if ("hold" in reply) return;
   await route
     .fulfill({
       status: "status" in reply ? reply.status : 200,
@@ -61,17 +60,12 @@ export async function openCrewModel(
   const run = await openModel(browser, options);
   let next = first;
   let seen = 0;
-  const held: Route[] = [];
   const answering: Promise<void>[] = [];
   if (first) {
     await run.page.route("**/api/crew", (route) => {
       if (route.request().method() !== "GET") return route.continue();
       seen += 1;
-      if (!next || "hold" in next) {
-        held.push(route);
-        return;
-      }
-      const done = fulfil(route, next);
+      const done = fulfil(route, next ?? first);
       answering.push(done);
       return done;
     });
@@ -82,20 +76,16 @@ export async function openCrewModel(
     answer(reply) {
       next = reply;
     },
-    async release(reply) {
-      await Promise.all(held.splice(0).map((route) => fulfil(route, reply)));
-      await pause(250);
-    },
     async tick(ms) {
       await Promise.all(answering);
       const before = seen;
       await run.page.clock.runFor(ms);
-      const end = Date.now() + 800;
+      const end = Date.now() + 3_000;
       while (seen === before && Date.now() < end) await pause(25);
       await Promise.all(answering);
-      await pause(250);
+      await pause(600);
       await run.page.clock.runFor(17);
-      await pause(150);
+      await pause(300);
       return seen - before;
     },
   };
@@ -336,4 +326,46 @@ export async function rested(run: CrewRun, url: string, clock = false) {
 /** The shown svg's box as a Box. */
 export async function svgBox(page: Page): Promise<Box | null> {
   return (await crewFit(page)).svg;
+}
+
+/**
+ * Asks for a poll at once, in real time: the tab hidden then shown, which polls on showing (B4.27),
+ * with `document.visibilityState` and `hidden` set as the browser would.
+ */
+export function pollNow(page: Page) {
+  return page.evaluate(() => {
+    for (const state of ["hidden", "visible"] as const) {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => state,
+      });
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => state === "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }
+  });
+}
+
+/**
+ * Asks for a poll (pollNow) until `[data-plan]`'s data-run reads `want`, up to 15 s of real time
+ * (a poll already in flight may answer first): what it read last.
+ */
+export async function pollUntilRun(run: CrewRun, want: string) {
+  const read = () =>
+    run.page.evaluate(
+      () =>
+        document.querySelector("[data-plan]")?.getAttribute("data-run") ?? null,
+    );
+  const end = Date.now() + 15_000;
+  let seen = await read();
+  while (seen !== want && Date.now() < end) {
+    await pollNow(run.page);
+    for (let i = 0; i < 10 && seen !== want; i++) {
+      await pause(200);
+      seen = await read();
+    }
+  }
+  return seen;
 }
