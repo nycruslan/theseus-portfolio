@@ -2652,17 +2652,23 @@ main:has(> [data-model]) {
 }
 
 /* The drawing and the model's layer over it (app/crew/page.tsx says why they share a box): the
-   layer lies on this box, and the scene lays its canvas on the drawing's. */
+   layer lies on this box, and the scene lays its canvas on the drawing's. Below 1024 px it takes
+   the content width inside the 16 px gutters, so the detail's cut edges land on them (Iris's early
+   look at sprint 36). */
 .crew-drawing {
   position: relative;
 }
 
-@media (width >= 48rem) and (width < 64rem) {
+@media (width < 64rem) {
   .crew-drawing {
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
+    margin: 0 16px;
   }
+}
+
+/* The foot doesn't borrow the drawing's margin here: the detail's canvas runs to its box's foot,
+   so the row would sit on it, and the hull's shadow would show through the control's cells. */
+.crew-page > .foot {
+  margin-top: 0;
 }
 
 @media (width >= 64rem) {
@@ -2719,17 +2725,10 @@ main:has(> [data-model]) {
 /*
  * The detail drawing (components/lines-plan.tsx's CrewPlan; .crew/sprint/36/contract.md, "The
  * detail drawing" and "A tick", with Iris's final numbers): the sheet's lines plan close on one
- * plank, clipped by its box, its lettering too. Below 768 px it sits 16 px in, as the panel's text
- * does. The tally's ticks are graphite strokes, never copper, with no transition in any mode: a
- * tick appears, it doesn't arrive. The poll moves data-run (components/crew-live.tsx); the rules
- * below draw what each value leaves.
+ * plank, clipped by its box, its lettering too. The tally's ticks are graphite strokes, never
+ * copper, with no transition in any mode: a tick appears, it doesn't arrive. The poll moves
+ * data-run (components/crew-live.tsx); the rules below draw what each value leaves.
  */
-@media (width < 48rem) {
-  .crew-drawing {
-    margin: 0 16px;
-  }
-}
-
 .plan-crew,
 .plan-crew svg {
   overflow: clip;
