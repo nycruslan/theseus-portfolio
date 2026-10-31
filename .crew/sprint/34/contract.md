@@ -3,10 +3,10 @@
 Quill, 2026-10-31, during sprint 34, for the run that builds it (PR #87). The plan's B4.2
 (`.crew/sprint/28/b4-plan.md`), to the owner-approved frames `main.webp` and `rest-1440.webp`
 (`.crew/sprint/17/design/`). It reuses B4a's read, states and harness (`.crew/sprint/31/contract.md`)
-by reference and changes nothing on `/crew`. Numbers were measured on this branch (`94db46b`) or on
-production (`https://theseus-portfolio.vercel.app`, 2026-10-31), as cited. The parts marked
-**Iris's call** are hers (`.crew/sprint/34/notes-iris.md`); until they land, build to the
-placeholder.
+by reference and changes nothing on `/crew` but its chip's edge (the pencil mark is one across the
+site). Numbers were measured on this branch (`94db46b`) or on
+production (`https://theseus-portfolio.vercel.app`, 2026-10-31), as cited. Iris's calls 1 to 4
+(`.crew/sprint/34/notes-iris.md`, the sprint branch's `e6351de`) are written in where they apply.
 
 ## Outcome
 
@@ -74,37 +74,78 @@ branch, the preview draws it on the same seat.
 
 **The drawing.** In each of the sheet's two drawings (`.plan-wide`, `.plan-narrow`, both in the
 HTML) the pencil plank is the seat's `path[data-plank]` with `data-pencil`, `data-sprint` = n, and
-`data-live` in `live` (decisions 4). It has a hatch fill and a dashed graphite (`--pencil`) edge, in
-both schemes; in forced colours the dashed edge stays. In `live` each drawing holds one `[data-tip]`
-inside its `svg`, the copper tip, on the pencil plank; never in any other state. The wide drawing's
-number on the pencil plank reads n; every other plank's id, `data-sprint`, class and number are as in
-`down`. The narrow drawing carries no numbers, as today. **Iris's call (the look):** the hatch's
-angle and spacing (`/crew`'s chip uses 135°, 1 px in 4), the dash, the tip's shape and place on the
-plank (the frame: a short copper stroke along the plank's lower edge, under its number).
+`data-live` in `live` (decisions 4). In `live` each drawing holds one `[data-tip]` inside its `svg`,
+the copper tip, on the pencil plank; never in any other state. The wide drawing's number on the
+pencil plank reads n; every other plank's id, `data-sprint`, class and number are as in `down`. The
+narrow drawing carries no numbers, as today. The look (Iris's call 3, `notes-iris.md` 3.1 to 3.4),
+its numbers in one `PENCIL` constant in `lib/hull-layouts.ts`, shared with the hull:
 
-**The hull.** Pixel reads the drawing's `[data-pencil]`, `data-sprint` and `data-live` (decisions
-4): the same seat is hatched in pencil on the 3D hull (the hatch slot in `lib/model/stage.ts`: a
-state alpha below 1), with a copper tip in `live` only. No loader code changes.
+```ts
+hatch: { period: 6, width: 1.4 },   // viewBox units
+dash: [4, 3],                       // CSS px
+tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },  // width and dot in CSS px
+```
+
+- **Hatch:** 45°, rising to the bow ("/"), one 1.4-unit `--pencil` line every 6 units across, tiled
+  from the viewBox origin, on the film (`--background`). It scales with the drawing (6 px at 1440
+  and 390).
+- **Edge:** graphite, `--muted`, 1 px, dash `4 3`, non-scaling, on the pencil `path` itself, painted
+  last. Just before it, one path with the same `d`, no fill, a 2.4 px `--card` stroke and no
+  `data-plank`, erases the neighbours' seams under the dash; the hollow rule hides it with the fills.
+  Forced colours: erase `Canvas`, edge `CanvasText`, dash kept.
+- **Number** (wide drawing only): n in `--muted` at weight 600 on a film chip (`--background`,
+  padding 1 px 3 px), so the hatch never crosses the digits. Forced colours: `Canvas` chip,
+  `CanvasText` digits.
+- **Tip,** `live` only: a 2 px copper (`--accent`) run with round caps on the plank's visible lower
+  edge (`bandAt`'s bottom), from 1/3 to 3/4 of its body's stretch, then a 7 px copper dot at its
+  forward end (a zero-length subpath with a round cap, non-scaling). Both are drawn after the
+  outline, outside the hull's clip. The hollow rule hides it; under reduced motion it fades with the
+  numbers (240 ms). Forced colours: `Highlight`.
+
+**The hull** (Iris's call 4, `notes-iris.md` 4). Pixel reads the drawing's `[data-pencil]`,
+`data-sprint` and `data-live` (decisions 4), and changes no loader code:
+- **Hatch:** the stage's existing slot (a state alpha below 1), film ground and `--pencil` strokes at
+  `PENCIL.hatch` in hull units per layout, phased from the drawing's origin, so at frame 1 it lies
+  on the 2D's hatch.
+- **Edge:** graphite on the pencil plank's seams and butts, solid, as colours in the seams' existing
+  batch (no draw).
+- **Tip,** `live` only: the 2D's run and 7 px dot in the same CSS px, unlit, exactly `--accent` in
+  both schemes, depth-tested with the seams' offset; at most two draws.
+- **Number,** from 768 only: the pencil plank's number (its film chip) rides the hull at the plank
+  body's projected middle, every frame of the loft and at rest, as `/log`'s numbers ride.
+- **The modes:** Full lofts as today; Calm opens settled; Off never loads WebGL and shows the 2D.
+  Forced colours hide the canvas, as today. 0 frames at rest. If the budget forces a cut, keep, in
+  order: the tip's dot, the number, the hatch, the edge, the tip's run.
+
+At rest the turn shows 4.0 as a sliver (Iris measured about 80 × 8 px at 1440, 3 px deep at 390),
+so on the hull the pencil reads by its number and its tip, and the hatch as a tone.
 
 **The pencil row,** `tr[data-pencil]` (plus `data-live` in `live`), the first row of the revision
 block's `tbody`. The block stays five rows: the pencil row, then the four newest entries of
 `readSprintLog()` whose sprint isn't n. Its cells are the other rows' (`th[scope="row"]`, then
 Description, then four `td[data-label]` with Drawn, Checked and Tested `translate="no"`), so it folds
 at 390 as they do and, from 1024, its description is one line with an ellipsis and the whole text
-inside, as B1.5 holds the others. Feed text is text (B4a's "Text"):
-- **Rev:** n. **Iris's call:** the number in a hatched box, as `/crew`'s chip draws it.
+inside, as B1.5 holds the others. Feed text is text (B4a's "Text"). The look is Iris's call 3.5:
+- **Rev:** n, ink, weight 700, in a hatched chip (135°, 1 px in 4) with a `1px dashed var(--muted)`
+  edge in every mode; the row stays 32 px at 1440. `/crew`'s `.crew-chip-number` takes the same
+  dashed `--muted` edge in `live` and `open`, so the pencil mark is one across the site. Forced
+  colours drop the hatch and keep the dashed edge.
 - **Description:** one `a[href="/crew"]` whose text is `run.goal` whole, or "In progress" when it is
-  `null`; at least 24 px tall. In `live`, the cell also holds `[data-drawing]` "drawing now"
-  (copper, with the frame's copper dot), shown whole, never cut by the ellipsis. **Iris's call:**
-  its place in the cell.
-- **Drawn:** "Forge", "Pixel" for `engineer`, `creative-engineer` whose feed state is `working`,
-  `waiting` or `done`; when neither is, "Iris", "Quill" for `design-director`, `product-owner` on
-  the same test; joined with ", ", in that order; none, "—".
-- **Checked:** "Lens" when `code-reviewer`'s state is `done`, else "—".
-- **Tested:** "Probe" when `qa-engineer`'s state is `done`, else "—".
-- **Approved:** in `open` with `health.state` `"waiting"`, "Waiting for owner" (the frame's words;
-  **Iris's call** on the copy and the column's width: production's Approved column is 64 px, and
-  this wraps in it); otherwise "—".
+  `null`, in ink with the site's underline, at least 24 px tall. In `live`, `[data-drawing]` "drawing
+  now" follows it 8 px after: copper, weight 600, with a 7 px copper dot, `nowrap`, shown whole and
+  never cut by the ellipsis (from 1024 the goal takes the ellipsis; below, it follows the goal inline
+  and wraps as a unit).
+- **Drawn, Checked, Tested and Approved** are graphite (`--muted`), pencil entries inked when the
+  sprint merges:
+  - **Drawn:** "Forge", "Pixel" for `engineer`, `creative-engineer` whose feed state is `working`,
+    `waiting` or `done`; when neither is, "Iris", "Quill" for `design-director`, `product-owner` on
+    the same test; joined with ", ", in that order; none, "—".
+  - **Checked:** "Lens" when `code-reviewer`'s state is `done`, else "—".
+  - **Tested:** "Probe" when `qa-engineer`'s state is `done`, else "—".
+  - **Approved:** in `open` with `health.state` `"waiting"`, "Waiting for owner" (the frame's words,
+    a cell's value like "Owner" and "Gate"; "Waiting on the owner" stays `/crew`'s sentence);
+    otherwise "—". The cell is `white-space: nowrap` from 640 px, so the row stays one line (the
+    description's ellipsis takes the 40 px); below 640 it wraps inside its folded cell.
 
 The fixtures give: live, Forge / — / — / —, with "drawing now"; open, Forge / Lens / Probe /
 "Waiting for owner".
@@ -135,9 +176,17 @@ viewport; at 320 it wraps to two lines.
 **The legend** (`components/plank-key.tsx`'s list in the revision block's foot) keeps "Seated by a
 sprint" and "Original", then adds `li[data-key="pencil"]` with a pencil swatch (the plank's hatch
 and dashed edge) in `live` and `open`, and `li[data-key="copper"]` with a copper swatch in `live`
-only. Placeholder words: "In pencil: not merged yet" and "Copper: live now" (the frame's "the
-sprint running now" is false in `open`, and "this minute" overstates a read that can be five
-minutes old). **Iris's call** on the words. `/read`'s legend doesn't change.
+only. Their words and swatches (Iris's call 3.6):
+- `[data-key="pencil"]` "In progress": a 28 × 12 swatch, hatch 135° 1 px in 4 on the film, a 1 px
+  dashed `--muted` edge. Forced colours: a `CanvasText` hatch on `Canvas`, dashed `CanvasText`.
+- `[data-key="copper"]` "Drawing now", the row's words, so copper says one thing on `/`: the swatch
+  is the tip itself, a 2 px copper run across the 28 × 12 slot ending in a 7 px copper dot, no frame
+  and no fill. Forced colours: `Highlight`, with `forced-color-adjust: none`.
+
+The frame's "the sprint running now" would be false in `open`. With these words, live at 1440 × 900
+puts the count and all four items on the foot's first line and the Log link under them at the left,
+as 1024 already does in every state; the foot is 48 px and the contact links stay at 866.3 (Iris).
+The DOM order (count, legend, link) stays. `/read`'s legend doesn't change.
 
 **Copper on `/`** (`--accent` as text, fill, stroke, border, background, outline or decoration):
 only in `live`, and only on `[data-drawing]` and its dot, the `[data-tip]`s, and the copper swatch.
@@ -167,8 +216,8 @@ first response. Each title carries its number; "in both drawings" means `.plan-w
 `path[data-plank][data-pencil]`, its id the oracle's seat (today 3.0 for 31, 4.0 for 999), its
 `data-sprint` n; `data-live` on it in live only; the wide drawing's number on it reads n; every
 other plank's id, `data-sprint`, class and number equal the default server's. Its stroke resolves to
-`--pencil` with a dash, and its fill is a hatch, not a flat card, in both schemes; in forced
-colours the dash stays. `[data-plan]` stays within 32,768 B (C6's measure).
+`--muted` with a dash, and its fill is a hatch, not a flat card, in both schemes; in forced
+colours the dash stays. The wide drawing's pencil number is `--muted` on a `--background` chip. `[data-plan]` stays within 32,768 B (C6's measure).
 
 **B4.16 The pencil row.** On the live and open fixtures, at 1440 and 390: the first `tbody` row is
 `tr[data-pencil]` with Rev n, the description's one link to `/crew` holding the goal whole, and the
@@ -197,7 +246,8 @@ pencil, tip or "drawing now"; the drawing, the five rows and the legend equal th
 **B4.19 The legend follows the drawing.** Live: Seated, Original, then the pencil and copper items
 with their swatches; open: the pencil item only; resting and down: the two items, as the default
 server shows them (B1.4's "names no state B1 doesn't have" holds there). The pencil swatch is
-hatched with a dashed edge, the copper swatch fills `--accent`.
+hatched with a dashed edge, and the copper swatch paints `--accent`. Their words are "In progress"
+and "Drawing now".
 
 **B4.20 Down is today's sheet.** After showing live, with the fixture switched to 503 and, on its
 own site, to an `asOf` 11 minutes old (the kept answer must age out, B4a's `decisions.md` 13); and
@@ -207,10 +257,12 @@ Probe masks those and says so.
 
 **B4.21 The hull agrees, and stays cheap and still.** With WebGL on (the B3 harness), at 1440 × 900
 and 390 × 844, on the live and open fixtures, at rest: the canvas differs from the default server's
-at the same pose only inside the pencil seat's projected plank and a band around its outline (2 CSS
-px to start; Probe tunes it on SwiftShader and reports it), and does differ there (the hatch); pixels
-within ΔE 10 of `--accent` (B3.7's test) appear only there in live, and nowhere in open. Draws at most 8 a frame and triangles equal to the default server's at the same
-width (B3.6's counter), over the loft and at rest; 0 frames in the 2 s after rest, in live and open.
+at the same pose only inside the pencil seat's projected plank and a band around its outline (at
+least 4 CSS px, since the tip's dot sits 3.5 px past the seam by design; Probe tunes it on
+SwiftShader and reports it), and does differ there (the hatch); pixels
+within ΔE 10 of `--accent` (B3.7's test) appear only there in live, and nowhere in open. From 768, at rest, the pencil number's chip is centred inside the plank's projected box. Draws at
+most 8 a frame (Iris: 7 with the tip) and triangles at most the default server's at the same width
+plus the tip's segments, within 30,000 / 12,000 (B3.6's counter), over the loft and at rest; 0 frames in the 2 s after rest, in live and open.
 
 **B4.22 The first screen in every state.** B1.1's assertions on the live, open and resting fixtures
 at 1440 × 900 (the name, role, bio, contact links and every revision row wholly inside the
@@ -254,8 +306,8 @@ layer".
 |---|---|---|---|
 | `/`'s script | B2.10: 2,048 B of `/log`'s with WebGL refused; the same files and bytes in every state | B2.10, B4.23 | 9 B left (brief); B4b adds 0 B |
 | 3D chunk | 250 kB gzip; the same file in every state | B3.6, B4.23 | about 147 kB (sprint 33's PR) |
-| Draws | at most 8 a frame | B3.6, B4.21 | 5 on `/log`, 4 below 768 (sprint 33's PR) |
-| Triangles | equal to the default server's at the same width, within 30,000 / 12,000 | B3.6, B3.11, B4.21 | sprint 33: `/`'s hull unchanged |
+| Draws | at most 8 a frame | B3.6, B4.21 | 5 settled on `/` (Iris's S3), 7 with the tip; 5 on `/log` (sprint 33's PR) |
+| Triangles | the default server's at the same width plus the tip's segments, within 30,000 / 12,000 | B3.6, B3.11, B4.21 | sprint 33: `/`'s hull unchanged |
 | Frames at rest | 0 | B3.6, B4.21 | 0 |
 | Drawing | 32,768 B in every state | C6, B4.15 | 22,427 B on production |
 | First screen | B1.1 in every state at 1440 × 900; the contact links inside at 1024 × 768 at rest | B1.1, B4.22 | with the rest line, 33.7 px left at 1440 × 900 and 9.9 px at 1024 × 768 (Iris, on production) |
@@ -279,11 +331,12 @@ layer".
   on `/crew`, and any pencil on `/crew`'s drawing (B4d).
 - `/read` reading the feed; the count line's "1 in pencil"; the Date column (B5's); the frame's
   closed-unmerged row.
-- Any change to `content/`, `/crew`, or an owner path.
+- Any change to `content/`, `/crew` (but its chip's dashed `--muted` edge), or an owner path.
 
 ## Needs decision
 
-- **Iris** (calls 1 and 2, the fold and the rest line, are made and written in above): the pencil
-  and copper look (hatch, dash, tip, the Rev box, "drawing now"'s place); the legend's two words; "Waiting for owner" and the Approved column's width.
+- **Iris:** none open. Her calls 1 to 4 are written in; her three changes to the checks (B4.15's
+  edge `--muted`, B4.19's swatch paints `--accent`, B4.21's band and triangles) are taken, Atlas
+  accepting the triangle bound, which loosens only a new check.
 - **Owner:** none to merge. The first change to the visitor's first screen since B3 is the plan's
   B4 demo; whether it is an Owner's pick is Atlas's call.
