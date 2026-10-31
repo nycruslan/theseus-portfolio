@@ -123,33 +123,107 @@ const DEFAULT: Shown = {
   name: "default",
 };
 
+/** The rest line's variants, each with the line the contract words for it. */
+const REST_VARIANTS: [string, Partial<Answer>, string][] = [
+  [
+    "home-resting",
+    RESTING,
+    "Crew resting. Sprint 29 merged 24 Oct, 02:47 UTC.",
+  ],
+  [
+    "home-rest-nomerge",
+    { fixture: "resting", patch: { last: { mergedAt: null } } },
+    "Crew resting. Sprint 29 merged.",
+  ],
+  [
+    "home-rest-nosprint",
+    { fixture: "resting", patch: { last: { sprint: null } } },
+    "Crew resting.",
+  ],
+  [
+    "home-rest-999",
+    { fixture: "resting", patch: { last: { sprint: 999 } } },
+    "Crew resting. Sprint 999 merged 24 Oct, 02:47 UTC.",
+  ],
+];
+
+/** B4.20's down variants: each shows live on `/` first, then switches. B4.17 reuses the stale one. */
+const STALE = ["home-down-stale", { ageMs: 11 * 60_000 }, LIVE] as const;
+const DOWNS = [
+  ["home-down-503", { status: 503 }, { ...LIVE, ageMs: 9 * 60_000 + 50_000 }],
+  STALE,
+  ["home-down-nosprint", { patch: { current: { sprint: null } } }, LIVE],
+] as const;
+
+type Reached = {
+  base: string;
+  layer: Layer;
+  crew: { seen: string; ms: number };
+  home: { seen: string; ms: number };
+};
+
 /**
- * A site of its own on channel `name` (kept when KEPT names it), read until `/crew` shows the
- * oracle's state and then `/` shows the layer's: the polling rule, read on `/` itself.
+ * The scenario behind homeOn, once per worker: a site of its own on channel `name`, read until
+ * `/crew` shows the oracle's state and then `/` shows the layer's. It asserts nothing.
+ */
+function reach(
+  crew: Crew,
+  name: string,
+  answer: Partial<Answer> = KEPT[name] ?? {},
+): Promise<Reached> {
+  return crew.once(`reach ${name}`, async () => {
+    const site = await crew.site(name, answer, true);
+    const body = crew.feed.body(name);
+    const layer = layerFor(body, crew.feed.origin);
+    const crewShown = await untilState(
+      site.baseURL,
+      expected(body, crew.feed.origin).state,
+      STATE_WAIT,
+    );
+    const home = await untilHome(site.baseURL, layer.home, STATE_WAIT);
+    return { base: site.baseURL, layer, crew: crewShown, home };
+  });
+}
+
+/**
+ * A site of its own on channel `name`, read until `/crew` shows the oracle's state and then `/`
+ * shows the layer's: the polling rule, read on `/` itself.
  */
 async function homeOn(
   crew: Crew,
   name: string,
   answer: Partial<Answer> = KEPT[name] ?? {},
 ): Promise<Shown> {
-  const site = await crew.site(name, answer, name in KEPT);
-  const body = crew.feed.body(name);
-  const layer = layerFor(body, crew.feed.origin);
-  const crewShown = await untilState(
-    site.baseURL,
-    expected(body, crew.feed.origin).state,
-    STATE_WAIT,
-  );
-  const shown = await untilHome(site.baseURL, layer.home, STATE_WAIT);
+  const {
+    base,
+    layer,
+    crew: crewShown,
+    home,
+  } = await reach(crew, name, answer);
   test.info().annotations.push({
     type: "state-wait",
-    description: `${name}: /crew ${crewShown.seen} after ${crewShown.ms} ms, then / ${shown.seen} after ${shown.ms} ms`,
+    description: `${name}: /crew ${crewShown.seen} after ${crewShown.ms} ms, then / ${home.seen} after ${home.ms} ms`,
   });
   expect(
-    shown.seen,
+    home.seen,
     `the state / shows on the ${name} site within ${STATE_WAIT} ms of /crew's ${crewShown.seen} (the last seen, from tr[data-pencil], data-live and p[data-rest])`,
   ).toBe(layer.home);
-  return { base: site.baseURL, layer, where: `the ${name} site`, name };
+  return { base, layer, where: `the ${name} site`, name };
+}
+
+/** The scenario behind downFrom: live on `/` first, then the switch, then down, once per worker. */
+function downScenario(
+  crew: Crew,
+  name: string,
+  answer: Partial<Answer>,
+  first: Partial<Answer> = LIVE,
+) {
+  return crew.once(`down ${name}`, async () => {
+    const live = await reach(crew, name, first);
+    if (live.home.seen !== live.layer.home) return { live, down: null };
+    crew.feed.set(name, answer);
+    return { live, down: await untilHome(live.base, "down", STATE_WAIT) };
+  });
 }
 
 /**
@@ -162,19 +236,30 @@ async function downFrom(
   answer: Partial<Answer>,
   first: Partial<Answer> = LIVE,
 ): Promise<Shown> {
-  const live = await homeOn(crew, name, first);
-  crew.feed.set(name, answer);
-  const shown = await untilHome(live.base, "down", STATE_WAIT);
+  const shown = await homeOn(crew, name, first);
+  const { down } = await downScenario(crew, name, answer, first);
   test.info().annotations.push({
     type: "state-wait",
-    description: `${name}: / ${shown.seen} ${shown.ms} ms after the switch`,
+    description: `${name}: / ${down?.seen ?? "no switch"} ${down?.ms ?? "-"} ms after the switch`,
   });
   expect(
-    shown.seen,
+    down?.seen,
     `the state / shows within ${STATE_WAIT} ms of the switch on ${name} (the last seen)`,
   ).toBe("down");
-  return { ...live, layer: layerFor(null, null) };
+  return { ...shown, layer: layerFor(null, null) };
 }
+
+// Every site's wait starts here, together, so the worker waits out the regenerations once: the
+// fixtures' first states, the variants' and the down switches overlap. Each check then awaits its
+// own scenario and asserts on what it saw.
+test.beforeAll(({ crew }) => {
+  for (const name of Object.keys(KEPT)) void reach(crew, name);
+  void reach(crew, "home-999", LIVE_999);
+  void reach(crew, "home-quiet", QUIET);
+  for (const [name, answer] of REST_VARIANTS) void reach(crew, name, answer);
+  for (const [name, answer, first] of DOWNS)
+    void downScenario(crew, name, answer, first);
+});
 
 async function openHome(page: Page, shown: Shown, width = 1440, height = 900) {
   await page.setViewportSize({ width, height });
@@ -602,7 +687,7 @@ test("B4.16 the pencil row: on the live and open fixtures at 1440 and 390 the fi
 });
 
 test("B4.17 copper only while live: on the live, open and resting fixtures and after a switch to down, in both schemes, at rest, hovering each link and focusing each stop, --accent paints only [data-drawing] and its dot, a [data-tip] or the copper swatch, and only in live; in live the shown drawing's tip, drawing now and the swatch are copper, and drawing now meets 4.5:1", async ({
-  page,
+  browser,
   crew,
 }) => {
   test.setTimeout(300_000);
@@ -610,101 +695,117 @@ test("B4.17 copper only while live: on the live, open and resting fixtures and a
     await homeOn(crew, "home-live"),
     await homeOn(crew, "home-open"),
     await homeOn(crew, "home-resting"),
-    await downFrom(crew, "home-copper-down", { ageMs: 11 * 60_000 }),
+    await downFrom(crew, ...STALE),
   ];
-  for (const scheme of SCHEMES) {
-    await page.emulateMedia({ colorScheme: scheme });
-    for (const shown of sites) {
-      const isLive = shown.layer.home === "live";
-      const at = `${shown.where}, ${scheme}`;
-      await openHome(page, shown);
-      const accent = await accentOf(page);
-      expect(accent.length, "--accent resolves").toBe(4);
-      await page.mouse.move(0, 0);
-      await settled(page);
-      const atRest = await copperOnHome(page, accent);
-      const wrong: string[] = [];
-      const note_ = (state: string, hits: typeof atRest) => {
-        for (const h of hits)
-          if (h.zone !== "layer" || !isLive)
-            wrong.push(`${state}: ${h.where} ${h.property}`);
-      };
-      note_("at rest", atRest);
-      if (isLive) {
-        const shownTip = await page.evaluate(() =>
-          [...document.querySelectorAll("[data-plan] [data-tip]")].some(
-            (t) => t.getClientRects().length > 0,
-          ),
-        );
-        expect.soft(shownTip, `a shown [data-tip], ${at}`).toBe(true);
-        const parts = new Set<string | null>(atRest.map((h) => h.part));
-        expect
-          .soft(
-            ["tip", "drawing", "swatch"].filter((part) => !parts.has(part)),
-            `layer parts not painted copper at rest, ${at}`,
-          )
-          .toEqual([]);
-        expect
-          .soft(
-            atRest.some(
-              (h) =>
-                h.part === "drawing" &&
-                h.property === "color" &&
-                h.text.includes(DRAWING_NOW),
-            ),
-            `"drawing now"'s text in copper, ${at}`,
-          )
-          .toBe(true);
-        const ratios = (await textContrast(page)).filter((t) =>
-          t.text.includes(DRAWING_NOW),
-        );
-        expect
-          .soft(ratios.length, `"drawing now" read for contrast, ${at}`)
-          .toBeGreaterThan(0);
-        expect
-          .soft(
-            ratios
-              .filter((t) => t.ratio < 4.5 - 0.005)
-              .map((t) => `${t.text}: ${t.ratio.toFixed(2)}`),
-            `"drawing now" under 4.5:1, ${at}`,
-          )
-          .toEqual([]);
+  // Each site on a page of its own, side by side: the pages share nothing but the browser.
+  await Promise.all(
+    sites.map(async (shown) => {
+      const context = await browser.newContext({
+        baseURL: test.info().project.use.baseURL,
+        timezoneId: "America/Los_Angeles",
+      });
+      await context.addInitScript(installRgba);
+      await context.addInitScript(refuseWebGl);
+      const page = await context.newPage();
+      for (const scheme of SCHEMES) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await copperPass(page, shown, scheme);
       }
-      const count = await page.locator("a[href]").count();
-      for (let i = 0; i < count; i++) {
-        const link = page.locator("a[href]").nth(i);
-        const href = (await link.getAttribute("href")) ?? "";
-        if (href === "#main" || !(await link.isVisible())) continue;
-        await link.hover();
-        await settled(page);
-        note_(`hovering ${href}`, await copperOnHome(page, accent));
-      }
-      await page.mouse.move(0, 0);
-      await openHome(page, shown);
-      const stops = await page.locator("a[href], button").count();
-      for (let press = 0; press < stops + 1; press++) {
-        await page.keyboard.press("Tab");
-        await settled(page);
-        const focused = await page.evaluate(
-          () =>
-            document.activeElement?.getAttribute("href") ??
-            document.activeElement?.tagName ??
-            "",
-        );
-        if (!focused || focused === "BODY") break;
-        note_(`focused ${focused}`, await copperOnHome(page, accent));
-      }
-      expect
-        .soft(
-          [...new Set(wrong)],
-          isLive
-            ? `copper outside [data-drawing], its dot, [data-tip] and the copper swatch, ${at}`
-            : `anything copper on /, ${at}`,
-        )
-        .toEqual([]);
-    }
-  }
+      await context.close();
+    }),
+  );
 });
+
+/** B4.17 on one site in one scheme: at rest, each link hovered and each stop focused. */
+async function copperPass(page: Page, shown: Shown, scheme: string) {
+  const isLive = shown.layer.home === "live";
+  const at = `${shown.where}, ${scheme}`;
+  await openHome(page, shown);
+  const accent = await accentOf(page);
+  expect(accent.length, "--accent resolves").toBe(4);
+  await page.mouse.move(0, 0);
+  await settled(page);
+  const atRest = await copperOnHome(page, accent);
+  const wrong: string[] = [];
+  const note_ = (state: string, hits: typeof atRest) => {
+    for (const h of hits)
+      if (h.zone !== "layer" || !isLive)
+        wrong.push(`${state}: ${h.where} ${h.property}`);
+  };
+  note_("at rest", atRest);
+  if (isLive) {
+    const shownTip = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-plan] [data-tip]")].some(
+        (t) => t.getClientRects().length > 0,
+      ),
+    );
+    expect.soft(shownTip, `a shown [data-tip], ${at}`).toBe(true);
+    const parts = new Set<string | null>(atRest.map((h) => h.part));
+    expect
+      .soft(
+        ["tip", "drawing", "swatch"].filter((part) => !parts.has(part)),
+        `layer parts not painted copper at rest, ${at}`,
+      )
+      .toEqual([]);
+    expect
+      .soft(
+        atRest.some(
+          (h) =>
+            h.part === "drawing" &&
+            h.property === "color" &&
+            h.text.includes(DRAWING_NOW),
+        ),
+        `"drawing now"'s text in copper, ${at}`,
+      )
+      .toBe(true);
+    const ratios = (await textContrast(page)).filter((t) =>
+      t.text.includes(DRAWING_NOW),
+    );
+    expect
+      .soft(ratios.length, `"drawing now" read for contrast, ${at}`)
+      .toBeGreaterThan(0);
+    expect
+      .soft(
+        ratios
+          .filter((t) => t.ratio < 4.5 - 0.005)
+          .map((t) => `${t.text}: ${t.ratio.toFixed(2)}`),
+        `"drawing now" under 4.5:1, ${at}`,
+      )
+      .toEqual([]);
+  }
+  const count = await page.locator("a[href]").count();
+  for (let i = 0; i < count; i++) {
+    const link = page.locator("a[href]").nth(i);
+    const href = (await link.getAttribute("href")) ?? "";
+    if (href === "#main" || !(await link.isVisible())) continue;
+    await link.hover();
+    await settled(page);
+    note_(`hovering ${href}`, await copperOnHome(page, accent));
+  }
+  await page.mouse.move(0, 0);
+  await openHome(page, shown);
+  const stops = await page.locator("a[href], button").count();
+  for (let press = 0; press < stops + 1; press++) {
+    await page.keyboard.press("Tab");
+    await settled(page);
+    const focused = await page.evaluate(
+      () =>
+        document.activeElement?.getAttribute("href") ??
+        document.activeElement?.tagName ??
+        "",
+    );
+    if (!focused || focused === "BODY") break;
+    note_(`focused ${focused}`, await copperOnHome(page, accent));
+  }
+  expect
+    .soft(
+      [...new Set(wrong)],
+      isLive
+        ? `copper outside [data-drawing], its dot, [data-tip] and the copper swatch, ${at}`
+        : `anything copper on /, ${at}`,
+    )
+    .toEqual([]);
+}
 
 test("B4.18 the rest line: on the resting fixture p[data-rest], the revision block's first element after the heading and caption and before the table, with no link or copper, reads the oracle's line with the merge's UTC day and time; with mergedAt null it drops the time, with last.sprint null it reads Crew resting., with 999 the same pattern; no pencil, tip or drawing now; the drawing, rows and legend as on the default server", async ({
   page,
@@ -716,29 +817,7 @@ test("B4.18 the rest line: on the resting fixture p[data-rest], the revision blo
   const referencePlanks = await planksByView(page);
   // The oracle's lines, as the contract words them; a variant's site lasts until the next starts,
   // so each is read before the next.
-  const variants: [string, Partial<Answer>, string][] = [
-    [
-      "home-resting",
-      RESTING,
-      "Crew resting. Sprint 29 merged 24 Oct, 02:47 UTC.",
-    ],
-    [
-      "home-rest-nomerge",
-      { fixture: "resting", patch: { last: { mergedAt: null } } },
-      "Crew resting. Sprint 29 merged.",
-    ],
-    [
-      "home-rest-nosprint",
-      { fixture: "resting", patch: { last: { sprint: null } } },
-      "Crew resting.",
-    ],
-    [
-      "home-rest-999",
-      { fixture: "resting", patch: { last: { sprint: 999 } } },
-      "Crew resting. Sprint 999 merged 24 Oct, 02:47 UTC.",
-    ],
-  ];
-  for (const [name, answer, line] of variants) {
+  for (const [name, answer, line] of REST_VARIANTS) {
     const shown = await homeOn(crew, name, answer);
     expect
       .soft(shown.layer.rest, `the oracle's rest line on ${name}`)
@@ -878,11 +957,7 @@ test("B4.20 down is today's sheet: after showing live, switched to 503 from an a
   test.setTimeout(300_000);
   const reference = await withoutScripts(browser, DEFAULT);
   expect(reference.status, "status of / on the default server").toBe(200);
-  for (const [name, answer, first] of [
-    ["home-down-503", { status: 503 }, { ...LIVE, ageMs: 9 * 60_000 + 50_000 }],
-    ["home-down-stale", { ageMs: 11 * 60_000 }, LIVE],
-    ["home-down-nosprint", { patch: { current: { sprint: null } } }, LIVE],
-  ] as const) {
+  for (const [name, answer, first] of DOWNS) {
     const shown = await downFrom(crew, name, answer, first);
     const off = await withoutScripts(browser, shown);
     expect.soft(off.status, `status of / on ${name}`).toBe(200);
@@ -1093,8 +1168,14 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
     const colors = await resolveColors(page);
     const accent = colors["--accent"]?.rgba ?? [];
     const ground = colors["--background"]?.rgba ?? [];
-    const reference = await readHull(browser, "", size, clip);
-    for (const shown of sites) {
+    // The default server's and the fixtures' visits run side by side: each is on Playwright's
+    // clock in a context of its own, so its frames don't depend on the others.
+    const [reference, ...reads] = await Promise.all([
+      readHull(browser, "", size, clip),
+      ...sites.map((shown) => readHull(browser, shown.base, size, clip)),
+    ]);
+    if (!reference) throw new Error("no reference visit");
+    for (const [i, shown] of sites.entries()) {
       const at = `${shown.where} at ${size.width}`;
       const seat = shown.layer.seat ?? "";
       await openHome(page, shown, size.width, size.height);
@@ -1105,7 +1186,8 @@ test("B4.21 the hull agrees, and stays cheap and still: at 1440 x 900 and 390 x 
         `pixels of ${seat}'s plank in ${drawing}, ${at}`,
       ).toBeGreaterThan(0);
       const band = grown(mask, clip.width, clip.height, BAND);
-      const read = await readHull(browser, shown.base, size, clip);
+      const read = reads[i];
+      if (!read) throw new Error(`no visit of ${shown.where}`);
       let outside = 0;
       let within = 0;
       for (let i = 0; i < clip.width * clip.height; i++) {

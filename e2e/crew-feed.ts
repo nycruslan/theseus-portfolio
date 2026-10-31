@@ -402,6 +402,13 @@ export type Crew = {
    * site, so a worker runs at most four or five `next start`s at once (CI's runner is small).
    */
   site(name: string, answer?: Partial<Answer>, keep?: boolean): Promise<Site>;
+  /**
+   * `make()` once per worker under `key`, its promise shared: a spec starts the scenarios that wait
+   * on the feed (a site's first state, a switch's 30 s revalidation) together in a beforeAll, and
+   * each check awaits its own, so the waits overlap instead of adding up. A scenario only reads
+   * and returns what it saw; the check asserts on it.
+   */
+  once<T>(key: string, make: () => Promise<T>): Promise<T>;
 };
 
 const KEPT = ["live", "open", "resting"];
@@ -416,11 +423,22 @@ export const crewTest = base.extend<object, { crew: Crew }>({
     async ({}, use) => {
       const feed = await startFeed();
       const sites = new Map<string, Promise<Site>>();
+      const scenarios = new Map<string, Promise<unknown>>();
       let variant: Promise<Site> | null = null;
       const stop = (site: Promise<Site> | null) =>
         site?.then((s) => s.stop()).catch(() => undefined);
       await use({
         feed,
+        once<T>(key: string, make: () => Promise<T>) {
+          let started = scenarios.get(key);
+          if (started === undefined) {
+            started = make();
+            // Awaited by its check, which reports a failure; unawaited here, it mustn't crash the run.
+            started.catch(() => undefined);
+            scenarios.set(key, started);
+          }
+          return started as Promise<T>;
+        },
         site(name, answer, keep = KEPT.includes(name)) {
           if (keep) {
             const known = sites.get(name);
@@ -447,6 +465,9 @@ export const crewTest = base.extend<object, { crew: Crew }>({
           return variant;
         },
       });
+      await Promise.all(
+        [...scenarios.values()].map((p) => p.catch(() => undefined)),
+      );
       for (const site of [...sites.values(), variant]) await stop(site);
       await feed.stop();
     },

@@ -64,6 +64,55 @@ test.skip(
   "PLAYWRIGHT_BASE_URL is set: these checks need this checkout's build, served without a feed (the down state) and from copies pointed at the fixture server",
 );
 test.use({ timezoneId: "America/Los_Angeles" });
+
+// The variants' answers, shared by their checks and the beforeAll that starts them.
+const QUOTED: Partial<Answer> = {
+  fixture: "live",
+  patch: {
+    current: {
+      health: {
+        state: "working",
+        label: "Working",
+        line: "Briefing Probe on the fixtures, then the harness.",
+        quote: true,
+      },
+    },
+  },
+};
+const QUIET: Partial<Answer> = {
+  fixture: "open",
+  patch: {
+    current: {
+      health: {
+        state: "quiet",
+        label: "Quiet",
+        line: "Nothing new for 12 min.",
+        quote: false,
+      },
+    },
+  },
+};
+const RESTING_VARIANTS = [
+  ["resting", undefined],
+  ["resting-999", { last: { sprint: 999 } }],
+  ["resting-no-merge", { last: { mergedAt: null } }],
+] as const;
+
+// Every site's wait starts here, together, so a worker waits out the regenerations once: the
+// fixtures' first states, the down variants' switches and the kept reads' windows overlap. Each
+// check then awaits its own scenario and asserts on what it saw, as before.
+test.beforeAll(({ crew }) => {
+  for (const fixture of ["live", "open"] as const)
+    void reach(crew, fixture, { fixture });
+  for (const [name, patch] of RESTING_VARIANTS)
+    void reach(crew, name, { fixture: "resting", patch });
+  void reach(crew, "live-quote", QUOTED);
+  void reach(crew, "open-quiet", QUIET);
+  for (const [name, answer, , first] of DOWNS)
+    void downScenario(crew, name, answer, first);
+  for (const [kind, answer] of FAILED_READS)
+    void keptScenario(crew, kind, answer);
+});
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
 });
@@ -147,6 +196,26 @@ const DEFAULT: Shown = {
   where: "the default server",
 };
 
+type Reached = { base: string; exp: Expected; seen: string; ms: number };
+
+/**
+ * The scenario behind onFixture: a site of its own on channel `name`, set to `answer`, read until
+ * `/crew` shows the oracle's state for what the channel serves (at most STATE_WAIT ms), once per
+ * worker. It asserts nothing: onFixture does.
+ */
+function reach(
+  crew: Crew,
+  name: string,
+  answer: Partial<Answer>,
+): Promise<Reached> {
+  return crew.once(`reach ${name}`, async () => {
+    const site = await crew.site(name, answer, true);
+    const exp = expected(crew.feed.body(name), crew.feed.origin);
+    const shown = await untilState(site.baseURL, exp.state, STATE_WAIT);
+    return { base: site.baseURL, exp, ...shown };
+  });
+}
+
 /**
  * A site of its own on channel `name`, set to `answer`, read until it shows the oracle's state
  * for what the channel serves (at most STATE_WAIT ms): the polling rule.
@@ -156,18 +225,31 @@ async function onFixture(
   name: string,
   answer: Partial<Answer>,
 ): Promise<Shown> {
-  const site = await crew.site(name, answer);
-  const exp = expected(crew.feed.body(name), crew.feed.origin);
-  const shown = await untilState(site.baseURL, exp.state, STATE_WAIT);
+  const { base, exp, seen, ms } = await reach(crew, name, answer);
   test.info().annotations.push({
     type: "state-wait",
-    description: `${name}: ${shown.seen} after ${shown.ms} ms`,
+    description: `${name}: ${seen} after ${ms} ms`,
   });
   expect(
-    shown.seen,
+    seen,
     `/crew's [data-crew-state] on the ${name} site within ${STATE_WAIT} ms (the last state seen)`,
   ).toBe(exp.state);
-  return { base: site.baseURL, exp, where: `the ${name} fixture` };
+  return { base, exp, where: `the ${name} fixture` };
+}
+
+/** The scenario behind downFrom: live first, then the switch, then down, once per worker. */
+function downScenario(
+  crew: Crew,
+  name: string,
+  answer: Partial<Answer>,
+  first: Partial<Answer> = {},
+) {
+  return crew.once(`down ${name}`, async () => {
+    const live = await reach(crew, name, { fixture: "live", ...first });
+    if (live.seen !== live.exp.state) return { live, down: null };
+    crew.feed.set(name, answer);
+    return { live, down: await untilState(live.base, "down", STATE_WAIT) };
+  });
 }
 
 /**
@@ -181,15 +263,17 @@ async function downFrom(
   answer: Partial<Answer>,
   first: Partial<Answer> = {},
 ) {
-  const live = await onFixture(crew, name, { fixture: "live", ...first });
-  crew.feed.set(name, answer);
-  const shown = await untilState(live.base, "down", STATE_WAIT);
+  const { live, down } = await downScenario(crew, name, answer, first);
   test.info().annotations.push({
     type: "state-wait",
-    description: `${name}: ${shown.seen} ${shown.ms} ms after the switch`,
+    description: `${name}: ${live.seen} after ${live.ms} ms; ${down?.seen ?? "no switch"} ${down?.ms ?? "-"} ms after the switch`,
   });
   expect(
-    shown.seen,
+    live.seen,
+    `/crew's [data-crew-state] on the ${name} site within ${STATE_WAIT} ms (the last state seen)`,
+  ).toBe(live.exp.state);
+  expect(
+    down?.seen,
     `/crew's [data-crew-state] within ${STATE_WAIT} ms of the switch to ${name} (the last state seen)`,
   ).toBe("down");
   return { base: live.base, exp: expected(null, null), where: name };
@@ -493,7 +577,7 @@ const FAILED_READS = [
 /** A live answer at 9 min 50 s: the next read, 30 s or more later, finds it past the window. */
 const EDGE_OF_WINDOW = 590_000;
 
-for (const [name, answer, what, first] of [
+const DOWNS = [
   ...FAILED_READS.map(
     ([kind, answer, what]) =>
       [
@@ -515,7 +599,9 @@ for (const [name, answer, what, first] of [
     "answers version 2",
     {},
   ] as const,
-]) {
+] as const;
+
+for (const [name, answer, what, first] of DOWNS) {
   test(`B4.2 down, honestly, when the feed ${what}: after showing live, /crew turns down and reads as on the default server`, async ({
     page,
     crew,
@@ -527,6 +613,40 @@ for (const [name, answer, what, first] of [
   });
 }
 
+/**
+ * The kept read's scenario, once per worker: live first, then the failed read switched in, and
+ * /crew's state each second until the feed counts a read past the switch, then 4 s, then five
+ * reads a second apart.
+ */
+function keptScenario(crew: Crew, kind: string, answer: Partial<Answer>) {
+  const name = `kept-${kind}`;
+  return crew.once(`kept ${name}`, async () => {
+    const live = await reach(crew, name, { fixture: "live" });
+    const before = crew.feed.reads(name);
+    const seen: string[] = [];
+    if (live.seen !== live.exp.state)
+      return { before, after: before, seen, ms: 0 };
+    crew.feed.set(name, answer);
+    // Each request may start the regeneration; the feed counts the read when it arrives.
+    const started = Date.now();
+    while (
+      crew.feed.reads(name) === before &&
+      Date.now() - started < STATE_WAIT
+    ) {
+      seen.push((await untilState(live.base, "live", 0)).seen);
+      await new Promise((done) => setTimeout(done, 1000));
+    }
+    const after = crew.feed.reads(name);
+    // The failed read settles within the 2,000 ms timeout; then the regenerated page is served.
+    await new Promise((done) => setTimeout(done, 4000));
+    for (let i = 0; i < 5; i++) {
+      seen.push((await untilState(live.base, "live", 0)).seen);
+      await new Promise((done) => setTimeout(done, 1000));
+    }
+    return { before, after, seen, ms: Date.now() - started };
+  });
+}
+
 for (const [kind, answer, what] of FAILED_READS) {
   test(`B4.2 kept, when the feed ${what} within 10 minutes of a good answer: after showing live, /crew still shows live, as the oracle reads the live fixture, once the failed read is in and the page regenerated after it`, async ({
     page,
@@ -535,35 +655,18 @@ for (const [kind, answer, what] of FAILED_READS) {
     test.setTimeout(150_000);
     const name = `kept-${kind}`;
     const live = await onFixture(crew, name, { fixture: "live" });
-    const before = crew.feed.reads(name);
-    crew.feed.set(name, answer);
-    // Each request may start the regeneration; the feed counts the read when it arrives.
-    const started = Date.now();
-    const seen: string[] = [];
-    while (
-      crew.feed.reads(name) === before &&
-      Date.now() - started < STATE_WAIT
-    ) {
-      seen.push((await untilState(live.base, "live", 0)).seen);
-      await new Promise((done) => setTimeout(done, 1000));
-    }
-    expect(
-      crew.feed.reads(name),
-      `reads of the ${name} channel within ${STATE_WAIT} ms of the switch`,
-    ).toBeGreaterThan(before);
-    // The failed read settles within the 2,000 ms timeout; then the regenerated page is served.
-    await new Promise((done) => setTimeout(done, 4000));
-    for (let i = 0; i < 5; i++) {
-      seen.push((await untilState(live.base, "live", 0)).seen);
-      await new Promise((done) => setTimeout(done, 1000));
-    }
+    const kept = await keptScenario(crew, kind, answer);
     test.info().annotations.push({
       type: "state-wait",
-      description: `${name}: read ${Date.now() - started} ms after the switch, seen ${seen.join(", ")}`,
+      description: `${name}: read ${kept.ms} ms after the switch, seen ${kept.seen.join(", ")}`,
     });
+    expect(
+      kept.after,
+      `reads of the ${name} channel within ${STATE_WAIT} ms of the switch`,
+    ).toBeGreaterThan(kept.before);
     expect
       .soft(
-        seen.filter((state) => state !== "live"),
+        kept.seen.filter((state) => state !== "live"),
         `/crew's states other than live from the switch to ${what} to 5 s past the failed read and its regeneration`,
       )
       .toEqual([]);
@@ -581,19 +684,7 @@ test("B4.3 live, from the live fixture: the status, chip, rows, now line, activi
   await openCrew(page, live);
   await panelIs(page, live);
 
-  const quoted = await onFixture(crew, "live-quote", {
-    fixture: "live",
-    patch: {
-      current: {
-        health: {
-          state: "working",
-          label: "Working",
-          line: "Briefing Probe on the fixtures, then the harness.",
-          quote: true,
-        },
-      },
-    },
-  });
+  const quoted = await onFixture(crew, "live-quote", QUOTED);
   expect
     .soft(quoted.exp.now?.quoted, "the oracle quotes the now line")
     .toBeTruthy();
@@ -642,19 +733,7 @@ test("B4.4 open, from the open fixture: Waiting on the owner, no now line, a wor
   await openCrew(page, open);
   await panelIs(page, open);
 
-  const quiet = await onFixture(crew, "open-quiet", {
-    fixture: "open",
-    patch: {
-      current: {
-        health: {
-          state: "quiet",
-          label: "Quiet",
-          line: "Nothing new for 12 min.",
-          quote: false,
-        },
-      },
-    },
-  });
+  const quiet = await onFixture(crew, "open-quiet", QUIET);
   expect.soft(quiet.exp.status, "the oracle's status").toBe("Paused");
   await openCrew(page, quiet);
   await panelIs(page, quiet);
@@ -665,11 +744,7 @@ test("B4.5 resting, from the resting fixture: Crew resting with the merge's day 
   crew,
 }) => {
   test.setTimeout(200_000);
-  for (const [name, patch] of [
-    ["resting", undefined],
-    ["resting-999", { last: { sprint: 999 } }],
-    ["resting-no-merge", { last: { mergedAt: null } }],
-  ] as const) {
+  for (const [name, patch] of RESTING_VARIANTS) {
     const resting = await onFixture(crew, name, { fixture: "resting", patch });
     await openCrew(page, resting);
     await panelIs(page, resting);
