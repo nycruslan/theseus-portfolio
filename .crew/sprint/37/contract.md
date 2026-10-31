@@ -125,9 +125,8 @@ Sprint 36 has 48 moments (08:44 to 15:51 UTC, a 7-hour sprint), so its replay ta
    - **Pixel is not needed**, unless B4.47 is red on Forge's build. A pencil that appears after
      mount is the one path the chunk has never run. If it fails, Atlas briefs Pixel with B4.47's
      failure.
-8. **The budget grows by a measured 2,048 B.** The sketch adds 2,259 B to `/crew`, and the head has
-   1,344 B left. The details are under "Budgets". This loosens a live bound, so Lens accepts it with
-   this reason.
+8. **~~The budget grows by a measured 2,048 B.~~ Reverted (decision 8):** the real build fits main's
+   18,432 B and 16,384 B, so no bound loosens.
 
 ## Data rules (the page and Probe's oracle implement these word for word)
 
@@ -444,8 +443,7 @@ carries no `replay`, and the default server is down, so the code paths they cove
 | B4.14 and B4.31, the script | **kept unedited** at main's 18,432 B and 16,384 B (call 8, reverted: decision 8) |
 | `read.spec.ts` B2.10 (`/` at 2,048 B, 9 B left), `sheet`, `keyboard`, `motion`, `model-*`, `log-*`, the `ROUTES` sweeps, `content`'s TODO sweep | **kept unedited**: `/` adds HTML only, and the default server shows no rest line |
 
-**Retired: none.** Two bounds loosen (B4.14 and B4.31), for Lens to accept with call 8's
-measurement.
+**Retired: none.** No bound loosens (call 8 reverted, decision 8).
 
 ## Budgets
 
