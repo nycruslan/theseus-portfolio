@@ -97,8 +97,13 @@ CSS into production's page while sprint 35 was live on it, with five status stri
    lands on a page frozen without knowing it.
 3. **A failed poll** (a status other than 200, an abort, or a body that isn't JSON) changes
    nothing. There are no error words, no change of state and no change to the button. The next poll
-   runs at the normal cadence. The server already tells the feed being down: an `/api/crew` answer
-   of `down` is a good poll, and it renders the down state as the server would.
+   runs at the normal cadence.
+   - **Superseded by the contract (a7b033a), which is right:** a failed poll and a `down` answer are
+     treated alike. The panel is kept while the last told answer is at most 10 minutes old, and past
+     that it turns to B4a's down panel.
+   - This is better than what I first wrote. A cold serverless instance answers `down` while the
+     feed is only slow, so a `down` answer shouldn't change the panel at once.
+   - Copper also never outlives its own 10-minute window unless the visitor paused.
 4. **The live region** (`[data-announce]`, Quill's words): render it empty in the server's HTML, so
    a screen reader registers it before its first words. It announces nothing at hydration or while
    paused.
