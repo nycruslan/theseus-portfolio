@@ -44,3 +44,8 @@
    re-renders `CrewPlan`) rides with the next sprint that touches `/crew`. Iris ship at 8.3/10
    (`review-iris.md`) with four follow-ups, none blocking. Editing the PR body restarted CI's
    `check` mid-run (11:46, run 41198244785), costing one CI run.
+10. **CI's `check` hit its 25-minute cap on cc9e958** (job 124530973957: e2e ran 23.8 min and was
+    cancelled; sprint 35's whole job took 22.2). Probe's local estimate of 1.8 min added was low.
+    The merge waits; Probe cuts the suite's wall time by at least 4 min with harness changes only,
+    no assertion dropped or weakened, and Lens re-reviews. Raising the cap is the owner's
+    `.github/` change, proposed in the retro, and this PR doesn't wait on it.
