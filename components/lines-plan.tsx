@@ -1,6 +1,7 @@
 import { Fragment } from "react";
-import { PENCIL } from "@/lib/hull-layouts";
+import { MARKS, PENCIL } from "@/lib/hull-layouts";
 import {
+  crewPlans,
   ghostPlan,
   type Lettering,
   linesPlans,
@@ -75,16 +76,81 @@ function SheetDrawings({
   );
 }
 
+/** The drawing's run on /crew (.crew/sprint/36/contract.md, call 3): the server draws the first two. */
+type Run = "live" | "open" | "record";
+
+// /crew's detail (.crew/sprint/36/contract.md, "The detail drawing"; Iris's final numbers): the
+// sheet's two drawings, one shown per width, each a profile close on `focus`, the plank in pencil
+// or the newest retro's seat, with every plank seated as on / and clipped by the box. In pencil,
+// the plank carries the tally: its number, then a graphite tick for each of the `marks` moments the
+// panel lists, then the copper pen while live. data-focus and the crop are fixed at first paint;
+// components/crew-live.tsx follows the poll on data-run, the focus plank and the ticks, and the 3D
+// chunk reads all of it (call 4). data-tally says the server drew the tally, so the crop is its.
+export function CrewPlan({
+  seats,
+  focus,
+  pencil,
+  marks,
+}: {
+  seats: ReadonlyMap<string, number>;
+  focus: string;
+  pencil: Pencil | null;
+  /** The moments the panel lists, in pencil. */
+  marks: number;
+}) {
+  const { wide, narrow } = pencil
+    ? crewPlans(
+        new Map(seats).set(pencil.seat, pencil.sprint),
+        focus,
+        pencil.seat,
+      )
+    : crewPlans(seats, focus);
+  const run: Run = pencil ? (pencil.live ? "live" : "open") : "record";
+  const shared = { pencil: pencil ?? undefined, focus, marks };
+  return (
+    <div
+      data-plan=""
+      data-focus={focus}
+      data-run={run}
+      data-tally={pencil ? "" : undefined}
+      aria-hidden="true"
+      className="plan"
+    >
+      <Drawing
+        plan={wide}
+        id="crew-wide"
+        view="plan-wide plan-crew"
+        {...shared}
+      />
+      <Drawing
+        plan={narrow}
+        id="crew-narrow"
+        view="plan-narrow plan-crew"
+        {...shared}
+      />
+    </div>
+  );
+}
+
 function Drawing({
   plan,
   id,
+  view = id,
   current,
   pencil,
+  focus,
+  marks = 0,
 }: {
   plan: Plan;
   id: string;
+  /** The view's classes, where they aren't its id. */
+  view?: string;
   current?: string;
   pencil?: Pencil;
+  /** /crew's focus seat. */
+  focus?: string;
+  /** /crew's shown ticks. */
+  marks?: number;
 }) {
   const { lines } = plan;
   const ghost = id === "plan-ghost";
@@ -98,7 +164,7 @@ function Drawing({
       ]
     : plan.planks;
   return (
-    <div className={`plan-view ${id}`}>
+    <div className={`plan-view ${view}`}>
       <svg viewBox={plan.viewBox} aria-hidden="true" focusable="false">
         <defs>
           <clipPath id={`${id}-hull`}>
@@ -183,10 +249,25 @@ function Drawing({
         )}
         <path className="ln-leader" d={lines.leaders} />
         <path className="ln-outline" d={lines.outline} />
+        {/* /crew's ticks hang from the plank's lower edge, outside the hull's clip, under the pen.
+          Each slot's path is in data-slots, so the poll can show the next without geometry of
+          its own (components/crew-live.tsx); a slot not yet shown is absent. */}
+        {plan.marks ? (
+          <g
+            className="plank-marks"
+            strokeWidth={MARKS.width}
+            data-slots={plan.marks.join("|")}
+          >
+            {plan.marks.slice(0, marks).map((d) => (
+              <path key={d} data-mark="" d={d} />
+            ))}
+          </g>
+        ) : null}
         {/* The pen on the plank's lower edge while the crew is live: after the outline and outside
-          the hull's clip, so it lies on every line and the keel lift's dot is whole. */}
-        {pencil?.live && plan.tip ? (
-          <g data-tip="" className="plank-tip">
+          the hull's clip, so it lies on every line and the keel lift's dot is whole. On /crew it
+          is drawn in open too, hidden, for the poll to show when the crew is live again. */}
+        {pencil && plan.tip && (pencil.live || focus !== undefined) ? (
+          <g data-tip={pencil.live ? "" : undefined} className="plank-tip">
             <path strokeWidth={PENCIL.tip.width} d={plan.tip.run} />
             <path strokeWidth={PENCIL.tip.dot} d={plan.tip.dot} />
           </g>
@@ -195,7 +276,7 @@ function Drawing({
       {plan.lettering.map((letter) => (
         <span
           key={`${letter.kind}-${letter.text}-${letter.left}-${letter.top}`}
-          className={letterClass(letter, current, pencil?.seat)}
+          className={letterClass(letter, current, pencil?.seat, focus)}
           style={{ left: `${letter.left}%`, top: `${letter.top}%` }}
         >
           {letter.text}
@@ -206,12 +287,13 @@ function Drawing({
 }
 
 /**
- * The current seat's number, and the pencil's, take a class, not the data attributes, which mark
- * the one plank.
+ * The current seat's number, the pencil's and /crew's focus number take a class, not the data
+ * attributes, which mark the one plank.
  */
 const letterClass = (
   { kind, align, wideOnly, plank }: Lettering,
   current?: string,
   pencil?: string,
+  focus?: string,
 ) =>
-  `plan-${kind} plan-${align}${wideOnly ? " plan-wide-only" : ""}${plank !== undefined && plank === current ? " plan-current" : ""}${plank !== undefined && plank === pencil ? " plan-pencil" : ""}`;
+  `plan-${kind} plan-${align}${wideOnly ? " plan-wide-only" : ""}${plank !== undefined && plank === current ? " plan-current" : ""}${plank !== undefined && plank === pencil ? " plan-pencil" : ""}${plank !== undefined && plank === focus ? " plan-focus" : ""}`;
