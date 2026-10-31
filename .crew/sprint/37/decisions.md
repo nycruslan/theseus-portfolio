@@ -55,3 +55,7 @@
    ticks; the time column widens by subgrid when a day shows, since sprint 37's own replay may
    cross midnight UTC. Each replay step's layout shift (0.004 at 1440, 0.043 at 320) is known and
    stays: a row arriving is the content.
+8. **Call 8 is reverted: `/crew`'s script limits stay at main's** (Quill's proposal, Atlas). Forge's
+   fb5274d measures 18,228 B beyond the 404's (204 B under 18,432) and 16,189 B beyond `/log`'s
+   (195 B under 16,384), after `"use no memo"` on the panel and a trim. B4.14 and B4.31 stay
+   unedited and B4.51 reads the same figures, so this PR loosens no bound. Forge keeps the margin.

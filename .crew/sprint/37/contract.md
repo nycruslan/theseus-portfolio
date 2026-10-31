@@ -441,7 +441,7 @@ carries no `replay`, and the default server is down, so the code paths they cove
 |---|---|
 | `crew.spec.ts` (B4.1 to B4.13 and the harness), `crew-bar`, `crew-live` (B4.25 to B4.30, B4.42), `crew-hull` (B4.33 to B4.35), `crew-model*`, `crew-motion`, `crew-control` | **kept unedited**: with no replay offered, every page they load is today's. B4.25's `wrongKeys` holds because a route answer carries `replay` only when one is offered (call 6) |
 | `live-layer.spec.ts` B4.15 to B4.24, B4.32 (B4.18's "no link" in the rest line, B4.24's "the Log right after Contact" at rest) | **kept unedited**: their resting fixture has no replay, so no link. B4.49 checks the link's presence with their helpers, beside them |
-| B4.14 and B4.31, the script | **rewrite, same `expect(`s**: `/crew` beyond the 404 goes from 18,432 to **20,480 B**, and beyond `/log`'s from 16,384 to **18,432 B** (call 8). LCP and fonts are unchanged |
+| B4.14 and B4.31, the script | **kept unedited** at main's 18,432 B and 16,384 B (call 8, reverted: decision 8) |
 | `read.spec.ts` B2.10 (`/` at 2,048 B, 9 B left), `sheet`, `keyboard`, `motion`, `model-*`, `log-*`, the `ROUTES` sweeps, `content`'s TODO sweep | **kept unedited**: `/` adds HTML only, and the default server shows no rest line |
 
 **Retired: none.** Two bounds loosen (B4.14 and B4.31), for Lens to accept with call 8's
@@ -451,7 +451,7 @@ measurement.
 
 | Measure | Budget | Check | Measured |
 |---|---|---|---|
-| `/crew`'s script, WebGL refused | the 404's files plus at most **20,480 B** decoded; at most 18,432 B beyond `/log`'s | B4.14, B4.31, B4.51 | head 17,088 B in one file (1,344 B left of 18,432); the sketch 19,347 B (+2,259; 1,133 B under the new figure). The sketch lacks the browser's read of `run.replay`, the stamp's toggle, the key's `svg` and `replaceState`. If Forge's build doesn't fit, he trims or stops and tells Atlas, and the figure isn't raised again without a measurement |
+| `/crew`'s script, WebGL refused | the 404's files plus at most **18,432 B** decoded; at most 16,384 B beyond `/log`'s (decision 8) | B4.14, B4.31, B4.51 | head 17,088 B in one file (1,344 B left of 18,432); the sketch 19,347 B (+2,259; 1,133 B under the new figure). The sketch lacks the browser's read of `run.replay`, the stamp's toggle, the key's `svg` and `replaceState`. If Forge's build doesn't fit, he trims or stops and tells Atlas, and the figure isn't raised again without a measurement |
 | `/`'s script | B2.10 unchanged: the link is server HTML | B2.10, B4.49 | 2,039 B over the 404, head and sketch alike |
 | `/api/crew` | a resting answer grows by its replay, at most 60 `{ at, kind, text }` (call 6); every other answer is unchanged | B4.25, B4.48 | the Studio's whole answer, replay included, is under 8 KB by its own test (`lib/crew.test.ts`) |
 | 3D | B4.40's, unchanged: no new draw, at most 10 ticks | B4.40, B4.47 | |
@@ -529,7 +529,7 @@ None of them touches what this sprint builds.
 - **Iris and Atlas:** settled. Iris's numbers are amendment 1, and Atlas took call 8 and rider 2
   in `decisions.md`, 3.
 - **Bytes:** the entry is a second control, so watch call 8's margin. If Forge's build doesn't
-  fit 20,480 B, he trims or stops and tells Atlas.
+  fit 18,432 B (decision 8), he trims or stops and tells Atlas.
 - **Owner:** nothing to merge. On the preview the crew is live or open, so no replay is offered
   there. They see it on production after the merge, with the crew at rest. That is the milestone's
   close, and the demo is theirs. Until then they have Probe's screenshots of the fixture.
