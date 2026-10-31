@@ -19,3 +19,11 @@
    `e2e/` is Probe's; `lib/model/*` and the model layer's CSS are Pixel's; `lib/hull-layouts.ts`,
    the 2D drawing, `app/crew/`, `components/crew*.tsx`, the poller and the rest of the CSS are
    Forge's. Nobody edits `components/model.tsx`. Forge pushes `MARKS` and the layouts first.
+6. **Iris's three amendments to the contract** (her message to Atlas; `notes-iris.md`), accepted
+   and relayed to Probe and Pixel (Forge had them from her): ticks hang below the pencil plank's
+   lower edge (B4.34's box check becomes "top on the lower edge within 1 px, hanging down"); the
+   crops are 480 hull units across from 768 and 320 below (`CREW_WIDE`, `CREW_NARROW`); the pose
+   is yaw ±35° toward the focus plank's end, pitch 6°, lift 90, the focus point held within 1 px,
+   with B4.36's framing bounds (8% from the sides; depth ≥ 18 px at 1440 and 1024, ≥ 16 px at 390;
+   seat 5.0 exempt). B4.34's dot clearance reads as Probe checks it: no tick's box within 4 px of
+   the dot's centre.
