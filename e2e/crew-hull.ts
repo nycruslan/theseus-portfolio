@@ -29,14 +29,14 @@ export type Detail = {
  * the contract's 320 units and 16:9). The checks read the map off the drawing's own planks
  * (`fitOf`) and hold s, oy and the crop's ox (`cropX`) to these.
  */
-export const CREW_WIDE: Detail = {
+const CREW_WIDE: Detail = {
   name: "CREW_WIDE",
   box: [0, 0, 808, 454.5],
   s: 1.68333,
   oy: 109.08,
 };
 /** Below 768 px: 320 hull units across. */
-export const CREW_NARROW: Detail = {
+const CREW_NARROW: Detail = {
   name: "CREW_NARROW",
   box: [0, 0, 390, 243.75],
   s: 1.21875,
