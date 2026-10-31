@@ -83,7 +83,7 @@ the tip, "drawing now" with its dot, and the copper swatch, in `live` only.
 ```ts
 hatch: { period: 6, width: 1.4 },   // viewBox units: 6 px across the lines at 1440 (wide) and 390 (narrow)
 dash: [4, 3],                       // CSS px, a line weight
-tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },  // width and dot are CSS px line weights
+tip: { from: 1 / 2, to: 7 / 8, inset: 0, width: 2, dot: 8 },  // width and dot are CSS px line weights
 ```
 
 3.1 **The hatch.** 45°, rising to the bow ("/", Forge's `rotate(45)` of vertical lines is right),
@@ -108,19 +108,25 @@ colours: erase `Canvas`, edge `CanvasText`, dash kept. Quill: B4.15's "stroke re
 
 3.3 **The number** (wide drawing, from 768; the narrow numbers nothing, as today): n in graphite
 (`--muted`) at the plank numbers' weight 600 (not 700), on a film chip: `background:
-var(--background); padding: 1px 3px`. Graphite where it crosses the hatch's pencil lines is 2.0:1, so
-the chip keeps the hatch off the digits (5.9:1 light, 7.8:1 dark). The chip rides with the number on
+var(--background); padding: 0 2px` (the digits' own line box, no taller, so it covers as little of
+the tip as it can). Graphite where it crosses the hatch's pencil lines is 2.0:1, so the chip keeps the
+hatch off the digits (5.9:1 light, 7.8:1 dark), as a draughtsman breaks the hatching round a figure. The chip rides with the number on
 the hull (call 4). Forced colours: `Canvas` chip, `CanvasText` digits. A led-out seat (5.0) needs no
 chip: its number is outside the hull.
 
 3.4 **The copper tip.** On the plank's visible lower edge (`bandAt`'s bottom: the seam, or the keel's
 outline on lift 6), **inset 0**: the pen is on the line, as both frames draw it, not beside it. A
-2 px run, round caps, from 1/3 to 3/4 of the plank's body stretch, so it starts under the number and
-ends to the bow, clear of the chip (on 4.0 the dot's centre is 37 px from the number's at 1440,
-20 px at 768); then a **7 px dot** at its forward end. Both are line weights and hold at every width,
-as the pen's do: draw the dot as a zero-length subpath (`M x y h0`) with a round cap at 7 px,
-non-scaling, not a `circle` in viewBox units (which shrinks to 3.8 px at 768 and wouldn't meet the
-hull's 7 px at frame 1). Draw `[data-tip]` after the outline, outside the hull's clip, so it lies on
+2 px run, round caps, from 1/2 to 7/8 of the plank's body stretch: it leaves from under the number
+and ends to the bow, the pen's stroke so far; then an **8 px dot** at its forward end (8 px, the same
+dot as "drawing now"'s and `/crew`'s Working). Both are line weights and hold at every width, as the
+pen's do: draw the dot as a zero-length subpath (`M x y h0`) with a round cap at 8 px, non-scaling,
+not a `circle` in viewBox units (which shrinks to 4.4 px at 768 and wouldn't meet the hull's 8 px at
+frame 1). **Why 7/8, not the frame's middle third:** on Forge's build the fixtures' seat is 3.0, a
+stern plank the outline cuts to a body of about 32 px at 1440; there a tip from 1/3 to 2/3 is a 13 px
+dash under the number, which the number's chip covers. At 7/8 the dot's centre is 12 px bow-ward of
+the number's on 3.0 (it touches the tight chip's corner, the shortest case) and 54 px on 4.0, this
+sprint's real seat. Below 1024 a short seat's chip can still cover the dot's upper half: accepted,
+the run and the dot's lower half show, and the row says "drawing now". Draw `[data-tip]` after the outline, outside the hull's clip, so it lies on
 every line and the keel lift's dot isn't halved. Hidden by the hollow rule (Forge has it); under
 reduced motion give it the numbers' 240 ms opacity and visibility transition, so it crossfades with
 the hull's tip instead of blinking off first. Forced colours: `Highlight`, stroke and cap (the one
@@ -132,7 +138,9 @@ mark on the drawing that isn't text-coloured, as copper is the one that isn't in
   pencil mark across the site (plank edge, swatch, chip). `/crew`'s `.crew-chip-number` in live and
   open takes the same edge. Forced colours: the system drops the hatch, the dashed edge stays.
 - **Description:** as built: the goal, the one link to `/crew`, ink with the site's underline; in
-  `live`, `[data-drawing]` 8 px after it: copper, weight 600, its 7 px copper dot, nowrap, never cut
+  `live`, `[data-drawing]` 8 px after it: copper, weight 600, nowrap, never cut. Its dot **8 px with a
+  4 px border, as `/crew`'s Working dot**, not 7 with 3.5: on Forge's build the half-pixel border
+  rasterises as a ring with a pale centre in both schemes
   (the goal takes the ellipsis from 1024; below, it follows the goal inline and wraps as a unit).
   "In progress" when the goal is null.
 - **Drawn, Checked, Tested, Approved in graphite** (`--muted`): pencil entries, inked when the sprint
@@ -148,9 +156,9 @@ mark on the drawing that isn't text-coloured, as copper is the one that isn't in
 - `[data-key="pencil"]` **"In progress"**: Forge's swatch (28 × 12, hatch 135° 1 px in 4 on the film,
   1 px dashed graphite edge). Forced: `CanvasText` hatch on `Canvas`, dashed `CanvasText` (as built).
 - `[data-key="copper"]` **"Drawing now"**, the row's words, so copper says one thing on `/`: the
-  swatch is **the tip itself**, a 2 px copper run from the slot's left to a 7 px copper dot at its
+  swatch is **the tip itself**, a 2 px copper run from the slot's left to an 8 px copper dot at its
   right end, no frame, no fill, in the 28 × 12 slot (e.g. `::before` a 2 px top border from 2 px to
-  6 px short of the right, `::after` the 7 px dot drawn as a border so forced colours keep it). A
+  6 px short of the right, `::after` the 8 px dot, a 4 px border, so forced colours keep it). A
   filled copper box keys a copper fill the drawing doesn't have. Forced: `Highlight`, with
   `forced-color-adjust: none`. Quill: B4.19's "fills `--accent`" becomes "paints `--accent`".
 - **The fit (Forge's (b)):** with these words, live at 1440 × 900 sets the count and all four items
@@ -181,11 +189,11 @@ frame 1 the hull's solid graphite lies on the 2D's dashed graphite; the gaps fil
 change.
 
 4.3 **Copper tip, live only:** the 2D's run and dot in the same CSS px: a 2 px run along the plank's
-lower edge from 1/3 to 3/4 of its body, a 7 px round dot at its forward end, **unlit, exactly
+lower edge from 1/2 to 7/8 of its body, an 8 px round dot at its forward end, **unlit, exactly
 `--accent`** in both schemes (fat lines, as the seams are: the dot a zero-length segment with round
-caps at 7 px, so it stays round and 7 px on a sliver), depth-tested with the seams' offset so it
+caps at 8 px, so it stays round and 8 px on a sliver), depth-tested with the seams' offset so it
 never shows through the hull. Up to two draws (S3: 5 settled, so 7 of 8). At frame 1 it lies on the
-2D's tip exactly. Quill: B4.21 needs (a) the band around the plank ≥ 4 px, since the dot sits 3.5 px
+2D's tip exactly. Quill: B4.21 needs (a) the band around the plank ≥ 5 px, since the dot sits 4 px
 past the seam by design, and (b) triangles "at most the default's plus the tip's segments, within
 30k / 12k", not "equal".
 
@@ -205,3 +213,24 @@ so the 2D's forced look is the one shown.
 
 4.6 **If the budget forces a cut,** keep in this order: the tip's dot, the number, the hatch (free),
 the graphite edge (free), the tip's run.
+
+## 5. Checked on Forge's build (`9c6dfee`), from the fixture harness
+
+`e2e/crew-feed.ts`'s `startFeed` and `startSite`, one site per fixture (the harness picks its own free
+ports), Off, fonts warm. The fixtures' sprint is 31, so the seat is 3.0. With Forge's build as it is,
+then with calls 3.2, 3.3 (graphite 600 and the chip), 3.5 (the dashed `--muted` chip edge, graphite
+signatures, Approved nowrap) and 3.6 (the words and the copper swatch) injected as CSS:
+
+| 1440 × 900 | Contact links' bottom | Pencil row | Foot (top, height) |
+|---|---|---|---|
+| live, as built | 872.2 | 31.9 | 801.2, 71 (three lines) |
+| live, with the calls | **866.3** | 31.9 | 818.8, 47.5 (two lines) |
+| open, as built | 866.3 | 48.8 (Approved wraps) | 818.8, 47.5 |
+| open, with the calls | **866.3** | **31.9** | 842.3, 24 (one line) |
+| resting, as built | 866.3 | (rest line 607.8 to 627.3; fifth row ends 820.2) | 842.3, 24 |
+
+At 1024 × 768 with the calls: links 752.2 in live and open. At 390 × 844: the pencil row starts at
+757, the rest line at 750.3 to 769.8, both inside the first viewport. Forced colours: the Rev box
+loses its hatch and keeps its dashed edge, "drawing now" and its dot are `CanvasText`, the copper
+swatch `Highlight`. Not yet seen: the tip with call 3.4's geometry and the erase path (both
+need Forge's code), and Pixel's hull.

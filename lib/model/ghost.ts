@@ -3,10 +3,9 @@
 // numbers riding their planks. The drawing is the record: the seats, their numbers, the record's
 // own seat and the leaders all come from it, so the 3D can't disagree with the 2D. No three.js.
 
-import { seamDepth } from "@/lib/half-model";
-import { GHOST, PLANKS } from "@/lib/hull-layouts";
+import { GHOST, type Layout, PLANKS } from "@/lib/hull-layouts";
 import { LEAD_GAP, LEAD_OUT, LED_OUT } from "./calls";
-import { bandAt, type Ghost, nearSide, type Vec3 } from "./hull";
+import { bandAt, type Ghost, nearSide, plankBody, type Vec3 } from "./hull";
 import type { Loft } from "./loft";
 
 /** One of the drawing's numbers: its span, its seat, and where the drawing sets it. */
@@ -30,13 +29,56 @@ type Label = {
   into: [number, number];
 };
 
-const [BX, BY, BW, BH] = GHOST.box;
+/** Hull units from a drawing's own (its viewBox's). */
+const toHull = (
+  { ox, oy, s }: Layout,
+  x: number,
+  y: number,
+): [number, number] => [(x - ox) / s, (y - oy) / s];
 
-/** Hull units from the ghost drawing's own (its viewBox's). */
-const toHull = (x: number, y: number): [number, number] => [
-  (x - GHOST.ox) / GHOST.s,
-  (y - GHOST.oy) / GHOST.s,
-];
+/** A number's span where `layout`'s drawing sets it: its share of the box, and in hull units. */
+function placeOf(span: HTMLElement, layout: Layout) {
+  const [bx, by, bw, bh] = layout.box;
+  const share: [number, number] = [
+    Number.parseFloat(span.style.left) / 100,
+    Number.parseFloat(span.style.top) / 100,
+  ];
+  return {
+    share,
+    anchor: toHull(layout, share[0] * bw + bx, share[1] * bh + by),
+  };
+}
+
+/**
+ * The sheet's pencil number (.crew/sprint/34/): the wide drawing's span on the pencil plank, which
+ * rides it on the hull as the Log's numbers ride theirs. A number the 2D leads out (5.0's) stays
+ * aft of the hull, with no leader on the lifted hull (notes-iris.md, 3.3 and 4.4).
+ */
+export function pencilLabel(
+  drawing: Element,
+  seat: string,
+  sprint: string,
+  layout: Layout,
+): Label | null {
+  const spans = [
+    ...drawing.querySelectorAll<HTMLElement>(":scope > .plan-plank"),
+  ];
+  const span =
+    spans.find((candidate) => candidate.classList.contains("plan-pencil")) ??
+    spans.find((candidate) => candidate.textContent === sprint);
+  if (!span) return null;
+  const { share, anchor } = placeOf(span, layout);
+  return {
+    span,
+    seat,
+    share,
+    anchor,
+    end: false,
+    lead: undefined,
+    out: anchor,
+    into: anchor,
+  };
+}
 
 export type GhostPage = ReturnType<typeof readGhost>;
 
@@ -59,12 +101,8 @@ export function readGhost(drawing: Element) {
   const labels: Label[] = [
     ...drawing.querySelectorAll<HTMLElement>(":scope > .plan-plank"),
   ].map((span) => {
-    const share: [number, number] = [
-      Number.parseFloat(span.style.left) / 100,
-      Number.parseFloat(span.style.top) / 100,
-    ];
+    const { share, anchor } = placeOf(span, GHOST);
     const seat = seatOf.get(span.textContent ?? "");
-    const anchor = toHull(share[0] * BW + BX, share[1] * BH + BY);
     const end = span.classList.contains("plan-end");
     const plank = PLANKS.find((candidate) => candidate.id === seat);
     // The 3D's own: at its lift's mid-depth, LEAD_OUT units aft of the plank, its leader into the
@@ -86,7 +124,7 @@ export function readGhost(drawing: Element) {
   for (const [, , y0, x1] of d.matchAll(
     /M(-?[\d.]+)[ ,](-?[\d.]+)H(-?[\d.]+)/g,
   )) {
-    const [bx, by] = toHull(Number(x1), Number(y0));
+    const [bx, by] = toHull(GHOST, Number(x1), Number(y0));
     const label = labels.find(
       (candidate) => candidate.end && Math.abs(candidate.anchor[1] - by) < 0.5,
     );
@@ -142,8 +180,6 @@ function edgesOf(plank: Plank) {
   ];
 }
 
-const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
-
 /**
  * The middle half of a plank's body, where its number may ride: the 2D's rule for the body
  * (`plankBody` in lib/lines-plan.ts: nearly a whole lift deep, or nearly as deep as the plank ever
@@ -151,17 +187,9 @@ const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
  * ends, clumped at the stern and the bow (.crew/sprint/33/review-iris.md, Must 1).
  */
 function middleOf(plank: Plank): Point | null {
-  const stations = Array.from({ length: 49 }, (_, i) => {
-    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
-    const band = bandAt(plank, x);
-    return { x, depth: band ? band[1] - band[0] : 0 };
-  });
-  const deepest = Math.max(...stations.map((station) => station.depth));
-  const deep = stations.filter(
-    (station) => station.depth >= 0.9 * Math.min(deepest, LIFT_DEPTH),
-  );
-  const [first, last] = [deep[0]?.x, deep.at(-1)?.x];
-  if (first === undefined || last === undefined) return null;
+  const body = plankBody(plank);
+  if (!body) return null;
+  const [first, last] = body;
   const [mid, quarter] = [(first + last) / 2, (last - first) / 4];
   return [mid - quarter, mid + quarter];
 }
@@ -217,9 +245,17 @@ function reach(box: Box, [ax, ay]: Point, [bx, by]: Point) {
  * seams through the vellum, the outline, the record's mark, the leaders), nearest the 2D's place;
  * where none is, the 2D's place, the hardest planks placed first. A led-out number (5.0's in the
  * 2D, LED_OUT's in the 3D alone) stands aft at its leader's end. In the move each rides from the
- * 2D's place with e, so frame 1 is the drawing.
+ * 2D's place with e, so frame 1 is the drawing. `layout` is the drawing the spans are set on: the
+ * Log's ghost, or on `/` the sheet's wide drawing, whose one number, the pencil plank's, is `fixed`
+ * at its 2D anchor, centred on its plank wherever the turn leaves it (.crew/sprint/34/notes-iris.md,
+ * 4.4): the hull's only label, it clears nothing.
  */
-export function riders({ labels }: GhostPage) {
+export function riders(
+  { labels }: { labels: readonly Label[] },
+  layout: Layout = GHOST,
+  fixed = false,
+) {
+  const [, , BW, BH] = layout.box;
   const planks = labels.map((label) =>
     PLANKS.find((plank) => plank.id === label.seat),
   );
@@ -474,7 +510,9 @@ export function riders({ labels }: GhostPage) {
       drawn: () => Float32Array,
     ) {
       if (!shown) return this.clear();
-      targets ??= settle(loft, drawn());
+      targets ??= fixed
+        ? labels.map((label) => label.anchor[0])
+        : settle(loft, drawn());
       bases ??= labels.map(({ span }) => {
         const r = span.getBoundingClientRect();
         return [
