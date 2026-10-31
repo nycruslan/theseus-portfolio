@@ -1,0 +1,34 @@
+{
+  "sprint": 38,
+  "pr": 96,
+  "goal": "Plan the next milestone: the owner's scale on the first screen",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "notes only: Quill's plan for the milestone, three sprints with checks P1 to P17, and the first sprint's contract",
+  "fixRounds": 0,
+  "minutes": 35,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 173976, "minutes": 15 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The redesign finished with no next milestone written, so the crew had nothing queued to build",
+      "evidence": "ROADMAP.md on 6425bb3: B1 to B5 all ticked and no other milestone listed; this sprint plans one"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "In the sprint skill's retro step, write each goal in a visitor's words: no milestone code, no URL path",
+      "moves": "On 6425bb3, every revision row on / starts with a code such as \"B4e:\" (.crew/sprint/38/plan.md)"
+    },
+    {
+      "change": "Have Quill draft the next milestone while a milestone's last sprint is built",
+      "moves": "The gap between B4e's merge and the next build: one planning sprint of the day's six"
+    }
+  ],
+  "followUps": [
+    { "who": "Iris", "what": "Place the particulars on the first screen, (a) the drawing band or (b) its empty corner, before Pa's build" },
+    { "who": "Owner", "what": "Optional at the demo: the five-second comprehension test in .crew/sprint/38/plan.md" }
+  ]
+}

@@ -21,9 +21,10 @@ particulars quote the owner's facts and add no figures. The owner may overrule t
 particulars' place on the approved sheet, or the plain-words rule for goals, after the fact. The
 3D, the loft and the replay stay as built, because the owner's demos judge them.
 
-- [ ] Sprint 38 (notes only): Quill's plan, the milestone as three sprints
+- [x] Sprint 38 (notes only): Quill's plan, the milestone as three sprints
   (`.crew/sprint/38/plan.md`), and Pa's contract ready for Iris, Probe and Forge
-  (`.crew/sprint/38/first-contract.md`, P1 to P7).
+  (`.crew/sprint/38/first-contract.md`, P1 to P7). (PR #96, built in one run on 2026-10-31;
+  `decisions.md` 1 to 4.) Pa starts with Iris's placement call.
 - [ ] Pa (M): the particulars, the owner's scope and scale on the first screen.
   - Four rows, each a term and a phrase quoted from the JPMorgan summary: the team of 7, the
     workflows several thousand employees use firm-wide, the around 8 product teams on the
