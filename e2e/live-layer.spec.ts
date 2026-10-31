@@ -90,10 +90,16 @@ const LIVE_999: Partial<Answer> = {
   fixture: "live",
   patch: { current: { sprint: 999 } },
 };
+/**
+ * The open fixture gone quiet, its goal three spaces: B4.32 (.crew/sprint/35/contract.md, Lens's
+ * #87 rider) folds the blank goal into B4.16's quiet site, whose pencil row the oracle reads with
+ * the goal as null, "In progress".
+ */
 const QUIET: Partial<Answer> = {
   fixture: "open",
   patch: {
     current: {
+      goal: "   ",
       health: {
         state: "quiet",
         label: "Quiet",
@@ -370,7 +376,7 @@ test("B4b harness: homeStateOf reads tr[data-pencil][data-live] as live, tr[data
   );
 });
 
-test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on the open fixture, each drawing has one path[data-plank][data-pencil] on the oracle's seat with data-sprint n, data-live in live only, one [data-tip] in its svg in live only; the wide drawing's number on it is n; every other plank as on the default server; a --pencil dashed edge and a hatch in both schemes, the dash in forced colours; [data-plan] within 32,768 B", async ({
+test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on the open fixture, each drawing has one path[data-plank][data-pencil] on the oracle's seat with data-sprint n, data-live in live only, one [data-tip] in its svg in live only; the wide drawing's number on it is n; every other plank as on the default server; a --muted dashed edge and a hatch in both schemes, the dash in forced colours; [data-plan] within 32,768 B", async ({
   page,
   crew,
 }) => {
@@ -1654,4 +1660,56 @@ test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both s
         .toEqual({ atLoad: [], later: [], scrolled: [] });
     }
   }
+});
+
+test("B4.32 a blank goal is no goal: on B4.16's quiet site, its goal three spaces, /api/crew's run.goal is null, /crew's chip shows 31 and no .crew-goal, and /'s pencil row link reads In progress and is at least 24 px tall", async ({
+  page,
+  crew,
+  request,
+}) => {
+  test.setTimeout(150_000);
+  const quiet = await homeOn(crew, "home-quiet", QUIET);
+  expect(
+    (crew.feed.body("home-quiet").current as Record<string, unknown>).goal,
+    "the quiet site's feed goal",
+  ).toBe("   ");
+  const answer = await request.get(`${quiet.base}/api/crew`);
+  const body = (await answer.json().catch(() => null)) as {
+    run?: { goal?: unknown } | null;
+  } | null;
+  expect
+    .soft(
+      [answer.status(), body?.run ? body.run.goal : "(no run)"],
+      "/api/crew's status and run.goal on the quiet site",
+    )
+    .toEqual([200, null]);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const response = await page.goto(`${quiet.base}/crew`);
+  expect(response?.status(), "status of /crew on the quiet site").toBe(200);
+  const chip = await page.evaluate(() => ({
+    text: (document.querySelector("[data-chip]")?.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim(),
+    goals: document.querySelectorAll("[data-chip] .crew-goal").length,
+  }));
+  expect
+    .soft(chip, "/crew's chip on the quiet site: the number, no .crew-goal")
+    .toEqual({ text: "31", goals: 0 });
+
+  await openHome(page, quiet);
+  const link = await page
+    .locator("tr[data-pencil] a[href='/crew']")
+    .first()
+    .evaluate((a) => ({
+      text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+      height: a.getBoundingClientRect().height,
+    }))
+    .catch(() => null);
+  expect
+    .soft(link?.text, "/'s pencil row link on the quiet site")
+    .toBe("In progress");
+  expect
+    .soft(link?.height ?? 0, "/'s pencil row link's height on the quiet site")
+    .toBeGreaterThanOrEqual(24);
 });
