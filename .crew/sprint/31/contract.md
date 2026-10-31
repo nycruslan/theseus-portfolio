@@ -116,7 +116,8 @@ leaves the goal out; both `null`, no chip.
 - `resting`: "Crew resting. Sprint {last.sprint} merged {d Mon}, {HH:MM} UTC." When `mergedAt` is
   `null` or doesn't parse: "Crew resting. Sprint {last.sprint} merged." When `last.sprint` is
   `null`: "Crew resting."
-- `down`: "The live feed isn't answering. Here is the latest revision on record."
+- `down`: "The live feed isn't answering. Here is the latest revision on record." On the page the
+  build prerenders, which read nothing (#88): "Here is the latest revision on record."
 
 **The now line,** `p[data-now]`, only in `live` and only when `current.now` is a non-empty string:
 the word "now", then the text. When `current.health.quote` is `true` and `now` equals

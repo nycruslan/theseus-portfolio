@@ -110,8 +110,8 @@ test("hooks reach the network through the cloud's proxy: Node's fetch needs NODE
   assert.equal(settings.env.NODE_USE_ENV_PROXY, "1");
 });
 
-// Opus 5.5 defaults to medium effort, so every role names its model and effort. The lead and Iris
-// run on Fable, where judgment and taste matter most; the rest on Opus (owner's call, 2026-10-22).
+// Opus 5.5 defaults to medium effort, so every role names its model and effort. The whole crew
+// runs on Opus (owner's call, 2026-10-31).
 test("every role and the lead run on a strong model at a stated effort", () => {
   const agents = join(CREW, "..", ".claude", "agents");
   const front = (file) =>
@@ -127,11 +127,9 @@ test("every role and the lead run on a strong model at a stated effort", () => {
   assert.ok(roles.length >= 6);
   for (const role of roles) {
     const { model, effort } = front(join(agents, role));
-    assert.ok(["opus", "fable"].includes(model), `${role}: ${model}`);
+    assert.equal(model, "opus", role);
     assert.ok(["high", "xhigh", "max"].includes(effort), `${role}: ${effort}`);
   }
-  // Opus until the weekly Fable limit resets on 2026-10-30; reverting this change restores Fable.
-  assert.equal(front(join(agents, "design-director.md")).model, "opus");
   const lead = front(
     join(CREW, "..", ".claude", "skills", "sprint", "SKILL.md"),
   );

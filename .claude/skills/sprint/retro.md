@@ -19,7 +19,7 @@ sprint, so model and lane choices can follow the data.
 - `goal`, `size`, `pr` and each `wentWrong.what` are public: `/sprints` prints them, and a malformed
   retro fails the build (`lib/sprint-log.ts`). Write them as copy a visitor reads.
 - `goalFrom`: `owner` when the owner chose the goal, otherwise `roadmap`.
-- `agents`: each agent that worked, with the model its file sets (`fable`, `opus`) and the tokens
+- `agents`: each agent that worked, with the model its file sets (`opus`) and the tokens
   and minutes from its result.
 - `lens`: Lens's runs and findings, with the tokens from the footer of each review it posted.
 - `wentWrong`: at most three things, each with its evidence.

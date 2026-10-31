@@ -30,10 +30,10 @@ Three lists come beside the action, and none stops it:
 - `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
   what it needs, then comment on each that you reminded the owner, which restarts its day.
 - `picks`: the owner's answers to an Owner's pick (below) that differ from what was built. Build
-  each choice: in its PR while that's open, or riding with this sprint once it merged. Then, in
-  the PR's body, leave only that option's box ticked and add a line
-  `Applied: <the option's text>, in #<n>.` under the pick, so no later run builds it again; a
-  later tick on another option comes back here.
+  each choice: in its PR while that's open, or riding with this sprint once it merged. Then edit
+  the PR's live body, not its file, so a tick the owner just made stays: leave only that option's
+  box ticked and add a line `Applied: <the option's text>, in #<n>.` under the pick, so no later
+  run builds it again; a later tick on another option comes back here.
 
 ## Choose the work
 
