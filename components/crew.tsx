@@ -1,5 +1,5 @@
 import { CrewTable } from "@/components/crew-table";
-import { type Crew, pullHref, type Run } from "@/lib/crew-run";
+import { type Crew, type Moment, pullHref, type Run } from "@/lib/crew-run";
 import { REPO_URL } from "@/lib/site";
 import { utcDay, utcTime } from "@/lib/utc";
 
@@ -23,6 +23,18 @@ export type Facts = {
 /** Who started or stopped working, and a count that makes each saying a node of its own. */
 export type Said = { text: string; count: number };
 
+/**
+ * A replay the visitor started (.crew/sprint/37/contract.md, "Playing"): its sprint, its moments
+ * oldest first, `k` of them played, and whether it is paused. Played past its last moment, it has
+ * ended, and the list keeps them all.
+ */
+export type Replay = {
+  sprint: number;
+  moments: Moment[];
+  k: number;
+  paused: boolean;
+};
+
 type Props = {
   crew: Crew;
   facts: Facts;
@@ -32,6 +44,11 @@ type Props = {
   ready: boolean;
   onPause: () => void;
   said: Said;
+  /** The replay playing, paused or ended; null before the first press, or once a poll closes it. */
+  replay: Replay | null;
+  onReplayPause: () => void;
+  /** Ticks are on the drawing, so the key names them. */
+  ticks: boolean;
 };
 
 const RULES =
@@ -122,20 +139,86 @@ function Now({ run }: { run: Run }) {
   );
 }
 
-function Activity({ run, live }: { run: Run; live: boolean }) {
-  const [newest] = run.moments;
+/**
+ * Iris's key for the tally (.crew/sprint/37/contract.md, "The tick key"), its symbol the drawing's
+ * own mark: a rule with three ticks hanging from it. Shown only while ticks are on the drawing,
+ * since a key names only what is there.
+ */
+const TICK_KEY = (
+  <p data-tick-key="" className="crew-key">
+    <svg
+      viewBox="0 0 20 8"
+      width="20"
+      height="8"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M0 .5h20" />
+      <path strokeWidth={1.4} d="M4 1v6m6-6v6m6-6v6" />
+    </svg>
+    One tick on the plank in pencil for each moment above, up to ten.
+  </p>
+);
+
+function Activity({
+  run,
+  live,
+  resting,
+  replay,
+  onReplayPause,
+  ticks,
+}: {
+  run: Run;
+  live: boolean;
+  resting: boolean;
+  replay: Replay | null;
+  onReplayPause: () => void;
+  ticks: boolean;
+}) {
   const now = live ? <Now run={run} /> : null;
-  if (!newest) return now;
-  const day = utcDay(new Date(newest.at));
+  // While a replay is listed, the moments played, newest on top, under the day it began (Iris).
+  const moments = replay
+    ? replay.moments.slice(0, replay.k).reverse()
+    : run.moments;
+  const [first] = replay ? replay.moments : moments;
+  if (!first) return now;
+  const day = utcDay(new Date(first.at));
   // The feed gives a moment no id, and two can match in every field: the repeat count keeps keys
   // unique. Keys come from the moment alone, so a poll that adds one keeps every other's node.
   const seen = new Map<string, number>();
   return (
-    <>
-      <h2 className="crew-activity">Activity, {day} (UTC)</h2>
+    // At rest, the anchor the entry and /'s link land on, under the bar (app/globals.css).
+    <div
+      id={resting ? "replay" : undefined}
+      data-replaying={replay ? "" : undefined}
+      className="crew-block"
+    >
+      <div className="crew-activity-head">
+        <h2 className="crew-activity">
+          {replay ? "Replay" : "Activity"}, {day} (UTC)
+        </h2>
+        {/* Pause updates' grammar: pressed means paused, and the name never changes. Its box is
+          kept whenever a replay is offered, so it shows from the first moment to the end and
+          moves nothing. */}
+        {run.replay || replay ? (
+          <button
+            type="button"
+            data-replay-pause=""
+            data-shown={
+              replay && replay.k <= replay.moments.length ? "" : undefined
+            }
+            aria-pressed={replay?.paused ?? false}
+            onClick={onReplayPause}
+            className="crew-pause crew-replay-pause"
+          >
+            <span aria-hidden="true" className="crew-bars" />
+            Pause replay
+          </button>
+        ) : null}
+      </div>
       {now}
       <ol data-moments="" className="crew-moments">
-        {run.moments.map((moment) => {
+        {moments.map((moment) => {
           const at = new Date(moment.at);
           const time =
             utcDay(at) === day ? utcTime(at) : `${utcDay(at)} ${utcTime(at)}`;
@@ -152,7 +235,8 @@ function Activity({ run, live }: { run: Run; live: boolean }) {
           );
         })}
       </ol>
-    </>
+      {ticks ? TICK_KEY : null}
+    </div>
   );
 }
 
@@ -206,9 +290,14 @@ export function CrewPanel({
   ready,
   onPause,
   said,
+  replay,
+  onReplayPause,
+  ticks,
 }: Props) {
   const { record } = facts;
   const run = crew.state === "down" ? null : crew.run;
+  // Only a resting run carries a replay, and only when it has a number (lib/crew-run.ts).
+  const offer = run?.replay ? run.sprint : null;
   return (
     <section
       aria-labelledby="crew"
@@ -234,6 +323,21 @@ export function CrewPanel({
         <p data-status="" className="crew-status">
           {status(crew)}
         </p>
+        {/* The entry (.crew/sprint/37/contract.md, amendment 1): in the status, where the visitor
+          sees it, since Activity's head is below the fold at rest. Every press plays from moment
+          1; crew-live.tsx takes the press and makes the anchor's jump once the replay is listed.
+          Hidden as Pause updates is until the poller runs. */}
+        {offer === null ? null : (
+          <a
+            href="#replay"
+            data-replay=""
+            data-ready={ready ? "" : undefined}
+            className="crew-entry"
+          >
+            <span aria-hidden="true" className="crew-play" />
+            Replay sprint {offer}
+          </a>
+        )}
         {/* WCAG 2.2.2's pause (.crew/sprint/35/notes-iris.md, section 1). Its name never flips to
           "Resume": aria-pressed carries the state. In the server's HTML, hidden until the poller
           runs (data-ready), so no inert control shows and its arrival moves nothing. */}
@@ -249,7 +353,16 @@ export function CrewPanel({
         </button>
       </div>
       <CrewTable crew={crew} />
-      {run && <Activity run={run} live={crew.state === "live"} />}
+      {run && (
+        <Activity
+          run={run}
+          live={crew.state === "live"}
+          resting={crew.state === "resting"}
+          replay={replay}
+          onReplayPause={onReplayPause}
+          ticks={ticks}
+        />
+      )}
       <dl className="crew-facts">
         <dt>Evidence</dt>
         <Evidence crew={crew} record={record} />

@@ -18,11 +18,17 @@ type CrewAnswer =
         health: { state: string; line: string | null; quote: boolean };
         now: string | null;
         roles: { role: RosterRole; state: AgentState; line: string | null }[];
-        moments: { kind: MomentKind; at: string; text: string }[];
+        moments: Said[];
         url: string | null;
         mergedAt: string | null;
+        /** Only in a resting answer that offers a replay (.crew/sprint/37/contract.md, call 6). */
+        replay?: Said[];
       };
     };
+
+type Said = { kind: MomentKind; at: string; text: string };
+
+const said = ({ kind, at, text }: Said): Said => ({ kind, at, text });
 
 // The CDN holds an answer 30 s, so the Studio sees about two reads a minute however many watch;
 // the browser never reuses one, so each poll asks the CDN. The same in every state: a down answer
@@ -47,9 +53,11 @@ function answerOf(crew: Crew): CrewAnswer {
       },
       now: run.now,
       roles: run.roles.map(({ role, state, line }) => ({ role, state, line })),
-      moments: run.moments.map(({ kind, at, text }) => ({ kind, at, text })),
+      moments: run.moments.map(said),
       url: run.studio,
       mergedAt: run.mergedAt,
+      // Absent otherwise, so every other answer keeps its exact keys (B4.25).
+      ...(run.replay ? { replay: run.replay.map(said) } : {}),
     },
   };
 }

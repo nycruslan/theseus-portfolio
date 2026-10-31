@@ -76,43 +76,54 @@ function SheetDrawings({
   );
 }
 
-/** The drawing's run on /crew (.crew/sprint/36/contract.md, call 3): the server draws the first two. */
-type Run = "live" | "open" | "record";
+/** The drawing's run on /crew (.crew/sprint/36/contract.md, call 3): the server draws all but none. */
+type Run = "live" | "open" | "inked" | "record";
 
 // /crew's detail (.crew/sprint/36/contract.md, "The detail drawing"; Iris's final numbers): the
 // sheet's two drawings, one shown per width, each a profile close on `focus`, the plank in pencil
 // or the newest retro's seat, with every plank seated as on / and clipped by the box. In pencil,
 // the plank carries the tally: its number, then a graphite tick for each of the `marks` moments the
-// panel lists, then the copper pen while live. data-focus and the crop are fixed at first paint;
-// components/crew-live.tsx follows the poll on data-run, the focus plank and the ticks, and the 3D
-// chunk reads all of it (call 4). data-tally says the server drew the tally, so the crop is its.
+// panel lists, then the copper pen while live. At rest with a replay to offer, the tally is drawn
+// inked on the replayed sprint's seat, `inked`, with no tick and no pen, for the replay to take
+// back to pencil (.crew/sprint/37/contract.md, call 7). data-focus and the crop are fixed at first
+// paint; components/crew-live.tsx follows the poll and the replay on data-run, the focus plank and
+// the ticks, and the 3D chunk reads all of it (call 4). data-tally says the server drew the tally,
+// so the crop is its.
 export function CrewPlan({
   seats,
   focus,
   pencil,
+  inked,
   marks,
 }: {
   seats: ReadonlyMap<string, number>;
   focus: string;
   pencil: Pencil | null;
+  /** At rest, the sprint a replay plays, seated on `focus`; null without one. */
+  inked: number | null;
   /** The moments the panel lists, in pencil. */
   marks: number;
 }) {
-  const { wide, narrow } = pencil
-    ? crewPlans(
-        new Map(seats).set(pencil.seat, pencil.sprint),
-        focus,
-        pencil.seat,
-      )
+  const tally =
+    pencil ??
+    (inked === null ? null : { seat: focus, sprint: inked, live: false });
+  const { wide, narrow } = tally
+    ? crewPlans(new Map(seats).set(tally.seat, tally.sprint), focus, tally.seat)
     : crewPlans(seats, focus);
-  const run: Run = pencil ? (pencil.live ? "live" : "open") : "record";
-  const shared = { pencil: pencil ?? undefined, focus, marks };
+  const run: Run = pencil
+    ? pencil.live
+      ? "live"
+      : "open"
+    : tally
+      ? "inked"
+      : "record";
+  const shared = { pencil: tally ?? undefined, inked: !pencil, focus, marks };
   return (
     <div
       data-plan=""
       data-focus={focus}
       data-run={run}
-      data-tally={pencil ? "" : undefined}
+      data-tally={tally ? "" : undefined}
       aria-hidden="true"
       className="plan"
     >
@@ -138,6 +149,7 @@ function Drawing({
   view = id,
   current,
   pencil,
+  inked = false,
   focus,
   marks = 0,
 }: {
@@ -147,6 +159,11 @@ function Drawing({
   view?: string;
   current?: string;
   pencil?: Pencil;
+  /**
+   * /crew at rest with a replay: `pencil`'s plank carries the tally inked, seated with its hatch
+   * and dash as attributes the stylesheet overrides until the replay sets it in pencil.
+   */
+  inked?: boolean;
   /** /crew's focus seat. */
   focus?: string;
   /** /crew's shown ticks. */
@@ -206,7 +223,8 @@ function Drawing({
         )}
         <g clipPath={`url(#${id}-hull)`}>
           {planks.map((plank) => {
-            const inPencil = plank.id === pencil?.seat;
+            const tallied = plank.id === pencil?.seat;
+            const inPencil = tallied && !inked;
             const plankPath = (
               <path
                 key={plank.id}
@@ -224,14 +242,14 @@ function Drawing({
                         ? "plank-original"
                         : "plank-seated"
                 }
-                fill={inPencil ? `url(#${id}-hatch)` : undefined}
-                strokeDasharray={inPencil ? PENCIL.dash.join(" ") : undefined}
+                fill={tallied ? `url(#${id}-hatch)` : undefined}
+                strokeDasharray={tallied ? PENCIL.dash.join(" ") : undefined}
                 d={plank.d}
               />
             );
             // The neighbours' ink seams would show through the dash's gaps, so a card-coloured
             // stroke erases them first (notes-iris.md, 3.2).
-            return inPencil ? (
+            return tallied ? (
               <Fragment key={plank.id}>
                 <path className="plank-erase" d={plank.d} />
                 {plankPath}
@@ -265,8 +283,12 @@ function Drawing({
         ) : null}
         {/* The pen on the plank's lower edge while the crew is live: after the outline and outside
           the hull's clip, so it lies on every line and the keel lift's dot is whole. On /crew it
-          is drawn in open too, hidden, for the poll to show when the crew is live again. */}
-        {pencil && plan.tip && (pencil.live || focus !== undefined) ? (
+          is drawn in open too, hidden, for the poll to show when the crew is live again; never for
+          a replay, which claims no now. */}
+        {pencil &&
+        plan.tip &&
+        !inked &&
+        (pencil.live || focus !== undefined) ? (
           <g data-tip={pencil.live ? "" : undefined} className="plank-tip">
             <path strokeWidth={PENCIL.tip.width} d={plan.tip.run} />
             <path strokeWidth={PENCIL.tip.dot} d={plan.tip.dot} />
@@ -276,13 +298,33 @@ function Drawing({
       {plan.lettering.map((letter) => (
         <span
           key={`${letter.kind}-${letter.text}-${letter.left}-${letter.top}`}
-          className={letterClass(letter, current, pencil?.seat, focus)}
+          className={letterClass(
+            letter,
+            current,
+            inked ? undefined : pencil?.seat,
+            focus,
+          )}
           style={{ left: `${letter.left}%`, top: `${letter.top}%` }}
         >
           {letter.text}
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * /crew's Replay stamp (.crew/sprint/37/contract.md, "The stamp"; Iris): the drawing's own label
+ * while a replay has its plank in pencil, so a pencil with no copper is never read as open. It lies
+ * on the drawing's box from outside `[data-plan]`, so showing it wakes nothing that reads the
+ * drawing. In the server's HTML, hidden, whenever the tally is drawn for a replay; decoration like
+ * the drawing, since the panel's heading says Replay in words.
+ */
+export function ReplayStamp() {
+  return (
+    <span data-replay-stamp="" aria-hidden="true" hidden className="crew-stamp">
+      Replay
+    </span>
   );
 }
 

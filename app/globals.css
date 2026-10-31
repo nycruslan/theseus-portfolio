@@ -1022,6 +1022,47 @@ main:has(> [data-model]) {
   line-height: 1.5;
 }
 
+/* With a replay offered (.crew/sprint/37/contract.md, "The rest line on /"; amendment 1): the
+   sentence at the left and the link at the line's right end, or wrapped to a line of its own at
+   the left, 6 px under the sentence so its ring clears the descenders. The 24 px target is pulled
+   into the 19.5 px line by its negative margins, so from 1024 the line is no taller than without
+   it. Ink, underlined as the pencil row's link, never copper; the triangle says it plays. */
+.rev-rest-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+
+.rev-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin-block: -2.25px;
+  color: var(--foreground);
+  white-space: nowrap;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .rev-replay:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.rev-play {
+  flex: none;
+  width: 6px;
+  height: 7px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  forced-color-adjust: none;
+}
+
 /* The chip's line is 2 px short of the table's, so its border keeps the row's height. Its edge is
    the plank's, dashed graphite, in every mode: one pencil mark across the site. */
 .rev-chip {
@@ -2459,6 +2500,63 @@ main:has(> [data-model]) {
   line-height: 1.5;
 }
 
+/* At rest with a replay to offer, its entry is the status's own next line, under the sentence
+   (.crew/sprint/37/contract.md, amendment 1): Pause updates keeps the row's first line, and the
+   entry the left cell's second. */
+.crew-status-row > [data-pause] {
+  grid-area: 1 / 2;
+}
+
+/* A link, since it lands on the anchor: ink, underlined as /'s are, a 44 px target below 1024 and
+   24 from it, never copper. The triangle says it plays rather than navigates. */
+.crew-entry {
+  display: inline-flex;
+  grid-column: 1;
+  justify-self: start;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--foreground);
+  font-size: var(--step-base);
+  line-height: 1.5;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .crew-entry:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* As Pause updates: its box from the first paint, seen once the poller runs, never without
+   scripts. */
+a[data-replay]:not([data-ready]) {
+  visibility: hidden;
+}
+
+/* The glyphs are drawn, never a font's characters (iOS turns ▶ into an emoji): 8 px tall in the
+   text's colour, which forced colours keep, since they would drop a background. The triangle is
+   what the entry does; the two bars, 2.5 px each and 2 px apart, what "Pause replay" does. */
+.crew-play,
+.crew-bars {
+  flex: none;
+  box-sizing: border-box;
+  width: 7px;
+  height: 8px;
+  forced-color-adjust: none;
+}
+
+.crew-play {
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.crew-bars {
+  border-inline: 2.5px solid currentColor;
+}
+
 /* The motion control's cell, alone and in ink: pressed is an ink fill with film text, as
    [data-motion]'s, so the site has one grammar for "on". Never copper, and no transition. */
 .crew-pause {
@@ -2488,6 +2586,18 @@ main:has(> [data-model]) {
 /* Until the poller runs, and always without scripts, the button holds its box but isn't seen,
    focused or announced: a control that does nothing never shows (sprint 22's rule). */
 [data-pause]:not([data-ready]) {
+  visibility: hidden;
+}
+
+/* "Pause replay" takes Pause updates' cell, its glyph 8 px before the name. Its box is kept
+   whenever a replay is offered, and it is seen only while one plays or is paused. */
+.crew-replay-pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-replay-pause]:not([data-shown]) {
   visibility: hidden;
 }
 
@@ -2611,11 +2721,52 @@ main:has(> [data-model]) {
   }
 }
 
-.crew-activity {
+/* At rest the Activity block is the replay's anchor. The page's scroll padding already clears the
+   bar, so 16 px more lands the head just under it (Iris). */
+#replay {
+  scroll-margin-top: 16px;
+}
+
+.crew-activity-head {
   margin-top: 16px;
+}
+
+.crew-activity {
   font-size: var(--step-base);
   font-weight: 700;
   line-height: 1.35;
+}
+
+/* With a replay offered, the heading and "Pause replay" share the head as the status shares its
+   row with Pause updates: the button at the row's end, top-aligned, the heading's first line
+   centred on it, so the heading's word can change or wrap and the button never moves. */
+.crew-activity-head:has(> [data-replay-pause]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: start;
+
+  & .crew-activity {
+    padding-top: calc((44px - 1lh) / 2);
+  }
+}
+
+/* The tally's key (.crew/sprint/37/contract.md, "The tick key"; Iris): its symbol and words on
+   one baseline, in graphite, under the moments. */
+.crew-key {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.crew-key svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
 }
 
 .crew-now,
@@ -2758,8 +2909,16 @@ main:has(> [data-model]) {
     margin-top: 16px;
   }
 
-  .crew-activity {
+  .crew-entry {
+    min-height: 24px;
+  }
+
+  .crew-activity-head {
     margin-top: 20px;
+  }
+
+  .crew-activity-head:has(> [data-replay-pause]) .crew-activity {
+    padding-top: calc((32px - 1lh) / 2);
   }
 
   .crew-facts {
@@ -2819,9 +2978,51 @@ main:has(> [data-model]) {
   }
 }
 
+/* The drawing's own label while a replay has its plank in pencil (.crew/sprint/37/contract.md,
+   "The stamp"; Iris): at the box's top-left on the sheet's text edge, 8 px in from its top, above
+   the sheer and the Profile title, over the lines and the canvas. Ink on the film, at the plank
+   numbers' size, never copper. */
+.crew-stamp {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 16px;
+  padding: 3px 6px;
+  border: 1px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: var(--step-xs);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (width >= 64rem) {
+  .crew-stamp {
+    top: 32px;
+    left: 24px;
+  }
+}
+
+@media (width >= 80rem) {
+  .crew-stamp {
+    font-size: var(--step-sm);
+  }
+}
+
+@media (forced-colors: active) {
+  .crew-stamp {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
 @media print {
   .crew-close,
-  .crew-pause {
+  .crew-pause,
+  .crew-entry {
     display: none;
   }
 }
