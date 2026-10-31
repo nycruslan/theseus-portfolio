@@ -114,5 +114,5 @@ export const PENCIL = {
    * body (the stretch where it is nearly a whole lift deep, stern to bow), `width` CSS px thick, and
    * a round dot `dot` CSS px across at its forward end. Both are line weights.
    */
-  tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },
+  tip: { from: 1 / 2, to: 7 / 8, inset: 0, width: 2, dot: 8 },
 } as const;
