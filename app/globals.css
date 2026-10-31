@@ -389,15 +389,22 @@ nav > [data-motion] {
   fill: var(--card-old);
 }
 
-/* The sprint in progress (.crew/sprint/34/contract.md, "The drawing"): the pencil's hatch on the
-   film inside a dashed pencil edge, its number in graphite, and, while the crew is live and only
-   then, a copper tip on its lower seam. The hatch, the dash and the tip's run and weight are
-   PENCIL's (lib/hull-layouts.ts), which the 3D hull draws too, set as attributes in
-   components/lines-plan.tsx. The hatch scales with the drawing, as the plank does; the edge and the
-   tip are line weights, which hold at every width. */
+/* The sprint in progress (.crew/sprint/34/contract.md, "The drawing"; notes-iris.md, 3.1 to 3.4):
+   the pencil's hatch on the film inside a dashed graphite edge, its number in graphite on a film
+   chip, and, while the crew is live and only then, the copper pen on its lower edge, a run and a
+   dot. The hatch, the dash and the tip's run and weights are PENCIL's (lib/hull-layouts.ts), which
+   the 3D hull draws too, set as attributes in components/lines-plan.tsx. The hatch scales with the
+   drawing, as a fill does; the edge and the tip are line weights, which hold at every width. */
 .plank-pencil {
-  stroke: var(--pencil);
+  stroke: var(--muted);
   stroke-width: 1px;
+}
+
+/* Under the dash's gaps, the neighbours' ink seams erased in the card's colour. */
+.plank-erase {
+  fill: none;
+  stroke: var(--card);
+  stroke-width: 2.4px;
 }
 
 .hatch-ground {
@@ -412,11 +419,6 @@ nav > [data-motion] {
 .plank-tip {
   stroke: var(--accent);
   stroke-linecap: round;
-  fill: var(--accent);
-}
-
-.plank-tip path {
-  fill: none;
 }
 
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
@@ -448,9 +450,15 @@ nav > [data-motion] {
   font-weight: 500;
 }
 
+/* The pencil's number: graphite at the numbers' weight, on a film chip that keeps the hatch off
+   its digits. A led-out number sits outside the hull and needs none. */
 .plan-view > .plan-pencil {
   color: var(--muted);
-  font-weight: 700;
+}
+
+.plan-view > .plan-pencil.plan-middle {
+  padding: 0 2px;
+  background: var(--background);
 }
 
 .plan-start {
@@ -496,8 +504,10 @@ nav > [data-motion] {
   print-color-adjust: exact;
 }
 
-/* The pencil's swatch is its plank: the hatch inside a dashed graphite edge; copper's is the tip's
-   colour, filled, since the tip is too thin to read as a swatch at its own weight. */
+/* The pencil's swatch is its plank, a symbol of it: the hatch, 1 px in 4, inside a dashed graphite
+   edge. Copper's is the tip itself, a 2 px run ending in an 8 px dot, with no frame or fill: the
+   drawing has no copper fill to key (notes-iris.md, 3.6 and 5). The dot is a 4 px border, so it
+   renders as a disc, not a ring, and forced colours keep it. */
 .swatch-pencil {
   border: 1px dashed var(--muted);
   background: repeating-linear-gradient(
@@ -507,8 +517,32 @@ nav > [data-motion] {
   );
 }
 
-.swatch-copper {
-  background: var(--accent);
+.swatch-tip {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 12px;
+  print-color-adjust: exact;
+}
+
+.swatch-tip::before,
+.swatch-tip::after {
+  content: "";
+  position: absolute;
+}
+
+.swatch-tip::before {
+  top: 5px;
+  right: 6px;
+  left: 2px;
+  border-top: 2px solid var(--accent);
+}
+
+.swatch-tip::after {
+  top: 2px;
+  right: 2px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
 }
 
 /* Forced colors keep the drawing as line art: every line in the system's text color, a seated
@@ -532,17 +566,35 @@ nav > [data-motion] {
     fill: GrayText;
   }
 
-  /* The hatch stays, in the system's text colour on its ground, inside the dashed edge. */
+  /* The pencil stays: its hatch on the system's ground, its dashed edge in text colour (above)
+     over the erased seams, its number on a ground chip; the tip, the one mark that isn't text
+     coloured, as copper is the one that isn't ink, in the highlight. */
   .plan .hatch-ground {
     fill: Canvas;
   }
 
-  .plan .plank-tip {
+  .plan .hatch-line {
+    stroke: CanvasText;
+  }
+
+  .plan .plank-erase {
+    stroke: Canvas;
+  }
+
+  .plan .plank-tip path {
     stroke: Highlight;
   }
 
   .plan-view > span {
     color: CanvasText;
+  }
+
+  .plan-view > .plan-pencil {
+    color: CanvasText;
+  }
+
+  .plan-view > .plan-pencil.plan-middle {
+    background: Canvas;
   }
 
   .swatch {
@@ -567,8 +619,13 @@ nav > [data-motion] {
     );
   }
 
-  .swatch.swatch-copper {
-    background: Highlight;
+  .swatch-tip {
+    forced-color-adjust: none;
+  }
+
+  .swatch-tip::before,
+  .swatch-tip::after {
+    border-color: Highlight;
   }
 }
 
@@ -710,6 +767,9 @@ main:has(> [data-model]) {
     & path[data-plank] {
       fill: transparent;
     }
+    & .plank-erase {
+      stroke: transparent;
+    }
     & .plan-plank,
     & .ln-leader,
     & .plank-tip {
@@ -748,13 +808,13 @@ main:has(> [data-model]) {
     opacity: 0;
   }
 
-  [data-plan]:has(+ [data-model]) .plan-plank {
+  [data-plan]:has(+ [data-model]) :is(.plan-plank, .plank-tip) {
     transition:
       opacity 240ms linear,
       visibility 240ms linear;
   }
 
-  [data-plan]:has(+ [data-model][data-state]) .plan-plank {
+  [data-plan]:has(+ [data-model][data-state]) :is(.plan-plank, .plank-tip) {
     opacity: 0;
   }
 
@@ -765,6 +825,10 @@ main:has(> [data-model]) {
 
   [data-plan]:has(+ [data-model]) path[data-plank] {
     transition: fill 240ms linear;
+  }
+
+  [data-plan]:has(+ [data-model]) .plank-erase {
+    transition: stroke 240ms linear;
   }
 }
 
@@ -894,24 +958,28 @@ main:has(> [data-model]) {
 }
 
 /*
- * The live layer in the revision block (.crew/sprint/34/contract.md; notes-iris.md). At rest, the
- * rest line: one 13 px line in ink above the table. In progress, the pencil row leads: its number
- * boxed on the pencil's hatch, as /crew's chip draws it; its goal the link to /crew, a 24 px target
- * that takes no more of the row than its text (the padding and the negative margin cancel); and
- * while live "drawing now" in copper with the frame's dot, which from 1024 px stays whole while the
- * goal takes the ellipsis. The cell itself doesn't clip there, so the link's focus ring shows whole.
+ * The live layer in the revision block (.crew/sprint/34/contract.md; notes-iris.md, calls 1 and
+ * 3.5). At rest, the rest line: one 13 px line in ink above the table. In progress, the pencil row
+ * leads: its number boxed on the pencil's hatch, as /crew's chip draws it; its goal, in ink, the
+ * link to /crew, a 24 px target that takes no more of the row than its text (an inline box's
+ * padding doesn't move its line; as a flex item from 1024 px, a negative margin cancels it); while
+ * live "drawing now" in copper with its dot, 8 px after the goal, whole: from 1024 px the goal takes
+ * the ellipsis, and below it "drawing now" follows the goal's last word and wraps as a unit. The
+ * cell doesn't clip there, so the link's focus ring shows whole. Its signatures are graphite, pencil
+ * entries inked when the sprint merges, and "Waiting for owner" holds one line where rows do.
  */
 .rev-rest {
   font-size: var(--step-sm);
   line-height: 1.5;
 }
 
-/* The chip's line is 2 px short of the table's, so its border keeps the row's height. */
+/* The chip's line is 2 px short of the table's, so its border keeps the row's height. Its edge is
+   the plank's, dashed graphite, in every mode: one pencil mark across the site. */
 .rev-chip {
   display: inline-block;
   padding: 0 4px;
   line-height: calc(1.3em - 2px);
-  border: 1px solid var(--pencil);
+  border: 1px dashed var(--muted);
   background: repeating-linear-gradient(
     135deg,
     var(--pencil) 0 1px,
@@ -921,9 +989,7 @@ main:has(> [data-model]) {
 }
 
 .rev-goal {
-  display: inline-block;
   padding-block: 4px;
-  margin-block: -4px;
   color: var(--foreground);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
@@ -936,19 +1002,32 @@ main:has(> [data-model]) {
   }
 }
 
+.rev tbody tr[data-pencil] td[data-label] {
+  color: var(--muted);
+}
+
+@media (width >= 40rem) {
+  .rev tbody tr[data-pencil] td[data-label="Approved"] {
+    white-space: nowrap;
+  }
+}
+
+/* The space before it is a word space, 0.21em in Sofia Sans; the margin makes the gap 8 px. */
 .rev-drawing {
+  margin-left: calc(8px - 0.21em);
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
 }
 
-/* Drawn as a border, so forced colours paint it. */
+/* 8 px, drawn as a 4 px border like /crew's Working dot, so it is a disc and forced colours paint
+   it. */
 .rev-dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   margin-right: 5px;
-  border: 3.5px solid var(--accent);
+  border: 4px solid var(--accent);
   border-radius: 50%;
   vertical-align: 0.05em;
 }
@@ -961,24 +1040,19 @@ main:has(> [data-model]) {
   .rev-pencil {
     display: flex;
     align-items: baseline;
-    gap: 8px;
   }
 
   .rev-goal {
     min-width: 0;
+    margin-block: -4px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  /* A flex container drops the word space, so the margin is the whole gap. */
   .rev-drawing {
     flex: none;
-  }
-}
-
-/* Forced colours drop the hatch, so the chip's dashed edge says "in progress" there. */
-@media (forced-colors: active) {
-  .rev-chip {
-    border-style: dashed;
+    margin-left: 8px;
   }
 }
 
@@ -2299,20 +2373,15 @@ main:has(> [data-model]) {
   print-color-adjust: exact;
 }
 
+/* In progress, the pencil plank's mark, as on /'s drawing and revision block: the hatch inside a
+   dashed graphite edge. Forced colours drop the hatch, and the dashed edge still says it. */
 :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
-  border-color: var(--pencil);
+  border: 1px dashed var(--muted);
   background: repeating-linear-gradient(
     135deg,
     var(--pencil) 0 1px,
     transparent 1px 4px
   );
-}
-
-/* Forced colours drop the hatch, so the pencil's dashed edge says "in progress" there. */
-@media (forced-colors: active) {
-  :is([data-crew-state="live"], [data-crew-state="open"]) .crew-chip-number {
-    border-style: dashed;
-  }
 }
 
 .crew-goal {

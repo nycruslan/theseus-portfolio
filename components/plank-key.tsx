@@ -18,7 +18,7 @@ export function PlankCount({
 }
 
 // The space between the items keeps the list's text two words apart for anything that reads it
-// whole.
+// whole. With the pencil and copper items it can be wider than a phone, so it wraps.
 export function PlankLegend({
   pencil = false,
   copper = false,
@@ -29,7 +29,7 @@ export function PlankLegend({
   copper?: boolean;
 }) {
   return (
-    <ul className="flex gap-x-4">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1">
       <li className="flex items-center gap-2">
         <span aria-hidden="true" className="swatch bg-card" />
         Seated by a sprint
@@ -43,7 +43,7 @@ export function PlankLegend({
           {" "}
           <li data-key="pencil" className="flex items-center gap-2">
             <span aria-hidden="true" className="swatch swatch-pencil" />
-            In pencil: not merged yet
+            In progress
           </li>
         </>
       ) : null}
@@ -51,8 +51,8 @@ export function PlankLegend({
         <>
           {" "}
           <li data-key="copper" className="flex items-center gap-2">
-            <span aria-hidden="true" className="swatch swatch-copper" />
-            Copper: live now
+            <span aria-hidden="true" className="swatch-tip" />
+            Drawing now
           </li>
         </>
       ) : null}

@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { PENCIL } from "@/lib/hull-layouts";
 import {
   ghostPlan,
@@ -105,8 +106,8 @@ function Drawing({
           </clipPath>
           {pencil ? (
             // The pencil's hatch (PENCIL.hatch, shared with the 3D hull): a line through the
-            // origin of user space and every `period` across, rising to the right. The tile's two
-            // edges each carry half of it.
+            // origin of user space and one every `period` across, rising to the bow, on the film.
+            // The tile's two edges each carry half of a line.
             <pattern
               id={`${id}-hatch`}
               patternUnits="userSpaceOnUse"
@@ -140,7 +141,7 @@ function Drawing({
         <g clipPath={`url(#${id}-hull)`}>
           {planks.map((plank) => {
             const inPencil = plank.id === pencil?.seat;
-            return (
+            const plankPath = (
               <path
                 key={plank.id}
                 data-plank={plank.id}
@@ -162,19 +163,17 @@ function Drawing({
                 d={plank.d}
               />
             );
+            // The neighbours' ink seams would show through the dash's gaps, so a card-coloured
+            // stroke erases them first (notes-iris.md, 3.2).
+            return inPencil ? (
+              <Fragment key={plank.id}>
+                <path className="plank-erase" d={plank.d} />
+                {plankPath}
+              </Fragment>
+            ) : (
+              plankPath
+            );
           })}
-          {pencil?.live && plan.tip ? (
-            <g data-tip="" className="plank-tip">
-              <path strokeWidth={PENCIL.tip.width} d={plan.tip.d} />
-              {PENCIL.tip.dot > 0 ? (
-                <circle
-                  cx={plan.tip.end[0]}
-                  cy={plan.tip.end[1]}
-                  r={PENCIL.tip.dot}
-                />
-              ) : null}
-            </g>
-          ) : null}
         </g>
         {ghost ? null : (
           <>
@@ -184,6 +183,14 @@ function Drawing({
         )}
         <path className="ln-leader" d={lines.leaders} />
         <path className="ln-outline" d={lines.outline} />
+        {/* The pen on the plank's lower edge while the crew is live: after the outline and outside
+          the hull's clip, so it lies on every line and the keel lift's dot is whole. */}
+        {pencil?.live && plan.tip ? (
+          <g data-tip="" className="plank-tip">
+            <path strokeWidth={PENCIL.tip.width} d={plan.tip.run} />
+            <path strokeWidth={PENCIL.tip.dot} d={plan.tip.dot} />
+          </g>
+        ) : null}
       </svg>
       {plan.lettering.map((letter) => (
         <span
