@@ -5,7 +5,75 @@ sprints, each one pull request that leaves the site whole. Atlas takes the curre
 sprint, unless the owner set the goal, and at the close-out ticks it with its sprint and PR. Small
 fixes and follow-ups ride along with the sprint that touches the same code.
 
-## Now: the redesign
+## Now: the proof in five seconds
+
+On `/`'s first screen, at 1440 and on a phone, a hiring executive reads the owner's scope and
+scale (the team he leads, the platform's reach, its users, its impact) in the owner's own words,
+and can tell that the names in the revision block are AI agents he directs. A link shared with
+them carries the same proof.
+
+Quill's plan is `.crew/sprint/38/plan.md`, with the measurements behind it. On production on
+2026-10-31, one of the seven figures in `content/profile.ts` was in the first view, and the other
+six were 1.1 to 2.0 screens down at 1440 and 390 (3.0 at 360 × 640), inside one paragraph. "AI
+agents" appeared only in a 13 px muted caption, and `/crew` never used the word "AI". The checks are
+P1 to P17 across sprints Pa to Pc. No sprint needs an owner answer to start, touches an owner path,
+or edits `content/`: the particulars quote the owner's facts and add no figures. The owner may
+overrule the phrases, the particulars' place on the approved sheet, or the plain-words rule for
+goals, after the fact. The 3D, the loft and the replay stay as built, because the owner's demos
+judge them.
+
+- [x] Sprint 38 (notes only): Quill's plan, the milestone as three sprints
+  (`.crew/sprint/38/plan.md`), and Pa's contract ready for Iris, Probe and Forge
+  (`.crew/sprint/38/first-contract.md`, P1 to P7). (PR #96, built in one run on 2026-10-31;
+  `decisions.md` 1 to 4.) Pa starts with Iris's placement call.
+- [ ] Pa (M): the particulars, the owner's scope and scale on the first screen.
+  - Four rows, each a term and a phrase quoted from the JPMorgan summary: the team of 7, the
+    workflows several thousand employees use firm-wide, the around 8 product teams on the
+    gateway, and the about 55% cut.
+  - In the first viewport at 1440 × 900 and 390 × 844 in every feed state, clear of the hull, and
+    no longer the LCP than the name is.
+  - Iris places it first: four rows in today's title block push the contact links below the fold
+    at 1440 (to y 909–936), so either the drawing band gives about 80 px (Pixel and the 3D suites
+    come in) or the rows take the band's empty corner under the body plan.
+  - No rider touches its code.
+- [ ] Pb (M): who built it, in plain words.
+  - `/`'s revision block gets a one-line key (AI agents; Drawn, Checked, Tested and Approved;
+    Gate and Owner); `/crew` labels each member an AI agent; `/log`'s key reads the same words.
+  - From sprint 38 on, each retro's goal is written in a visitor's words, with no milestone code
+    and no URL path, checked over the retros. `/`'s five rows read plainly within five sprints,
+    and no past retro is rewritten.
+  - Riders: Lens's four nits on #95 (Shift and Meta+Space toggle the pause, the unused
+    `crew-block` class, a `#replay` arrival in a hidden tab, a Strict Mode re-run); `/crew`'s long
+    cache `expire` (Iris, sprint 35; still 300 s in `lib/crew-feed.ts`); Iris's chip over the
+    copper dot on `/` at 1024 and below (B4b).
+- [ ] Pc (S): the facts, scannable and shared.
+  - Work's summaries read sentence by sentence, verbatim.
+  - `/`'s social card carries the bio's first sentence and Pa's particulars, in Sofia Sans from a
+    vendored TTF.
+  - Riders: the facts-and-fonts list that rode at the end of the redesign (the text face's fallback
+    over Arial's metric twins, the project link's gap below 1024, the figcaption's gap at 390, the
+    404's first paint in the fallback face, the card's typeface).
+  - Left open: Detail A's dark-scheme boxes, which need a look on a real phone.
+- Out of scope, and why:
+  - `/work/…` case studies and a published keel need the owner's facts or setup, so they're the
+    next candidates, each starting with an Owner's pick.
+  - Riders that loosen a live assertion wait for a PR that waits for the owner: the legend's
+    "Original" (B1.2 and B2.9), the commit-hash link (C5.3), and the unknown record's scripts-off
+    404.
+- **For the owner, optional:** on Pa's preview and then production, show `/` for five seconds, at
+  1440 and on a phone, to someone who doesn't know you. Ask what you do, at what scale, and how to
+  reach you. It's the research's comprehension test, which no one has run.
+
+## Finished: the redesign
+
+B1 to B5 merged by 2026-10-31 (B4e, #95, last). **Left for the owner, and nothing waits on
+them:**
+- B3's demo on a GPU and a phone: 30 fps, the loft's feel and the control.
+- B4's: the pencil and copper while a run is live.
+- B5's: the ghost and the pick.
+- The milestone's close: Replay of sprint 37 on a phone at rest, then a live run.
+
+Each one's notes are under its item below.
 
 The site in `PRODUCT.md` and `design/brief.md`, built to the direction the owner approved on sprint
 17's canvas (https://claude.ai/artifact/4dnRYkQbTynS4kipuBpbN5) on 2026-10-21, with their four calls:
@@ -79,25 +147,27 @@ replaces today's page, and B3, the signature moment.
     to check at the demo and, if it shows, refit only on width or box changes; a stray JSDoc above
     `cardGeometry` in `lib/model/stage.ts`).
   - [x] Sprint 27 (M): the Full/Calm/Off control, remembered on the device; B2.3 and the keyboard
-    Tab bound rewritten with the same assertions. (PR #74, built in one run on 2026-10-23: Lens ship with no fix round, after its first run died and CI's cap cancelled the suite until the owner re-ran both,
-    Iris ship at 9.0/10, 166 of 166 checks; the contract is `.crew/sprint/27/contract.md` with
-    amendments 1 to 3 and decisions 1 to 13 in `decisions.md`.) The hints set the default (`off`
-    under Save-Data, `calm` under reduced motion, else `full`) and a press wins (decision 3); a
-    press of Full replays the loft (decision 4). Iris's call: below 768 px the control sits at the
-    drawing's foot, not the canvas's bottom strip, which the sheet no longer has (decision 8; her
-    paragraph for the owner is on the PR). Riders taken: Lens's three code nits on #73, the two
-    comment nits on #67, and the cold-cache fallback face at its cause (next/font's one-source
-    fallback; decision 13). **The B3 demo is the owner's**, on #74's preview and then production:
-    30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel, the dark hull under the
-    warm lamp, the control, the toolbar show/hide at rest (Lens's nit on #73), the control's place
-    against `hero-390.webp`, and the "Base" label under the shadow's tail on the narrow sheet.
-    Riding with the next sprint that touches the loader (`components/model.tsx`): Lens's nit on
-    #74 (with the WebGL 2 probe refused, pressing the already-pressed Off stores `off`, so a device
-    that gains WebGL later stays Off unasked; `onClick={() => refused || press(value)}`, about
-    3 B). Left open: the text face's fallback has the same one `local(Arial)` source (Forge, with
-    the next sprint that touches the fonts); in forced colours with the model refused the control shows Full
-    or Calm pressed while nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client
-    code reopens the script budget with the owner.
+    Tab bound rewritten with the same assertions. (PR #74, built in one run on 2026-10-23: Lens ship
+    with no fix round, after its first run died and CI's cap cancelled the suite until the owner
+    re-ran both, Iris ship at 9.0/10, 166 of 166 checks; the contract is
+    `.crew/sprint/27/contract.md` with amendments 1 to 3 and decisions 1 to 13 in `decisions.md`.)
+    The hints set the default (`off` under Save-Data, `calm` under reduced motion, else `full`) and
+    a press wins (decision 3); a press of Full replays the loft (decision 4). Iris's call: below 768
+    px the control sits at the drawing's foot, not the canvas's bottom strip, which the sheet no
+    longer has (decision 8; her paragraph for the owner is on the PR). Riders taken: Lens's three
+    code nits on #73, the two comment nits on #67, and the cold-cache fallback face at its cause
+    (next/font's one-source fallback; decision 13). **The B3 demo is the owner's**, on #74's preview
+    and then production: 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel,
+    the dark hull under the warm lamp, the control, the toolbar show/hide at rest (Lens's nit on
+    #73), the control's place against `hero-390.webp`, and the "Base" label under the shadow's tail
+    on the narrow sheet. Riding with the next sprint that touches the loader
+    (`components/model.tsx`): Lens's nit on #74 (with the WebGL 2 probe refused, pressing the
+    already-pressed Off stores `off`, so a device that gains WebGL later stays Off unasked;
+    `onClick={() => refused || press(value)}`, about 3 B; taken in B5c). Left open: the text face's
+    fallback has the same one `local(Arial)` source (Forge, with the next sprint that touches the
+    fonts); in forced colours with the model refused the control shows Full or Calm pressed while
+    nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client code reopens the
+    script budget with the owner.
 - [x] B4: `/crew`, the crew at work, from the Studio's data. **It waits for the owner's feed:**
   the Studio serves no read a third party can use (its own roadmap lists the API as unbuilt), so
   nothing of B4 ships before it (`.crew/sprint/28/b4-plan.md`, "Before the feed"; decision 7).
@@ -132,8 +202,7 @@ replaces today's page, and B3, the signature moment.
     - **The B4 demo is the owner's,** on #87's preview and production: the pencil and copper while
       a run is live, the rest line after, on a GPU and a phone.
     - Lens's empty-goal nit on #87 and his three test nits on 415b4c0 rode with sprint 35 (B4.32
-      checks the blank goal, fixed once in `readCrew()`). Still riding with the next sprint that
-      touches the layer: Iris's chip
+      checks the blank goal, fixed once in `readCrew()`). Riding with Pb: Iris's chip
       covering the copper dot on a short seat (3.0) at 1024 and below (the tip after the lettering;
       the hull's label moved stern-ward). Left open: the legend's "Original" while nothing original
       is left (B1.2's words), and `/` and `/crew`'s dev-only instant-navigation message
@@ -147,7 +216,7 @@ replaces today's page, and B3, the signature moment.
     - Lens's nit on #90 (abort a poll that never settles) rode with sprint 36 as B4.42.
     - Iris's follow-ups (`decisions.md` 8): the first visit after a quiet spell gets #88's stale
       prerender, which the first poll corrects with a layout shift (0.12 at 1440): give `/crew` a
-      long cache `expire` (still open after sprint 36). **Open for the owner:** the Studio's role lines run to about 140
+      long cache `expire` (still open after sprint 37; rides with Pb). **Open for the owner:** the Studio's role lines run to about 140
       characters, so the table reflows on about half the polls; a short line from the Studio fixes
       it, where clamping here would break B4a's "the line whole".
     - Not verified from the cloud: the preview's CDN caching of `/api/crew` (the proxy refuses
@@ -164,8 +233,8 @@ replaces today's page, and B3, the signature moment.
       The hull turns toward the focus plank's end (yaw ±35°, pitch 6°); at most 7 draws, 25,329
       triangles at 1440 and 7,935 at 390; `/crew` loads 17,088 B over the 404's against a new
       18,432 B budget, `/` unchanged.
-    - Riding with the next sprint that touches `/crew`: Lens's nit on #91, the poller's "outside
-      React's tree" comment is wrong (it edits nodes React hydrated, safe only while nothing
+    - Taken in sprint 37 (#95), as sprint 38 found in the code: Lens's nit on #91, the poller's
+      "outside React's tree" comment is wrong (it edits nodes React hydrated, safe only while nothing
       re-renders `CrewPlan`): correct it and Forge's memory line, or render the ticks as one string;
       and Lens's nit on 2feab08, the 3D ticks' weight reads the Log's `MARK_PX`, not
       `MARKS.width` (`lib/model/stage.ts:450`), so the two can drift apart.
@@ -188,8 +257,8 @@ replaces today's page, and B3, the signature moment.
       `/`'s rest line (server HTML, `/` unchanged); "Pause replay" in Activity's head, Space.
     - `/crew`'s script limits rise to 20,480 B beyond the 404's and 18,432 B beyond `/log`'s
       (measured 18,508 B and 16,469 B), accepted by Lens; B4.26 reads the panel without the key.
-    - Riding with the next sprint that touches `/crew` (Forge): Lens's four nits (Shift/Meta+Space,
-      an unused `crew-block` class, a `#replay` arrival in a hidden tab, Strict Mode's re-run).
+    - Riding with Pb (Forge): Lens's four nits (Shift/Meta+Space, an unused `crew-block` class, a
+      `#replay` arrival in a hidden tab, Strict Mode's re-run).
     - **The milestone's close is the owner's:** on production at rest, Replay sprint 37 on a phone
       and a GPU, then a live run. Iris asks the owner to judge the plank inking above the fold on a
       phone and the 70 s length ("Skip to the merge" if long).
@@ -211,7 +280,9 @@ replaces today's page, and B3, the signature moment.
     ship at 8.2/10, 157 of 157 checks; decisions 1 to 6 in `decisions.md`.) **Its PR waits for
     the owner:** batch F retires 23 tests and two assertions about `/sprints`' old column
     (`gate` reports `e2e/sprints.spec.ts` deleted: git doesn't see the rewrite as a rename).
-    Riding with the next sprint that touches `/log`: Lens's two nits on #77 (three comments in
+    Sprint 38 found these done: the comments, the `h2`, the 66ch cap, and Forge's memory line is
+    gone. Iris's 404 line is hers to check, and the scripts-off 404 is left open below. The list
+    as written: Lens's two nits on #77 (three comments in
     `next.config.ts`, `lib/sprint-log.ts` and `app/layout.tsx` still say nothing reads the sprint
     folders at request time, while an unknown record address now runs `readSprintLog()` on the
     server, so the retros must stay traced; two stale memory lines, Iris's on the 404's face and
@@ -231,10 +302,11 @@ replaces today's page, and B3, the signature moment.
     retro: a workflow that writes the record after each merge (until then the newest revision
     sits under "Undated" until the next sprint's PR merges), moving the writer into `.crew/` with
     a test and a skill step, and still the closed sprints' rows and a public `design` retro
-    field. Riding with the next sprint that touches `/log`: Lens's nit on #82 (B5.16 checks records
-    only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two (the lines
-    figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left open:
-    the unknown record's scripts-off blank 404.
+    field. Riding with the next sprint that touches `/log` (sprint 38 found these taken in B5c as
+    B5.26 a and b, except the commit-hash link, which waits; see B5c): Lens's nit on #82 (B5.16
+    checks records only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two
+    (the lines figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left
+    open: the unknown record's scripts-off blank 404.
   - [x] B5c (M): the ghost hull in 3D on `/log` and every record, under Full/Calm/Off, the control
     in `/log`'s bar, and a plank opening its record. (Sprint 33, PR #83, built in one run on
     2026-10-25: Lens ship on 9b8743a after one fix round, Iris ship at 8.7/10, 184 of 184 checks;
@@ -254,11 +326,9 @@ replaces today's page, and B3, the signature moment.
       Iris's departures from the frames (two translucent sides, no "or a plank in the hull", no
       numbers below 768, "8" led out).
 
-Riding along with the sprints that touch the same code:
-- With the next sprint that touches the facts or the fonts: the text face's fallback over Arial's metric twins (sprint 27); Iris's cheap changes (the dark scheme's
-  Detail A boxes on `--background`, after a look on a real phone; the project link's gap above the
-  rule below 1024; the figcaption's gap at 390); the 404's first-visit paint in the fallback face
-  (the prerendered 404 sends no font preload); the social card's typeface (a vendored TTF).
+Riding along with the sprints that touch the same code: the facts-and-fonts list that waited here
+now rides with Pc (see "Now" above), except Detail A's dark-scheme boxes, which still wait for a
+look on a real phone.
 
 ## Done
 
