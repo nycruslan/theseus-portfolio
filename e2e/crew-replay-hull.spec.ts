@@ -156,7 +156,11 @@ const same = (a: number[] | null | undefined, b: number[] | null | undefined) =>
 /** What holds still through a replay: the svg's box, the viewBox and every plank's d. */
 const frame = (read: DetailRead) =>
   JSON.stringify({
-    svg: read.svg,
+    // Its size, not its viewport place: the entry's jump to #replay scrolls the page, and below
+    // 768 the drawing scrolls with it (Quill's ruling on 5333d9d).
+    size: read.svg
+      ? [read.svg.right - read.svg.left, read.svg.bottom - read.svg.top]
+      : null,
     viewBox: read.viewBox,
     d: read.planks.map((p) => p.d),
   });
@@ -641,16 +645,13 @@ test("B4.47 the hull follows the replay: at 1440 on B3's harness, at rest data-m
     )
     .toEqual({ plank: true, outside: [], merge: 0 });
   expect.soft(run.errors, "console errors").toEqual([]);
+  const withChunk = (await run.scripts()).list.map(
+    (s) => new URL(s.url).pathname,
+  );
   await run.close();
 
-  // B4.39's Off paths: no chunk, replaying.
-  const baseline = await openCrewModel(browser, { refuse: true });
-  await baseline.goto(`${replay.base}/crew`);
-  await pause(3500);
-  const allowed = new Set(
-    (await baseline.scripts()).list.map((s) => new URL(s.url).pathname),
-  );
-  await baseline.close();
+  // B4.39's Off paths, replaying: the 3D chunk is the scripts the Calm page fetched beyond the
+  // WebGL-refused path's, so it must be found there, and no other Off path may fetch it.
   const paths: [string, Parameters<typeof openCrewModel>[1], boolean][] = [
     ["Off stored", { stored: "off" }, false],
     ["WebGL refused", { refuse: true }, false],
@@ -658,23 +659,33 @@ test("B4.47 the hull follows the replay: at 1440 on B3's harness, at rest data-m
     ["Save-Data", { saveData: true }, false],
     ["print", {}, true],
   ];
-  const chunks: string[] = [];
+  const fetched: string[][] = [];
+  const played: string[] = [];
   for (const [what, options, print] of paths) {
     const off = await openCrewModel(browser, { ...options, clock: true });
-    if (print) await off.page.emulateMedia({ media: "print" });
     await off.goto(`${replay.base}/crew`);
     await press(off.page, ENTRY);
-    const played = momentsPlayed(await advance(off.page, 3));
+    if (print) await off.page.emulateMedia({ media: "print" });
+    played.push(`${what}: played ${momentsPlayed(await advance(off.page, 3))}`);
     await pause(500);
-    const extra = (await off.scripts()).list
-      .map((s) => new URL(s.url).pathname)
-      .filter((p) => !allowed.has(p));
-    chunks.push(
-      `${what}: played ${played}, more scripts ${JSON.stringify(extra)}`,
+    fetched.push(
+      (await off.scripts()).list.map((s) => new URL(s.url).pathname),
     );
     await off.close();
   }
+  const refused = new Set(fetched[1] ?? []);
+  const chunk = withChunk.filter((p) => !refused.has(p));
+  const chunks = [
+    `the chunk: ${chunk.length > 0 ? "found" : "none beyond the refused path's"}`,
+    ...paths.map(
+      ([what], i) =>
+        `${played[i]}, the chunk fetched ${JSON.stringify((fetched[i] ?? []).filter((p) => chunk.includes(p)))}`,
+    ),
+  ];
   expect
     .soft(chunks, "B4.39's Off paths on the replay site, 3 steps played")
-    .toEqual(paths.map(([what]) => `${what}: played 4, more scripts []`));
+    .toEqual([
+      "the chunk: found",
+      ...paths.map(([what]) => `${what}: played 4, the chunk fetched []`),
+    ]);
 });

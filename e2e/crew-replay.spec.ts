@@ -621,9 +621,13 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
   const resting = await siteOf(crew, "resting");
 
   // The panel's Tab stops on the resting site (no replay): today's order.
+  // Each walk starts at main#main (tabindex -1, the skip link's target): a blur leaves Chromium's
+  // focus starting point where the focus was (Quill's ruling on 5333d9d).
   const tabStops = async (page: Page) => {
-    await toBody(page);
-    await page.evaluate(() => scrollTo(0, 0));
+    await page.evaluate(() => {
+      const main = document.querySelector<HTMLElement>("main#main");
+      main?.focus({ preventScroll: true });
+    });
     const stops: string[] = [];
     for (let i = 0; i < 60; i++) {
       await page.keyboard.press("Tab");
@@ -653,7 +657,20 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
 
   const { context, page, live } = await opened(browser, replay);
   const before = await readReplay(page);
-  const box0 = before.pause?.box ?? null;
+  // In page coordinates: the press jumps to #replay, so a viewport box moves with the scroll
+  // (Quill's ruling on 5333d9d); "no shift" is the layout's.
+  const pageBox = (r: ReplayRead) =>
+    r.pause?.box
+      ? JSON.stringify(
+          [
+            r.pause.box.left,
+            r.pause.box.top + r.scrollY,
+            r.pause.box.right - r.pause.box.left,
+            r.pause.box.bottom - r.pause.box.top,
+          ].map((v) => Math.round(v * 64) / 64),
+        )
+      : null;
+  const box0 = pageBox(before);
   const unplayed = await tabStops(page);
   expect
     .soft(
@@ -679,9 +696,9 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
         text: glyph?.text.trim(),
         glyph: glyph?.glyph,
         tall: pauseTall(tall(playing.pause?.box), 1440),
-        same: JSON.stringify(playing.pause?.box) === JSON.stringify(box0),
+        same: pageBox(playing) === box0,
       },
-      `the pause at k = 1, after a Tab from the entry's press (its box ${JSON.stringify(playing.pause?.box)}, before ${JSON.stringify(box0)})`,
+      `the pause at k = 1, after a Tab from the entry's press (its page box ${pageBox(playing)}, before ${box0})`,
     )
     .toEqual({
       active: "<button pause>",
@@ -829,7 +846,7 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
         shown: ended.pause?.shown,
         focusable: endFocusable,
         active: ended.active,
-        same: JSON.stringify(ended.pause?.box ?? null) === JSON.stringify(box0),
+        same: pageBox(ended) === box0,
         space: {
           scrolled: afterSpace.scrollY !== endY,
           k: momentsPlayed(afterSpace),
@@ -983,6 +1000,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
     expect
       .soft(
         {
+          held: [momentsPlayed(held), held.pause?.pressed],
           early,
           due,
           block: mutations,
