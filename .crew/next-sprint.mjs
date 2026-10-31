@@ -19,9 +19,10 @@
 //   required checks are.
 // - remind and update: what the team owes the PRs waiting for the owner (ownerQueue).
 // - picks: the owner's answers to the questions the team asked in its PRs (an "Owner's pick", the
-//   sprint skill) that change what it built, not yet marked applied: in an open sprint PR, or a
-//   merged one however long ago, since ticking edits the body and brings it to the top of the
-//   closed list. Ticking the recommended option changes nothing, unless the pick waits.
+//   sprint skill) that change what it built, not yet marked applied: in an open sprint PR no run
+//   worked on within ACTIVE_HOURS (one that did is that run's), or a merged one however long ago,
+//   since ticking edits the body and brings it to the top of the closed list. Ticking the
+//   recommended option changes nothing, unless the pick waits.
 // - action: continue the oldest open sprint PR that doesn't wait for the owner, stand down, or
 //   start the next sprint. A PR or branch a run worked on in the last ACTIVE_HOURS (a commit, or a
 //   PR marked ready or for review) is left to the run most likely still on it, since two runs on
