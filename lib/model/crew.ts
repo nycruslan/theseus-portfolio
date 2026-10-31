@@ -140,9 +140,8 @@ export function tickSegments(seat: string, count: number) {
   const out: number[] = [];
   for (let i = 0; i < Math.min(count, MARKS.max); i++) {
     const x = markX(tally, i);
-    const band = bandAt(plank, x);
-    if (!band) continue;
-    out.push(...nearSide(x, band[1]), ...nearSide(x, band[1] + MARKS.length));
+    const bottom = bandAt(plank, x)?.[1] ?? plank.yBot;
+    out.push(...nearSide(x, bottom), ...nearSide(x, bottom + MARKS.length));
   }
   return new Float32Array(out);
 }

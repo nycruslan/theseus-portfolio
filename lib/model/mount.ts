@@ -278,14 +278,7 @@ function start(
   const shownSheet = () =>
     matchMedia(THREE_VIEWS).matches ? sheets.wide : sheets.narrow;
   const canvas = document.createElement("canvas");
-  // On /crew from 1024 px the drawing is sticky under the bar while the panel scrolls, and the
-  // layer is the whole row: the canvas lies in a holder as tall as the drawing's plan, which sticks
-  // as it does (app/globals.css, "The hull on /crew"), so the two move as one, on the compositor.
-  const holder = crew ? document.createElement("div") : null;
-  if (holder) {
-    holder.append(canvas);
-    host.append(holder);
-  } else host.append(canvas);
+  host.append(canvas);
   const numbers = ghost ? riders(ghost) : null;
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
@@ -350,18 +343,17 @@ function start(
 
   const measure = (): Fit => {
     const p = sheet.drawing.getBoundingClientRect();
-    // The canvas's offsets are from its holder on /crew, from the layer elsewhere.
-    const h = (holder ?? host).getBoundingClientRect();
+    const h = box();
     // Whole buffer pixels, and the CSS size they make: round(css × dpr) / dpr (S4, rule 1).
     const buffer: [number, number] = [
       Math.round(p.width * ratio),
       Math.round(p.height * ratio),
     ];
-    // Chromium lays a box out in 1/64 px, flooring: the ghost's CSS size is rounded up to it, so the
-    // buffer is never more than the ratio times the size the page lays out (107 / 1.5 = 71.333
-    // reads back 71.328 at 390, over the 1.5 cap: B5.23).
+    // Chromium lays a box out in 1/64 px, flooring: the ghost's CSS size and /crew's are rounded up
+    // to it, so the buffer is never more than the ratio times the size the page lays out (107 / 1.5
+    // = 71.333 reads back 71.328 at 390, over the 1.5 cap: B5.23).
     const css = (n: number) =>
-      ghost ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
+      ghost || crew ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
     return {
       left: p.left - h.left,
       top: p.top - h.top,
@@ -393,10 +385,6 @@ function start(
       width: `${next.width}px`,
       height: `${next.height}px`,
     });
-    // As tall as the plan, so its sticking ends where the drawing's does, at the row's foot.
-    if (holder && plan) {
-      holder.style.height = `${plan.getBoundingClientRect().height}px`;
-    }
     stage.fit(next.buffer, [next.width, next.height]);
     loft = makeLoft(next, hull.points, sheet.layout, move);
     if (reshade) stage.shade(shadowFor(hull, loft));
@@ -929,7 +917,6 @@ function start(
     else dispose();
     stage = null;
     canvas.remove();
-    holder?.remove();
     delete host.dataset.state;
     delete host.dataset.marks;
   }

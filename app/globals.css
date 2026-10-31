@@ -915,23 +915,8 @@ main:has(> [data-model]) {
  * pencil number does. Nothing here is a CSS animation or transition but the reduced-motion fade.
  */
 
-/* From 1024 px the drawing sticks under the bar while the panel scrolls, and the layer is the whole
-   first row, as tall as the panel: the canvas lies in a holder the chunk makes as tall as the plan,
-   which sticks at the drawing's top (.crew-page > [data-plan], below), so the two move as one on
-   the compositor and stop together at the row's foot. */
-.crew-page > [data-model] > div {
-  position: relative;
-}
-
-@media (width >= 64rem) {
-  .crew-page > [data-model] > div {
-    position: sticky;
-    top: 72px;
-  }
-}
-
 @media screen and (forced-colors: none) {
-  .crew-page
+  .crew-drawing
     > [data-plan]:has(
       + [data-model]:is(
           [data-state="lofting"],
@@ -948,7 +933,7 @@ main:has(> [data-model]) {
     }
   }
 
-  .crew-page > [data-plan]:has(+ [data-model][data-state]) .plan-focus {
+  .crew-drawing > [data-plan]:has(+ [data-model][data-state]) .plan-focus {
     transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
   }
 }
@@ -956,17 +941,17 @@ main:has(> [data-model]) {
 /* Under reduced motion the ticks fade out with the tip as the canvas fades in; the focus number
    stays on its plank, as the sheet's pencil number does. */
 @media screen and (prefers-reduced-motion: reduce) and (forced-colors: none) {
-  .crew-page > [data-plan]:has(+ [data-model]) .plank-marks {
+  .crew-drawing > [data-plan]:has(+ [data-model]) .plank-marks {
     transition:
       opacity 240ms linear,
       visibility 240ms linear;
   }
 
-  .crew-page > [data-plan]:has(+ [data-model][data-state]) .plank-marks {
+  .crew-drawing > [data-plan]:has(+ [data-model][data-state]) .plank-marks {
     opacity: 0;
   }
 
-  .crew-page > [data-plan]:has(+ [data-model][data-state]) .plan-focus {
+  .crew-drawing > [data-plan]:has(+ [data-model][data-state]) .plan-focus {
     opacity: 1;
   }
 }
