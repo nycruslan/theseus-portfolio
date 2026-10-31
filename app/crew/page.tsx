@@ -3,7 +3,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { CrewLive } from "@/components/crew-live";
 import { Foot } from "@/components/foot";
-import { CrewPlan } from "@/components/lines-plan";
+import { CrewPlan, ReplayStamp } from "@/components/lines-plan";
 import { Model, MotionControl } from "@/components/model";
 import { SkipLink } from "@/components/skip-link";
 import { profile } from "@/content/profile";
@@ -52,9 +52,20 @@ export default async function Crew() {
   const layer = layerOf(crew, merged);
   const pencil = layer.state === "pencil" ? layer.pencil : null;
   const [record] = entries;
-  // The detail's focus: the seat in pencil, or the newest retro's (contract, call 2).
+  // At rest with a replay to offer, the replayed sprint's seat, drawn inked with its tally for the
+  // replay to take back to pencil. With no seat yet (deploy lag, or merge order) the drawing is
+  // today's, and the replay plays in the panel alone (.crew/sprint/37/contract.md, call 7).
+  const replayed =
+    crew.state === "resting" && crew.run.replay ? crew.run.sprint : null;
+  const replaySeat = replayed === null ? undefined : seatOf(merged, replayed);
+  const tally =
+    pencil ??
+    (replayed !== null && replaySeat
+      ? { sprint: replayed, seat: replaySeat }
+      : null);
+  // The detail's focus: the seat in pencil or replayed, or the newest retro's (contract, call 2).
   const focus =
-    pencil?.seat ?? (record && seatOf(merged, record.sprint)) ?? nextSeat(0);
+    tally?.seat ?? (record && seatOf(merged, record.sprint)) ?? nextSeat(0);
   // One tick per moment the panel lists, in pencil alone (call 1).
   const marks = pencil && crew.state !== "down" ? crew.run.moments.length : 0;
   // Only what the panel shows from the retros: the browser gets these, not the reader or profile.
@@ -85,18 +96,27 @@ export default async function Crew() {
           is a stacking context, so the drawing's numbers and the canvas must share it to paint
           in order. */}
         <div className="crew-drawing">
-          <CrewPlan seats={seats} focus={focus} pencil={pencil} marks={marks} />
+          <CrewPlan
+            seats={seats}
+            focus={focus}
+            pencil={pencil}
+            inked={pencil ? null : (tally?.sprint ?? null)}
+            marks={marks}
+          />
           <Model seated={[...seats.keys()]} />
+          {/* After the model's layer, which must follow the drawing, and over its canvas. */}
+          {tally && !pencil ? <ReplayStamp /> : null}
         </div>
         <Foot control={<MotionControl />} />
         <CrewLive
           crew={crew}
           facts={facts}
           drawn={
-            pencil
+            tally
               ? {
-                  sprint: pencil.sprint,
-                  holder: seats.get(pencil.seat) ?? null,
+                  sprint: tally.sprint,
+                  holder: seats.get(tally.seat) ?? null,
+                  replay: !pencil,
                 }
               : null
           }

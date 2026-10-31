@@ -440,6 +440,7 @@ carries no `replay`, and the default server is down, so the code paths they cove
 | Check | Disposition |
 |---|---|
 | `crew.spec.ts` (B4.1 to B4.13 and the harness), `crew-bar`, `crew-live` (B4.25 to B4.30, B4.42), `crew-hull` (B4.33 to B4.35), `crew-model*`, `crew-motion`, `crew-control` | **kept unedited**: with no replay offered, every page they load is today's. B4.25's `wrongKeys` holds because a route answer carries `replay` only when one is offered (call 6) |
+| B4.26 (`crew-live.spec.ts`), the panel's text told live/open | **rewrite, same assertion** (decision 10): the panel's text is compared with `p[data-tick-key]` removed on both sides. Rider 3's key follows the drawing's state (the server drew the tally), not the told answer, and B4.50 checks it. One element leaves the read, no `expect(` |
 | `live-layer.spec.ts` B4.15 to B4.24, B4.32 (B4.18's "no link" in the rest line, B4.24's "the Log right after Contact" at rest) | **kept unedited**: their resting fixture has no replay, so no link. B4.49 checks the link's presence with their helpers, beside them |
 | B4.14 and B4.31, the script | **rewrite, same `expect(`s**: `/crew` beyond the 404 goes from 18,432 to **20,480 B**, and beyond `/log`'s from 16,384 to **18,432 B** (call 8). LCP and fonts are unchanged |
 | `read.spec.ts` B2.10 (`/` at 2,048 B, 9 B left), `sheet`, `keyboard`, `motion`, `model-*`, `log-*`, the `ROUTES` sweeps, `content`'s TODO sweep | **kept unedited**: `/` adds HTML only, and the default server shows no rest line |

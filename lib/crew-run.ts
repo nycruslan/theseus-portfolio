@@ -69,6 +69,11 @@ export interface Run {
   studio: string | null;
   /** When GitHub merged its pull request (`last` only). */
   mergedAt: string | null;
+  /**
+   * The sprint's moments for /crew's Replay, oldest first, at most 60: only on a resting run that
+   * offers one (.crew/sprint/37/contract.md, "The replay").
+   */
+  replay?: Moment[];
 }
 
 /**
@@ -82,6 +87,7 @@ export type Crew =
 
 const TOLD = ["live", "open", "resting"] as const;
 const MAX_MOMENTS = 10;
+const MAX_REPLAY = 60;
 
 export type Fields = Record<string, unknown>;
 
@@ -144,7 +150,8 @@ function rolesOf(entries: unknown[]): RoleLine[] {
   return [...roles.values()];
 }
 
-function momentsOf(entries: unknown[]): Moment[] {
+/** The entries B4a's moment rules keep, in the feed's order. */
+function kept(entries: unknown[]): Moment[] {
   const moments: Moment[] = [];
   for (const entry of entries) {
     if (!isRecord(entry)) continue;
@@ -154,8 +161,12 @@ function momentsOf(entries: unknown[]): Moment[] {
     if (!isOneOf(MOMENT_KINDS, kind) || !isTime(at) || !words) continue;
     moments.push({ kind, at, text: words });
   }
+  return moments;
+}
+
+function momentsOf(entries: unknown[]): Moment[] {
   // Newest first; the sort is stable, so ties keep the feed's order.
-  return moments
+  return kept(entries)
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     .slice(0, MAX_MOMENTS);
 }
@@ -205,6 +216,23 @@ export function runOf(run: Fields, origin: string | null): Run {
 }
 
 /**
+ * A resting run, with the replay it offers (.crew/sprint/37/contract.md, "The replay"): the
+ * entries the moment rules keep, oldest first (stable, so ties keep the feed's order), the newest
+ * 60 of them. Offered only when the run has a number and at least one entry is kept; otherwise the
+ * run has no `replay`, and a missing or broken one is never down. The server reads the feed's
+ * `last.replay` and the browser /api/crew's `run.replay` by this one rule.
+ */
+export function restingOf(run: Fields, origin: string | null): Run {
+  const told = runOf(run, origin);
+  const replay = Array.isArray(run.replay)
+    ? kept(run.replay)
+        .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+        .slice(-MAX_REPLAY)
+    : [];
+  return told.sprint !== null && replay.length > 0 ? { ...told, replay } : told;
+}
+
+/**
  * The browser's reading of an /api/crew answer: the state it tells, or null when the poll failed
  * (another version, an unknown state, a run where there should be none or none where there should
  * be one), so a tab left open across a deploy that changes the shape never misreads it.
@@ -213,9 +241,11 @@ export function crewOfAnswer(answer: unknown): Crew | null {
   if (!isRecord(answer) || answer.version !== 1) return null;
   const { state, run } = answer;
   if (state === "down") return run === null ? { state } : null;
-  return isOneOf(TOLD, state) && isRunFrame(run)
-    ? { state, run: runOf(run, null) }
-    : null;
+  if (!isOneOf(TOLD, state) || !isRunFrame(run)) return null;
+  return {
+    state,
+    run: state === "resting" ? restingOf(run, null) : runOf(run, null),
+  };
 }
 
 const PULL =

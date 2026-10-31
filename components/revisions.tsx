@@ -31,22 +31,29 @@ type RevisionsProps = {
   replaced: number;
   /** The sprint in progress, whose row leads the five (lib/live-layer.ts). */
   pencil?: Pencil | null;
-  /** The crew at rest: the last merge the feed told. */
-  rest?: Pick<Run, "sprint" | "mergedAt"> | null;
+  /** The crew at rest: the last merge the feed told, and the replay it offers. */
+  rest?: Pick<Run, "sprint" | "mergedAt" | "replay"> | null;
   className?: string;
 };
 
 /**
  * The rest line (.crew/sprint/34/contract.md, "The rest line"; notes-iris.md, calls 1 and 2): /crew's
  * resting status word for word (components/crew.tsx), "Crew resting. Sprint 33 merged 31 Oct, 01:50
- * UTC.", the sprint and the time each kept on one line where the line wraps.
+ * UTC.", the sprint and the time each kept on one line where the line wraps. With a replay offered,
+ * the way to it follows at the line's end, or on a line of its own where they don't fit: a link to
+ * /crew's anchor, which plays it there (.crew/sprint/37/contract.md, "The rest line on /"). HTML
+ * alone, so / ships no script for it.
  */
-function RestLine({ rest }: { rest: Pick<Run, "sprint" | "mergedAt"> }) {
+function RestLine({
+  rest,
+}: {
+  rest: Pick<Run, "sprint" | "mergedAt" | "replay">;
+}) {
   const { sprint, mergedAt } = rest;
   const merged = mergedAt === null ? Number.NaN : Date.parse(mergedAt);
   const at = Number.isNaN(merged) ? null : new Date(merged);
-  return (
-    <p data-rest="" className="rev-rest">
+  const sentence = (
+    <>
       <span className="font-semibold">Crew resting.</span>
       {sprint === null ? null : (
         <>
@@ -63,6 +70,23 @@ function RestLine({ rest }: { rest: Pick<Run, "sprint" | "mergedAt"> }) {
           .
         </>
       )}
+    </>
+  );
+  // Only a run with a number offers a replay (lib/crew-run.ts).
+  if (!rest.replay || sprint === null) {
+    return (
+      <p data-rest="" className="rev-rest">
+        {sentence}
+      </p>
+    );
+  }
+  return (
+    <p data-rest="" className="rev-rest rev-rest-replay">
+      <span>{sentence}</span>
+      <a href="/crew#replay" className="rev-replay">
+        <span aria-hidden="true" className="rev-play" />
+        Replay sprint {sprint}
+      </a>
     </p>
   );
 }
