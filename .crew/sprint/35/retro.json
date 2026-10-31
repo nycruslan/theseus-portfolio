@@ -1,0 +1,46 @@
+{
+  "sprint": 35,
+  "pr": 90,
+  "goal": "B4c: /crew live in the browser, with Pause updates",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 6a7d9fa after a description fix, with one nit riding; Iris ship at 8.1/10; B4.25 to B4.32 red first, then green; no owner path touched",
+  "fixRounds": 1,
+  "minutes": 110,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 183557, "minutes": 14 },
+    { "role": "design-director", "model": "opus", "tokens": 278111, "minutes": 54 },
+    { "role": "engineer", "model": "opus", "tokens": 278705, "minutes": 41 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 314188, "minutes": 60 }
+  ],
+  "lens": { "runs": 2, "tokens": 6019040, "important": 1, "actedOn": 1, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The Pause button looked like it moved when a run ended, because two test runs had goals of different lengths",
+      "evidence": "B4.31 failed by 24 to 25.5 px on Forge's build; the resting fixture now keeps the live run's sprint and goal (bad213c), and Pause's top is pinned to its row's top"
+    },
+    {
+      "what": "The first review asked for the new spec's skip on deployed sites to be named in the description",
+      "evidence": "Lens changes on c57df10 (Important, e2e/crew-live.spec.ts:47); one line in the PR, Lens ship on 6a7d9fa"
+    },
+    {
+      "what": "The first visitor after a quiet spell sees the page shift once as the first poll replaces a stale panel",
+      "evidence": "Iris on production: x-vercel-cache PRERENDER while live, CLS 0.115 to 0.128 at 1440 on the build; a follow-up lengthens /crew's cache expire"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Let cloud sessions' proxy reach the project's Vercel preview hosts, read-only",
+      "moves": "Checks only a preview can answer (the CDN's x-vercel-cache on /api/crew) went unverified in sprints 34 and 35"
+    },
+    {
+      "change": "Sprint 34's still stands: give CI's check job a timeout that scales with the suite, or split the feed and 3D specs into their own job",
+      "moves": "The full suite took 28.9 min on 2 workers locally against CI's 25-minute cap"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "Abort a poll that never settles (Lens's nit on #90), with B4d" },
+    { "who": "Forge", "what": "A long cache expire for /crew, so its first poll corrects a stale page without a shift (Iris)" },
+    { "who": "Owner", "what": "A short role line from the Studio's feed: today's run to about 140 characters and reflow /crew's table on about half the polls" }
+  ]
+}
