@@ -2391,11 +2391,66 @@ main:has(> [data-model]) {
   line-height: 1.5;
 }
 
-.crew-status {
+/* The status, and "Pause updates" at the row's right end on the panel's content edge, Close's
+   (.crew/sprint/35/notes-iris.md, section 1). The button's top is the row's, so a status that
+   changes or wraps never moves it; the status's first line is centred on it. */
+.crew-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: start;
   margin-top: 8px;
+}
+
+.crew-status {
+  padding-top: calc((44px - 1lh) / 2);
   font-size: var(--step-base);
   font-weight: 600;
   line-height: 1.5;
+}
+
+/* The motion control's cell, alone and in ink: pressed is an ink fill with film text, as
+   [data-motion]'s, so the site has one grammar for "on". Never copper, and no transition. */
+.crew-pause {
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  font-size: var(--step-base);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.crew-pause[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+@media (hover: hover) {
+  .crew-pause[aria-pressed="false"]:hover {
+    background: var(--rule);
+  }
+}
+
+/* Until the poller runs, and always without scripts, the button holds its box but isn't seen,
+   focused or announced: a control that does nothing never shows (sprint 22's rule). */
+[data-pause]:not([data-ready]) {
+  visibility: hidden;
+}
+
+/* As [data-motion]'s pressed cell: left to the system, Chromium drops the fill and pressed looks
+   unpressed. */
+@media (forced-colors: active) {
+  .crew-pause[aria-pressed="true"] {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+    outline-color: Highlight;
+  }
 }
 
 .crew-table {
@@ -2627,6 +2682,16 @@ main:has(> [data-model]) {
     margin-top: 12px;
   }
 
+  .crew-status {
+    padding-top: calc((32px - 1lh) / 2);
+  }
+
+  .crew-pause {
+    height: 32px;
+    padding: 0 12px;
+    font-size: var(--step-sm);
+  }
+
   .crew-table {
     margin-top: 16px;
   }
@@ -2652,7 +2717,8 @@ main:has(> [data-model]) {
 }
 
 @media print {
-  .crew-close {
+  .crew-close,
+  .crew-pause {
     display: none;
   }
 }
