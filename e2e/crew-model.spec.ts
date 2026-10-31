@@ -126,20 +126,44 @@ test.beforeAll(({ crew }) => {
 const told = (fixture: "live" | "open" | "resting", patch?: Patch) =>
   toAnswer(feedOf(fixture, patch), FIXTURE_STUDIO);
 type MomentIn = { kind: string; at: string; who?: string; text: string };
-/** The live fixture with its valid moments cut to the newest `count`, plus `extra` newer ones. */
-function liveWith(count: number, extra: MomentIn[] = []) {
-  const valid = (feedOf("live").current as { moments: MomentIn[] }).moments
-    .filter((m) => !Number.isNaN(Date.parse(m.at)) && m.kind !== "meeting")
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, count);
-  return told("live", { current: { moments: [...extra, ...valid] } });
-}
+/** The live fixture's moments as the route tells them: valid, newest first (9 of its 12). */
+const LIVE_MOMENTS = (told("live").run as { moments: MomentIn[] }).moments;
+/** A moment newer than the live fixture's newest (01:58:40 UTC on 24 Oct), on the same day. */
 const moment = (minute: number, text: string): MomentIn => ({
   kind: "report",
   at: `2026-10-24T02:${String(minute).padStart(2, "0")}:00.000Z`,
   who: "qa-engineer",
   text,
 });
+/** The live fixture told with `count` moments (made-up newer ones past its 9), plus `extra`. */
+function liveWith(count: number, extra: MomentIn[] = []) {
+  const made = Array.from(
+    { length: Math.max(0, count - LIVE_MOMENTS.length) },
+    (_, i) => moment(20 + i, `Moment ${i + 1} made up for the count.`),
+  );
+  return told("live", {
+    current: {
+      moments: [...extra, ...made, ...LIVE_MOMENTS.slice(0, count)],
+    },
+  });
+}
+
+/**
+ * The shown figures in [data-plan] that sit on the hull: over a pixel the canvas covers at half or
+ * more (station figures and captions lie off it), in CSS px relative to `clip`.
+ */
+async function onHull(page: Page, clip: Box) {
+  const hull = await canvasOnly(page, clip);
+  return (await figures(page))
+    .filter((f) => {
+      const x = Math.round((f.box.left + f.box.right) / 2 - clip.x);
+      const y = Math.round((f.box.top + f.box.bottom) / 2 - clip.y);
+      if (x < 0 || y < 0 || x >= hull.image.width || y >= hull.image.height)
+        return false;
+      return (hull.alpha[y * hull.image.width + x] ?? 0) >= 0.5;
+    })
+    .map((f) => f.text);
+}
 
 async function rested(run: CrewRun, url: string, clock = false) {
   await run.goto(url);
@@ -259,7 +283,7 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
     expect
       .soft(
         distance.max,
-        `frame 1's silhouette against the 2D planks' (px, B3.1's 1.5 at DPR 1), ${where}`,
+        `frame 1's silhouette against the 2D hull's (${silhouette.outlined ? "its outline filled" : "its planks filled"}; px, B3.1's 1.5 at DPR 1), ${where}`,
       )
       .toBeLessThanOrEqual(1.5);
     const fills = points
@@ -415,22 +439,25 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
       await run.waitFor(["settled", "still"], 5_000);
       await pause(400);
       const recordShot = await canvasOnly(run.page, clip);
+      // The focus point is on the lower edge, held on its 2D place: the plank is the changed rows
+      // above it (the ticks hang below it, so rows past it are left out), top to bottom.
       const column = Math.round(focusPoint[0] - clip.x);
+      const edge = Math.round(focusPoint[1] - clip.y);
       const depths: number[] = [];
       for (const dx of [-2, -1, 0, 1, 2]) {
         const x = column + dx;
-        let run_ = 0;
-        let best = 0;
-        for (let y = 0; y < pencilShot.image.height; y++) {
+        const rows: number[] = [];
+        for (let y = Math.max(0, edge - 60); y <= edge + 1; y++) {
           const p = pixel(pencilShot.image, x, y);
           const q = pixel(recordShot.image, x, y);
           const d = Math.max(
             ...[0, 1, 2].map((i) => Math.abs((p[i] ?? 0) - (q[i] ?? 0))),
           );
-          run_ = d > 6 ? run_ + 1 : 0;
-          best = Math.max(best, run_);
+          if (d > 6) rows.push(y);
         }
-        depths.push(best);
+        depths.push(
+          rows.length ? Math.max(...rows) - Math.min(...rows) + 1 : 0,
+        );
       }
       const depth = [...depths].sort((a, b) => a - b)[2] ?? 0;
       const floor = width >= 1024 ? 18 : 16;
@@ -495,29 +522,34 @@ test("B4.37 the ticks in 3D, and copper only while live: on the live and open si
       }) as Box,
     );
     const shot = async () => (await canvasOnly(run.page, clip)).image;
+    const shownMoments = await momentsShown(run.page);
     expect
       .soft(
-        [await marksDrawn(run.page), await momentsShown(run.page)],
-        `data-marks and the moments shown on ${live.where} at rest, ${where}`,
+        [shownMoments > 0, await marksDrawn(run.page)],
+        `moments shown on ${live.where} (more than 0), and data-marks at rest against them, ${where}`,
       )
-      .toEqual([10, 10]);
+      .toEqual([true, shownMoments]);
     expect
       .soft(
-        (await figures(run.page)).map((f) => f.text),
+        await onHull(run.page, clip),
         `the shown numbers on the hull, ${where}`,
       )
       .toEqual([String(live.n)]);
     const steps: { what: string; frames: number; marks: number }[] = [];
-    const step = async (what: string, json: unknown) => {
+    // Each poll at its schedule (B4.26): 30 s while live, 60 s once open or resting. A longer step
+    // would run past a poll in flight into B4.42's 30 s abort.
+    const step = async (what: string, json: unknown, every = 30_000) => {
       run.answer({ json });
       const before = await count();
-      await run.tick(30_000);
+      await run.tick(every);
       steps.push({
         what,
         frames: (await count()) - before,
         marks: await marksDrawn(run.page),
       });
     };
+    await step("10 moments", liveWith(10));
+    await step("an 11th", liveWith(10, [moment(50, "An 11th.")]));
     await step("5 moments", liveWith(5));
     const five = await shot();
     await step("a sixth", liveWith(5, [moment(10, "A sixth.")]));
@@ -544,15 +576,19 @@ test("B4.37 the ticks in 3D, and copper only while live: on the live and open si
           goal: (feedOf("live").current as { goal?: unknown }).goal,
         },
       }),
+      60_000,
     );
     await step(
       "another sprint",
       told("live", { current: { sprint: live.n + 1 } }),
+      60_000,
     );
     const record = await shot();
     expect
       .soft(steps, `frames drawn and data-marks after each poll, ${where}`)
       .toEqual([
+        { what: "10 moments", frames: 1, marks: 10 },
+        { what: "an 11th", frames: 0, marks: 10 },
         { what: "5 moments", frames: 1, marks: 5 },
         { what: "a sixth", frames: 1, marks: 6 },
         { what: "the same again", frames: 0, marks: 6 },
@@ -698,7 +734,20 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
           await run.page.touchscreen.tap(at.x, at.y);
         },
       ],
-      ["a scroll", () => run.page.evaluate(() => scrollTo(0, 60))],
+      [
+        "a scroll",
+        // /crew can fit a 1440 x 900 screen: a spacer after main gives it room to scroll, as a
+        // longer panel would.
+        () =>
+          run.page.evaluate(() => {
+            if (document.documentElement.scrollHeight <= innerHeight + 60) {
+              const spacer = document.createElement("div");
+              spacer.style.height = "200px";
+              document.body.append(spacer);
+            }
+            scrollTo(0, 60);
+          }),
+      ],
     ];
     for (const [name, act] of inputs) {
       await replay("Calm");
@@ -799,15 +848,17 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
       const at = `${label}, ${where}`;
       const quiet = await openCrewModel(browser, { ...size, ...options });
       await quiet.context.addInitScript(() => {
-        const list: { property: string; end: number }[] = [];
+        // The fade: transitions in the drawing and the model layer (the panel's own, a dot's or a
+        // button's, aren't the model's fade).
+        const list: { property: string; end: number; target: string }[] = [];
         (window as Window & { __runs?: typeof list }).__runs = list;
         addEventListener(
           "transitionrun",
           (event) => {
             const e = event as TransitionEvent;
-            const own = (
-              (e.target as Element | null)?.getAnimations?.() ?? []
-            ).find(
+            const el = e.target as Element | null;
+            if (!el?.closest?.("[data-plan], [data-model]")) return;
+            const own = (el.getAnimations?.() ?? []).find(
               (a) =>
                 (a as Animation & { transitionProperty?: string })
                   .transitionProperty === e.propertyName,
@@ -817,6 +868,7 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
               end: Number(
                 own?.effect?.getComputedTiming().endTime ?? Number.NaN,
               ),
+              target: `<${el.tagName.toLowerCase()} ${el.getAttribute("class") ?? ""}>`,
             });
           },
           true,
@@ -839,7 +891,7 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
           () =>
             (
               window as Window & {
-                __runs?: { property: string; end: number }[];
+                __runs?: { property: string; end: number; target: string }[];
               }
             ).__runs ?? [],
         );
@@ -847,9 +899,13 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
           .soft(
             {
               any: runs.length > 0,
-              other: runs
-                .filter((r) => r.property !== "opacity")
-                .map((r) => r.property),
+              other: [
+                ...new Set(
+                  runs
+                    .filter((r) => r.property !== "opacity")
+                    .map((r) => `${r.property} on ${r.target}`),
+                ),
+              ],
               late: runs
                 .filter((r) => !(r.end <= 300))
                 .map((r) => `${r.property} ${r.end}`),
@@ -891,7 +947,8 @@ test("B4.40 cheap and still: on the live site with 10 ticks, at 1440 and 390, DP
       const run = await openCrewModel(
         browser,
         { ...size, dpr, scheme },
-        { json: told("live") },
+        // The live run with 10 moments: the contract's "with 10 ticks shown".
+        { json: liveWith(10) },
       );
       await rested(run, url);
       expect(await marksDrawn(run.page), `data-marks, ${where}`).toBe(10);

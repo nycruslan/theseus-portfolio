@@ -437,9 +437,17 @@ export function readDetail(page: Page): Promise<DetailRead> {
         const s = getComputedStyle(el);
         const half = Number.parseFloat(s.strokeWidth) / 2 || 0;
         const line = userBox(el);
+        // The stroke box: half the stroke either side; past the ends only with round or square
+        // caps (MARKS has butt caps, which end where the line does).
+        const ends = s.strokeLinecap === "butt" ? 0 : half;
         return {
           line,
-          box: userBox(el, half),
+          box: {
+            left: line.left - half,
+            right: line.right + half,
+            top: line.top - ends,
+            bottom: line.bottom + ends,
+          },
           cx: (line.left + line.right) / 2,
           stroke: colour(s.stroke),
           strokeRaw: s.stroke,
@@ -520,8 +528,12 @@ export const boxToPoint = (b: Box, x: number, y: number) =>
     Math.max(b.top - y, 0, y - b.bottom),
   );
 
-export const overlaps = (a: Box, b: Box) =>
-  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+/** Two boxes overlap by more than `slack` px across and down (0.5: under half a pixel at DPR 1 is antialiasing). */
+export const overlaps = (a: Box, b: Box, slack = 0) =>
+  a.left < b.right - slack &&
+  b.left < a.right - slack &&
+  a.top < b.bottom - slack &&
+  b.top < a.bottom - slack;
 
 export const inside = (a: Box, b: Box, slack = 0) =>
   a.left >= b.left - slack &&

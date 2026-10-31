@@ -471,7 +471,7 @@ test("B4.34 one tick per moment, in 2D: the shown [data-mark]s number the panel'
         expect
           .soft(
             read.marks
-              .filter((m) => chip && overlaps(m.box, chip.box))
+              .filter((m) => chip && overlaps(m.box, chip.box, 0.5))
               .map((m) => m.cx.toFixed(1)),
             `ticks under n's chip ${JSON.stringify(chip?.box)}, ${at}`,
           )
@@ -546,12 +546,9 @@ test("B4.34 one tick per moment, in 2D: the shown [data-mark]s number the panel'
 
 const told = (fixture: Fixture, patch?: Patch) =>
   toAnswer(feedOf(fixture, patch), FIXTURE_STUDIO);
-const LIVE = told("live");
 type MomentIn = { kind: string; at: string; who?: string; text: string };
-const liveMoments = () =>
-  structuredClone(
-    (feedOf("live").current as { moments: MomentIn[] }).moments,
-  ) as MomentIn[];
+/** The live fixture's moments as the route tells them: valid, newest first (9 of its 12). */
+const LIVE_MOMENTS = (told("live").run as { moments: MomentIn[] }).moments;
 /** A moment newer than the live fixture's newest (01:58:40 UTC on 24 Oct), on the same day. */
 const moment = (minute: number, text: string): MomentIn => ({
   kind: "report",
@@ -559,14 +556,23 @@ const moment = (minute: number, text: string): MomentIn => ({
   who: "qa-engineer",
   text,
 });
-/** The live fixture with its valid moments cut to the newest `count`, plus `extra` newer ones. */
+/**
+ * The live fixture told with `count` moments (its own newest, then newer ones made up to reach a
+ * count past its 9), plus `extra` newer ones.
+ */
 function liveWith(count: number, extra: MomentIn[] = []) {
-  const valid = liveMoments()
-    .filter((m) => !Number.isNaN(Date.parse(m.at)) && m.kind !== "meeting")
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, count);
-  return told("live", { current: { moments: [...extra, ...valid] } });
+  const made = Array.from(
+    { length: Math.max(0, count - LIVE_MOMENTS.length) },
+    (_, i) => moment(20 + i, `Moment ${i + 1} made up for the count.`),
+  );
+  return told("live", {
+    current: {
+      moments: [...extra, ...made, ...LIVE_MOMENTS.slice(0, count)],
+    },
+  });
 }
+/** The live fixture with 10 moments: the drawing's whole tally. */
+const LIVE = liveWith(10);
 
 /** What B4.35 holds fixed across a poll: the box and the crop (the viewBox and every plank's d). */
 const frame = (read: DetailRead) =>
@@ -650,7 +656,7 @@ test("B4.35 the drawing follows the poll: on the kept live site a told answer ad
           before.map((r) => [r.read.run, r.read.marks.length]),
           await momentsShown(page),
         ],
-        "data-run and ticks at 1440 and 390, and moments shown, after the hydration poll told the server's answer",
+        "data-run and ticks at 1440 and 390, and moments shown, after the hydration poll told the live run with 10 moments",
       )
       .toEqual([
         [
@@ -668,7 +674,7 @@ test("B4.35 the drawing follows the poll: on the kept live site a told answer ad
       )
       .toEqual([]);
     live.answer({
-      json: liveWith(TICK.max, [moment(10, "One more, past ten.")]),
+      json: liveWith(TICK.max, [moment(50, "One more, past ten.")]),
     });
     await live.tick(30_000);
     const mutations = (await takePlan(page)).mutations;
@@ -758,7 +764,14 @@ test("B4.35 the drawing follows the poll: on the kept live site a told answer ad
   const changes: [string, Parameters<Live["answer"]>[0] | "down", string][] = [
     [
       "live to open of the same sprint",
-      { json: told("live", { current: { live: false } }) },
+      {
+        json: told("live", {
+          current: {
+            live: false,
+            moments: (LIVE.run as { moments: MomentIn[] }).moments,
+          },
+        }),
+      },
       "open",
     ],
     [

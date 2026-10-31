@@ -94,7 +94,7 @@ export async function openCrewModel(
       while (seen === before && Date.now() < end) await pause(25);
       await Promise.all(answering);
       await pause(250);
-      await run.page.clock.runFor(34);
+      await run.page.clock.runFor(17);
       await pause(150);
       return seen - before;
     },
@@ -140,19 +140,47 @@ export async function canvasOnly(page: Page, clip: Box) {
 }
 
 /**
- * The 2D hull's silhouette: every plank of the shown svg filled black, everything else hidden (the
- * planks are boxes the hull's outline clips, so their union is the hull, cut by the drawing's box).
+ * The 2D hull's silhouette, as B3.1 reads `/`'s: the hull's outline filled black, with its own
+ * stroke, everything else hidden. The outline is the drawn path whose `d` is the hull clip's (the
+ * path the planks are clipped to), found by geometry, not class; it is marked `data-probe-hull`,
+ * on a WebGL-refused page only, where no model reads the drawing. Without one, the planks filled
+ * (their union is the hull, but without the outline's stroke). The clip paths stay visible: a
+ * hidden clipPath child clips everything away.
  */
 export async function planksAlone(page: Page, clip: Box) {
+  const outlined = await page.evaluate(() => {
+    const svg = [...document.querySelectorAll("[data-plan] svg")].find(
+      (s) => !s.closest("defs, pattern") && s.getClientRects().length > 0,
+    );
+    const id = svg
+      ?.querySelector("[data-plank]")
+      ?.closest("[clip-path]")
+      ?.getAttribute("clip-path")
+      ?.match(/url\(["']?#([^"')]+)/)?.[1];
+    const hull = id ? svg?.querySelector(`[id="${id}"] path`) : null;
+    const d = hull?.getAttribute("d");
+    const drawn = d
+      ? [...(svg?.querySelectorAll("path") ?? [])].find(
+          (p) => !p.closest("defs, clipPath") && p.getAttribute("d") === d,
+        )
+      : null;
+    drawn?.setAttribute("data-probe-hull", "");
+    return Boolean(drawn);
+  });
   const handle = await page.addStyleTag({
     content: `html, body, body * { visibility: hidden !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
-[data-plan] svg path[data-plank] { visibility: visible !important; fill: #000 !important; stroke: none !important; opacity: 1 !important; }`,
+[data-plan] svg clipPath, [data-plan] svg clipPath * { visibility: visible !important; }
+${
+  outlined
+    ? "[data-probe-hull] { visibility: visible !important; fill: #000 !important; stroke: #000 !important; stroke-dasharray: none !important; opacity: 1 !important; }"
+    : "[data-plan] svg path[data-plank] { visibility: visible !important; fill: #000 !important; stroke: #000 !important; stroke-width: 2px !important; stroke-dasharray: none !important; opacity: 1 !important; }"
+}`,
   });
   const image = decodePng(
     await page.screenshot({ clip, omitBackground: true }),
   );
   await handle.evaluate((style) => (style as Element).remove());
-  return { image, alpha: coverage(image) };
+  return { image, alpha: coverage(image), outlined };
 }
 
 /**
