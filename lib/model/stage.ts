@@ -318,8 +318,6 @@ export function createStage(
   for (const part of tip ? [tip.run, tip.dot] : []) {
     part.line.visible = false;
     part.line.renderOrder = 1;
-    // The round caps' edge is the material's discard: alpha to coverage smooths it under MSAA.
-    part.material.alphaToCoverage = true;
     part.material.onBeforeCompile = (shader) => {
       shader.uniforms.uLift = lift;
       shader.vertexShader = shader.vertexShader
@@ -331,6 +329,9 @@ export function createStage(
     };
     model.add(part.line);
   }
+  // The dot's round caps are the material's discard: alpha to coverage smooths their edge under
+  // MSAA. Not the run's: where its spans' caps overlap at a joint, partial coverage lightens it.
+  if (tip) tip.dot.material.alphaToCoverage = true;
   let pencilled: PencilMarks | null = null;
   let painted: { palette: Palette; seated: ReadonlySet<string> } | null = null;
   /**
