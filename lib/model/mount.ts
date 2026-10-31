@@ -5,13 +5,33 @@
 // and moves to the other one, settled, when a resize crosses 768 px. Its one hook for tests and CSS
 // is `[data-model]`'s data-state; nothing is put on window.
 
-import { GHOST, type Layout, NARROW, PLANKS, WIDE } from "@/lib/hull-layouts";
+import {
+  CREW_NARROW,
+  CREW_WIDE,
+  GHOST,
+  type Layout,
+  NARROW,
+  PLANKS,
+  WIDE,
+} from "@/lib/hull-layouts";
 import { DURATION, ease } from "./calls";
+import {
+  type CrewState,
+  crewMove,
+  detailLayout,
+  focusLabel,
+  isCrew,
+  readState,
+  sameState,
+  tallied,
+  tickSegments,
+} from "./crew";
 import {
   type GhostPage,
   near as nearLine,
   pencilLabel,
   readGhost,
+  riderLabel,
   riders,
 } from "./ghost";
 import {
@@ -54,9 +74,15 @@ type Sheet = {
   ride: Riders | null;
 };
 
-/** The once-a-visit flag in sessionStorage: the sheet's loft, and the Log's camera move. */
+/**
+ * The once-a-visit flag in sessionStorage: the sheet's loft, the Log's camera move, and /crew's
+ * lift off its detail drawing (.crew/sprint/36/contract.md, call 6).
+ */
 const PLAYED = "theseus:model";
 const PLAYED_GHOST = "theseus:ghost";
+const PLAYED_CREW = "theseus:crew";
+/** A style write of ours on a riding number: its offsets, which the observer leaves alone. */
+const OFFSETS = /--ghost-[xy]:[^;]*;?\s*/g;
 /** The inputs that end the loft at its settled frame; each still does its own work. */
 const INPUTS = ["keydown", "pointerdown", "wheel", "touchstart", "scroll"];
 /** Where the page shows the three views rather than the profile (app/globals.css, "The lines plan"). */
@@ -177,12 +203,35 @@ function start(
   const ghost: GhostPage | undefined = ghostDrawing
     ? readGhost(ghostDrawing)
     : undefined;
-  const key = ghost ? PLAYED_GHOST : PLAYED;
+  // /crew's detail drawings (.crew/sprint/36/contract.md, "The hull on /crew"): `.plan-wide` and
+  // `.plan-narrow` too, told apart by the plan's `data-focus`. What they show changes with each
+  // told answer, so it is read again whenever the drawing changes (`sync`).
+  const crew = isCrew(plan) ? plan : null;
+  const key = crew ? PLAYED_CREW : ghost ? PLAYED_GHOST : PLAYED;
+  /** What /crew's drawing shows now, the last time it was read. */
+  let told: CrewState | null = crew ? readState(crew, wide) : null;
   /**
-   * A drawing's pencil plank and its number, read off the drawing as the server drew it: the Log's
-   * ghost shows no pencil (.crew/sprint/34/).
+   * A drawing's pencil plank and its number, read off the drawing: the Log's ghost shows no pencil
+   * (.crew/sprint/34/). On /crew the pencil is the run's while it is live or open, its tip only
+   * while live, and the number riding the hull is the focus plank's, in every state.
    */
   const pencilled = (drawing: Element, layout: Layout) => {
+    if (crew) {
+      const run = told?.run;
+      const found =
+        run === "live" || run === "open" ? readPencil(drawing) : null;
+      const label = focusLabel(drawing);
+      return {
+        pencil: found && { ...found, live: found.live && run === "live" },
+        ride: label
+          ? riders(
+              { labels: [riderLabel(label, crew.dataset.focus ?? "", layout)] },
+              layout,
+              true,
+            )
+          : null,
+      };
+    }
     const pencil = ghost ? null : readPencil(drawing);
     const label =
       pencil && pencilLabel(drawing, pencil.seat, pencil.sprint, layout);
@@ -193,27 +242,50 @@ function start(
   };
   // The level and the cap follow the drawing, not the device (.crew/sprint/26/contract.md, "The
   // calls I made"): the three views from 768 px, the profile and half-breadth plan below. The
-  // ghost's one drawing takes the desktop's level and cap from 768 px, the phone's below.
+  // ghost's one drawing takes the desktop's level and cap from 768 px, the phone's below, and so do
+  // /crew's two details (its contract, "The levels").
+  const layouts = crew
+    ? {
+        wide: detailLayout(crew, CREW_WIDE),
+        narrow: detailLayout(crew, CREW_NARROW),
+      }
+    : ghost
+      ? { wide: GHOST, narrow: GHOST }
+      : { wide: WIDE, narrow: NARROW };
   const sheets: Record<"wide" | "narrow", Sheet> = {
     wide: {
       drawing: wide,
-      layout: ghost ? GHOST : WIDE,
+      layout: layouts.wide,
       level: DESKTOP,
       cap: 2,
-      ...pencilled(wide, WIDE),
+      ...pencilled(wide, crew ? layouts.wide : WIDE),
     },
     narrow: {
       drawing: narrow,
-      layout: ghost ? GHOST : NARROW,
+      layout: layouts.narrow,
       level: PHONE,
       cap: 1.5,
-      ...pencilled(narrow, NARROW),
+      ...pencilled(narrow, crew ? layouts.narrow : NARROW),
     },
   };
+  /**
+   * /crew's move turns about the plank being drawn, fixed at first paint: the tally's middle on its
+   * lower edge if the server drew one, else the focus number's anchor (its contract, "Full").
+   */
+  const move = crew
+    ? crewMove(crew.dataset.focus ?? "", tallied(crew))
+    : undefined;
   const shownSheet = () =>
     matchMedia(THREE_VIEWS).matches ? sheets.wide : sheets.narrow;
   const canvas = document.createElement("canvas");
-  host.append(canvas);
+  // On /crew from 1024 px the drawing is sticky under the bar while the panel scrolls, and the
+  // layer is the whole row: the canvas lies in a holder as tall as the drawing's plan, which sticks
+  // as it does (app/globals.css, "The hull on /crew"), so the two move as one, on the compositor.
+  const holder = crew ? document.createElement("div") : null;
+  if (holder) {
+    holder.append(canvas);
+    host.append(holder);
+  } else host.append(canvas);
   const numbers = ghost ? riders(ghost) : null;
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
@@ -261,7 +333,9 @@ function start(
    * main is a flex column below 1024 px, the layer is all of main, so the drawing (spike, sprint 33).
    */
   const shownBox = () =>
-    box().width > 0 ? (ghost ? wide : host).getBoundingClientRect() : box();
+    box().width > 0
+      ? (ghost ? wide : crew ? sheet.drawing : host).getBoundingClientRect()
+      : box();
   /** On screen now: the loft plays only to someone who can see it. */
   const visible = () => {
     const r = shownBox();
@@ -276,7 +350,8 @@ function start(
 
   const measure = (): Fit => {
     const p = sheet.drawing.getBoundingClientRect();
-    const h = box();
+    // The canvas's offsets are from its holder on /crew, from the layer elsewhere.
+    const h = (holder ?? host).getBoundingClientRect();
     // Whole buffer pixels, and the CSS size they make: round(css × dpr) / dpr (S4, rule 1).
     const buffer: [number, number] = [
       Math.round(p.width * ratio),
@@ -318,12 +393,17 @@ function start(
       width: `${next.width}px`,
       height: `${next.height}px`,
     });
+    // As tall as the plan, so its sticking ends where the drawing's does, at the row's foot.
+    if (holder && plan) {
+      holder.style.height = `${plan.getBoundingClientRect().height}px`;
+    }
     stage.fit(next.buffer, [next.width, next.height]);
-    loft = makeLoft(next, hull.points, sheet.layout);
+    loft = makeLoft(next, hull.points, sheet.layout, move);
     if (reshade) stage.shade(shadowFor(hull, loft));
     stage.pencil(
       sheet.pencil && pencilMarks(sheet.pencil, sheet.layout, sheet.level),
     );
+    if (crew) tally();
     numbers?.reset();
     // The other drawing is hidden: its number goes back to its place, and this one's is placed anew.
     for (const other of [sheets.wide, sheets.narrow]) {
@@ -331,6 +411,43 @@ function start(
       else other.ride?.clear();
     }
     if (changed) remark();
+  };
+
+  /** The ticks the stage holds: what the next frame draws, and `data-marks` once it has. */
+  let marked = 0;
+  /** /crew's ticks on the pencil plank, as the drawing shows them now (its contract, "A tick"). */
+  function tally() {
+    const pencil = (on ?? sheet).pencil;
+    const ticks =
+      told && pencil
+        ? tickSegments(pencil.seat, told.marks)
+        : new Float32Array(0);
+    stage?.mark(ticks);
+    marked = ticks.length / 6;
+  }
+
+  /** The planks the stage fills as seated card: on /crew, the drawing's now (call 3). */
+  const seats = () => told?.seated ?? seated;
+
+  /**
+   * /crew's drawing changed: a told answer set `data-run`, added or took ticks, or seated planks
+   * anew (call 3). Read again, and if the frame would differ, the stage takes it and draws 1 frame
+   * at rest, or the move's next frame does; a change that draws the same frame draws none.
+   */
+  const sync = () => {
+    if (!crew || !alive) return;
+    const next = readState(crew, sheet.drawing);
+    if (sameState(told, next)) return;
+    told = next;
+    for (const each of [sheets.wide, sheets.narrow]) {
+      each.ride?.clear();
+      Object.assign(each, pencilled(each.drawing, each.layout));
+    }
+    if (!stage || !on) return;
+    stage.paint(palette(), seats());
+    stage.pencil(on.pencil && pencilMarks(on.pencil, on.layout, on.level));
+    tally();
+    redraw();
   };
 
   /** Puts the model on the drawing shown: that drawing's level, ratio cap, loft and shadow. */
@@ -372,6 +489,8 @@ function start(
       stage.lead(new Float32Array(all));
     }
     stage.draw(e, loft);
+    // /crew's one test hook beside data-state: the ticks this frame drew (its contract, "At rest").
+    if (crew) host.dataset.marks = String(marked);
     if (fit && on?.ride) {
       on.ride.place(
         loft,
@@ -536,7 +655,7 @@ function start(
 
   const recolour = () => {
     if (!stage) return;
-    stage.paint(palette(), seated);
+    stage.paint(palette(), seats());
     redraw();
   };
 
@@ -600,7 +719,30 @@ function start(
     },
     { rootMargin: "100% 0px" },
   );
-  seen.observe(ghost ? wide : host);
+  seen.observe(ghost ? wide : (crew ?? host));
+  // /crew's drawing follows the poll (call 4: the interface between Forge's drawing and this
+  // chunk). Every change to it but our own riding offsets is read again (`sync`); a told answer
+  // that changes nothing changes no node, so it draws nothing.
+  const ours = (record: MutationRecord) =>
+    record.type === "attributes" &&
+    record.attributeName === "style" &&
+    record.target instanceof Element &&
+    (record.oldValue ?? "").replace(OFFSETS, "").trim() ===
+      (record.target.getAttribute("style") ?? "").replace(OFFSETS, "").trim();
+  const watched = crew
+    ? new MutationObserver((records) => {
+        if (!records.every(ours)) sync();
+      })
+    : null;
+  if (crew) {
+    watched?.observe(crew, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeOldValue: true,
+    });
+  }
   // The ghost's pick (.crew/sprint/33/contract.md, "The pick"): at rest the canvas takes the
   // pointer (app/globals.css). A mouse or pen over a plank inks its edges, sets data-pick and the
   // hand cursor, with one frame per plank crossed; a click, a tap that lifts within 10 px, opens the
@@ -757,7 +899,9 @@ function start(
     canvas.addEventListener("pointercancel", cancel);
   }
   const sized = new ResizeObserver(refit);
-  for (const element of [wide, narrow, host]) sized.observe(element);
+  for (const element of [wide, narrow, host, crew]) {
+    if (element) sized.observe(element);
+  }
   addEventListener("resize", refit);
   scheme.addEventListener("change", recolour);
   forced.addEventListener("change", unforced);
@@ -770,6 +914,7 @@ function start(
     listen(false);
     seen.disconnect();
     sized.disconnect();
+    watched?.disconnect();
     removeEventListener("resize", refit);
     scheme.removeEventListener("change", recolour);
     forced.removeEventListener("change", unforced);
@@ -784,7 +929,9 @@ function start(
     else dispose();
     stage = null;
     canvas.remove();
+    holder?.remove();
     delete host.dataset.state;
+    delete host.dataset.marks;
   }
 
   // The build, in steps with a yield between them, so a key press isn't held behind one long
@@ -800,12 +947,13 @@ function start(
       hull,
       Boolean(ghost),
       ghost ? buildHull(PICK, ghost.hull) : undefined,
+      Boolean(crew),
     );
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     await pause();
     if (!alive || !stage) return;
-    stage.paint(palette(), seated);
+    stage.paint(palette(), seats());
     apply(measure(), true);
     remark();
     await pause();

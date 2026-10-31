@@ -2,9 +2,11 @@
 // ported; contract, "Stack"). Three draws a frame at most four: the card (every plank, the deck
 // and the transom, one merged mesh), the seams and the outline (two fat-line batches), and the
 // shadow once the model lifts; while the crew is live, two more, the pencil plank's copper tip
-// (.crew/sprint/34/notes-iris.md, 4.3). Nothing loops here: `draw` draws one frame. The Log's
-// ghost hull (.crew/sprint/33/contract.md, "How it's built") draws at most five: the card's far and near
-// sides, each its own index range once, translucent; the seams, the outline, and the ink marks.
+// (.crew/sprint/34/notes-iris.md, 4.3). On /crew, one more while a tick is shown: the tally's ticks
+// in the marks batch (.crew/sprint/36/), so 7 while live. Nothing loops here: `draw` draws one
+// frame. The Log's ghost hull (.crew/sprint/33/contract.md, "How it's built") draws at most five:
+// the card's far and near sides, each its own index range once, translucent; the seams, the
+// outline, and the ink marks.
 
 import {
   BackSide,
@@ -247,7 +249,8 @@ export type Stage = ReturnType<typeof createStage>;
 
 /**
  * The scene on `canvas`: the sheet's white card model, or with `ghost` the Log's ghost hull
- * (.crew/sprint/33/): the same card, lines and rig, in vellum, with no shadow.
+ * (.crew/sprint/33/): the same card, lines and rig, in vellum, with no shadow. With `tally`, /crew's
+ * card model (.crew/sprint/36/): the sheet's, whose ink marks batch is the pencil plank's ticks.
  */
 export function createStage(
   canvas: HTMLCanvasElement,
@@ -255,6 +258,7 @@ export function createStage(
   ghost = false,
   /** A coarse hull to pick against: a ray costs 0.1 ms on it, 0.5 to 0.7 on the drawn one. */
   pickHull?: Hull,
+  tally = false,
 ) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
@@ -332,6 +336,15 @@ export function createStage(
   // The dot's round caps are the material's discard: alpha to coverage smooths their edge under
   // MSAA. Not the run's: where its spans' caps overlap at a joint, partial coverage lightens it.
   if (tip) tip.dot.material.alphaToCoverage = true;
+  // /crew's ticks (.crew/sprint/36/contract.md, "A tick"): the marks batch, one draw, graphite at
+  // 1.4 px, each a chord 3.5 units up the near side from the lower edge, which the card bulges past
+  // as it does past the tip: they take the tip's lift. Paint order is plank, edge, ticks, then the
+  // tip, so the copper covers the ticks' feet on the edge and nothing covers the copper.
+  if (tally && tip) {
+    marks.material.onBeforeCompile = tip.run.material.onBeforeCompile;
+    tip.run.line.renderOrder = 2;
+    tip.dot.line.renderOrder = 2;
+  }
   let pencilled: PencilMarks | null = null;
   let painted: { palette: Palette; seated: ReadonlySet<string> } | null = null;
   /**
@@ -471,7 +484,7 @@ export function createStage(
       tip?.dot.material.color.set(palette.copper);
       seams.material.color.set(palette.ink);
       outline.material.color.set(palette.ink);
-      marks.material.color.set(palette.ink);
+      marks.material.color.set(tally ? palette.muted : palette.ink);
       let gain = palette.dark ? DARK_GAIN : 1;
       if (ghost) {
         // The vellum (call 1): the colour that composites to the token over the film at α, solved
@@ -576,12 +589,15 @@ export function createStage(
       old.dispose();
     },
 
-    /** The ghost's ink marks, as segment pairs in the model's frame; none hides them. */
+    /**
+     * The ghost's ink marks, or /crew's ticks, as segment pairs in the model's frame; none hides
+     * them. A tick ends square, as the 2D's stroke: its quad alone, two triangles.
+     */
     mark(positions: Float32Array) {
       marks.line.visible = positions.length > 0;
       if (!positions.length) return;
       const old = marks.line.geometry;
-      marks.line.geometry = lineGeometry(positions, false);
+      marks.line.geometry = lineGeometry(positions, tally);
       old.dispose();
     },
 
