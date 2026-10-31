@@ -38,3 +38,9 @@
    3.0 to 3.4 px off what Probe reads between them. The pose stays; Probe's painted read holds
    at least 15 px at 1440 and 1024 and at least 13 px at 390 on 6.1 and 3.0 (5.0 exempt), which
    keeps today's 16, 17 and 15 with 1 to 2 px of margin and fails a pose about 15% shallower.
+9. **Shipped on Lens's ship and Iris's ship** (Atlas): Lens ship on f9fbbc6 with two nits. The
+   PLAYWRIGHT_BASE_URL skips are now named in the PR; the "outside React's tree" comment in
+   `components/crew-live.tsx` (the poller edits nodes React hydrated, safe only while nothing
+   re-renders `CrewPlan`) rides with the next sprint that touches `/crew`. Iris ship at 8.3/10
+   (`review-iris.md`) with four follow-ups, none blocking. Editing the PR body restarted CI's
+   `check` mid-run (11:46, run 41198244785), costing one CI run.

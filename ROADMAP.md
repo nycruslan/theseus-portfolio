@@ -144,19 +144,35 @@ replaces today's page, and B3, the signature moment.
     proven on three mutants, Forge's build; Iris ship at 8.1/10, Lens ship on 6a7d9fa after a
     description fix; `/crew` loads 13,659 B over the 404's scripts against a 16,384 B budget, `/`
     unchanged; `decisions.md` 1 to 9.)
-    - Riding with the next sprint that touches `/crew` (B4d): Lens's nit on #90, a poll that never
-      settles stops the poller and outlives copper's 10-minute window (abort it after about 30 s
-      with an `AbortController` and `setTimeout`, so `page.clock` still drives it).
+    - Lens's nit on #90 (abort a poll that never settles) rode with sprint 36 as B4.42.
     - Iris's follow-ups (`decisions.md` 8): the first visit after a quiet spell gets #88's stale
       prerender, which the first poll corrects with a layout shift (0.12 at 1440): give `/crew` a
-      long cache `expire`. **Open for the owner:** the Studio's role lines run to about 140
+      long cache `expire` (still open after sprint 36). **Open for the owner:** the Studio's role lines run to about 140
       characters, so the table reflows on about half the polls; a short line from the Studio fixes
       it, where clamping here would break B4a's "the line whole".
     - Not verified from the cloud: the preview's CDN caching of `/api/crew` (the proxy refuses
       preview hosts) and a real screen reader.
-  - [ ] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
-    joins `/crew`'s bar. It reuses B5c's second-route mount (sprint 33), which took Lens's nit
-    on #74.
+  - [x] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
+    joins `/crew`'s bar. (Sprint 36, PR #91, built in one run on 2026-10-31: Quill's contract
+    B4.33 to B4.42 with Iris's amendments, Probe's checks red first, Pixel's 3D and Forge's detail
+    drawing in parallel; Lens ship on f9fbbc6 with no fix round, Iris ship at 8.3/10, 240 of 240
+    checks; `decisions.md` 1 to 9.)
+    - `/crew`'s drawing is a server-drawn detail (480 hull units across from 768, 320 below),
+      close on the pencil plank; one graphite tick per moment hangs from its lower edge, at most 10.
+      The hull turns toward the focus plank's end (yaw ±35°, pitch 6°); at most 7 draws, 25,329
+      triangles at 1440 and 7,935 at 390; `/crew` loads 17,088 B over the 404's against a new
+      18,432 B budget, `/` unchanged.
+    - Riding with the next sprint that touches `/crew`: Lens's nit on #91, the poller's "outside
+      React's tree" comment is wrong (it edits nodes React hydrated, safe only while nothing
+      re-renders `CrewPlan`): correct it and Forge's memory line, or render the ticks as one string.
+    - Iris's follow-ups (`review-iris.md`): a key for the ticks (Quill's wording); seat 5.0's 2.8 px
+      comb at sprint 42; the flat 2D bow beside the turned one, one CSS rule if the owner finds it
+      busy. Iris's chip-over-dot rider (B4b) is settled on `/crew` and stays open on `/`.
+    - **For the owner on the preview:** the stern turns toward the visitor on seats aft of midship
+      (sprint 37's 2.1 is first), and `/crew`'s drawing is a detail, not the whole sheet. Not
+      verified from the cloud: the move's feel on a GPU and a phone.
+    - CI: Probe puts the suite at about 24.0 of the `check` job's 25 minutes; the next sprint that
+      adds 3D checks needs the owner's `.github/` change (proposed in the retro).
   - [ ] B4e (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
     the pace.
 - [x] B5: `/log` and the ghost hull. B5's demo is the owner's, on a preview that deploys (Vercel
@@ -212,9 +228,7 @@ replaces today's page, and B3, the signature moment.
     - B5c wrote the model's mount on a second route, so B4d reuses it on `/crew`.
     - The Log holds its first paint until its drawing is parsed (decision 11).
     - Riders taken: Lens's nit on #74, Lens's nit on #82 (B5.26 a), and Iris's rule width (B5.26 b).
-    - Riding with the next sprint that touches `lib/model/mount.ts`: Lens's two nits on 9b8743a (a
-      restored context redraws the last hovered plank's mark; a tap's mark clears before its
-      navigation).
+    - Lens's two nits on 9b8743a were taken in sprint 34 (e770a54), as sprint 36 found.
     - Left open: the shift is held in Chromium only, so DOM order matching the visual order below
       1024 is Iris's call; the commit-hash link (it loosens C5.3, for a PR that waits for the
       owner); the unknown record's scripts-off blank 404.

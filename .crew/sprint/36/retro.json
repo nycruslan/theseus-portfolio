@@ -1,0 +1,48 @@
+{
+  "sprint": 36,
+  "pr": 91,
+  "goal": "B4d: the hull on /crew, one mark per moment, under Full/Calm/Off",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on f9fbbc6 with two nits, no fix round; Iris ship at 8.3/10; B4.33 to B4.42 red first, then 240 of 240; no owner path touched",
+  "fixRounds": 0,
+  "minutes": 200,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 219621, "minutes": 16 },
+    { "role": "design-director", "model": "opus", "tokens": 452581, "minutes": 51 },
+    { "role": "engineer", "model": "opus", "tokens": 482040, "minutes": 98 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 564168, "minutes": 137 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 557441, "minutes": 154 }
+  ],
+  "lens": { "runs": 1, "tokens": 4988152, "important": 0, "actedOn": 1, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The first design for the marks had them rise into the plank, where the turned hull's hatching swallowed them",
+      "evidence": "Iris's render of seat 6.1 in 3D; the ticks now hang below the plank's lower edge (decision 6)"
+    },
+    {
+      "what": "On the stern's curve two ticks ran under the plank's number on a phone",
+      "evidence": "B4.34 failed on seat 3.0 at 390 by up to 1.6 px; the number's height now follows the shallowest edge under it (Forge's 7b69f55), 3.2 px clear in Iris's review"
+    },
+    {
+      "what": "Two checks measured something other than what their bounds were set in",
+      "evidence": "B4.36 read painted depth against geometric floors and B4.38 forbade /'s own fill fade; decisions 7 and 8 restated both before the review"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Give CI's check job more than 25 minutes, or split the 3D and feed specs into their own job",
+      "moves": "Probe puts this sprint's suite at about 24.0 of CI's 25 minutes; the next sprint that adds 3D checks won't fit"
+    },
+    {
+      "change": "Don't trigger CI's check on a pull request's edited event, only on new commits",
+      "moves": "A PR body edit cancelled a 9-minute check run in sprint 36"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "Correct the poller's 'outside React's tree' comment and memory line, or render the ticks as one string (Lens's nit on #91), with the next sprint that touches /crew" },
+    { "who": "Forge", "what": "A long cache expire for /crew, so its first poll corrects a stale page without a shift (Iris, sprint 35)" },
+    { "who": "Quill", "what": "A key for the ticks, a few words such as 'one mark for each moment' (Iris)" },
+    { "who": "Owner", "what": "On the preview: the stern turns toward the visitor on seats aft of midship (sprint 37's 2.1 is first), and /crew's drawing is a detail of the ship" }
+  ]
+}

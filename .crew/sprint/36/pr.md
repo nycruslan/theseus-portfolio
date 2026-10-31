@@ -49,6 +49,11 @@ moment the panel lists, under Full/Calm/Off, and the control joins `/crew`'s bar
 - B4.38's reduced-motion fade allows opacity, fill and visibility, never movement (decision 7);
   B4.36's depth floor is read as painted pixels, 15 px and 13 px (decision 8).
 
+- Three new `test.skip(` lines (`e2e/crew-hull.spec.ts:57`, `e2e/crew-model-off.spec.ts:19`,
+  `e2e/crew-model.spec.ts:68`) are file-level guards on `PLAYWRIGHT_BASE_URL`, which CI never sets,
+  the same guard `crew.spec.ts`, `crew-live.spec.ts` and `live-layer.spec.ts` carry: these specs
+  start their own servers. They are in new files, so no existing check loses coverage.
+
 ## Departures, for the owner to see on the preview (nothing waits)
 
 - `/crew`'s hull turns its stern to the visitor when the plank is aft of midship; `/` always shows
