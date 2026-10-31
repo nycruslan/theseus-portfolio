@@ -678,9 +678,9 @@ test("B4.47 the hull follows the replay: at 1440 on B3's harness, at rest data-m
   const chunk = withChunk.filter((p) => !refused.has(p));
   const chunks = [
     `the chunk: ${chunk.length > 0 ? "found" : "none beyond the refused path's"}`,
-    ...paths.map(
-      ([what], i) =>
-        `${played[i]}, the chunk fetched ${JSON.stringify((fetched[i] ?? []).filter((p) => chunk.includes(p)))}`,
+    ...played.map(
+      (line, i) =>
+        `${line}, the chunk fetched ${JSON.stringify((fetched[i] ?? []).filter((p) => chunk.includes(p)))}`,
     ),
   ];
   expect
