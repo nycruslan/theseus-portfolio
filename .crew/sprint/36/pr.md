@@ -54,6 +54,19 @@ moment the panel lists, under Full/Calm/Off, and the control joins `/crew`'s bar
   the same guard `crew.spec.ts`, `crew-live.spec.ts` and `live-layer.spec.ts` carry: these specs
   start their own servers. They are in new files, so no existing check loses coverage.
 
+- After CI's first full run hit its 25-minute cap (decision 10), Probe cut the suite's wall time
+  with harness changes (6236f32: the feed sites no longer pin their specs to one tail worker;
+  B4.36 resizes one page per site; the Off-path baselines load side by side), 31.3 to 28.7 min
+  locally, every `expect` kept (442 before and after). B4.38 moved verbatim to
+  `e2e/crew-motion.spec.ts`. Two assertion changes for Lens:
+  - B4.38's first visit and new tab count `landed` or `lofting` as "the move played", where it
+    required `lofting`: on CI's slow runner the quality ladder (sprint 26) takes the still frame,
+    going `landed` to `settled`. `landed` is set only when Full's move begins (Calm and reduce
+    never set it), and the clock-driven run in the same test still checks the frames and the
+    1.8 s length; reload and Back still require no landed or moving state.
+  - B5.6's sprint-13 literal gains "Sprint 36 has since replaced it.": this sprint seats 6.1,
+    sprint 13's plank, so the record's sentence is a data change, not a behaviour change.
+
 ## Departures, for the owner to see on the preview (nothing waits)
 
 - `/crew`'s hull turns its stern to the visitor when the plank is aft of midship; `/` always shows
