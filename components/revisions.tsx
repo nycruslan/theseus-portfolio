@@ -1,5 +1,8 @@
 import { PlankCount, PlankLegend } from "@/components/plank-key";
+import type { Run } from "@/lib/crew-feed";
+import type { Pencil } from "@/lib/live-layer";
 import type { SprintEntry } from "@/lib/sprint-log";
+import { utcDay, utcTime } from "@/lib/utc";
 
 const NONE = "—";
 const ROWS = 5;
@@ -26,8 +29,86 @@ type RevisionsProps = {
   /** The drawing's plank count, and how many the crew has replaced. */
   planks: number;
   replaced: number;
+  /** The sprint in progress, whose row leads the five (lib/live-layer.ts). */
+  pencil?: Pencil | null;
+  /** The crew at rest: the last merge the feed told. */
+  rest?: Pick<Run, "sprint" | "mergedAt"> | null;
   className?: string;
 };
+
+/**
+ * The rest line (.crew/sprint/34/contract.md, "The rest line"; notes-iris.md, calls 1 and 2): /crew's
+ * resting status word for word (components/crew.tsx), "Crew resting. Sprint 33 merged 31 Oct, 01:50
+ * UTC.", the sprint and the time each kept on one line where the line wraps.
+ */
+function RestLine({ rest }: { rest: Pick<Run, "sprint" | "mergedAt"> }) {
+  const { sprint, mergedAt } = rest;
+  const merged = mergedAt === null ? Number.NaN : Date.parse(mergedAt);
+  const at = Number.isNaN(merged) ? null : new Date(merged);
+  return (
+    <p data-rest="" className="rev-rest">
+      <span className="font-semibold">Crew resting.</span>
+      {sprint === null ? null : (
+        <>
+          {" "}
+          <span className="whitespace-nowrap">Sprint {sprint}</span> merged
+          {at ? (
+            <>
+              {" "}
+              <time dateTime={at.toISOString()} className="whitespace-nowrap">
+                {utcDay(at)}, {utcTime(at)} UTC
+              </time>
+            </>
+          ) : null}
+          .
+        </>
+      )}
+    </p>
+  );
+}
+
+/**
+ * The sprint in progress, leading the rows (.crew/sprint/34/contract.md, "The pencil row";
+ * main.webp's 17): its number on the pencil's hatch, its goal a link to /crew, where the crew tells
+ * it, and while it is live "drawing now" in copper, outside the goal's ellipsis.
+ */
+function PencilRow({ pencil }: { pencil: Pencil }) {
+  const { sprint, goal, live } = pencil;
+  const cells: [head: string, cell: string, names: boolean][] = [
+    ["Drawn", pencil.drawn, true],
+    ["Checked", pencil.checked, true],
+    ["Tested", pencil.tested, true],
+    ["Approved", pencil.approved, false],
+  ];
+  return (
+    <tr data-pencil="" data-live={live ? "" : undefined}>
+      <th scope="row">
+        <span className="rev-chip">{sprint}</span>
+      </th>
+      <td>
+        <span className="rev-pencil">
+          <a href="/crew" className="rev-goal">
+            {goal ?? "In progress"}
+          </a>
+          {live ? (
+            <>
+              {" "}
+              <span data-drawing="" className="rev-drawing">
+                <span aria-hidden="true" className="rev-dot" />
+                drawing now
+              </span>
+            </>
+          ) : null}
+        </span>
+      </td>
+      {cells.map(([head, cell, names]) => (
+        <td key={head} data-label={head} translate={names ? "no" : undefined}>
+          {cell}
+        </td>
+      ))}
+    </tr>
+  );
+}
 
 // The sheet's revision block (.crew/sprint/22/contract.md, B1.5; notes-iris.md, section 8): the five
 // newest sprints on record as a drawing's revision table, who drew, checked, tested and approved
@@ -38,8 +119,17 @@ export function Revisions({
   caption,
   planks,
   replaced,
+  pencil,
+  rest,
   className = "",
 }: RevisionsProps) {
+  // The pencil row takes the first of the five; its own retro, when the build holds one, isn't
+  // listed twice.
+  const rows = pencil
+    ? entries
+        .filter((entry) => entry.sprint !== pencil.sprint)
+        .slice(0, ROWS - 1)
+    : entries.slice(0, ROWS);
   return (
     <section
       aria-labelledby="revisions"
@@ -54,6 +144,7 @@ export function Revisions({
         </h2>
         {caption ? <p className="text-step-sm text-muted">{caption}</p> : null}
       </div>
+      {rest ? <RestLine rest={rest} /> : null}
       <table className="rev">
         <thead>
           <tr>
@@ -76,7 +167,8 @@ export function Revisions({
           </tr>
         </thead>
         <tbody>
-          {entries.slice(0, ROWS).map((entry) => (
+          {pencil ? <PencilRow pencil={pencil} /> : null}
+          {rows.map((entry) => (
             <tr key={entry.sprint}>
               <th scope="row">{entry.sprint}</th>
               <td>{entry.goal}</td>
@@ -98,7 +190,10 @@ export function Revisions({
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <PlankCount planks={planks} replaced={replaced} />
-          <PlankLegend />
+          <PlankLegend
+            pencil={Boolean(pencil)}
+            copper={Boolean(pencil?.live)}
+          />
         </div>
         <a
           href="/log"

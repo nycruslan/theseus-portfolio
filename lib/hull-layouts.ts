@@ -93,3 +93,26 @@ export const GHOST: Layout = {
   hbY: 0,
   numbers: true,
 };
+
+/**
+ * The plank in pencil's marks (B4b; .crew/sprint/34/decisions.md, 4; notes-iris.md, section 3),
+ * shared by the 2D drawing and the 3D hull so the two draw the same plank.
+ */
+export const PENCIL = {
+  /**
+   * The hatch, in a drawing's viewBox units (a CSS pixel where WIDE is drawn 1408 wide and NARROW
+   * 390): one line every `period` units across the lines, `width` thick, at 45° and rising to the
+   * bow, tiled from the viewBox's user-space origin (0, 0), a line through it. It scales with the
+   * drawing, as a fill does.
+   */
+  hatch: { period: 6, width: 1.4 },
+  /** The edge's dashes, on then off, in CSS px: a line weight, which holds at every width. */
+  dash: [4, 3],
+  /**
+   * The copper tip, while the crew is live: a run on the plank's lower edge (the seam, or the
+   * keel's outline on lift 6), `inset` viewBox units inside it, from `from` to `to` of the plank's
+   * body (the stretch where it is nearly a whole lift deep, stern to bow), `width` CSS px thick, and
+   * a round dot `dot` CSS px across at its forward end. Both are line weights.
+   */
+  tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },
+} as const;
