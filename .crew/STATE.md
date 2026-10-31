@@ -20,8 +20,8 @@ makes stale, and keep the file under about 100 lines.
 - **The redesign is the milestone,** on the direction the owner approved on sprint 17's canvas. The
   owner sees it at two demos, on the PR's Vercel preview: B1, which replaces today's page, and B3,
   the signature moment.
-- **Models:** Atlas and Iris run on Fable 5.1, every other role on Opus 5.5, each at the effort its
-  file states. Lens's effort in CI follows the size of the change.
+- **Models:** the whole crew runs on Opus 5.5 (the owner's call, 2026-10-31), each role at the effort
+  its file states. Lens's effort in CI follows the size of the change.
 - **The pre-flight:**
   - The owner's goal isn't held by the daily cap.
   - A PR or branch a run worked on in the last two hours is left to the run still on it. A commit
@@ -94,6 +94,10 @@ makes stale, and keep the file under about 100 lines.
     it goes on a Design canvas, where the build starts on Iris's recommendation and the owner may
     pick another.
   - Render sources left for another role need a recipe that runs from a fresh checkout.
+  - What a page reads at build is what the first visitor after a quiet spell gets, however old:
+    past `cacheLife`'s `expire`, Vercel serves the deployment's prerender (`x-vercel-cache:
+    PRERENDER`, `age: 0`), so a build's read claims nothing about now. `next start` doesn't show
+    this: read a real deployment after 5 idle minutes, and compare its words with the feed.
 - **The browser.**
   - A scroll-driven animation is a frame stale after a jump scroll, so never move click targets
     with it.

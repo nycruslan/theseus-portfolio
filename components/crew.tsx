@@ -37,7 +37,9 @@ function status(crew: Crew): string {
       return `Crew resting. Sprint ${sprint} merged ${utcDay(at)}, ${utcTime(at)} UTC.`;
     }
     case "down":
-      return "The live feed isn't answering. Here is the latest revision on record.";
+      return crew.unread
+        ? "Here is the latest revision on record."
+        : "The live feed isn't answering. Here is the latest revision on record.";
   }
 }
 
