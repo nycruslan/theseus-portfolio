@@ -253,6 +253,28 @@ export function numberX(seat: string, pencil: boolean): number {
   return tally ? Math.min(middle, tally.tip - NUMBER_AFT) : middle;
 }
 
+/** How far either side of the pencil's number its chip reaches, in hull units, at any width. */
+const NUMBER_SPAN = 10;
+
+/**
+ * The y of a number set on its plank (not led out), at `numberX`: the band's mid-depth, as on /. In
+ * pencil, the middle of the band's top there and the shallowest bottom within NUMBER_SPAN, so on a
+ * seat whose lower edge rises under the chip (3.0's counter) the chip stays above the edge the
+ * ticks hang from (Iris, .crew/sprint/36/). Null where the plank has no band.
+ */
+export function numberY(seat: string, pencil: boolean): number | null {
+  const plank = plankOf(seat);
+  const x = numberX(seat, pencil);
+  const band = plank && bandAt(plank, x);
+  if (!plank || !band) return null;
+  if (!pencil) return (band[0] + band[1]) / 2;
+  let bottom = band[1];
+  for (let dx = -NUMBER_SPAN; dx <= NUMBER_SPAN; dx += 0.5) {
+    bottom = Math.min(bottom, bandAt(plank, x + dx)?.[1] ?? bottom);
+  }
+  return (band[0] + bottom) / 2;
+}
+
 /**
  * What the crop keeps in view, stern to bow: in pencil the tally, its number to just past the pen;
  * otherwise the number, 20 units either side.
