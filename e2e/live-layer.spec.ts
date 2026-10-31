@@ -42,7 +42,6 @@ import {
   pause,
   SHOWN,
   TRIANGLES_AT,
-  whole,
 } from "./model";
 import { deltaE, type Image } from "./pixels";
 import { PLAN, readPlan } from "./plan";
