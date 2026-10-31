@@ -389,6 +389,36 @@ nav > [data-motion] {
   fill: var(--card-old);
 }
 
+/* The sprint in progress (.crew/sprint/34/contract.md, "The drawing"): the pencil's hatch on the
+   film inside a dashed pencil edge, its number in graphite, and, while the crew is live and only
+   then, a copper tip on its lower seam. The hatch, the dash and the tip's run and weight are
+   PENCIL's (lib/hull-layouts.ts), which the 3D hull draws too, set as attributes in
+   components/lines-plan.tsx. The hatch scales with the drawing, as the plank does; the edge and the
+   tip are line weights, which hold at every width. */
+.plank-pencil {
+  stroke: var(--pencil);
+  stroke-width: 1px;
+}
+
+.hatch-ground {
+  fill: var(--background);
+}
+
+.plan .hatch-line {
+  stroke: var(--pencil);
+  vector-effect: none;
+}
+
+.plank-tip {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  fill: var(--accent);
+}
+
+.plank-tip path {
+  fill: none;
+}
+
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
    a point in the drawing; the text centres on it vertically. */
 .plan-view > span {
@@ -416,6 +446,11 @@ nav > [data-motion] {
 .plan-figure {
   color: var(--muted);
   font-weight: 500;
+}
+
+.plan-view > .plan-pencil {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .plan-start {
@@ -461,6 +496,21 @@ nav > [data-motion] {
   print-color-adjust: exact;
 }
 
+/* The pencil's swatch is its plank: the hatch inside a dashed graphite edge; copper's is the tip's
+   colour, filled, since the tip is too thin to read as a swatch at its own weight. */
+.swatch-pencil {
+  border: 1px dashed var(--muted);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    var(--background) 1px 4px
+  );
+}
+
+.swatch-copper {
+  background: var(--accent);
+}
+
 /* Forced colors keep the drawing as line art: every line in the system's text color, a seated
    plank on the system's ground and an original one in its secondary grey, which differs from both
    ground and text in every theme. The legend's swatches say the same: forced colors would turn
@@ -482,6 +532,15 @@ nav > [data-motion] {
     fill: GrayText;
   }
 
+  /* The hatch stays, in the system's text colour on its ground, inside the dashed edge. */
+  .plan .hatch-ground {
+    fill: Canvas;
+  }
+
+  .plan .plank-tip {
+    stroke: Highlight;
+  }
+
   .plan-view > span {
     color: CanvasText;
   }
@@ -497,6 +556,19 @@ nav > [data-motion] {
 
   .swatch.bg-card-old {
     background: GrayText;
+  }
+
+  .swatch.swatch-pencil {
+    border-color: CanvasText;
+    background: repeating-linear-gradient(
+      135deg,
+      CanvasText 0 1px,
+      Canvas 1px 4px
+    );
+  }
+
+  .swatch.swatch-copper {
+    background: Highlight;
   }
 }
 
@@ -639,9 +711,27 @@ main:has(> [data-model]) {
       fill: transparent;
     }
     & .plan-plank,
-    & .ln-leader {
+    & .ln-leader,
+    & .plank-tip {
       visibility: hidden;
     }
+  }
+
+  /* The pencil's number stays and rides its plank on the hull, on an offset the chunk sets, as the
+     Log's numbers do (.crew/sprint/34/decisions.md, 4): the hull has no lettering of its own, and
+     the sprint in progress keeps its number in every state. */
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) .plan-pencil {
+    visibility: visible;
+  }
+
+  [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
+    transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
   }
 }
 
@@ -666,6 +756,11 @@ main:has(> [data-model]) {
 
   [data-plan]:has(+ [data-model][data-state]) .plan-plank {
     opacity: 0;
+  }
+
+  /* The pencil's number doesn't fade: it stays on its plank (above). */
+  [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
+    opacity: 1;
   }
 
   [data-plan]:has(+ [data-model]) path[data-plank] {
@@ -795,6 +890,95 @@ main:has(> [data-model]) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+/*
+ * The live layer in the revision block (.crew/sprint/34/contract.md; notes-iris.md). At rest, the
+ * rest line: one 13 px line in ink above the table. In progress, the pencil row leads: its number
+ * boxed on the pencil's hatch, as /crew's chip draws it; its goal the link to /crew, a 24 px target
+ * that takes no more of the row than its text (the padding and the negative margin cancel); and
+ * while live "drawing now" in copper with the frame's dot, which from 1024 px stays whole while the
+ * goal takes the ellipsis. The cell itself doesn't clip there, so the link's focus ring shows whole.
+ */
+.rev-rest {
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+/* The chip's line is 2 px short of the table's, so its border keeps the row's height. */
+.rev-chip {
+  display: inline-block;
+  padding: 0 4px;
+  line-height: calc(1.3em - 2px);
+  border: 1px solid var(--pencil);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    transparent 1px 4px
+  );
+  print-color-adjust: exact;
+}
+
+.rev-goal {
+  display: inline-block;
+  padding-block: 4px;
+  margin-block: -4px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .rev-goal:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.rev-drawing {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Drawn as a border, so forced colours paint it. */
+.rev-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border: 3.5px solid var(--accent);
+  border-radius: 50%;
+  vertical-align: 0.05em;
+}
+
+@media (width >= 64rem) {
+  .rev tbody tr[data-pencil] td:not([data-label]) {
+    overflow: visible;
+  }
+
+  .rev-pencil {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .rev-goal {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rev-drawing {
+    flex: none;
+  }
+}
+
+/* Forced colours drop the hatch, so the chip's dashed edge says "in progress" there. */
+@media (forced-colors: active) {
+  .rev-chip {
+    border-style: dashed;
   }
 }
 

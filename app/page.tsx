@@ -10,8 +10,10 @@ import { SkipLink } from "@/components/skip-link";
 import { TitleBlock } from "@/components/title-block";
 import { profile } from "@/content/profile";
 import { splitBio } from "@/lib/bio";
+import { readCrew } from "@/lib/crew-feed";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatPlanks } from "@/lib/lines-plan";
+import { layerOf } from "@/lib/live-layer";
 import { openGraph } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/site";
 import { readSprintLog } from "@/lib/sprint-log";
@@ -34,12 +36,17 @@ const person = {
   sameAs: profile.links.map((link) => link.href),
 };
 
-export default function Home() {
-  // Read when the site is built, like the log page itself, so the sheet and the Log agree. Newest
-  // first; the planks are seated oldest first.
+export default async function Home() {
+  // Read when the page is rendered, like the Log and /crew, so the sheet and the Log agree. Newest
+  // first; the planks are seated oldest first. The crew's state is the feed's cached read, the one
+  // /crew makes: the page stays static and regenerates in the background as the read expires
+  // (lib/crew-feed.ts), with no script. The layer decides only pencil, copper and the rest line.
   const entries = readSprintLog();
-  const seats = seatPlanks(entries.map((entry) => entry.sprint).reverse());
+  const merged = entries.map((entry) => entry.sprint).reverse();
+  const seats = seatPlanks(merged);
   const replaced = Math.min(entries.length, PLANKS.length);
+  const layer = layerOf(await readCrew(), merged);
+  const pencil = layer.state === "pencil" ? layer.pencil : null;
 
   return (
     <>
@@ -63,6 +70,7 @@ export default function Home() {
         />
         <LinesPlan
           seats={seats}
+          pencil={pencil}
           className="lg:col-span-2 lg:border-x lg:border-foreground"
         />
         <Model seated={[...seats.keys()]} />
@@ -76,6 +84,8 @@ export default function Home() {
           caption={splitBio(profile.bio).rest}
           planks={PLANKS.length}
           replaced={replaced}
+          pencil={pencil}
+          rest={layer.state === "resting" ? layer.run : null}
           className="lg:col-start-1 lg:row-start-2"
         />
 
