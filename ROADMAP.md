@@ -155,8 +155,10 @@ replaces today's page, and B3, the signature moment.
   - [x] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
     joins `/crew`'s bar. (Sprint 36, PR #91, built in one run on 2026-10-31: Quill's contract
     B4.33 to B4.42 with Iris's amendments, Probe's checks red first, Pixel's 3D and Forge's detail
-    drawing in parallel; Lens ship on f9fbbc6 with no fix round, Iris ship at 8.3/10, 240 of 240
-    checks; `decisions.md` 1 to 9.)
+    drawing in parallel; Lens ship on f9fbbc6, then changes on the harness cut, fixed in dc25324;
+    Iris ship at 8.3/10, 240 of 240 checks locally; `decisions.md` 1 to 11.) **Its PR waits for
+    the owner:** CI's `check` hit its 25-minute cap twice, so the PR raises it to 35
+    (`.github/workflows/ci.yml`, an Owner's pick that waits).
     - `/crew`'s drawing is a server-drawn detail (480 hull units across from 768, 320 below),
       close on the pencil plank; one graphite tick per moment hangs from its lower edge, at most 10.
       The hull turns toward the focus plank's end (yaw ±35°, pitch 6°); at most 7 draws, 25,329
@@ -171,8 +173,8 @@ replaces today's page, and B3, the signature moment.
     - **For the owner on the preview:** the stern turns toward the visitor on seats aft of midship
       (sprint 37's 2.1 is first), and `/crew`'s drawing is a detail, not the whole sheet. Not
       verified from the cloud: the move's feel on a GPU and a phone.
-    - CI: Probe puts the suite at about 24.0 of the `check` job's 25 minutes; the next sprint that
-      adds 3D checks needs the owner's `.github/` change (proposed in the retro).
+    - CI: the suite outgrew the `check` job's 25 minutes (decisions 10 and 11). Left open: split
+      the 3D and feed specs into their own job, or a deeper pass on the existing 3D suites.
   - [ ] B4e (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
     the pace.
 - [x] B5: `/log` and the ghost hull. B5's demo is the owner's, on a preview that deploys (Vercel

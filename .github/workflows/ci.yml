@@ -26,10 +26,10 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    # A run takes 9 to 12 minutes, most of it the browser suite. 25 leaves room for a slow runner,
-    # which the 15-minute cap cancelled on three heads in sprints 26 and 27, and still stops a
-    # hung run long before GitHub's six-hour default.
-    timeout-minutes: 25
+    # A run takes about 22 to 26 minutes since sprint 36's 3D checks on /crew, most of it the
+    # browser suite. 35 leaves room for a slow runner (25 cancelled sprint 36's head twice at
+    # about 95% of the suite), and still stops a hung run long before GitHub's six-hour default.
+    timeout-minutes: 35
     steps:
       # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
       - run: git config --global init.defaultBranch main

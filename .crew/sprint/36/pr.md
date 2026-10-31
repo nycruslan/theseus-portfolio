@@ -1,5 +1,16 @@
 # Sprint 36: the hull on /crew (B4d)
 
+### Owner's pick (waits): CI's time limit, now that the suite outgrew 25 minutes
+- [ ] Raise `check`'s `timeout-minutes` from 25 to 35, built in this PR (Recommended): every check kept, and a hung run still stops early
+- [ ] Split the 3D and feed specs into their own job instead: a larger `.github/` change, built in a later sprint while this PR waits
+- [ ] Keep 25 and cut this sprint's 3D checks (B4.36 to B4.40) to fit: less coverage of the hull on `/crew`
+
+Approving this head means the first option: CI's `check` already ran on it with 35 minutes. Tick
+another and the next run builds it, then asks you to approve that head. Why (decisions 10 and 11):
+CI cancelled `check` at 25 minutes on cc9e958 and c040055, about 95% through the suite; Probe's
+harness cut saved 2.6 min locally with every `expect` kept, and a 2-core run found no CI-only
+failure, so what's left is speed.
+
 **Goal:** the roadmap's next sprint, B4d (not an owner goal). On `/crew` the card model sits on a
 detail drawing of the hull, close on the plank the crew is drawing now, with one graphite tick per
 moment the panel lists, under Full/Calm/Off, and the control joins `/crew`'s bar.
@@ -24,10 +35,10 @@ moment the panel lists, under Full/Calm/Off, and the control joins `/crew`'s bar
 ## Results
 
 - `pnpm verify` passes on the head (Atlas, after Probe's knip fix).
-- Probe: B4.33 to B4.42 red first on 36360de for the right reasons; the full suite 240 of 240 on
-  bff71c5 at CI's 2 workers. The new checks add about 374 test-seconds, about 1.8 min on CI by
-  Probe's ratio, so #90's 22.2 min becomes about 24.0 of the 25-minute cap. The next sprint that
-  adds 3D checks will need a `.github/` change (the owner's).
+- Probe: B4.33 to B4.42 red first on 36360de for the right reasons; the full suite 240 of 240 at
+  2 workers locally (28.7 min after the harness cut; 35.5 min pinned to 2 cores, no failure).
+  Probe's estimate of 24.0 of CI's 25 minutes was wrong: CI cancelled the head at the cap twice
+  (decisions 10 and 11), hence the Owner's pick below.
 - Cost (Pixel, SwiftShader): at most 7 draws of 8; 25,329 triangles at 1440 and 7,935 at 390 with
   10 ticks; the 3D chunk 154,476 B gzip, the same file `/` requests; 0 frames at rest.
 - Script (Forge, B2.10's method): `/crew` 17,088 B over the 404's, under the new 18,432 B budget;
@@ -66,6 +77,11 @@ moment the panel lists, under Full/Calm/Off, and the control joins `/crew`'s bar
     1.8 s length; reload and Back still require no landed or moving state.
   - B5.6's sprint-13 literal gains "Sprint 36 has since replaced it.": this sprint seats 6.1,
     sprint 13's plank, so the record's sentence is a data change, not a behaviour change.
+
+- Fix round 2 (dc25324, Lens's Important on c040055): B4.36's framing pass no longer holds a poll
+  past B4.42's 30 s abort. Polls answer the site's own state, a forced poll turns the page to
+  `record`, and one `expect` is added (`data-run` is `record` before the record shots). The 999
+  site's seat is now 2.1, the oracle's next seat since this sprint's retro landed.
 
 ## Departures, for the owner to see on the preview (nothing waits)
 

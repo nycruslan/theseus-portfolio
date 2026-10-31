@@ -49,3 +49,13 @@
     The merge waits; Probe cuts the suite's wall time by at least 4 min with harness changes only,
     no assertion dropped or weakened, and Lens re-reviews. Raising the cap is the owner's
     `.github/` change, proposed in the retro, and this PR doesn't wait on it.
+11. **CI's cap goes to the owner as an Owner's pick (waits)** (Atlas, after two fix rounds). CI's
+    `check` was cancelled at 25 minutes on cc9e958 and again on c040055, after Probe's harness cut
+    (6236f32: 31.3 to 28.7 min locally, every `expect` kept). The cancel annotation's log line puts
+    c040055's e2e at about 95% done when the cap hit. Pinned to 2 cores, the suite passed 240 of 240
+    with no CI-only failure (Probe, dc25324, which also fixes Lens's Important on B4.36: polls
+    answer the site's own state instead of being held past B4.42's 30 s abort). What's left is
+    speed, so the choices are the owner's cap, cutting the contract's 3D checks, or a deeper pass
+    on the existing 3D suites. This PR raises `.github/workflows/ci.yml`'s `timeout-minutes` from 25
+    to 35 (the recommended option, built; the PR's own CI runs with it) and carries `needs-owner`:
+    `gate` holds it until the owner approves the head, and the owner merges.
