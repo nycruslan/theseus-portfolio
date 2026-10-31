@@ -23,6 +23,7 @@ import {
   GHOST,
   type Layout,
   NARROW,
+  PENCIL,
   PLANKS,
   type Plank,
   WIDE,
@@ -50,6 +51,23 @@ export function seatPlanks(merged: readonly number[]): Map<string, number> {
     if (id) seats.set(id, sprint);
   }
   return seats;
+}
+
+/**
+ * The seat the next merged sprint takes after `merged` sprints: where the sprint in progress is
+ * drawn in pencil (.crew/sprint/34/contract.md, "The pencil seat": ORDER[k mod 22]).
+ */
+export function nextSeat(merged: number): string {
+  return ORDER[merged % ORDER.length] as string;
+}
+
+/** The seat a merged sprint's retro holds, from the merged sprints in ascending order, if it does. */
+export function seatOf(
+  merged: readonly number[],
+  sprint: number,
+): string | undefined {
+  const i = merged.indexOf(sprint);
+  return i < 0 ? undefined : ORDER[i % ORDER.length];
 }
 
 /**
@@ -232,7 +250,36 @@ export type LinesPlan = {
   planks: PlankShape[];
   lines: Lines;
   lettering: Lettering[];
+  /** The plank in pencil's copper tip, drawn only while the crew is live; null without one. */
+  tip: Tip | null;
 };
+
+/** The tip's run, and its forward end, where PENCIL.tip's dot goes. */
+type Tip = { d: string; end: Point };
+
+/**
+ * The copper tip (.crew/sprint/28/b4-plan.md, B4.2; main.webp's 17): a short run along the plank's
+ * lower seam, under its number, where the pencil is drawing now (PENCIL.tip). `s` is the layout's
+ * scale, which turns the tip's inset from viewBox units into the hull's.
+ */
+function tipOf(
+  plank: Plank | undefined,
+  P: (x: number, y: number) => Point,
+  s: number,
+): Tip | null {
+  const at = plank && plankBody(depths(plank));
+  if (!plank || !at) return null;
+  const { from, to, inset } = PENCIL.tip;
+  const length = at[1] - at[0];
+  const points = spaced(at[0] + length * from, at[0] + length * to, 6).flatMap(
+    (x) => {
+      const band = bandAt(plank, x);
+      return band ? [P(x, band[1] - inset / s)] : [];
+    },
+  );
+  const end = points.at(-1);
+  return end ? { d: curve(points), end } : null;
+}
 
 const BASE = HEIGHT + 10;
 const DWL = seamDepth(3) + 7;
@@ -245,11 +292,13 @@ const SEAMS = Array.from({ length: BUTTS.length - 1 }, (_, i) =>
  * Draws one layout. The ghost pass draws the profile alone, the outline, the planks in `seats`,
  * each numbered, and its leader, and leaves a gap where a seat has none (.crew/sprint/30/
  * notes-iris.md, section 1.1); otherwise a plank missing from `seats` is drawn as an original.
+ * `pencil` is the seat of the sprint in progress, whose number `seats` carries: it gets the tip.
  */
 function draw(
   layout: Layout,
   seats: ReadonlyMap<string, number>,
   ghost = false,
+  pencil?: string,
 ): LinesPlan {
   const { box, ox, oy, s, hbY, body } = layout;
   const P = (x: number, y: number): Point => [ox + x * s, oy + y * s];
@@ -359,6 +408,13 @@ function draw(
     planks,
     lines,
     lettering,
+    tip: pencil
+      ? tipOf(
+          PLANKS.find((plank) => plank.id === pencil),
+          P,
+          s,
+        )
+      : null,
   };
 }
 
@@ -405,9 +461,18 @@ function drawBody(
   letter("Body plan", [bx, by - 30], "middle", "caption");
 }
 
-/** The two drawings the sheet carries, one shown per width (app/globals.css, "The lines plan"). */
-export function linesPlans(seats: ReadonlyMap<string, number>) {
-  return { wide: draw(WIDE, seats), narrow: draw(NARROW, seats) };
+/**
+ * The two drawings the sheet carries, one shown per width (app/globals.css, "The lines plan"), with
+ * the sprint in progress at `pencil`, its number in `seats`, when the crew has one.
+ */
+export function linesPlans(
+  seats: ReadonlyMap<string, number>,
+  pencil?: string,
+) {
+  return {
+    wide: draw(WIDE, seats, false, pencil),
+    narrow: draw(NARROW, seats, false, pencil),
+  };
 }
 
 /** The one drawing /read carries. */
