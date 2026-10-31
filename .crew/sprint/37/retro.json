@@ -1,0 +1,47 @@
+{
+  "sprint": 37,
+  "pr": 95,
+  "goal": "B4e: replay the last merged sprint on /crew, never mistaken for live",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 6470d74 after one description fix, Iris ship at 8.4/10, B4.43 to B4.51 red first, 249 of 249 locally and CI green",
+  "fixRounds": 1,
+  "minutes": 150,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 233558, "minutes": 22 },
+    { "role": "design-director", "model": "opus", "tokens": 327532, "minutes": 23 },
+    { "role": "engineer", "model": "opus", "tokens": 456176, "minutes": 53 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 372953, "minutes": 90 }
+  ],
+  "lens": { "runs": 2, "tokens": 6983767, "important": 3, "actedOn": 3, "nits": 4 },
+  "wentWrong": [
+    {
+      "what": "The first place for the Replay button was out of sight: the panel's real data pushed it below the fold",
+      "evidence": "Iris measured Activity's head at y 977 at 1440 × 900 with the Studio's real sprint 36; the entry moved into the status (amendment 1)"
+    },
+    {
+      "what": "The script budget was called three times on one wrong measurement",
+      "evidence": "Forge's 18,228 B predated Iris's changes; fb5274d measured 18,508 B, so decision 8 reverted call 8 and decision 9 restored it"
+    },
+    {
+      "what": "Three new checks read positions on screen across the page's own jump to the replay",
+      "evidence": "B4.45 and B4.46 failed by the jump's 29 px on da76dd0; Quill ruled them read in page coordinates (decision 5)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have scope.mjs accept a file-level PLAYWRIGHT_BASE_URL skip guard in a new spec without a PR line, since CI never sets it",
+      "moves": "Lens's only Important findings on #95 (and #91) were these guards, costing a re-review each"
+    },
+    {
+      "change": "Split the 3D and feed specs into their own CI job",
+      "moves": "The full suite took 32.0 min locally at 2 workers against check's 35-minute cap"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "Shift and Meta+Space shouldn't toggle the pause; drop the unused crew-block class (Lens's nits on 6470d74)" },
+    { "who": "Forge", "what": "Hold a #replay arrival until the tab is visible, and keep the transport across a Strict Mode re-run (Lens's nits, decision 11)" },
+    { "who": "Owner", "what": "On a phone at rest after the merge: Replay sprint 37, and whether the plank inking above the fold and 70 s feel right (Iris)" },
+    { "who": "Forge", "what": "A long cache expire for /crew, so its first poll corrects a stale page without a shift (Iris, sprint 35)" }
+  ]
+}

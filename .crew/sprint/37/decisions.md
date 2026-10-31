@@ -75,3 +75,10 @@
     `components/crew-live.tsx` (a `#replay` arrival in a background tab plays unseen; the
     transport's state doesn't survive a dev Strict Mode re-run of the mount effect) ride with the
     next sprint that touches `/crew` (Forge).
+12. **Shipped on Lens's ship and Iris's ship** (Atlas). Lens ship on 6470d74 with four nits, two
+    of them decision 11's; CI's `check` passed on 5f20964 and 6470d74. Iris ship at 8.4/10 on
+    6470d74 (`review-iris.md`), no musts. Riding with the next sprint that touches `/crew` (Forge):
+    Shift+Space and Meta+Space toggle the pause (add them to `onKey`'s early return); an unused
+    `crew-block` class in `components/crew.tsx`; decision 11's two. Iris's follow-ups: the merge's
+    inking is above the fold on a phone (the owner looks first); "Skip to the merge" if 70 s feels
+    long; each step's layout shift (≤ 0.03 a replay).
