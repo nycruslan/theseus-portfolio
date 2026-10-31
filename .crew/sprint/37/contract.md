@@ -11,14 +11,31 @@ where this contract changes them:
 
 Numbers come from this branch (`c24f1db`), from a scratch build of it with a sketch of the replay
 (thrown away; see "Measured"), and from the Studio's live answer as Iris read it today. Iris's
-calls 1 to 4 (her two messages to Quill this sprint) are written in and marked "Iris". She is
-checking two numbers by prototype on the page and will correct them only if they fail: the stamp's
-place and the rest line's fit in B4.22. Those two are marked **[Iris pending]**.
+calls 1 to 4 (her two messages to Quill this sprint) are written in and marked "Iris". Her
+corrections after measuring on the page are amendment 1, and nothing is pending.
 
 Iris's principle settles most of the look. The panel's head always tells the present: the chip,
 the status, the table and Pause updates. Only the Activity block and the drawing play the replay,
 and each carries its own label. So through a replay the status keeps saying "Crew resting. Sprint
 N merged…", and the chip stays seated.
+
+## Amendment 1 (Iris's corrections to 043dd18, accepted by Atlas)
+
+Iris measured these on a scratch build with the real sprint 36 feed
+(`.crew/sprint/37/decisions.md`). The rules and checks below are amended in place, each marked
+"(amendment 1)". Where 043dd18 and this section disagree, this section holds.
+1. **The stamp's size.** The stamp takes the plank numbers' size on `/crew`: 11 px, and 13 px from
+   1280 px.
+2. **`/`'s rest line costs nothing from 1024.** The link gets `margin-block: -2.25px`, and
+   `p[data-rest]`'s flex row gets `row-gap: 6px`. Without them the 24 px target took 4.5 px at
+   1280 × 800 and 1024 × 768, and at 1280 × 800 it pushed the title block's links below the fold.
+3. **`/crew`'s entry moves into the status, because Activity's head is out of sight.**
+   - At rest, the Done rows' long lines put Activity's head at y 977 at 1440 × 900 and at y 1289
+     at 390 × 844, so a toggle there is unseen. A control the visitor can't see is no feature, so I
+     agree.
+   - The entry is now a link in the resting status, "Replay sprint N", which starts the replay.
+   - Activity's head keeps one toggle, "Pause replay", that pauses and resumes it.
+   - The rules are "The entry" and "The pause" below, and call 2 is restated to match.
 
 ## Outcome
 
@@ -38,12 +55,14 @@ Sprint 36 has 48 moments (08:44 to 15:51 UTC, a 7-hour sprint), so its replay ta
 1. **The pace is fixed, not proportional** (Iris, call 1). Play shows moment 1 at once, then one
    moment every 1,500 ms. The original times carry the real clock, including sprint 36's 77-minute
    wait. The frames' "4×" goes: at 4× sprint 36 takes 1 h 47 min.
-2. **One control, a toggle whose name never changes.** The control is `button[data-replay]`,
-   "Replay sprint N", and `aria-pressed` is true while it plays. This is Pause updates' rule (Iris,
-   `.crew/sprint/35/notes-iris.md`, 1.7), and it means focus never has to move.
-   - Press it to play; press it again to pause.
-   - Play after a pause waits the full 1,500 ms before the next moment, not the remainder (Iris).
-   - At the end, pressing it plays again from moment 1.
+2. **Two controls, each named for what it does, with names that never change** (amendment 1).
+   - The entry, `a[data-replay]` "Replay sprint N" in the resting status, starts the replay from
+     moment 1, every time it is pressed.
+   - The pause, `button[data-replay-pause]` "Pause replay" in Activity's head, takes Pause
+     updates' grammar (Iris, `.crew/sprint/35/notes-iris.md`, 1.7): `aria-pressed` is true while
+     paused.
+   - A resume waits the full 1,500 ms before the next moment, not the remainder (Iris).
+   - At the end the pause hides, and the entry replays.
    - There is no Leave control. The end state is the rest panel's own sprint told in full, so
      nothing needs undoing.
 3. **Nothing starts it but the visitor.** Two things start it:
@@ -66,7 +85,8 @@ Sprint 36 has 48 moments (08:44 to 15:51 UTC, a 7-hour sprint), so its replay ta
    - A told answer that is still `resting` with the replay's sprint changes nothing in the replay
      or in `[data-plan]`.
    - Any other told answer closes the replay at once. That covers live, open, resting on another
-     sprint, a run with no number, and down past B4c's 10 minutes. The button goes, the list is
+     sprint, a run with no number, and down past B4c's 10 minutes. The entry and the pause go, the
+     list is
      the told panel's, and the drawing takes call 3's value for that answer.
 
    Live beats replay: a visitor who sees the crew start mid-replay has the better proof. Live and a
@@ -139,9 +159,34 @@ rules apply in the browser to `/api/crew`'s `run.replay`:
 
 With no replay offered, the focus is B4d's call 2, unchanged.
 
-**The control** sits at the head of the Activity block, which carries `id="replay"` at rest, with
-`scroll-margin-top` the bar's height plus 16 px, so the anchor lands the head under the sticky bar
-(Iris). `button[data-replay]` "Replay sprint N" follows these rules (Iris):
+**The anchor.** At rest, the Activity block carries `id="replay"`, with `scroll-margin-top` the
+bar's height plus 16 px, so the anchor lands its head under the sticky bar (Iris).
+
+**The entry** (amendment 1; Iris) is one link, `a[data-replay][href="#replay"]`, "Replay sprint
+N".
+- **Where.** It sits in the resting status cell, on its own line under the status sentence: the
+  element right after `p[data-status]`, in the same cell of the status row. Pause updates stays at
+  the row's right, and `p[data-status]`'s text stays word for word. It is shown whenever the told
+  state offers a replay.
+- **Size.** 44 px tall below 1024 and 24 px from it. It is ink, underlined like `/`'s link, with
+  the same 2 px ink ring, and never copper.
+- **The glyph.** Before the name is the CSS triangle, never a font character (iOS turns ▶ into an
+  emoji). It is `aria-hidden`, with an 8 px gap, so the link's text is exactly "Replay sprint N".
+- **Scripts off.** It is in the server's HTML, hidden by `visibility` with its box kept, until the
+  poller runs (`data-ready`), so nothing shifts. With scripts off it is never shown.
+- **What a press does.** A press, or arriving at `/crew#replay`, does three things:
+  - starts the replay from moment 1, whether one was playing, paused, ended or never started;
+  - jumps instantly (no smooth scroll) to `#replay`, under the bar by its `scroll-margin-top`;
+  - drops the hash with `history.replaceState`.
+
+  After that the replay never scrolls the page itself. Script moves no focus: the next Tab after
+  the landing reaches "Pause replay".
+
+**The pause** (amendment 1; Iris) is one `button[data-replay-pause]`, "Pause replay", in
+Activity's head.
+- **Pressed means paused** (`aria-pressed`, Pause updates' grammar). Space toggles it (see
+  "Space"). Its glyph is the CSS two bars, 2.5 px each and 2 px apart, 8 px tall, `aria-hidden`,
+  and the glyph doesn't change.
 - **Placement.** It sits at the head's row end, top-aligned. The head is a two-column grid: the
   heading `minmax(0, 1fr)` and the button `auto`. The heading's first line is centred on the button
   as the status row's is. The button never moves when the heading's word changes or wraps (at 320
@@ -152,21 +197,16 @@ With no replay offered, the focus is B4d's call 2, unchanged.
 
   Pressed, it is an ink fill with film text. In forced colours it follows
   `.crew-pause[aria-pressed="true"]`.
-- **Hidden until ready.** It is in the server's HTML, hidden by `visibility` with its box kept,
-  until the poller runs (`data-ready`), so nothing shifts. With scripts off it is never shown.
-- **The glyph.** It is drawn in CSS, never a font character (iOS turns ▶ into an emoji). It is
-  8 px tall, `currentColor`, `aria-hidden`, with an 8 px gap before the name:
-  - unpressed, a 7 px-wide triangle;
-  - pressed, two 2.5 px bars 2 px apart.
-
-  The name never changes. The glyph says what a press will do, and the fill says the replay is
-  playing.
+- **When it shows.** Its box is reserved whenever a replay is offered. It is visible (and
+  focusable) only while a replay plays or is paused: from moment 1 until the end. At the end it
+  hides by `visibility`. If it had focus, focus moves to the entry, the control that replays,
+  since focus can't stay on a hidden button. That focus rule is mine, for keyboard visitors.
 
 **Playing.** Let k be the moments played (0 before the first press).
-- Play sets k to 1 at once (k = 1 again after the end), then adds 1 every 1,500 ms on
-  `setTimeout`, so `page.clock` drives it.
-- The step after the last moment ends it: `aria-pressed` turns false and nothing more is timed.
-- Pause clears the timer. Play waits the full 1,500 ms.
+- The entry sets k to 1 at once, then adds 1 every 1,500 ms on `setTimeout`, so `page.clock`
+  drives it.
+- The step after the last moment ends it: the pause hides and nothing more is timed.
+- Pause clears the timer. A resume waits the full 1,500 ms.
 - The Activity block carries `data-replaying` while k ≥ 1.
 - Its `ol[data-moments]` lists the first k moments newest on top, in Activity's `li` form (kind,
   `time` in UTC HH:MM, with the day when it differs from the heading's).
@@ -176,10 +216,10 @@ With no replay offered, the focus is B4d's call 2, unchanged.
 - No now line shows while the replay is listed. Nothing in `.crew` or `[data-plan]` is copper.
 - `[data-announce]` gets nothing from a replay.
 
-**Space** pauses and resumes a replay that has started and not ended, when the focus is not on a
-link, a button or a field (Iris). Default scrolling is prevented only then. It never starts a
-replay and does nothing at the end. Before a press, and at the end, Space scrolls as always. On a
-focused control it keeps that control's meaning.
+**Space** toggles "Pause replay" while a replay plays or is paused, when the focus is on it
+(natively) or not on a link, a button or a field (Iris). Default scrolling is prevented only then.
+It never starts a replay and does nothing at the end. Before a press, and at the end, Space scrolls
+as always. On any other focused control it keeps that control's meaning.
 
 **The drawing while playing** (call 7; only when the server drew the tally):
 - `[data-plan]` carries `data-replay` while k ≥ 1.
@@ -198,17 +238,18 @@ focused control it keeps that control's meaning.
   until the plank inks, paused or not. It goes at the merge, with the key, since the plank is then
   the record again.
 - **Its look.**
-  - `text-transform: uppercase`, `letter-spacing: 0.08em`, `--step-xs` (11 px), weight 700, ink;
+  - `text-transform: uppercase`, `letter-spacing: 0.08em`, weight 700, ink;
+  - the plank numbers' size on `/crew`: 11 px, and 13 px from 1280 px (amendment 1);
   - a 1 px ink border, `padding: 3px 6px`, background `--background`, so it reads over the lines
     and the canvas;
   - no radius, never copper; in forced colours, a `CanvasText` border and text on `Canvas`.
 - **Its place.** It sits at the box's top-left, on the sheet's text edge: 24 px inside the box
   from 1024 and 16 px below it. Its top is 8 px inside the box, above the sheer and the Profile
-  title. **[Iris pending]**: she is checking the place on the real page.
+  title. Iris checked this place on the real page (amendment 1).
 
 **The poll during a replay** (call 5). A told answer that isn't `resting` with `run.sprint` equal
 to the replay's sprint closes the replay in the same render:
-- `data-replaying`, `data-replay` and the button go;
+- `data-replaying`, `data-replay`, the entry and the pause go;
 - the list is the told panel's;
 - `redraw` applies call 3's table for that answer.
 
@@ -222,16 +263,17 @@ block.
 - one link, `a[href="/crew#replay"]`, "Replay sprint N".
 
 `p[data-rest]` is a wrapping flex row (`justify-content: space-between`, `column-gap: 16px`,
-`align-items: baseline`). The sentence is at the left and the link at the line's right end. Where
-they don't fit (390 and 320), the link wraps to the next line at the left. The link:
+`row-gap: 6px`, `align-items: baseline`). The sentence is at the left and the link at the line's
+right end. Where they don't fit (390 and 320), the link wraps to the next line at the left. The
+link:
 - is ink, underlined like the pencil row's `/crew` link;
-- is `inline-flex`, with `min-height: 24px` and one 2 px ink ring 2 px out;
+- is `inline-flex`, with `min-height: 24px`, `margin-block: -2.25px` (amendment 1) and one 2 px
+  ink ring 2 px out;
 - is never copper;
 - has the same CSS triangle before it, 6 px wide and ink: the one sign on `/` that it plays rather
   than navigates.
 
-**[Iris pending]**: she is measuring B4.22's fit at 1440 × 900. The 24 px target costs 4.5 px of
-the 11.6 px slack she measured in sprint 34.
+With these, the link adds no height to `p[data-rest]` from 1024 px (Iris measured it, amendment 1).
 
 **The tick key** (Iris's #91 follow-up; her words and look):
 - `p[data-tick-key]`, the element right after `ol[data-moments]`. Its text is exactly "One tick on
@@ -260,37 +302,51 @@ Probe writes these first, by B4d's method:
   - The 999 variant has `last.sprint` 999 (no seat).
 - 1440 × 900 and 390 × 844 unless a check says otherwise. Each title carries its number.
 
-- **B4.43 The offer, and nothing starts.**
-  - On the replay fixture: one `button[data-replay]` "Replay sprint 29", `aria-pressed` false,
-    shown after hydration, never with scripts off.
+- **B4.43 The offer, and nothing starts** (amendment 1).
+  - On the replay fixture, the entry is one `a[data-replay][href="#replay"]` whose text is exactly
+    "Replay sprint 29":
+    - it is the element right after `p[data-status]`, and `p[data-status]`'s text is the oracle's
+      resting line;
+    - it is shown after hydration and never with scripts off;
+    - it is 44 px tall below 1024 and at least 24 from it;
+    - it is wholly inside the first viewport at 1440 × 900 and 390 × 844, with the fixture's role
+      lines lengthened to the Studio's 140 characters.
+  - `button[data-replay-pause]` "Pause replay" keeps its box but is hidden and not focusable.
   - The Activity block is `#replay`, and its list is the server's 10 newest.
   - For 10 fake minutes after load, nothing changes in `.crew` or `[data-plan]` but `data-ready`
     and the poll's own updates.
   - Space on the body before a press scrolls and plays nothing.
-  - Not offered (no button, today's panel and drawing) on the live, open, resting and down
+  - Not offered (no entry or pause, today's panel and drawing) on the live, open, resting and down
     fixtures, on a replay of only bad entries, and with `last.sprint` null.
   - The oracle keeps the 60 newest of the 65.
 - **B4.44 It plays in order, on the clock.**
-  - A press gives k = 1 at once, then k + 1 at each 1,500 ms and not before (checked at 1,499 and
-    1,500).
+  - A press of the entry gives k = 1 at once, then k + 1 at each 1,500 ms and not before (checked
+    at 1,499 and 1,500).
+  - It jumps at once to `#replay`: the Activity head is below the bar and inside the viewport,
+    with no smooth scroll. Over the replay the page's scroll position doesn't change.
   - Each `li` has the oracle's time and text, newest on top, with every played moment kept.
   - The `h2` reads "Replay, ‹the first moment's d Mon› (UTC)" while listed, and the block carries
     `data-replaying`.
-  - After the 12th moment, `aria-pressed` turns false, and 10 more fake minutes change nothing.
+  - After the 12th moment the pause hides, and 10 more fake minutes change nothing.
   - No now line, nothing copper (B4.6's sweep), and `[data-announce]` stays empty.
   - From press to end, the chip, the status ("Crew resting. Sprint 29 merged…"), the table and
     Pause updates equal the resting panel's.
   - The same timings under Full, Calm, Off, reduced motion, and with WebGL refused.
-- **B4.45 Pause, Space, and again.**
-  - A press mid-play pauses: 10 fake minutes change nothing. A press resumes, with the next moment
-    1,500 ms later.
-  - Space on the body pauses and resumes it once started. Space at the end does nothing and the
-    page scrolls. Space on Pause updates presses Pause updates alone.
-  - At the end, a press restarts at k = 1.
-  - The button's glyph is a CSS box, not a text character: its text is exactly "Replay sprint 29".
-    Its height is 44 px below 1024 and 32 px from it.
-  - Focus stays on the button throughout, and the order of Tab stops in the panel is unchanged
-    apart from the button after Pause updates.
+- **B4.45 Pause, Space, and again** (amendment 1).
+  - `button[data-replay-pause]`:
+    - its text is exactly "Pause replay", and its glyph is a CSS box;
+    - it is 44 px tall below 1024 and 32 from it;
+    - it is visible from k = 1 to the end;
+    - its box is the same before, during and after (no shift).
+  - A press mid-play turns `aria-pressed` true, and 10 fake minutes change nothing. A press turns
+    it false and resumes, with the next moment 1,500 ms later.
+  - Space with the focus on the body or on the pause toggles it. Space before a press and at the
+    end does nothing to the replay, and the page scrolls. Space on Pause updates presses Pause
+    updates alone.
+  - At the end the pause is hidden and not focusable. If it had focus, focus is on the entry.
+  - Pressing the entry, mid-play, paused or at the end, restarts at k = 1, playing.
+  - After the entry's press, the next Tab reaches "Pause replay". Otherwise the order of Tab stops
+    in the panel is today's, plus the entry after the status and the pause in Activity's head.
 - **B4.46 The plank replays, in 2D.**
   - At rest on the replay fixture, at 320, 390, 768, 1024 and 1440:
     - `data-focus` is 29's seat, `data-run` is `inked`, and `data-tally` is set;
@@ -308,6 +364,7 @@ Probe writes these first, by B4d's method:
     - it is shown from Play to the merge, paused or not, and hidden from the merge;
     - it reads "Replay" (uppercase), resolves to ink on `--background`, and is `CanvasText` in
       forced colours;
+    - its font size is 11 px, and 13 px from 1280 (amendment 1);
     - its box is inside the drawing's box, with no plank number's box within 4 px of it;
     - read at 1440, 1024, 390 and 320, on 29's crop and on a retro sprint whose seat anchors the
       crop at the other end of the hull (the oracle picks it), patched in as `last.sprint`.
@@ -335,7 +392,7 @@ Probe writes these first, by B4d's method:
     `[data-plan]` or the block.
   - A live answer, an open one, resting for sprint 30, and down past 10 minutes each close the
     replay in that poll:
-    - no button, `data-replaying` or `data-replay`;
+    - no entry or pause, no `data-replaying` and no `data-replay`;
     - the list is the oracle's for that answer;
     - `data-run` is call 3's value: `record` for another sprint and for down.
     - The stamp and the key go.
@@ -349,10 +406,13 @@ Probe writes these first, by B4d's method:
   - It is never copper (hovered or focused), at least 24 × 24, with one 2 px ink ring 2 px out.
   - Tab reaches it after the Contact links and before the Log link.
   - B4.22's first screen holds, the rest line included.
+  - From 1024, `p[data-rest]`'s height with the link equals its height on the resting fixture
+    without it, within 0.5 px, at 1024 × 768, 1280 × 800 and 1440 × 900. At 1280 × 800 the title
+    block's Contact links are wholly inside the viewport (amendment 1).
   - `/`'s scripts equal the default server's files and bytes, WebGL refused.
   - Following it lands on `/crew` with the Activity head below the bar and inside the viewport,
-    `button[data-replay]` pressed, and k = 1. `location.hash` is then empty, and a reload plays
-    nothing.
+    "Pause replay" visible and unpressed, and k = 1. `location.hash` is then empty, and a reload
+    plays nothing.
   - On the resting fixture (no replay), `/` has no link in `p[data-rest]`, as B4.18 has it.
 - **B4.50 The tick key.**
   - One `p[data-tick-key]` right after `ol[data-moments]`, with the exact words and one
@@ -366,7 +426,8 @@ Probe writes these first, by B4d's method:
     - every text in a token;
     - no overflow at 320 or 390;
     - targets at 44 below 1024 and 24 from it;
-    - forced colours: the button's ring and pressed state, the stamp, and ticks in `CanvasText`.
+    - forced colours: the entry's and the pause's rings, the pause's pressed state, the stamp,
+      and ticks in `CanvasText`.
   - B4.14 and B4.31's budget at the new figures, read on the replay fixture.
 
 ## The live checks: keep, rewrite, retire
@@ -424,7 +485,8 @@ bodies of every script response, and 2.5 s with WebGL refused.
     the stamp;
   - `components/crew-live.tsx`: the transport, the steps, Space, `#replay` and `replaceState`, the
     poll's rule, the redraws, the stamp's toggle, and rider 1;
-  - `components/crew.tsx`: the button and its glyph, the heading, and the key with its symbol;
+  - `components/crew.tsx`: the entry in the status, the pause in Activity's head with their
+    glyphs, the heading, and the key with its symbol;
   - `components/revisions.tsx`, `app/page.tsx` and `lib/live-layer.ts`: the link on `/`;
   - the CSS, in `/crew`'s and the revision block's own blocks of `app/globals.css`;
   - rider 2's one line.
@@ -462,12 +524,10 @@ None of them touches what this sprint builds.
 
 ## Needs decision
 
-- **Iris:** two numbers she is checking by prototype. Each holds as written unless she corrects
-  it, so neither blocks Probe:
-  - the stamp's place;
-  - the rest line's fit in B4.22 at 1440 × 900.
-- **Atlas:** call 8's 20,480 B. My view is that it needs no Owner's pick: it is measured, `/` is
-  untouched, and Lens accepts loosened bounds. Rider 2 too: Forge, or Pixel later.
+- **Iris and Atlas:** settled. Iris's numbers are amendment 1, and Atlas took call 8 and rider 2
+  in `decisions.md`, 3.
+- **Bytes:** the entry is a second control, so watch call 8's margin. If Forge's build doesn't
+  fit 20,480 B, he trims or stops and tells Atlas.
 - **Owner:** nothing to merge. On the preview the crew is live or open, so no replay is offered
   there. They see it on production after the merge, with the crew at rest. That is the milestone's
   close, and the demo is theirs. Until then they have Probe's screenshots of the fixture.

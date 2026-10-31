@@ -27,3 +27,14 @@
    with Forge now (one line in `lib/model/stage.ts`, both values 1.4). Probe writes B4.43 to B4.51
    red first while Forge builds from the contract, each in their own worktree; Pixel comes in only
    if B4.47 is red on Forge's build.
+4. **Amendment 1** (Iris's corrections to 043dd18, accepted by Atlas; written by Quill into
+   `contract.md`, "Amendment 1").
+   - The stamp takes the plank numbers' size (11 px, 13 px from 1280).
+   - `/`'s link gets `margin-block: -2.25px`, and the rest line gets `row-gap: 6px`, so it adds 0
+     px from 1024.
+   - `/crew`'s entry moves into the resting status as a link, "Replay sprint N" (`#replay`): at
+     rest Activity's head is at y 977 at 1440 × 900, out of sight.
+   - Activity's head keeps one "Pause replay" toggle (pressed = paused), shown only while a replay
+     plays or is paused. Its box is reserved, and focus moves to the entry if the toggle hides
+     while focused.
+   - Checks B4.43, B4.44, B4.45, B4.46, B4.48, B4.49 and B4.51 are amended to match.
