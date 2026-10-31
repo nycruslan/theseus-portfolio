@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect, type Page, type Response, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { DARK, LIGHT } from "../lib/site";
+import { firstScreen, textSizes } from "./first-screen";
 import {
   hexToRgb,
   horizontalOverflow,
@@ -139,48 +140,7 @@ test("B1.1 the first screen says who and what: the name, role, bio, contact and 
   ] as const) {
     await open(page, width, height);
     const where = `${width} x ${height}`;
-    const found = await page.evaluate(
-      ({ texts, links, revisions }) => {
-        const squashed = (el: Element) =>
-          (el.textContent ?? "").replace(/\s+/g, " ").trim();
-        const header = document.querySelector("main > header");
-        // The deepest element in the title block that holds the whole phrase.
-        const holding = (phrase: string) =>
-          [...(header?.querySelectorAll("*") ?? [])]
-            .filter((el) => squashed(el).includes(phrase))
-            .at(-1) ?? null;
-        const box = (el: Element | null) => {
-          if (!el) return null;
-          const r = el.getBoundingClientRect();
-          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-        };
-        return {
-          viewport: {
-            width: document.documentElement.clientWidth,
-            height: innerHeight,
-          },
-          items: [
-            { what: "the h1", box: box(header?.querySelector("h1") ?? null) },
-            ...texts.map((text) => ({
-              what: `"${text.slice(0, 40)}"`,
-              box: box(holding(text)),
-            })),
-            ...links.map((href) => ({
-              what: `the title block's link to ${href}`,
-              box: box(header?.querySelector(`a[href="${href}"]`) ?? null),
-            })),
-          ],
-          rows: [
-            ...document.querySelectorAll(`${revisions} table tbody tr`),
-          ].map((tr, i) => ({ what: `revision row ${i + 1}`, box: box(tr) })),
-        };
-      },
-      {
-        texts: [profile.headline, TITLE_BIO],
-        links: profile.links.map((link) => link.href),
-        revisions: REVISIONS,
-      },
-    );
+    const found = await firstScreen(page);
     const inside = (b: Box | null) =>
       b !== null &&
       b.left >= -0.5 &&
@@ -200,29 +160,7 @@ test("B1.1 the first screen says who and what: the name, role, bio, contact and 
       )
       .toEqual([]);
 
-    const sizes = await page.evaluate(() => {
-      const h1 = document.querySelector("h1");
-      const others = [...document.body.querySelectorAll("*")]
-        .filter(
-          (el) =>
-            el !== h1 &&
-            !h1?.contains(el) &&
-            el.getClientRects().length > 0 &&
-            [...el.childNodes].some(
-              (node) =>
-                node.nodeType === Node.TEXT_NODE &&
-                (node.textContent ?? "").trim() !== "",
-            ),
-        )
-        .map((el) => ({
-          el: `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 30)}"`,
-          size: Number.parseFloat(getComputedStyle(el).fontSize),
-        }));
-      return {
-        h1: h1 ? Number.parseFloat(getComputedStyle(h1).fontSize) : 0,
-        others,
-      };
-    });
+    const sizes = await textSizes(page);
     expect(sizes.h1, `the h1's font size at ${where}`).toBeGreaterThan(0);
     expect
       .soft(
