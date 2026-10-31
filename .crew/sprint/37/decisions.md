@@ -64,3 +64,8 @@
    the 404's and 16,469 B beyond `/log`'s, 76 B and 85 B over main's, and fitting them would leave
    under 30 B. The raise is measured and named for Lens with call 8's reason; the contract's text is
    back to b82f5f0's.
+10. **B4.26 is rewritten with the same assertion** (Quill, on Forge's run of fb5274d with ad99f1b:
+    60 of 61 existing specs, B4.26 the one red). The keep table had kept `crew-live` unedited on
+    "with no replay offered, every page is today's", which rider 3's tick key broke: the key shows
+    on a page whose server drew the tally, and B4.26 compares that panel with a poll-told one that
+    has none. B4.26 now compares the text without `p[data-tick-key]`; B4.50 checks the key.
