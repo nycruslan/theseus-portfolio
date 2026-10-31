@@ -34,6 +34,7 @@ import {
   markX,
   NARROW,
   numberX,
+  numberY,
   PENCIL,
   PLANKS,
   type Plank,
@@ -274,7 +275,8 @@ type Pass = {
 /**
  * The number on a seated plank: in the middle of its body, at the band's mid-depth, or, for a body
  * too short for it, aft of the hull at its lift's mid-depth with a leader to the plank. On /crew,
- * the plank in pencil's number stands clear of the pen (`numberX`).
+ * the plank in pencil's number stands clear of the pen and of the edge its ticks hang from
+ * (`numberX`, `numberY`).
  */
 function numberPlank(
   plank: Plank,
@@ -290,12 +292,11 @@ function numberPlank(
     lines.leaders += `M${pt(P(plank.x0 - LEAD_OUT + 2, yMid))}H${num(P(plank.x1 - 2, 0)[0])}`;
     return;
   }
-  const x = numberX(plank.id, pencil);
-  const band = bandAt(plank, x);
-  if (band) {
+  const y = numberY(plank.id, pencil);
+  if (y !== null) {
     letter(
       String(sprint),
-      P(x, (band[0] + band[1]) / 2),
+      P(numberX(plank.id, pencil), y),
       "middle",
       "plank",
       seat,
