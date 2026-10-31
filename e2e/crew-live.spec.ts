@@ -128,15 +128,27 @@ function keptSite(crew: Crew, fixture: Fixture) {
   });
 }
 
-/** The panel's textContent as the server renders it, scripts off. */
+/**
+ * The panel's textContent without `p[data-tick-key]`: the key follows the drawing's state (shown
+ * where the server drew the tally), not the told answer, and B4.50 checks it (.crew/sprint/37/
+ * decisions.md, 10). A copy is read, so the page keeps its key.
+ */
+function panelText(page: Page) {
+  return page.evaluate((s) => {
+    const panel = document.querySelector(s);
+    if (!panel) return "(no panel)";
+    const copy = panel.cloneNode(true) as Element;
+    for (const key of copy.querySelectorAll("p[data-tick-key]")) key.remove();
+    return copy.textContent ?? "";
+  }, SECTION);
+}
+
+/** The panel's text as the server renders it, scripts off (panelText). */
 async function serverText(browser: Browser, url: string) {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(url);
-  const text = await page.evaluate(
-    (s) => document.querySelector(s)?.textContent ?? "(no panel)",
-    SECTION,
-  );
+  const text = await panelText(page);
   await context.close();
   return text;
 }
@@ -383,7 +395,7 @@ test("B4.26 it polls, and the panel follows: at 1440 one poll at hydration befor
       .toBe(1);
     expect
       .soft(
-        await live.text(),
+        await panelText(p),
         `the panel's text told ${fixture}, against the kept ${fixture} site's server-rendered panel`,
       )
       .toBe(server);
