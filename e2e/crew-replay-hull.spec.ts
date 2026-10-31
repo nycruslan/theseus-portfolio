@@ -663,9 +663,10 @@ test("B4.47 the hull follows the replay: at 1440 on B3's harness, at rest data-m
   const played: string[] = [];
   for (const [what, options, print] of paths) {
     const off = await openCrewModel(browser, { ...options, clock: true });
+    // B4.39's print path is print from load, the entry pressed in print (Quill, on c8382ee).
+    if (print) await off.page.emulateMedia({ media: "print" });
     await off.goto(`${replay.base}/crew`);
     await press(off.page, ENTRY);
-    if (print) await off.page.emulateMedia({ media: "print" });
     played.push(`${what}: played ${momentsPlayed(await advance(off.page, 3))}`);
     await pause(500);
     fetched.push(

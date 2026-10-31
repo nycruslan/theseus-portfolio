@@ -351,7 +351,7 @@ export function readReplay(page: Page): Promise<ReplayRead> {
           : null,
         scrollY: window.scrollY,
         active: active
-          ? `<${active.tagName.toLowerCase()}${active.matches(ENTRY) ? " entry" : active.matches(PAUSE) ? " pause" : active.matches("button[data-pause]") ? " Pause updates" : ""}>`
+          ? `<${active.tagName.toLowerCase()}${active.matches(ENTRY) ? " entry" : active.matches(PAUSE) ? " pause" : active.matches("button[data-pause]") ? " Pause updates" : active.id ? `#${active.id}` : ""}>`
           : "none",
       };
     },

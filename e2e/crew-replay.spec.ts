@@ -829,6 +829,7 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
 
   // To the end with the focus on the pause.
   await focusOn(page, PAUSE);
+  const focusedAt = (await readReplay(page)).scrollY;
   const ended = await advance(page, KEPT.length);
   const endFocusable = await focusable(page, PAUSE);
   await toBody(page);
@@ -845,7 +846,9 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
         k: momentsPlayed(ended),
         shown: ended.pause?.shown,
         focusable: endFocusable,
-        active: ended.active,
+        // Whatever element carries the anchor.
+        active: ended.active.replace(/^<\w+#replay>$/, "#replay"),
+        scrolled: ended.scrollY - focusedAt,
         same: pageBox(ended) === box0,
         space: {
           scrolled: afterSpace.scrollY !== endY,
@@ -853,13 +856,14 @@ test("B4.45 pause, Space, and again (amendment 1): button[data-replay-pause] rea
           shown: afterSpace.pause?.shown,
         },
       },
-      "at the end: 12 played, the pause hidden and unfocusable in its box, the focus it had on the entry; Space on the body scrolls and changes nothing",
+      "at the end: 12 played, the pause hidden and unfocusable in its page box, the focus it had on #replay with no scroll (decision 7); Space on the body scrolls and changes nothing",
     )
     .toEqual({
       k: KEPT.length,
       shown: false,
       focusable: false,
-      active: "<a entry>",
+      active: "#replay",
+      scrolled: 0,
       same: true,
       space: { scrolled: true, k: KEPT.length, shown: false },
     });
