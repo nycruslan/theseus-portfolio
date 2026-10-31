@@ -45,7 +45,7 @@ export type Answer = {
   status: number;
   /** How old `asOf` is when served, in ms: over 600,000 is stale (the contract's down rule). */
   ageMs: number;
-  /** How long the answer waits before it is sent, in ms: over 2,000 is down. */
+  /** How long the answer waits before it is sent, in ms: over 6,000 is down. */
   delayMs: number;
   /** Shallow merges applied to the fixture, by top-level key, then by `current`'s and `last`'s. */
   patch?: {

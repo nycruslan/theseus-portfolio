@@ -15,7 +15,10 @@ const UNREAD: Crew = { state: "down", unread: true };
 
 /** Past this at render, an answer is stale and reads as down: copper's own window on the Studio. */
 const STALE_MS = 10 * 60 * 1000;
-const TIMEOUT_MS = 2000;
+// Generous, since no visitor waits on it: pages regenerate behind what they've already served, and
+// /api/crew answers a poll that shows the last state meanwhile. A cold Studio can take seconds, and
+// reading that as down told the visitor after a quiet spell that the feed wasn't answering.
+const TIMEOUT_MS = 6000;
 
 /** A read that brought no answer back: unreachable, timed out, a status other than 200, not JSON. */
 const FAILED = Symbol("failed read");
