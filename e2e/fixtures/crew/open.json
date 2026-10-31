@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "asOf": "2026-10-24T03:10:00.000Z",
+  "current": {
+    "sprint": 31,
+    "goal": "The crew's page, /crew, from the Studio's feed",
+    "live": false,
+    "startedAt": "2026-10-24T00:05:03.000Z",
+    "lastEventAt": "2026-10-24T02:41:19.000Z",
+    "pr": {
+      "number": 78,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/78"
+    },
+    "health": {
+      "state": "waiting",
+      "label": "Waiting on the owner",
+      "line": "PR #78 waits for the owner.",
+      "quote": false
+    },
+    "now": null,
+    "roles": [
+      {
+        "role": "lead",
+        "state": "waiting",
+        "line": "Waiting on the owner"
+      },
+      {
+        "role": "product-owner",
+        "state": "done",
+        "line": "Wrote the contract: 14 checks"
+      },
+      {
+        "role": "engineer",
+        "state": "working",
+        "line": "Built /crew"
+      },
+      {
+        "role": "creative-engineer",
+        "state": "not-called",
+        "line": null
+      },
+      {
+        "role": "code-reviewer",
+        "state": "done",
+        "line": "Ship"
+      },
+      {
+        "role": "qa-engineer",
+        "state": "done",
+        "line": "Wrote the checks"
+      },
+      {
+        "role": "design-director",
+        "state": "done",
+        "line": "Reviewed the panel"
+      }
+    ],
+    "moments": [
+      {
+        "kind": "gate",
+        "at": "2026-10-24T02:41:19.000Z",
+        "who": null,
+        "text": "The gate waits for the owner"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-24T02:21:05.000Z",
+        "who": "design-director",
+        "text": "Iris: ship"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-24T02:33:48.000Z",
+        "who": "code-reviewer",
+        "text": "Lens: ship"
+      },
+      {
+        "kind": "report",
+        "at": "2026-10-24T02:02:44.000Z",
+        "who": "engineer",
+        "text": "Forge built /crew"
+      },
+      {
+        "kind": "pr",
+        "at": "2026-10-24T00:46:55.000Z",
+        "who": "lead",
+        "text": "PR #78 opened"
+      },
+      {
+        "kind": "kickoff",
+        "at": "2026-10-24T00:05:03.000Z",
+        "who": null,
+        "text": "Sprint started"
+      }
+    ],
+    "url": "https://studio.example.com/studio/runs/run-31"
+  },
+  "last": {
+    "sprint": 30,
+    "goal": "The Log, /log, as the drawing's revision table",
+    "live": false,
+    "startedAt": "2026-10-23T18:02:00.000Z",
+    "lastEventAt": "2026-10-23T23:58:10.000Z",
+    "pr": {
+      "number": 77,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/77"
+    },
+    "health": {
+      "state": "shipped",
+      "label": "Shipped · PR #77",
+      "line": "The owner merged PR #77 on GitHub.",
+      "quote": false
+    },
+    "now": null,
+    "roles": [
+      {
+        "role": "lead",
+        "state": "done",
+        "line": "Merged PR #77"
+      },
+      {
+        "role": "product-owner",
+        "state": "done",
+        "line": "Wrote the contract"
+      },
+      {
+        "role": "engineer",
+        "state": "done",
+        "line": "Built /log"
+      },
+      {
+        "role": "creative-engineer",
+        "state": "not-called",
+        "line": null
+      },
+      {
+        "role": "code-reviewer",
+        "state": "done",
+        "line": "Ship, two nits"
+      },
+      {
+        "role": "qa-engineer",
+        "state": "done",
+        "line": "Wrote the checks"
+      },
+      {
+        "role": "design-director",
+        "state": "done",
+        "line": "Reviewed the table"
+      }
+    ],
+    "moments": [
+      {
+        "kind": "end",
+        "at": "2026-10-23T23:58:10.000Z",
+        "who": null,
+        "text": "Sprint ended"
+      },
+      {
+        "kind": "merge",
+        "at": "2026-10-23T23:52:00.000Z",
+        "who": null,
+        "text": "PR #77 merged"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-23T23:30:00.000Z",
+        "who": "code-reviewer",
+        "text": "Lens: ship"
+      },
+      {
+        "kind": "pr",
+        "at": "2026-10-23T22:10:00.000Z",
+        "who": "lead",
+        "text": "PR #77 opened"
+      },
+      {
+        "kind": "kickoff",
+        "at": "2026-10-23T18:02:00.000Z",
+        "who": null,
+        "text": "Sprint started"
+      }
+    ],
+    "url": "https://theseus-studio.vercel.app/studio/runs/run-30",
+    "endedAt": "2026-10-23T23:58:10.000Z",
+    "mergedAt": "2026-10-23T23:52:00.000Z"
+  }
+}

@@ -26,11 +26,13 @@ export function projectLinkLabel(href: string) {
 
 /**
  * The routes a visitor reads the owner on, and a mistyped address (sprint 23, B2.9); since sprint 30
- * the Log and one of its records (.crew/sprint/29/b5-first-contract.md, B5.9).
+ * the Log and one of its records (.crew/sprint/29/b5-first-contract.md, B5.9), and since sprint 31
+ * the crew's page, in the down state on the suite's server (.crew/sprint/31/contract.md, B4.13).
  */
 export const ROUTES = [
   "/",
   "/read",
+  "/crew",
   "/log",
   "/log/13",
   "/no-such-page",
@@ -39,6 +41,7 @@ export const ROUTES = [
 export const STATUS: Record<(typeof ROUTES)[number], number> = {
   "/": 200,
   "/read": 200,
+  "/crew": 200,
   "/log": 200,
   "/log/13": 200,
   "/no-such-page": 404,

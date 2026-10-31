@@ -43,7 +43,9 @@ import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 // `localStorage["theseus:motion"]`; `[data-model]` and its `data-state`; the Off page's plank fills
 // and numbers. A press is a real click at the shown button's centre (it works with Playwright's
 // clock paused) or a key on the focused button; a mode is only ever set by script through
-// localStorage before a load (`stored`).
+// localStorage before a load (`stored`). Sprint 31 (.crew/sprint/31/contract.md, B4a): the bar's
+// nav holds five links, Crew after Work, at every width; below 768 Read as page is hidden in the
+// bar (it is shown at the drawing's foot), so B3.23 reads the shown links.
 
 const KEY = "theseus:motion";
 /** The group named Motion: a fieldset, whose role is group (or an element with that role). */
@@ -426,7 +428,7 @@ function layoutBoxes(page: Page) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("B3.16 the control: at 320, 390, 768, 1024 and 1440 exactly one of the two [data-motion] slots is shown, from 768 in the bar's nav after the four links and right of Read as page, below 768 in main between [data-model] and the title block, holding a group named Motion with Full, Calm and Off in order, Full alone pressed, each a target of the width's size inside the viewport, the hidden slot's buttons no Tab stops; with scripts off both slots are in the HTML, empty, and the wordmark, bar links, h1, first fact heading and slots sit as with scripts on; no layout shift over load + 2 s with the model loading; no overflow at 320; axe is clean on the bar and the control", async ({
+test("B3.16 the control: at 320, 390, 768, 1024 and 1440 exactly one of the two [data-motion] slots is shown, from 768 in the bar's nav after the five links and right of Read as page, below 768 in main between [data-model] and the title block, holding a group named Motion with Full, Calm and Off in order, Full alone pressed, each a target of the width's size inside the viewport, the hidden slot's buttons no Tab stops; with scripts off both slots are in the HTML, empty, and the wordmark, bar links, h1, first fact heading and slots sit as with scripts on; no layout shift over load + 2 s with the model loading; no overflow at 320; axe is clean on the bar and the control", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -519,10 +521,10 @@ test("B3.16 the control: at 320, 390, 768, 1024 and 1440 exactly one of the two 
       .toEqual({ inNav: inBar, inMain: !inBar });
     expect
       .soft(placed.links, `the bar's links ${where}`)
-      .toEqual(["Work", "Log", "Contact", "Read as page"]);
+      .toEqual(["Work", "Crew", "Log", "Contact", "Read as page"]);
     if (inBar) {
       expect
-        .soft(placed.afterLinks, `the shown slot after the four links ${where}`)
+        .soft(placed.afterLinks, `the shown slot after the five links ${where}`)
         .toBe(true);
       expect
         .soft(
@@ -1629,7 +1631,7 @@ test("B3.22 forced colours and the keyboard: at 1440 and 390 in forced colours, 
   }
 });
 
-test("B3.23 the fallback face: with every .woff2 request aborted, at 320 and 390 in both schemes, the bar's four links share one row, each label on one line, the page doesn't scroll sideways, and at 390 x 844 B1.1's items are in the first viewport", async ({
+test("B3.23 the fallback face: with every .woff2 request aborted, at 320 and 390 in both schemes, the bar's four shown links, Work, Crew, Log and Contact, share one row, each label on one line, the page doesn't scroll sideways, and at 390 x 844 B1.1's items are in the first viewport", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
@@ -1653,7 +1655,10 @@ test("B3.23 the fallback face: with every .woff2 request aborted, at 320 and 390
         `woff2 requests aborted, ${where}`,
       ).toBeGreaterThan(0);
       const bar = await run.page.evaluate(() => {
-        const links = [...document.querySelectorAll("header nav a")];
+        // The shown ones: a hidden link's box is all zeros (Read as page below 768, sprint 31).
+        const links = [...document.querySelectorAll("header nav a")].filter(
+          (a) => a.getClientRects().length > 0,
+        );
         const range = document.createRange();
         return links.map((a) => {
           range.selectNodeContents(a);
@@ -1672,9 +1677,9 @@ test("B3.23 the fallback face: with every .woff2 request aborted, at 320 and 390
       expect
         .soft(
           bar.map((l) => l.text),
-          `the bar's links, ${where}`,
+          `the bar's shown links, ${where}`,
         )
-        .toEqual(["Work", "Log", "Contact", "Read as page"]);
+        .toEqual(["Work", "Crew", "Log", "Contact"]);
       const tops = bar.map((l) => l.top);
       expect
         .soft(

@@ -1,23 +1,27 @@
 import type { ReactNode } from "react";
 
 // The labelled bar at the top of the sheet (.crew/sprint/22/contract.md, B1.3; .crew/sprint/23/
-// notes-iris.md, section 5): the wordmark, then a link to each place on the site that exists today.
-// Crew joins it with its route (B4); a link to a page that isn't built yet would be a dead end for
-// the visitor who clicks it. On the sheet the wordmark is plain text, since it would link to the
-// page it sits on. It sticks to the top while the page scrolls, so html's scroll-padding-top in
-// app/globals.css keeps every fragment target and focused link clear of it. It isn't printed: on
-// paper it is a strip of links nobody can follow. After the links, the page passes the motion
-// control into its slot, shown from 768 px: from 1024 at the bar's right end after Read as page, as
-// the approved frame draws it. Below 768 the bar is full, and the control sits in the page: at the
-// drawing's foot on the sheet (app/page.tsx; .crew/sprint/27/), at the header's end on the Log
-// (components/log.tsx; .crew/sprint/33/). The control is a slot, not an import, so its client
-// module ships only where a page with a model renders it.
+// notes-iris.md, section 5): the wordmark, then a link to each place on the site that exists today,
+// Crew among them since its route does (.crew/sprint/31/contract.md, "The bar"). On the sheet the
+// wordmark is plain text, since it would link to the page it sits on. Elsewhere
+// (.crew/sprint/29/b5-first-contract.md, "The bar") it is the way home, Work and Contact point at
+// the sheet's sections, and the page's own place is current: Log on the Log and its records, Crew
+// on /crew, whose bar is the Log's. It sticks to the top while the page scrolls, so html's
+// scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
+// It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
+// a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
+// end after Read as page, as the approved frame draws it. /crew has no model to move until B4d, so
+// no control. The control is a slot, not an import, so its client module ships only where a page
+// with a model renders it.
 //
-// On the Log and its records (.crew/sprint/29/b5-first-contract.md, "The bar"), the wordmark is the
-// way home, Work and Contact point at the sheet's sections, and Log is current.
+// Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and
+// Read as page stays in the nav's DOM, hidden. Read as page, with the control where the page has
+// one, takes one row in the page instead (components/foot.tsx): at the drawing's foot on the sheet
+// (app/page.tsx; .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
+// (components/log.tsx; .crew/sprint/33/).
 type BarProps = {
-  /** Where the bar is: the sheet, the Log, or one of the Log's records. */
-  at?: "sheet" | "log" | "record";
+  /** Where the bar is: the sheet, the Log, one of the Log's records, or the crew's page. */
+  at?: "sheet" | "log" | "record" | "crew";
   /** The motion control, from a page with a model: the sheet, the Log and its records. */
   control?: ReactNode;
   className?: string;
@@ -29,7 +33,7 @@ const LINK_CLASSES =
 type BarLink = {
   label: string;
   href: string;
-  /** The page's own place: Log on the Log ("page") and on a record ("true"). */
+  /** The page's own place: Crew on /crew and Log on the Log ("page"), Log on a record ("true"). */
   current?: "page" | "true";
   /** It leaves the sheet for another view. */
   away?: boolean;
@@ -47,6 +51,11 @@ export function Bar({ at = "sheet", control, className = "" }: BarProps) {
   const home = at === "sheet" ? "" : "/";
   const links: BarLink[] = [
     { label: "Work", href: `${home}#work` },
+    {
+      label: "Crew",
+      href: "/crew",
+      current: at === "crew" ? "page" : undefined,
+    },
     {
       label: "Log",
       href: "/log",
@@ -86,9 +95,12 @@ export function Bar({ at = "sheet", control, className = "" }: BarProps) {
             control, as the frame draws it. */}
           <ul className="-mr-1.5 flex md:mr-0 lg:flex-1 lg:gap-7">
             {links.map((link) => (
-              <li key={link.label} className={link.away ? "lg:ml-auto" : ""}>
+              <li
+                key={link.label}
+                className={link.away ? "max-md:hidden lg:ml-auto" : ""}
+              >
                 {/* 44 px tall on phones, as the canvas draws them; 6 px sides and, under 360 px,
-                  the small step keep all four on one line down to 320. A label never breaks, in
+                  the small step keep four on one line down to 320. A label never breaks, in
                   either face. The current place is underlined, as the frame draws Log on /log. */}
                 <a
                   href={link.href}

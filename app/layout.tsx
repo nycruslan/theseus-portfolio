@@ -11,10 +11,10 @@ import "./globals.css";
 export const ensureStatic = "navigation";
 
 // The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The condensed display
-// face is set by /, /read and /log alone (app/fonts.ts). `optional`: the face is used only if it is there
-// for the first paint, so it never swaps in later and shifts the page; the fallback next/font
-// sizes to its metrics holds the lines meanwhile. No `fallback` list: under Turbopack one replaces
-// that sized fallback instead of following it (app/globals.css adds the generic family).
+// face is set by /, /read, /crew and /log alone (app/fonts.ts). `optional`: the face is used only if
+// it is there for the first paint, so it never swaps in later and shifts the page; the fallback
+// next/font sizes to its metrics holds the lines meanwhile. No `fallback` list: under Turbopack one
+// replaces that sized fallback instead of following it (app/globals.css adds the generic family).
 const sofiaSans = Sofia_Sans({
   subsets: ["latin"],
   display: "optional",

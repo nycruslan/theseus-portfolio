@@ -23,7 +23,9 @@ import {
 // the motion control's three buttons follow Read as page, so Contact's first link is the 15th stop,
 // `tabUntil`'s bound is 15, and the buttons are stops with one clear ring each. Sprint 30
 // (.crew/sprint/29/b5-first-contract.md, B5a): Log points at /log, and B2.9's forced-colours ring
-// holds on /log and a record too.
+// holds on /log and a record too. Sprint 31 (.crew/sprint/31/contract.md, B4a): Crew follows Work
+// in the bar, so Contact's first link is the 16th stop and `tabUntil`'s bound is 16; B2.9's
+// forced-colours ring holds on /crew too.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -52,7 +54,7 @@ async function settled(page: Page) {
 }
 
 /** Presses Tab until the focused element matches `selector`, at most `max` times. */
-async function tabUntil(page: Page, selector: string, max = 15) {
+async function tabUntil(page: Page, selector: string, max = 16) {
   for (let presses = 0; presses < max; presses++) {
     await page.keyboard.press("Tab");
     const found = await page.evaluate(
@@ -190,9 +192,15 @@ test("the skip link moves focus to main, and the next Tab goes on from there", a
   ).toBe(true);
 
   await page.keyboard.press("Tab");
+  // The first shown one: from 768 px main's Read as page (the phone's, at the drawing's foot) is
+  // display: none and takes no focus (sprint 31, .crew/sprint/31/contract.md).
   expect(
     await page.evaluate(
-      () => document.activeElement === document.querySelector("main a"),
+      () =>
+        document.activeElement ===
+        [...document.querySelectorAll("main a")].find(
+          (a) => a.getClientRects().length > 0,
+        ),
     ),
     "the next Tab focuses the first link inside main",
   ).toBe(true);
@@ -477,7 +485,7 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 15th Tab stop: skip, the 4 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");
@@ -485,6 +493,7 @@ test("B2.3 on /, Contact's first link is the 15th Tab stop: skip, the 4 bar link
   const expected = [
     "#main",
     "#work",
+    "/crew",
     "/log",
     "#contact",
     "/read",
@@ -495,7 +504,7 @@ test("B2.3 on /, Contact's first link is the 15th Tab stop: skip, the 4 bar link
     profile.links[0]?.href ?? "",
   ];
   // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
-  expect(expected, "the stops up to Contact's first link").toHaveLength(15);
+  expect(expected, "the stops up to Contact's first link").toHaveLength(16);
   const stops: string[] = [];
   for (let press = 0; press < expected.length; press++) {
     await page.keyboard.press("Tab");
@@ -509,22 +518,23 @@ test("B2.3 on /, Contact's first link is the 15th Tab stop: skip, the 4 bar link
       }, MOTION),
     );
   }
-  expect(stops, "the first 15 Tab stops on /").toEqual(expected);
+  expect(stops, "the first 16 Tab stops on /").toEqual(expected);
   expect(
     await page.evaluate(
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 15th stop is Contact's first link",
+    "the 16th stop is Contact's first link",
   ).toBe(true);
 });
 
-test("B2.9 in forced colours, every focused link or button on /read, /log, /log/13 and the 404 shows exactly one ring", async ({
+test("B2.9 in forced colours, every focused link or button on /read, /crew, /log, /log/13 and the 404 shows exactly one ring", async ({
   page,
 }) => {
   await page.emulateMedia({ forcedColors: "active" });
   for (const [route, status] of [
     ["/read", 200],
+    ["/crew", 200],
     ["/log", 200],
     ["/log/13", 200],
     ["/no-such-page", 404],

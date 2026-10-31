@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
+import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { LogRecord } from "@/components/log-record";
 import { Model, MotionControl } from "@/components/model";
@@ -161,12 +162,13 @@ export function Log({ entries, open }: LogProps) {
           {newest ? <LinesFigure {...newest} /> : null}
         </div>
 
-        {/* Below 768 px the bar is full, so the motion control closes the header here, in a row
-          under the lines figure (.crew/sprint/33/notes-iris.md, section 5): under the drawing it
-          would part the hull from its caption, and in the DOM it precedes the record, so Tab meets
-          it where the eye does. #78's Read as page takes the same place: whichever merges second
-          makes this <Foot control={<MotionControl />} />. */}
-        <MotionControl />
+        {/* Below 768 px the bar is full (components/bar.tsx), so Read as page and the motion
+          control close the header here, in one row under the lines figure, as at the drawing's
+          foot on / (.crew/sprint/31/review-iris.md; .crew/sprint/33/notes-iris.md, section 5).
+          Under the drawing the row would part the ghost hull from its caption, and on a record it
+          would sit above the record's links yet follow them in Tab order, since the record
+          precedes the drawing in the DOM. Here Tab meets it where the eye does. */}
+        <Foot control={<MotionControl />} />
 
         {record && seat ? (
           <LogRecord

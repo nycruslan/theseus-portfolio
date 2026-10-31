@@ -30,9 +30,15 @@ export const prHref = (n: number) => `${REPO}/pull/${n}`;
 export const recordOf = (n: number) => `${LOG}/${n}`;
 export const entryOf = (n: number) =>
   MERGED.find((entry) => entry.sprint === n);
-/** The bar's links after the wordmark, in the data rules' order. */
+/**
+ * The bar's links after the wordmark, in the data rules' order; Crew after Work since sprint 31
+ * (.crew/sprint/31/contract.md, "The bar"). Below 768 px the bar's Read as page is hidden and the
+ * one shown is the page's foot (`main [data-foot]`), which follows the header in the DOM, so the
+ * shown links keep this order at every width.
+ */
 export const BAR = [
   { text: "Work", href: "/#work" },
+  { text: "Crew", href: "/crew" },
   { text: "Log", href: LOG },
   { text: "Contact", href: "/#contact" },
   { text: "Read as page", href: "/read" },

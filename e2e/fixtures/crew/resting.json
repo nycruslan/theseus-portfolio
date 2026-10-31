@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "asOf": "2026-10-24T05:00:00.000Z",
+  "current": null,
+  "last": {
+    "sprint": 29,
+    "goal": "B5's plan, and B5a's contract: /log, the ghost hull and a record per revision",
+    "live": false,
+    "startedAt": "2026-10-24T00:05:03.000Z",
+    "lastEventAt": "2026-10-24T02:55:30.000Z",
+    "pr": {
+      "number": 76,
+      "url": "https://github.com/nycruslan/theseus-portfolio/pull/75"
+    },
+    "health": {
+      "state": "shipped",
+      "label": "Shipped · PR #76",
+      "line": "The owner merged PR #76 on GitHub.",
+      "quote": false
+    },
+    "now": null,
+    "roles": [
+      {
+        "role": "lead",
+        "state": "done",
+        "line": "Merged PR #76"
+      },
+      {
+        "role": "product-owner",
+        "state": "waiting",
+        "line": "Wrote the contract: 14 checks"
+      },
+      {
+        "role": "engineer",
+        "state": "working",
+        "line": "Built /crew"
+      },
+      {
+        "role": "creative-engineer",
+        "state": "not-called",
+        "line": null
+      },
+      {
+        "role": "code-reviewer",
+        "state": "done",
+        "line": "Ship"
+      },
+      {
+        "role": "qa-engineer",
+        "state": "done",
+        "line": "Wrote the checks"
+      },
+      {
+        "role": "design-director",
+        "state": "done",
+        "line": "Reviewed the panel"
+      }
+    ],
+    "moments": [
+      {
+        "kind": "end",
+        "at": "2026-10-24T02:55:30.000Z",
+        "who": null,
+        "text": "Sprint ended"
+      },
+      {
+        "kind": "merge",
+        "at": "2026-10-24T02:47:00.000Z",
+        "who": null,
+        "text": "PR #76 merged"
+      },
+      {
+        "kind": "gate",
+        "at": "2026-10-24T02:41:19.000Z",
+        "who": null,
+        "text": "The gate waits for the owner"
+      },
+      {
+        "kind": "verdict",
+        "at": "2026-10-24T02:33:48.000Z",
+        "who": "code-reviewer",
+        "text": "Lens: ship"
+      },
+      {
+        "kind": "report",
+        "at": "2026-10-24T02:02:44.000Z",
+        "who": "engineer",
+        "text": "Forge built /crew"
+      },
+      {
+        "kind": "contract",
+        "at": "2026-10-24T01:31:40.000Z",
+        "who": "product-owner",
+        "text": "Done means 14 checks"
+      },
+      {
+        "kind": "decision",
+        "at": "2026-10-24T01:20:15.000Z",
+        "who": "lead",
+        "text": "Probe owns the fixtures"
+      },
+      {
+        "kind": "pr",
+        "at": "2026-10-24T00:46:55.000Z",
+        "who": "lead",
+        "text": "PR #76 opened"
+      },
+      {
+        "kind": "ticket",
+        "at": "2026-10-24T00:44:09.000Z",
+        "who": "lead",
+        "text": "Briefed Forge, Probe, Quill and Iris"
+      },
+      {
+        "kind": "kickoff",
+        "at": "2026-10-24T00:05:03.000Z",
+        "who": null,
+        "text": "Sprint started"
+      }
+    ],
+    "url": "https://theseus-studio.vercel.app/studio/runs/run-29",
+    "endedAt": "2026-10-24T02:55:30.000Z",
+    "mergedAt": "2026-10-24T02:47:00.000Z"
+  }
+}

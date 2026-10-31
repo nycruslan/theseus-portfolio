@@ -53,8 +53,9 @@ async function renderedFacts(page: Page) {
 
 // content/ has carried no TODO(owner) marker since the owner's 2026 facts landed, so this holds
 // again and guards the next stand-in: a value marked TODO(owner) must not reach the page. Sprint 23
-// adds /read and the 404 (.crew/sprint/23/contract.md, B2.9), sprint 30 /log and a record (B5.9).
-test("no value the owner marked TODO(owner) renders, on /, /read, /log, /log/13 or the 404", async ({
+// adds /read and the 404 (.crew/sprint/23/contract.md, B2.9), sprint 30 /log and a record (B5.9),
+// sprint 31 /crew (B4.13).
+test("no value the owner marked TODO(owner) renders, on /, /read, /crew, /log, /log/13 or the 404", async ({
   page,
 }, testInfo) => {
   const placeholders = markedPlaceholders(
