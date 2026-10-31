@@ -55,6 +55,27 @@ export const bandAt = (plank: Plank, x: number): [number, number] | null => {
   return bottom - top > 0.05 ? [top, bottom] : null;
 };
 
+const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
+
+/**
+ * A plank's body, stern to bow, as the 2D finds it (`plankBody` in lib/lines-plan.ts): where it is
+ * nearly a whole lift deep, or nearly as deep as it ever gets, for one the stem, stern or keel cuts.
+ * Its number is set in it, and the pencil's copper tip runs along it.
+ */
+export function plankBody(plank: Plank): [number, number] | null {
+  const stations = Array.from({ length: 49 }, (_, i) => {
+    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
+    const band = bandAt(plank, x);
+    return { x, depth: band ? band[1] - band[0] : 0 };
+  });
+  const deepest = Math.max(...stations.map((station) => station.depth));
+  const deep = stations.filter(
+    (station) => station.depth >= 0.9 * Math.min(deepest, LIFT_DEPTH),
+  );
+  const [first, last] = [deep[0]?.x, deep.at(-1)?.x];
+  return first === undefined || last === undefined ? null : [first, last];
+}
+
 const spaced = (a: number, b: number, n: number) =>
   Array.from(
     { length: n + 1 },
@@ -370,7 +391,7 @@ export type Ghost = { seats: ReadonlySet<string> };
  * the card and the outline turn the stem and the counter at the same points (S4, rule 2; build
  * note 3).
  */
-function stationsAt(count: number) {
+export function stationsAt(count: number) {
   const liftEnds = Array.from({ length: BUTTS.length - 1 }, (_, k) =>
     ends(seamDepth(k + 1)),
   ).flat();

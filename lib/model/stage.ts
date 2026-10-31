@@ -1,8 +1,9 @@
 // The model's scene on WebGLRenderer (.crew/sprint/24/spike/scene/stage.js and scene-webgl.js,
 // ported; contract, "Stack"). Three draws a frame at most four: the card (every plank, the deck
 // and the transom, one merged mesh), the seams and the outline (two fat-line batches), and the
-// shadow once the model lifts. Nothing loops here: `draw` draws one frame. The Log's ghost hull
-// (.crew/sprint/33/contract.md, "How it's built") draws at most five: the card's far and near
+// shadow once the model lifts; while the crew is live, two more, the pencil plank's copper tip
+// (.crew/sprint/34/notes-iris.md, 4.3). Nothing loops here: `draw` draws one frame. The Log's
+// ghost hull (.crew/sprint/33/contract.md, "How it's built") draws at most five: the card's far and near
 // sides, each its own index range once, translucent; the seams, the outline, and the ink marks.
 
 import {
@@ -37,7 +38,7 @@ import {
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
-import { PLANKS } from "@/lib/hull-layouts";
+import { PENCIL, PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
   DARK_LIGHT,
@@ -55,6 +56,7 @@ import {
 } from "./calls";
 import { DECK, type Hull } from "./hull";
 import type { Loft } from "./loft";
+import type { PencilMarks } from "./pencil";
 import { LIGHT, type Shadow } from "./shadow";
 
 /** The sheet's tokens as the page computes them, and the scheme they belong to. */
@@ -64,6 +66,8 @@ export type Palette = {
   ink: string;
   ground: string;
   pencil: string;
+  /** Live now (.crew/sprint/34/): the copper tip on the pencil plank, and nothing else. */
+  copper: string;
   /** The ghost's tokens (.crew/sprint/33/): the planks' vellum and the outline's graphite. */
   vellum: string;
   muted: string;
@@ -81,10 +85,14 @@ const SUN = 1.4;
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
+/** A state's alpha for the pencil plank: below 0.75, the card shader hatches it. */
+const HATCHED = 0.5;
+
 /**
  * The card: a lit standard material whose colour is each vertex's slot in the state lookup, mixed
  * back to that flat colour while the model lies on the drawing (uLit 0 is the drawing's own fills,
- * exactly: S4), with the pencil hatch where a state's alpha flags it (B4's graphite; unused in B3).
+ * exactly: S4), with the pencil hatch where a state's alpha flags it (.crew/sprint/34/), in the
+ * card's own pass: the hatch adds no draw and no triangle.
  */
 const cardUniforms = () => ({
   uLit: { value: 0 },
@@ -92,6 +100,8 @@ const cardUniforms = () => ({
   uStates: {
     value: Array.from({ length: SLOTS }, () => new Vector4(1, 1, 1, 1)),
   },
+  /** The hatch: scale, phase and half a stroke, in periods (lib/model/pencil.ts). */
+  uHatch: { value: new Vector3() },
 });
 
 /**
@@ -125,18 +135,19 @@ function cardMaterial(uniforms = cardUniforms(), side?: Side) {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "void main() {",
-        "uniform float uLit;\nuniform vec3 uPencil;\nvarying vec4 vState;\nvarying vec2 vHull;\nvoid main() {",
+        "uniform float uLit;\nuniform vec3 uPencil;\nuniform vec3 uHatch;\nvarying vec4 vState;\nvarying vec2 vHull;\nvoid main() {",
       )
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
         diffuseColor.rgb = vState.rgb;
-        // Alpha below 1 flags the pencil hatch: 45° strokes 7 hull units apart, on the card.
-        float hatch = step(vState.a, 0.75);
-        float d = (vHull.x + vHull.y) / 7.0;
-        float w = fwidth(d);
-        float stroke = 1.0 - smoothstep(0.12 - w, 0.12 + w, abs(fract(d) - 0.5));
-        diffuseColor.rgb = mix(diffuseColor.rgb, uPencil, hatch * stroke);
+        // Alpha below 0.75 flags the pencil hatch: the 2D's 45° strokes, tiled from the drawing's
+        // origin, rising to the bow; each stroke's cover is filtered over a pixel.
+        float d = (vHull.x - vHull.y) * uHatch.x + uHatch.y;
+        float w = max(length(vec2(dFdx(d), dFdy(d))), 1e-4);
+        float off = abs(fract(d + 0.5) - 0.5);
+        float stroke = clamp((uHatch.z - off) / w + 0.5, 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uPencil, step(vState.a, 0.75) * stroke);
         vec3 flatColor = diffuseColor.rgb;`,
       )
       .replace(
@@ -193,6 +204,45 @@ function lines(positions: Float32Array, quads: boolean) {
   return { line, material };
 }
 
+/**
+ * The sheet's seams with the pencil plank's edges in graphite (notes-iris.md, 4.2): its seams and
+ * butts, solid, since a dash doesn't hold under the turn's foreshortening. Each fragment knows where
+ * on the hull it is (its segment's end, interpolated), and the edges are whole seams at one depth
+ * and butts at one station, so the colour starts and stops exactly at the plank's ends, in the
+ * batch's own draw.
+ */
+function pencilSeams(material: LineMaterial) {
+  const uniforms = {
+    uGraphite: { value: new Color() },
+    /** The plank's stern and bow ends and its top and bottom seams; inside out, it shows none. */
+    uEdge: { value: new Vector4(1e6, -1e6, -1e6, 1e6) },
+  };
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader.replace(
+      "void main() {",
+      "varying vec2 vSeam;\nvoid main() {\nvSeam = (position.y < 0.5 ? instanceStart : instanceEnd).xy;",
+    );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "void main() {",
+        "varying vec2 vSeam;\nuniform vec3 uGraphite;\nuniform vec4 uEdge;\nvoid main() {",
+      )
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+        // The top and bottom seams between the plank's ends, and the butts between its seams.
+        float e = 0.01;
+        bool along = vSeam.x >= uEdge.x - e && vSeam.x <= uEdge.y + e;
+        bool down = vSeam.y <= uEdge.z + e && vSeam.y >= uEdge.w - e;
+        bool seam = along && (abs(vSeam.y - uEdge.z) < e || abs(vSeam.y - uEdge.w) < e);
+        bool butt = down && (abs(vSeam.x - uEdge.x) < e || abs(vSeam.x - uEdge.y) < e);
+        if (seam || butt) diffuseColor.rgb = uGraphite;`,
+      );
+  };
+  return uniforms;
+}
+
 export type Stage = ReturnType<typeof createStage>;
 
 /**
@@ -247,6 +297,63 @@ export function createStage(
   const solved = new Color();
   const tint = new Color();
 
+  // The sprint in progress, on the sheet only (the Log's ghost shows no pencil): its plank's slot,
+  // its edge in the seams' batch, and while live its copper tip (notes-iris.md, 4.3): the 2D's run
+  // and dot in the same CSS px, unlit, exactly the token, drawn after the seams they lie on. A
+  // batch's lines share one weight, so the run and the dot are a batch each: two draws, while live.
+  const edges = ghost ? null : pencilSeams(seams.material);
+  const tip = ghost
+    ? null
+    : {
+        run: lines(new Float32Array(6), false),
+        dot: lines(new Float32Array(6), false),
+      };
+  /**
+   * How far the tip is drawn toward the camera, in clip space: its run and dot lie flat to the
+   * screen at the seam's depth, and the card around a seam bulges toward the camera above it (the
+   * hull is wider there), which would hide the dot's upper half and thin the run. A dot's width of
+   * depth clears that, while the rest of the hull still hides a tip turned away.
+   */
+  const lift = { value: 0 };
+  for (const part of tip ? [tip.run, tip.dot] : []) {
+    part.line.visible = false;
+    part.line.renderOrder = 1;
+    // The round caps' edge is the material's discard: alpha to coverage smooths it under MSAA.
+    part.material.alphaToCoverage = true;
+    part.material.onBeforeCompile = (shader) => {
+      shader.uniforms.uLift = lift;
+      shader.vertexShader = shader.vertexShader
+        .replace("void main() {", "uniform float uLift;\nvoid main() {")
+        .replace(
+          "#include <logdepthbuf_vertex>",
+          "gl_Position.z -= uLift * gl_Position.w;\n#include <logdepthbuf_vertex>",
+        );
+    };
+    model.add(part.line);
+  }
+  let pencilled: PencilMarks | null = null;
+  let painted: { palette: Palette; seated: ReadonlySet<string> } | null = null;
+  /**
+   * Each plank's state: card where the record seats it, a greyer card where it is original, and the
+   * pencil's hatch on the film where the sprint in progress is drawn, as the 2D fills it.
+   */
+  const fillStates = () => {
+    if (!painted) return;
+    const { palette, seated } = painted;
+    card.uniforms.uStates.value.forEach((state, i) => {
+      const id = PLANKS[i]?.id ?? "";
+      const pencil = i === pencilled?.slot;
+      tint.set(
+        pencil
+          ? palette.ground
+          : i === DECK || seated.has(id)
+            ? palette.card
+            : palette.old,
+      );
+      state.set(tint.r, tint.g, tint.b, pencil ? HATCHED : 1);
+    });
+  };
+
   const sky = new HemisphereLight(0xffffff, GROUND_LIGHT, SKY);
   const fill = new DirectionalLight(0xffffff, FILL);
   fill.position.set(0, 0, 1);
@@ -300,6 +407,10 @@ export function createStage(
       // LineSegments2 sets each line's resolution to the viewport before it draws, and the
       // viewport is in buffer pixels here, so the weights are too: the drawing's CSS px × ratio.
       const ratio = buffer[0] / width;
+      if (tip) {
+        tip.run.material.linewidth = PENCIL.tip.width * ratio;
+        tip.dot.material.linewidth = PENCIL.tip.dot * ratio;
+      }
       seams.material.linewidth = (ghost ? GHOST_EDGE_PX : SEAM_PX) * ratio;
       outline.material.linewidth =
         (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
@@ -350,12 +461,13 @@ export function createStage(
 
     /** The tokens and the record: each plank's state, the ink, the rig and the shadow's darkness. */
     paint(palette: Palette, seated: ReadonlySet<string>) {
-      card.uniforms.uStates.value.forEach((state, i) => {
-        const id = PLANKS[i]?.id ?? "";
-        tint.set(i === DECK || seated.has(id) ? palette.card : palette.old);
-        state.set(tint.r, tint.g, tint.b, 1);
-      });
+      painted = { palette, seated };
+      fillStates();
       card.uniforms.uPencil.value.set(palette.pencil);
+      // The edge in graphite and the tip in copper, as the 2D's: tokens, never lit.
+      edges?.uGraphite.value.set(palette.muted);
+      tip?.run.material.color.set(palette.copper);
+      tip?.dot.material.color.set(palette.copper);
       seams.material.color.set(palette.ink);
       outline.material.color.set(palette.ink);
       marks.material.color.set(palette.ink);
@@ -391,6 +503,37 @@ export function createStage(
       sun.intensity = SUN * gain;
       shadowMaterial.color.set(palette.dark ? 0x000000 : palette.ink);
       darkness = palette.dark ? SHADOW_DARK : SHADOW_LIGHT;
+    },
+
+    /**
+     * The sprint in progress on the sheet (.crew/sprint/34/): its plank hatched on the film and its
+     * edge in graphite (uniforms in the card's and the seams' own draws), and while live its copper
+     * tip (two draws), as `marks` lays them on the drawing shown; null leaves the hull as the record
+     * has it.
+     */
+    pencil(marks: PencilMarks | null) {
+      pencilled = edges ? marks : null;
+      const { hatch, edge } = pencilled ?? {};
+      card.uniforms.uHatch.value.set(
+        hatch?.scale ?? 0,
+        hatch?.phase ?? 0,
+        hatch?.half ?? 0,
+      );
+      fillStates();
+      if (edge) edges?.uEdge.value.set(edge.x0, edge.x1, edge.top, edge.bottom);
+      else edges?.uEdge.value.set(1e6, -1e6, -1e6, 1e6);
+      for (const [part, positions] of tip
+        ? ([
+            [tip.run, pencilled?.tip?.run],
+            [tip.dot, pencilled?.tip?.dot],
+          ] as const)
+        : []) {
+        part.line.visible = Boolean(positions);
+        if (!positions) continue;
+        const old = part.line.geometry;
+        part.line.geometry = lineGeometry(positions, false);
+        old.dispose();
+      }
     },
 
     /** Compiles every program, the shadow's too, before frame 1 (S6; build note 5). */
@@ -473,7 +616,13 @@ export function createStage(
       proxy?.geometry.dispose();
       (proxy?.material as MeshBasicMaterial | undefined)?.dispose();
       card.material.dispose();
-      for (const part of [seams, outline, marks, leads]) {
+      for (const part of [
+        seams,
+        outline,
+        marks,
+        leads,
+        ...(tip ? [tip.run, tip.dot] : []),
+      ]) {
         part.line.geometry.dispose();
         part.material.dispose();
       }
@@ -491,6 +640,8 @@ export function createStage(
     const { pose, invD } = loft.at(e);
     // Depth runs over ±0.9 of the nearest camera distance, so every point stays in front of it.
     const zHi = 0.9 * loft.lens;
+    // z maps to clip depth as −z / zHi: the tip's lift is a dot's width of it (CSS px).
+    lift.value = PENCIL.tip.dot / zHi;
     // x_c = 2x/W − 1, y_c = 2y/H + 1, w_c = 1 − z/D: the canvas at z = 0 for every D, and an
     // orthographic frame at 1/D = 0. z maps zHi to −1 and −zHi to 1.
     camera.projectionMatrix.set(

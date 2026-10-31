@@ -7,7 +7,13 @@
 
 import { GHOST, type Layout, NARROW, PLANKS, WIDE } from "@/lib/hull-layouts";
 import { DURATION, ease } from "./calls";
-import { type GhostPage, near as nearLine, readGhost, riders } from "./ghost";
+import {
+  type GhostPage,
+  near as nearLine,
+  pencilLabel,
+  readGhost,
+  riders,
+} from "./ghost";
 import {
   buildHull,
   DESKTOP,
@@ -19,6 +25,7 @@ import {
   plankEdges,
 } from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
+import { type Pencil, pencilMarks, readPencil } from "./pencil";
 import { bakeShadow } from "./shadow";
 import { createStage, type Palette, type Stage } from "./stage";
 
@@ -31,8 +38,21 @@ type Rest = "settled" | "still";
 export type Open = "auto" | "settled" | "loft";
 type Fit = Frame & { left: number; top: number; buffer: [number, number] };
 
-/** One of the sheet's two drawings, and what the model is on it: its layout, level and ratio cap. */
-type Sheet = { drawing: Element; layout: Layout; level: Level; cap: number };
+type Riders = ReturnType<typeof riders>;
+
+/**
+ * One of the sheet's two drawings, and what the model is on it: its layout, level and ratio cap;
+ * on `/`, the sprint in progress it draws in pencil and that plank's number, riding it
+ * (.crew/sprint/34/; the narrow drawing has no numbers).
+ */
+type Sheet = {
+  drawing: Element;
+  layout: Layout;
+  level: Level;
+  cap: number;
+  pencil: Pencil | null;
+  ride: Riders | null;
+};
 
 /** The once-a-visit flag in sessionStorage: the sheet's loft, and the Log's camera move. */
 const PLAYED = "theseus:model";
@@ -88,6 +108,7 @@ function palette(): Palette {
     ink: token("--foreground"),
     ground: token("--background"),
     pencil: token("--pencil"),
+    copper: token("--accent"),
     vellum: token("--vellum"),
     muted: token("--muted"),
     dark: matchMedia("(prefers-color-scheme: dark)").matches,
@@ -157,6 +178,19 @@ function start(
     ? readGhost(ghostDrawing)
     : undefined;
   const key = ghost ? PLAYED_GHOST : PLAYED;
+  /**
+   * A drawing's pencil plank and its number, read off the drawing as the server drew it: the Log's
+   * ghost shows no pencil (.crew/sprint/34/).
+   */
+  const pencilled = (drawing: Element, layout: Layout) => {
+    const pencil = ghost ? null : readPencil(drawing);
+    const label =
+      pencil && pencilLabel(drawing, pencil.seat, pencil.sprint, layout);
+    return {
+      pencil,
+      ride: label ? riders({ labels: [label] }, layout, true) : null,
+    };
+  };
   // The level and the cap follow the drawing, not the device (.crew/sprint/26/contract.md, "The
   // calls I made"): the three views from 768 px, the profile and half-breadth plan below. The
   // ghost's one drawing takes the desktop's level and cap from 768 px, the phone's below.
@@ -166,12 +200,14 @@ function start(
       layout: ghost ? GHOST : WIDE,
       level: DESKTOP,
       cap: 2,
+      ...pencilled(wide, WIDE),
     },
     narrow: {
       drawing: narrow,
       layout: ghost ? GHOST : NARROW,
       level: PHONE,
       cap: 1.5,
+      ...pencilled(narrow, NARROW),
     },
   };
   const shownSheet = () =>
@@ -285,7 +321,15 @@ function start(
     stage.fit(next.buffer, [next.width, next.height]);
     loft = makeLoft(next, hull.points, sheet.layout);
     if (reshade) stage.shade(shadowFor(hull, loft));
+    stage.pencil(
+      sheet.pencil && pencilMarks(sheet.pencil, sheet.layout, sheet.level),
+    );
     numbers?.reset();
+    // The other drawing is hidden: its number goes back to its place, and this one's is placed anew.
+    for (const other of [sheets.wide, sheets.narrow]) {
+      if (other === sheet) other.ride?.reset();
+      else other.ride?.clear();
+    }
     if (changed) remark();
   };
 
@@ -328,6 +372,15 @@ function start(
       stage.lead(new Float32Array(all));
     }
     stage.draw(e, loft);
+    if (fit && on?.ride) {
+      on.ride.place(
+        loft,
+        fit.drawing / on.layout.box[2],
+        e,
+        true,
+        () => new Float32Array(0),
+      );
+    }
     if (fit && numbers) {
       numbers.place(
         loft,
@@ -527,6 +580,9 @@ function start(
     state = null;
     delete host.dataset.state;
     unpick();
+    // The marks go with the hover now, so the restored frame inks no plank the pointer has left
+    // (Lens's nit on 9b8743a).
+    remark();
   };
 
   /** three rebuilds its state first (its listener was added before this one); the settled frame
@@ -631,6 +687,8 @@ function start(
     delete host.dataset.pick;
     canvas.style.cursor = "";
     numbers?.clear();
+    sheets.wide.ride?.clear();
+    sheets.narrow.ride?.clear();
   }
   const moved = (event: PointerEvent) => {
     if (event.pointerType !== "touch" && !press) {
@@ -665,15 +723,20 @@ function start(
     const done = press;
     press = null;
     if (!done || done.id !== event.pointerId) return;
-    if (done.touch && done.target) {
+    const travel = Math.hypot(event.clientX - done.x, event.clientY - done.y);
+    const opens = Boolean(ghost && done.target && travel <= 10);
+    // As the table's links: the middle button, Cmd and Ctrl open the record in a new tab.
+    const tab =
+      done.button === 1 || event.metaKey || event.ctrlKey || event.shiftKey;
+    // A tap that opens its record here keeps its plank inked until the page goes; one that
+    // scrolled, or opened a tab, leaves this page as it was (Lens's nit on 9b8743a).
+    if (done.touch && done.target && !(opens && !tab)) {
       remark();
       redraw();
     }
-    const travel = Math.hypot(event.clientX - done.x, event.clientY - done.y);
-    if (!ghost || !done.target || travel > 10) return;
+    if (!ghost || !done.target || !opens) return;
     const href = `/log/${ghost.numbers.get(done.target.seat)}`;
-    // As the table's links: the middle button, Cmd and Ctrl open the record in a new tab.
-    if (done.button === 1 || event.metaKey || event.ctrlKey || event.shiftKey) {
+    if (tab) {
       // No opener, so the tab starts its own session and plays the move (B5.20).
       window.open(href, "_blank", "noopener");
     } else location.assign(href);
