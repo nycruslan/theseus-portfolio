@@ -4,7 +4,8 @@ import { ghLog, gitRepo, REPO, routes, runHook, tempDir } from "./kit.mjs";
 
 const { dir: repo } = gitRepo({ "app/page.tsx": "page" });
 const R = `repos/${REPO}`;
-const branches = (...names) => names.map((name) => ({ name }));
+const branches = (...names) =>
+  names.map((name) => ({ name, commit: { sha: `tip-of-${name}` } }));
 
 function prune(arg, table) {
   const log = ghLog();
@@ -55,6 +56,8 @@ test("deletes the merged sprint's role branches and earlier ones', and nothing e
     "quill/30",
   ]);
   assert.match(stdout, /6 role branches up to sprint 36 pruned/);
+  // Each tip is logged, so a deleted branch can be restored.
+  assert.match(stdout, /Deleted forge\/36, at tip-of-forge\/36\./);
 });
 
 test("leaves the role branches of an earlier sprint that is still open", () => {
@@ -89,12 +92,15 @@ test("takes a branch already gone as done, and reports any other failure", () =>
   assert.match(denied.stderr, /Couldn't prune: Forbidden/);
 });
 
-test("refuses anything but a sprint's branch", () => {
+test("refuses anything but a sprint's branch, and has nothing to do for an unnumbered one", () => {
+  const listing = { [`${R}/branches`]: branches("forge/36") };
   for (const arg of ["crew/leftovers", "main", "sprints/36"]) {
-    const { code, deleted } = prune(arg, {
-      [`${R}/branches`]: branches("forge/36"),
-    });
+    const { code, deleted } = prune(arg, listing);
     assert.equal(code, 2, arg);
     assert.deepEqual(deleted, [], arg);
   }
+  const { code, deleted, stdout } = prune("sprint/b6-foo", listing);
+  assert.equal(code, 0);
+  assert.deepEqual(deleted, []);
+  assert.match(stdout, /nothing to prune/);
 });
