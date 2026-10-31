@@ -102,8 +102,10 @@ test.describe("B5.6 A record per revision", () => {
     expect(plankWords(1), "sprint 1's plank").toBe(
       "Lift 6 of 7 from the deck, plank 2 of 3 from the stern. It replaced an original plank, now in the ghost hull. Sprint 24 has since replaced it.",
     );
+    // Sprint 36's retro seats 6.1, sprint 13's plank, so the example gains its last sentence, as
+    // sprint 1's did when 24 took its seat.
     expect(plankWords(13), "sprint 13's plank").toBe(
-      "Lift 7 of 7 from the deck, plank 2 of 2 from the stern. It replaced an original plank, now in the ghost hull.",
+      "Lift 7 of 7 from the deck, plank 2 of 2 from the stern. It replaced an original plank, now in the ghost hull. Sprint 36 has since replaced it.",
     );
     expect(plankWords(24), "sprint 24's plank").toBe(
       "Lift 6 of 7 from the deck, plank 2 of 3 from the stern. It replaced sprint 1's plank. The original is in the ghost hull, numbered 1.",

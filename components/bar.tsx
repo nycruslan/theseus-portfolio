@@ -10,19 +10,19 @@ import type { ReactNode } from "react";
 // scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
 // It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
 // a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
-// end after Read as page, as the approved frame draws it. /crew has no model to move until B4d, so
-// no control. The control is a slot, not an import, so its client module ships only where a page
-// with a model renders it.
+// end after Read as page, as the approved frame draws it. Every page with a bar has a model now,
+// /crew's since B4d (.crew/sprint/36/contract.md). The control is a slot, not an import, so its
+// client module ships only where a page with a model renders it.
 //
 // Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and
-// Read as page stays in the nav's DOM, hidden. Read as page, with the control where the page has
-// one, takes one row in the page instead (components/foot.tsx): at the drawing's foot on the sheet
-// (app/page.tsx; .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
+// Read as page stays in the nav's DOM, hidden. Read as page, with the control, takes one row in the
+// page instead (components/foot.tsx): at the drawing's foot on the sheet (app/page.tsx;
+// .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
 // (components/log.tsx; .crew/sprint/33/).
 type BarProps = {
   /** Where the bar is: the sheet, the Log, one of the Log's records, or the crew's page. */
   at?: "sheet" | "log" | "record" | "crew";
-  /** The motion control, from a page with a model: the sheet, the Log and its records. */
+  /** The motion control, from a page with a model: the sheet, the Log and its records, and /crew. */
   control?: ReactNode;
   className?: string;
 };

@@ -551,6 +551,10 @@ export async function livePage(
       const box = await page.evaluate(() => {
         const b = document.querySelector("button[data-pause]");
         if (!b || b.getClientRects().length === 0) return null;
+        // Into view first, as a visitor's click is: a focus loop can leave it scrolled off, and a
+        // click at off-screen coordinates presses nothing (Forge's trace of B4.30 on sprint 36).
+        // Instant: a smooth scroll runs on frames, which a paused clock never gives.
+        b.scrollIntoView({ block: "center", behavior: "instant" });
         const r = b.getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       });

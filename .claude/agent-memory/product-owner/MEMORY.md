@@ -1,7 +1,7 @@
 - The redesign milestone (`ROADMAP.md`) builds sprint 17's approved direction as B1 to B5; its budgets and build order are in `.crew/sprint/17/direction-iris.md`. B1 replaces today's page, so its contract sorts the live specs into keep, rewrite with the same assertions, and retire with a reason for Lens to accept, all in that one PR (sprint 15's finding: a redesign meets the guards in clusters).
 - Read the existing specs before writing a contract: say which live checks already cover the intent, and place new requirements so they stay green unedited. Probe can't weaken a test and builders can't edit `e2e/`, so a contract that collides with a live guard stalls the sprint (sprint 2).
 - Almost every guard loads `/` only, so a contract for a new route re-runs axe, the colour tokens, 24 px targets, overflow and the keyboard on that route (sprint 12).
-- Check the code before trusting the roadmap's boxes or a follow-up list: both go stale after a big PR (sprints 3 and 11).
+- Check the code before trusting the roadmap's boxes, a follow-up list or a rider line: all go stale after a big PR (sprints 3 and 11; sprint 36's two mount.ts riders were done in sprint 34, found with `git log -S`).
 - A direction's own numbers can contradict each other, so cross-check them. Work that rests on an unrun spike gets the spike first, and every number in its contract cites a measurement (sprints 7, 9 and 15).
 - CI's Chromium draws WebGL in software, so WebGL checks need init-script control; split such an item into a static part and an upgrade part (sprint 7).
 - Name tokens in a contract by their fixed custom-property names, so Probe's checks are deterministic (sprint 1).
@@ -32,3 +32,5 @@
 - Under `cacheComponents` a `GET` route handler that calls a `"use cache"` read is prerendered and answers the build's state (`x-nextjs-cache: HIT`); `await connection()` first makes it `ƒ` and fresh on the first request, which a poll needs (scratch build, `.crew/sprint/35/contract.md`).
 - A browser poller needs no test hook: `page.clock.install()` before `goto`, `page.route` on the API and a `visibilityState` shim ran 10 fake minutes of polls, hide, pause and resume in 3.4 s real, so CI's cap isn't spent waiting (sprint 35).
 - Next renders its own `aria-live` region (`#__next-route-announcer__`) outside `main` on every page, so a "one live region" check counts inside `main` (sprint 35, measured on production `/crew`).
+- A route that already ships a client chunk gets `model.tsx` folded into it (`/crew`: +1,891 B in its own file, not `/`'s 2,039 B one), so its budget is its own allowance plus B2.10's loader allowance, measured in a scratch build (`.crew/sprint/36/contract.md`, call 7).
+- A script-byte check read with WebGL on counts the 600 kB 3D chunk once a route mounts the model: B4.14's "within 2,048 B of /log's" was vacuous for that reason. Read byte budgets with WebGL refused (`.crew/sprint/36/contract.md`).

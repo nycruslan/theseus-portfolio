@@ -99,8 +99,42 @@ for (const url of PAGES) {
     test.setTimeout(600_000);
     for (const size of SIZES) {
       const at = `${url} at ${size.width} x ${size.height}`;
+      const cases: { name: string; options: ModelOptions; media: Media }[] = [
+        {
+          name: "off stored before load",
+          options: { stored: "off" },
+          media: {},
+        },
+        {
+          name: "forced colours",
+          options: { forcedColors: "active" },
+          media: { forcedColors: "active" },
+        },
+        { name: "Save-Data", options: { saveData: true }, media: {} },
+        { name: "print media at load", options: {}, media: { print: true } },
+        { name: "scripts off", options: { noScript: true }, media: {} },
+      ];
+      // The baseline and the five Off paths load side by side, each in a context of its own (none
+      // loads WebGL, and each waits out the idle import), and are asserted in order below (sprint
+      // 36, decision 10: the same reads, in less wall time).
+      const [plain, ...visits] = await Promise.all([
+        baseline(browser, url, size),
+        ...cases.map(async ({ options, media }) => {
+          const run = await openModel(browser, { ...size, ...options });
+          if (media.print) await run.page.emulateMedia({ media: "print" });
+          if (options.noScript) await run.page.goto(url);
+          else await run.goto(url);
+          await pause(IDLE);
+          const seen = await ghostDrawing(run.page);
+          const requests = (await run.requests()).map((r) => r.type);
+          const scripts = (await run.scripts()).list.map(
+            (s) => new URL(s.url).pathname,
+          );
+          await run.close();
+          return { seen, requests, scripts };
+        }),
+      ]);
       // WebGL refused: the baseline page itself, no canvas, the one probe at most.
-      const plain = await baseline(browser, url, size);
       expect(
         plain.scripts.size,
         `scripts the WebGL-refused page fetches, ${at}`,
@@ -118,39 +152,16 @@ for (const url of PAGES) {
         )
         .toBeLessThanOrEqual(1);
       expectOffGhost(plain.drawing, plain.drawing, `WebGL refused, ${at}`);
-      const cases: { name: string; options: ModelOptions; media: Media }[] = [
-        {
-          name: "off stored before load",
-          options: { stored: "off" },
-          media: {},
-        },
-        {
-          name: "forced colours",
-          options: { forcedColors: "active" },
-          media: { forcedColors: "active" },
-        },
-        { name: "Save-Data", options: { saveData: true }, media: {} },
-        { name: "print media at load", options: {}, media: { print: true } },
-        { name: "scripts off", options: { noScript: true }, media: {} },
-      ];
-      for (const { name, options, media } of cases) {
+      for (const [i, { name, options, media }] of cases.entries()) {
         const where = `${name}, ${at}`;
         const base = media.forcedColors
           ? plain.forced
           : media.print
             ? plain.print
             : plain.drawing;
-        const run = await openModel(browser, { ...size, ...options });
-        if (media.print) await run.page.emulateMedia({ media: "print" });
-        if (options.noScript) await run.page.goto(url);
-        else await run.goto(url);
-        await pause(IDLE);
-        const seen = await ghostDrawing(run.page);
-        const requests = (await run.requests()).map((r) => r.type);
-        const scripts = (await run.scripts()).list.map(
-          (s) => new URL(s.url).pathname,
-        );
-        await run.close();
+        const read = visits[i];
+        if (!read) throw new Error(`no visit read for ${where}`);
+        const { seen, requests, scripts } = read;
         expect
           .soft(
             scripts.filter((s) => !plain.scripts.has(s)),

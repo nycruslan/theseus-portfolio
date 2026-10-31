@@ -1,0 +1,95 @@
+{
+  "sprint": 36,
+  "pr": 91,
+  "goal": "B4d: the hull on /crew, one mark per moment, under Full/Calm/Off",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "waits for the owner: CI's 25-minute cap, raised to 35 in this PR as an Owner's pick; Lens ship on f9fbbc6, then changes on c040055 fixed in dc25324; Iris ship at 8.3/10; B4.33 to B4.42 red first, then 240 of 240 locally",
+  "fixRounds": 2,
+  "minutes": 400,
+  "agents": [
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 219621,
+      "minutes": 16
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 452581,
+      "minutes": 51
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 482040,
+      "minutes": 98
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 564168,
+      "minutes": 137
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 557441,
+      "minutes": 154
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 11570640,
+    "important": 1,
+    "actedOn": 2,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "The new 3D checks pushed the test suite past CI's 25-minute limit, twice",
+      "evidence": "check cancelled at 25 min on cc9e958 and c040055 (decisions 10 and 11); Probe's harness cut saved 2.6 min locally, every expect kept; the limit goes to the owner as an Owner's pick"
+    },
+    {
+      "what": "The first design for the marks had them rise into the plank, where the turned hull's hatching swallowed them",
+      "evidence": "Iris's render of seat 6.1 in 3D; the ticks now hang below the plank's lower edge (decision 6)"
+    },
+    {
+      "what": "On the stern's curve two ticks ran under the plank's number on a phone",
+      "evidence": "B4.34 failed on seat 3.0 at 390 by up to 1.6 px; the number's height now follows the shallowest edge under it (Forge's 7b69f55), 3.2 px clear in Iris's review"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Raise CI's check job cap from 25 to 35 minutes (built in this PR), and later split the 3D and feed specs into their own job",
+      "moves": "CI cancelled sprint 36's head twice at 25 minutes, at about 95% of the suite"
+    },
+    {
+      "change": "Don't trigger CI's check on a pull request's edited event, only on new commits",
+      "moves": "A PR body edit cancelled a 9-minute check run in sprint 36"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Owner",
+      "what": "Approve and merge #91 with CI's cap at 35 minutes, or pick another option in its Owner's pick"
+    },
+    {
+      "who": "Forge",
+      "what": "Correct the poller's 'outside React's tree' comment and memory line, or render the ticks as one string (Lens's nit on #91), with the next sprint that touches /crew"
+    },
+    {
+      "who": "Forge",
+      "what": "A long cache expire for /crew, so its first poll corrects a stale page without a shift (Iris, sprint 35)"
+    },
+    {
+      "who": "Quill",
+      "what": "A key for the ticks, a few words such as 'one mark for each moment' (Iris)"
+    },
+    {
+      "who": "Owner",
+      "what": "On the preview: the stern turns toward the visitor on seats aft of midship (sprint 37's 2.1 is first), and /crew's drawing is a detail of the ship"
+    }
+  ]
+}
