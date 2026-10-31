@@ -262,10 +262,6 @@ export function riders(
   const edges = planks.map((plank) => (plank ? edgesOf(plank) : []));
   /** Each label's settled x in hull units; a led-out one rides out instead. */
   let targets: number[] | null = null;
-  /** Each span's box corner on the page with no offset: where its device pixels fall. */
-  let bases: [number, number][] | null = null;
-  const offset = (span: HTMLElement, name: string) =>
-    Number.parseFloat(span.style.getPropertyValue(name)) || 0;
 
   /** Each span's width, read with the places: a 3D-led number's right edge goes on its point. */
   let widths: number[] = [];
@@ -495,7 +491,6 @@ export function riders(
     /** A new fit or loft: the places are solved again at the next frame. */
     reset() {
       targets = null;
-      bases = null;
     },
     /**
      * Sets each number at eased progress e on `loft`, whose drawing is `k` CSS px a unit, clear of
@@ -513,28 +508,21 @@ export function riders(
       targets ??= fixed
         ? labels.map((label) => label.anchor[0])
         : settle(loft, drawn());
-      bases ??= labels.map(({ span }) => {
-        const r = span.getBoundingClientRect();
-        return [
-          r.left - offset(span, "--ghost-x"),
-          r.top - offset(span, "--ghost-y"),
-        ];
-      });
-      const [now, from] = [targets, bases];
+      const now = targets;
+      // Each offset is a whole number of device pixels, in the move (so frame 1 moves nothing) and
+      // at rest, so a span's translate never carries a fraction that a composited span would draw
+      // its digits between pixels by (Iris's review of sprint 34). The places' clearances allow
+      // the device pixel this can move a box (settle's `round`).
       const step = 1 / devicePixelRatio;
-      // At rest each box lands on the device's pixels, so a lift's seams stay outside its rows; in
-      // the move each offset is rounded, so frame 1 moves nothing.
-      const snap = (n: number, base: number) =>
-        `${e < 1 ? Math.round(n / step) * step : Math.round((base + n) / step) * step - base}px`;
+      const snap = (n: number) => `${Math.round(n / step) * step}px`;
       labels.forEach((label, i) => {
         const x =
           label.anchor[0] + ((now[i] ?? label.anchor[0]) - label.anchor[0]) * e;
         const [px, py] = pointAt(i, loft, x, e).at;
         // The span's own place on the canvas, which lies on the drawing's box: frame 1's point.
         const [x0, y0] = [label.share[0] * BW * k, label.share[1] * BH * k];
-        const [bx, by] = from[i] ?? [0, 0];
-        label.span.style.setProperty("--ghost-x", snap(px - x0, bx));
-        label.span.style.setProperty("--ghost-y", snap(py - y0, by));
+        label.span.style.setProperty("--ghost-x", snap(px - x0));
+        label.span.style.setProperty("--ghost-y", snap(py - y0));
       });
     },
     /**
