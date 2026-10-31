@@ -243,7 +243,7 @@ Title, description, canonical and `og:url` as the data rules say, one `og:image`
 
 **B4.2 Down, honestly.** On the default server, and on the harness while the fixture server
 answers 503, answers 200 with `asOf` 11 minutes old, answers `version: 2`, answers a body that
-isn't JSON, and answers after 2,500 ms: `[data-crew-state]` is `down`; `[data-status]` reads "The
+isn't JSON, and answers after 6,500 ms: `[data-crew-state]` is `down`; `[data-status]` reads "The
 live feed isn't answering. Here is the latest revision on record."; the chip is the record's number
 and goal (the oracle's newest `MERGED` entry: today 29 and its goal); seven rows in roster order,
 each name and role word as the table says, every `td[data-state]` empty and no line; no activity
@@ -359,7 +359,7 @@ means the two servers never share a route cache. The PID is killed in teardown. 
 
 **The polling rule.** After every switch of the fixture server's answer, the spec requests `/crew`
 until `[data-crew-state]` is the expected state, and the expected strings for the variant are on
-the page, with a deadline of 40 s named in the test. It fails with the last state seen. No check
+the page, with a deadline of 44 s named in the test. It fails with the last state seen. No check
 asserts on a first response. The route sweeps (B4.13), B4.1, B4.11, B4.14 and the down check on
 the default server run on the default server, which reads no feed and shows `down`. If the copied
 `.next` proves fragile, the fallback is one `.next` with polling everywhere, the down check
@@ -369,7 +369,7 @@ included. Probe says which one ran.
 - serve `GET /api/crew` with the feed contract's headers;
 - switch while running between the live, open and resting fixtures and their variants (quote,
   `quiet`, `last.sprint` 999, `mergedAt` null), 503, a stale `asOf`, `version: 2`, a non-JSON body
-  and a 2,500 ms delay;
+  and a 6,500 ms delay;
 - **stamp `asOf` with its own clock on every answer** (except the stale variant). Otherwise every
   fixture turns down 10 minutes after it was written.
 
@@ -421,7 +421,7 @@ go red the moment the bar changes.
 | Script on `/crew` | the 404's files exactly; within 2,048 B of `/sprints'` | B4.14 | production: `/sprints` and the 404 each 5 files, 459,340 B decoded; `/read` 6 files, 460,072 B |
 | LCP on `/crew` | text in `main`, outside the drawing, within 2,500 ms at 4× CPU | B4.14 | `/`'s B1.9 holds the same |
 | Fonts | two woff2 within 86,016 B | B4.14 | B1.10 on `/` |
-| Feed read | 6,000 ms, then the kept answer while its `asOf` is within 10 minutes, else down (`decisions.md` 13); held at most 30 s | B4.2 (the 2,500 ms answer) | none yet |
+| Feed read | 6,000 ms, then the kept answer while its `asOf` is within 10 minutes, else down (`decisions.md` 13); held at most 30 s | B4.2 (the 6,500 ms answer) | none yet |
 | Staleness | `asOf` over 10 minutes is down | B4.2 | none yet |
 | Targets | 24 × 24 from 1024; 44 px tall below | B4.9, B4.11, B4.13 | B2.9 |
 | Overflow | 0 from 320 to 1440 | B4.9, B4.13 | B2.9 |

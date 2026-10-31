@@ -624,7 +624,7 @@ for (const [name, answer, what, first] of DOWNS) {
 
 /**
  * The kept read's scenario, once per worker: live first, then the failed read switched in, and
- * /crew's state each second until the feed counts a read past the switch, then 4 s, then five
+ * /crew's state each second until the feed counts a read past the switch, then 8 s, then five
  * reads a second apart.
  */
 function keptScenario(crew: Crew, kind: string, answer: Partial<Answer>) {

@@ -241,7 +241,7 @@ in three states: live, open (`live: false`, `health.state: "waiting"`) and resti
   nulls: `current: null` must always mean "nothing in progress".
 - **The portfolio treats it as down** when:
   - `CREW_FEED_URL` is unset (the feed isn't built yet, CI, the crew's sessions);
-  - the answer is not `200`, or takes more than 2,000 ms;
+  - the answer is not `200`, or takes more than 6,000 ms (2,000 until a cold Studio read as down);
   - the shape doesn't check;
   - the version is unknown, or `asOf` is stale.
 
