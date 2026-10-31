@@ -109,21 +109,28 @@ inside, as B1.5 holds the others. Feed text is text (B4a's "Text"):
 The fixtures give: live, Forge / — / — / —, with "drawing now"; open, Forge / Lens / Probe /
 "Waiting for owner".
 
-**The rest line,** `p[data-rest]`, in `resting` only, exact copy (placeholder: `/crew`'s resting
-line, word for word; **Iris's call** on the copy):
-- "Crew resting. Sprint {last.sprint} merged {d Mon}, {HH:MM} UTC."
+**The rest line,** `p[data-rest]`, in `resting` only, exact copy: `/crew`'s resting `[data-status]`
+word for word (Iris's call 2, `notes-iris.md`), one fact in one sentence on both pages:
+- "Crew resting. Sprint {last.sprint} merged {d Mon}, {HH:MM} UTC." Production's `/crew` read at this run's
+  start "Crew resting. Sprint 31 merged 31 Oct, 01:50 UTC." (Iris's example names 33; the rule governs.)
 - `mergedAt` `null` or unparseable: "Crew resting. Sprint {last.sprint} merged."
 - `last.sprint` `null`: "Crew resting."
 
-Times are UTC as B4a's "Times" says. It names no seat, and holds no link until Replay (B4e).
-**Iris's call (the fold, at 1440 × 900):** where it sits, and whether it trades a row:
-- (a) in the revision block's foot, beside the count line and the legend, five rows kept; or
-- (b) above or below the table, with four rows in `resting` (`rest-1440.webp` trades two rows for
-  the rest line and Replay; one is enough without Replay).
+Times are UTC as B4a's "Times" says. It names no seat. "Sprint {n}" and "{d Mon}, {HH:MM} UTC" are
+each in a `white-space: nowrap` span (spans, not no-break spaces, so `textContent` keeps plain
+spaces); the date and time may be a `time[datetime]` with `mergedAt` as `toISOString()`. Its look
+(Iris's call 1): `--step-sm` (13 px), line-height 1.5, ink; "Crew resting." at weight 600, the rest
+at 400; no rule, box or icon; nothing copper; not a link (its action is B4e's Replay).
 
-Measured on production at 1440 × 900: the revision block spans 547 to 883 px, its rows are 32 px
-(631 to 791), its foot line 842 to 866, and the title block's contact links end at 866, so 34 px
-are left above the fold. A line with its gap costs about that, which is why this is a call.
+**Its place (Iris's call 1, the fold): no trade.** At every width the rest line is the revision
+block's first line after the heading and caption, before the table, in the DOM and on screen. The
+block keeps five rows in every state, so B1.5 stands as written. Iris measured it injected into
+production: from 1024 px `.sheet-row`'s minimum height (336 px at 1440 × 900) leaves 41 px of slack
+under the table, and the line costs 29.5 px (19.5 px and the block's 10 px gap), so at 1440 × 900
+the contact links stay at 866.3 px (33.7 px above the fold), the fifth row ends at 820.2 and the
+row stays 336 px. At 1024 × 768 the links move from 728.6 to 758.1 (9.9 px inside), at 1280 × 800
+from 776.9 to 799.6 (0.4 px inside); at 390 × 844 the line sits at 750 to 770 px, inside the first
+viewport; at 320 it wraps to two lines.
 
 **The legend** (`components/plank-key.tsx`'s list in the revision block's foot) keeps "Seated by a
 sprint" and "Original", then adds `li[data-key="pencil"]` with a pencil swatch (the plank's hatch
@@ -183,8 +190,9 @@ meets 4.5:1 on its background in both schemes.
 **B4.18 The rest line.** On the resting fixture: `p[data-rest]` reads the oracle's line with the
 merge's UTC day and time (the server at UTC+14, the browser in Los Angeles); with `mergedAt: null`
 it drops the time; with `last.sprint: null` it reads "Crew resting."; with `last.sprint` 999 it
-reads the same pattern (it names no seat). No pencil, tip or "drawing now"; the drawing, rows and
-legend equal the default server's, apart from the rows Iris's call trades.
+reads the same pattern (it names no seat). It is the revision block's first element after the
+heading and caption, before the table, at 1440 and 390, and nothing in it is copper or a link. No
+pencil, tip or "drawing now"; the drawing, the five rows and the legend equal the default server's.
 
 **B4.19 The legend follows the drawing.** Live: Seated, Original, then the pencil and copper items
 with their swatches; open: the pencil item only; resting and down: the two items, as the default
@@ -206,8 +214,8 @@ width (B3.6's counter), over the loft and at rest; 0 frames in the 2 s after res
 
 **B4.22 The first screen in every state.** B1.1's assertions on the live, open and resting fixtures
 at 1440 × 900 (the name, role, bio, contact links and every revision row wholly inside the
-viewport, the name the largest text) and at 390 × 844, with the row count the oracle gives per
-Iris's call; and at 1440 × 900 the pencil row in live and open, and the rest line in resting, wholly
+viewport, the name the largest text, five rows) and at 390 × 844; on the resting fixture at 1024 ×
+768, the contact links wholly inside the viewport too (Iris measured 9.9 px to spare); and at 1440 × 900 the pencil row in live and open, and the rest line in resting, wholly
 inside the viewport. Both schemes.
 
 **B4.23 Server-rendered, no new client code.** On the live fixture, with scripts off, the HTML holds
@@ -234,7 +242,7 @@ on `/` keeps passing unedited.
 | `crew.spec.ts`: B4.3's `/` block, "the feed's words on / of the live site" (`toEqual([])` over four strings) | **rewrite**, same assertion: the list drops the goal ("The crew's page, /crew, from the Studio's feed"), which the pencil row now shows; the now line, the moment and the role line stay absent |
 | `crew.spec.ts`: B4.3's "copper on / of the live site" (`toEqual([])`) | **rewrite**, same assertion: the hits not on `[data-drawing]`, its dot, a `[data-tip]` or the copper swatch equal `[]` |
 | `crew.spec.ts`: B4.3's "[data-crew-state] on / of the live site" is 0 | **keep** |
-| B1.5 | **keep**: it runs on the default server, so if Iris trades a row, the rest fixture's count is B4.22's, not a B1.5 rewrite |
+| B1.5 | **keep**, unedited: Iris trades no row, so five rows hold in every state (B4.16, B4.18) |
 
 Nothing retires, and `crew.spec.ts` keeps its `expect(` count. B4.3's title loses "with none of
 the feed's words and no copper" and says "with only the pencil row's goal, and copper only on the
@@ -250,7 +258,7 @@ layer".
 | Triangles | equal to the default server's at the same width, within 30,000 / 12,000 | B3.6, B3.11, B4.21 | sprint 33: `/`'s hull unchanged |
 | Frames at rest | 0 | B3.6, B4.21 | 0 |
 | Drawing | 32,768 B in every state | C6, B4.15 | 22,427 B on production |
-| First screen at 1440 × 900 | B1.1 in every state | B1.1, B4.22 | 34 px left under the contact links (production) |
+| First screen | B1.1 in every state at 1440 × 900; the contact links inside at 1024 × 768 at rest | B1.1, B4.22 | with the rest line, 33.7 px left at 1440 × 900 and 9.9 px at 1024 × 768 (Iris, on production) |
 | Feed read and freshness | B4a's: 2,000 ms, the kept answer within 10 minutes, the page at most about 5 minutes old | B4.2, B4.20 | production `/crew` reads it: sprint 34, "Live" |
 | Targets, overflow | 24 × 24; 0 from 320 | B4.24 | B2.9 |
 
@@ -275,8 +283,7 @@ layer".
 
 ## Needs decision
 
-- **Iris:** the fold at 1440 × 900 (the rest line's place, and a row traded or not); the rest
-  line's copy; the pencil and copper look (hatch, dash, tip, the Rev box, "drawing now"'s place);
-  the legend's two words; "Waiting for owner" and the Approved column's width.
+- **Iris** (calls 1 and 2, the fold and the rest line, are made and written in above): the pencil
+  and copper look (hatch, dash, tip, the Rev box, "drawing now"'s place); the legend's two words; "Waiting for owner" and the Approved column's width.
 - **Owner:** none to merge. The first change to the visitor's first screen since B3 is the plan's
   B4 demo; whether it is an Owner's pick is Atlas's call.
