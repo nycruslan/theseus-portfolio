@@ -51,6 +51,11 @@ The model and log specs were not run locally; CI runs everything.
 - Lens's test nits on 415b4c0: copper scans match `.swatch-tip`, B4.15's title, `crew-feed.ts`'s
   site-count comment.
 
+**Skips, at Lens's ask:** `e2e/crew-live.spec.ts` skips under `PLAYWRIGHT_BASE_URL`, as
+`crew.spec.ts` and `live-layer.spec.ts` do: a deployed site has a feed, so it isn't the down
+reference, and the fixture sites copy this checkout's `.next`. CI never sets it, so B4.25 to B4.31
+all run there. No other check is skipped.
+
 ### Iris
 
 Ship, 8.1/10, no musts: every call built to the pixel (Pause shares Close's right edge at all four
