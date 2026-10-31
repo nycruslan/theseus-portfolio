@@ -166,7 +166,9 @@ replaces today's page, and B3, the signature moment.
       18,432 B budget, `/` unchanged.
     - Riding with the next sprint that touches `/crew`: Lens's nit on #91, the poller's "outside
       React's tree" comment is wrong (it edits nodes React hydrated, safe only while nothing
-      re-renders `CrewPlan`): correct it and Forge's memory line, or render the ticks as one string.
+      re-renders `CrewPlan`): correct it and Forge's memory line, or render the ticks as one string;
+      and Lens's nit on 2feab08, the 3D ticks' weight reads the Log's `MARK_PX`, not
+      `MARKS.width` (`lib/model/stage.ts:450`), so the two can drift apart.
     - Iris's follow-ups (`review-iris.md`): a key for the ticks (Quill's wording); seat 5.0's 2.8 px
       comb at sprint 42; the flat 2D bow beside the turned one, one CSS rule if the owner finds it
       busy. Iris's chip-over-dot rider (B4b) is settled on `/crew` and stays open on `/`.

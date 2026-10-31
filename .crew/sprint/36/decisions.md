@@ -59,3 +59,7 @@
     on the existing 3D suites. This PR raises `.github/workflows/ci.yml`'s `timeout-minutes` from 25
     to 35 (the recommended option, built; the PR's own CI runs with it) and carries `needs-owner`:
     `gate` holds it until the owner approves the head, and the owner merges.
+12. **With the cap at 35, CI's `check` passed on 2feab08 in 26.9 minutes** (14:56:02 to 15:22:53),
+    which 25 would have cancelled. Lens ship on 2feab08 with two nits that ride: the 3D ticks'
+    weight from `MARKS.width` (Pixel) and the poller's comment (Forge). The PR waits on `gate`,
+    the owner's approval of the head.

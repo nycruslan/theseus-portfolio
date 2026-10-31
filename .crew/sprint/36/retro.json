@@ -40,11 +40,11 @@
     }
   ],
   "lens": {
-    "runs": 2,
-    "tokens": 11570640,
+    "runs": 3,
+    "tokens": 19668638,
     "important": 1,
     "actedOn": 2,
-    "nits": 3
+    "nits": 4
   },
   "wentWrong": [
     {
@@ -78,6 +78,10 @@
     {
       "who": "Forge",
       "what": "Correct the poller's 'outside React's tree' comment and memory line, or render the ticks as one string (Lens's nit on #91), with the next sprint that touches /crew"
+    },
+    {
+      "who": "Pixel",
+      "what": "Draw the 3D ticks at MARKS.width, not the Log's MARK_PX (Lens's nit on 2feab08)"
     },
     {
       "who": "Forge",
