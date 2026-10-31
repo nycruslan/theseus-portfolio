@@ -1,0 +1,45 @@
+name: prune-branches
+
+# Deletes the role branches a merged sprint leaves behind (.crew/prune-branches.mjs), whoever merged
+# it. pull_request_target runs this file and the script from the default branch, so a PR can't change
+# what they delete. Never check out, install or run the PR's code here. The branch name reaches the
+# step through env. workflow_dispatch runs the same sweep by hand.
+#
+# Third-party actions are pinned to full commit SHAs, with the release in a trailing comment, as in
+# the other workflows.
+on:
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: A merged sprint's branch, as in sprint/36-the-hull
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  prune:
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+        github.event.pull_request.merged == true &&
+        startsWith(github.event.pull_request.head.ref, 'sprint/') &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - run: git config --global init.defaultBranch main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .crew
+      - run: node .crew/prune-branches.mjs "$BRANCH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref || inputs.branch }}
