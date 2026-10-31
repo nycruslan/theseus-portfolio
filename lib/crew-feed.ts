@@ -1,6 +1,13 @@
 import { cacheLife } from "next/cache";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
-import { type Crew, isRecord, isRunFrame, isTime, runOf } from "@/lib/crew-run";
+import {
+  type Crew,
+  isRecord,
+  isRunFrame,
+  isTime,
+  restingOf,
+  runOf,
+} from "@/lib/crew-run";
 
 // The crew feed (.crew/sprint/28/feed-contract.md): what the Studio says the crew is doing, read on
 // this site's server alone, never by the browser. The answer is checked by the data rules in
@@ -52,7 +59,8 @@ function crewOf(answer: unknown, feed: URL, now: number): Crew {
     const state = current.live ? "live" : "open";
     return { state, run: runOf(current, feed.origin) };
   }
-  return last ? { state: "resting", run: runOf(last, feed.origin) } : DOWN;
+  // Only a resting run offers a replay, of the sprint it last merged (.crew/sprint/37/contract.md).
+  return last ? { state: "resting", run: restingOf(last, feed.origin) } : DOWN;
 }
 
 /** The feed's parsed answer, or FAILED. */
