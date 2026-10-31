@@ -928,11 +928,12 @@ function firstDifference(a: string, b: string) {
  */
 const BAND = 5;
 /**
- * Triangles the tip may add while live (its run and dot as fat lines, 6 triangles a segment in
- * three's LineSegmentsGeometry): the contract's "plus the tip's segments", taken as at most 64
- * segments, and reported against what the frames counted.
+ * Triangles the tip may add while live: the contract's "plus the tip's segments", its run and dot
+ * as fat lines, 6 triangles a segment in three's LineSegmentsGeometry. Pixel's a90b12d measured
+ * 18 (3 segments) at 1440 and 390 on SwiftShader; 8 segments leave room for the run's shape and
+ * fail on anything more, such as a mesh.
  */
-const TIP_TRIANGLES = 6 * 64;
+const TIP_TRIANGLES = 6 * 8;
 /** At rest the pencil seat is a sliver (Iris: about 80 x 8 px at 1440): one plank's share at most. */
 const REST_SHARE = 0.05;
 /** A channel difference that counts as a differing pixel (B3.7's 8 levels). */
