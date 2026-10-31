@@ -1,4 +1,5 @@
 import { cacheLife } from "next/cache";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // The crew feed (.crew/sprint/28/feed-contract.md): what the Studio says the crew is doing, read on
 // this site's server alone, never by the browser. The answer is checked by the data rules in
@@ -77,13 +78,15 @@ export interface Run {
 
 /**
  * What /crew tells (.crew/sprint/31/contract.md, "The state"): the run in progress, live or not;
- * the last merged run while nothing is in progress; or nothing, when the feed is down.
+ * the last merged run while nothing is in progress; or nothing, when the feed is down, or when
+ * this is the build and it wasn't read (`unread`).
  */
 export type Crew =
   | { state: "live" | "open" | "resting"; run: Run }
-  | { state: "down" };
+  | { state: "down"; unread?: true };
 
 const DOWN: Crew = { state: "down" };
+const UNREAD: Crew = { state: "down", unread: true };
 
 /** Past this at render, an answer is stale and reads as down: copper's own window on the Studio. */
 const STALE_MS = 10 * 60 * 1000;
@@ -244,8 +247,8 @@ async function fetchAnswer(url: URL): Promise<unknown> {
 /**
  * The crew's state, read from `CREW_FEED_URL` (unset or empty: down). Cached for the shortest life
  * Next.js still prerenders (cacheLife's "Prerendering behavior"), so /crew stays static and
- * regenerates in the background: a visitor sees a read at most about five minutes old. A failed
- * read tells the last good answer (`kept`) while it is fresh, and down after, and either is retried
+ * regenerates in the background: a visitor sees a read about five minutes old at most, or the
+ * build's page, which claims nothing, after a quiet spell. A failed read tells the last good answer (`kept`) while it is fresh, and down after, and either is retried
  * on the first request 30 s after it. An answer the data rules refuse reads as down at once. The
  * clock is read inside the cache, since a prerender can't read it outside one, so an answer's age
  * is judged when it is read.
@@ -255,6 +258,10 @@ export async function readCrew(): Promise<Crew> {
   cacheLife({ stale: 30, revalidate: 30, expire: 300 });
   const address = process.env.CREW_FEED_URL;
   if (!address || !URL.canParse(address)) return DOWN;
+  // Vercel serves the build's page to the first visitor after `expire`, however old the build is
+  // (production read 2026-10-31: a merged sprint still "Waiting on the owner"). So the build says
+  // nothing of the crew. Every merge deploys, so its record is always the latest.
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) return UNREAD;
   const feed = new URL(address);
   const answer = await fetchAnswer(feed);
   if (answer === FAILED) return crewOf(kept, feed, Date.now());
