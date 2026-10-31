@@ -398,6 +398,10 @@ test("B4.46 the plank replays, in 2D: at rest on the replay fixture at 320, 390,
     SEAT_OF.has(FAR),
     `the oracle's far sprint ${FAR} has a seat (the crop's other end)`,
   ).toBe(true);
+  test.info().annotations.push({
+    type: "far crop",
+    description: `sprint ${FAR} on seat ${SEAT_OF.get(FAR)}, against ${N} on ${seat}`,
+  });
   const stamps: string[] = [];
   for (const site of [replay, far]) {
     const { context, page } = await opened(browser, site);

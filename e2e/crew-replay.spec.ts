@@ -971,6 +971,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
     await advance(page, 1);
     await untilPlayed(page, 2);
     await press(page, PAUSE);
+    const held = await readReplay(page);
     await takeMutations(page);
     await takePlan(page);
     // The hydration poll was at load, 1.5 s of the clock ago: the next is due at 60 s.
@@ -989,7 +990,13 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
         },
         "mid-replay (paused at k = 2): no poll before 60 s, one at 60 s, and its resting answer for 29 changes no node in .crew or [data-plan]",
       )
-      .toEqual({ early: 0, due: 1, block: [], plan: [] });
+      .toEqual({
+        held: [2, "true"],
+        early: 0,
+        due: 1,
+        block: [],
+        plan: [],
+      });
     await context.close();
   }
 
@@ -1009,7 +1016,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
     await press(page, ENTRY);
     await untilPlayed(page, 1);
     await advance(page, 1);
-    await untilPlayed(page, 2);
+    const playing = momentsPlayed(await untilPlayed(page, 2));
     if (reply === "down") {
       live.answer({ status: 503 });
       // A failing poll may keep B4c's 30 s schedule: step at it, past 10 minutes.
@@ -1025,6 +1032,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
     expect
       .soft(
         {
+          playing,
           entries: read.entries,
           pauses: read.pauses,
           replaying: read.replaying,
@@ -1038,6 +1046,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
         `a replay at k = 2 meeting ${what}: closed in that poll`,
       )
       .toEqual({
+        playing: 2,
         entries: 0,
         pauses: 0,
         replaying: 0,
@@ -1055,7 +1064,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
   {
     const { context, page, live } = await opened(browser, replay);
     await press(page, ENTRY);
-    await untilPlayed(page, 1);
+    const playing = momentsPlayed(await untilPlayed(page, 1));
     const thirty = feedOf("resting", { last: { sprint: 30, replay: REPLAY } });
     live.answer({ json: toAnswer(thirty, FIXTURE_STUDIO) });
     await live.tick(60_000);
@@ -1064,6 +1073,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
     expect
       .soft(
         {
+          playing,
           entry: [read.entries, read.entry?.text, read.entry?.shown],
           replaying: read.replaying,
           replay: read.plan.replay,
@@ -1073,6 +1083,7 @@ test("B4.48 the poll and the replay: /api/crew on the replay fixture deep-equals
         "29's replay meeting resting for 30 with a replay: closed, Replay sprint 30 offered, not playing, the told list",
       )
       .toEqual({
+        playing: 1,
         entry: [1, "Replay sprint 30", true],
         replaying: 0,
         replay: false,
@@ -1334,18 +1345,25 @@ test("B4.51 the sweeps, replaying: on the replay fixture at rest, mid-replay (pa
     await advance(page, 2);
     await untilPlayed(page, 3);
     const colours = await page.evaluate(() => {
-      const of = (value: string) => {
+      // As B4.31 reads Highlight: a background, so the pressed fill compares like for like.
+      const of = (
+        value: string,
+        property: "color" | "background-color" = "color",
+      ) => {
         const probe = document.createElement("span");
-        probe.style.cssText = `forced-color-adjust: none; color: ${value}`;
+        probe.style.cssText = `forced-color-adjust: none; ${property}: ${value}`;
         document.body.append(probe);
-        const c = getComputedStyle(probe).color;
+        const c =
+          property === "color"
+            ? getComputedStyle(probe).color
+            : getComputedStyle(probe).backgroundColor;
         probe.remove();
         return c;
       };
       return {
         text: of("CanvasText"),
         canvas: of("Canvas"),
-        highlight: of("Highlight"),
+        highlight: of("Highlight", "background-color"),
       };
     });
     // The rings: reached by Tab from the top, read while focused.

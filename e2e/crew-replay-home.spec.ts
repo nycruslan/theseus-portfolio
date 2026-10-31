@@ -200,7 +200,11 @@ test("B4.49 the way in from /: on the replay fixture p[data-rest] holds the orac
       probe.remove();
       return value;
     });
-    await page.locator(LINK).hover();
+    // Hovered: a missing link fails the copper and target reads below, not a hover's timeout.
+    await page
+      .locator(LINK)
+      .hover({ timeout: 2_000 })
+      .catch(() => undefined);
     const hovered = await copperPaint(page, accent);
     await page.mouse.move(0, 0);
     const stops: string[] = [];
