@@ -59,3 +59,8 @@
    fb5274d measures 18,228 B beyond the 404's (204 B under 18,432) and 16,189 B beyond `/log`'s
    (195 B under 16,384), after `"use no memo"` on the panel and a trim. B4.14 and B4.31 stay
    unedited and B4.51 reads the same figures, so this PR loosens no bound. Forge keeps the margin.
+9. **Decision 8 is withdrawn; call 8 stands at 20,480 B and 18,432 B** (Quill, Atlas). Forge's
+   18,228 B was the build before decision 7's changes. fb5274d as built measures 18,508 B beyond
+   the 404's and 16,469 B beyond `/log`'s, 76 B and 85 B over main's, and fitting them would leave
+   under 30 B. The raise is measured and named for Lens with call 8's reason; the contract's text is
+   back to b82f5f0's.
