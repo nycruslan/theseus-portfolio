@@ -21,3 +21,9 @@
      and Pixel is needed only if B4.47 is red.
    - `/crew`'s script budget grows from 18,432 to 20,480 B, measured by a sketch at +2,259 B. That
      is for Lens to accept.
+3. **Quill's contract is accepted** (Atlas; `contract.md`, B4.43 to B4.51, with Iris's calls 1 to 4).
+   `/crew`'s 20,480 B script limit needs no Owner's pick: it is measured, `/` is untouched, and a
+   loosened bound is Lens's to accept with call 8's reason in the PR. Lens's nit on 2feab08 rides
+   with Forge now (one line in `lib/model/stage.ts`, both values 1.4). Probe writes B4.43 to B4.51
+   red first while Forge builds from the contract, each in their own worktree; Pixel comes in only
+   if B4.47 is red on Forge's build.
