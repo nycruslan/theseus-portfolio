@@ -156,7 +156,8 @@ function writeContext({ pr, compare }) {
       `- GitHub lists only the first ${files.length} files, so tests past them may be weakened too: compare the checkout's tests with the base's.`,
     );
   const lines = [
-    `# PR #${pr.number}: ${pr.title}`,
+    // One line, so a title can't open a section of its own above the scope check's.
+    `# PR #${pr.number}: ${pr.title.replace(/\s+/gu, " ")}`,
     "",
     `Base ${pr.base.ref}, head ${pr.head.sha}.`,
     ...(cut

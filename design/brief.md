@@ -21,7 +21,8 @@ The research recommends **draw the hull, then rebuild it at sea**:
   who drew, checked and tested it, and the owner's approval.
 - The planks the crew replaced form a ghost hull: the archive, one click deep.
 
-Iris may propose something stronger, with her reasons, on the canvas. The owner decides there.
+Iris may propose something stronger, with her reasons, on the canvas. The build follows her
+recommendation, and the owner may pick another there.
 
 ## Guardrails
 

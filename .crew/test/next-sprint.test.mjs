@@ -849,3 +849,22 @@ test("lists the owner's answers the team still has to act on: an override, any t
     "Keep Read as page in the bar (Recommended)",
   );
 });
+
+test("leaves the picks on an open PR a run worked on within ACTIVE_HOURS to that run", () => {
+  const ticked = {
+    body: "### Owner's pick: Footer\n- [ ] Two (Recommended)\n- [x] One",
+  };
+  const { state } = preflight(
+    github({
+      pulls: [
+        { ...pr(45, "sprint/45-busy"), ...ticked },
+        { ...pr(46, "sprint/46-quiet"), ...ticked },
+      ],
+      commits: { [shaOf(45)]: minutesAgo(10) },
+    }),
+  );
+  assert.deepEqual(
+    state.picks.map(({ pr }) => pr),
+    [46],
+  );
+});

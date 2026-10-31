@@ -19,20 +19,21 @@ tell you what's in flight: the script reads GitHub and prints, as JSON, what's o
 sprint number and what to do. `action.do` is `start`, `continue` or `stand down`, and `action.say`
 says why and how. If it exits 1, GitHub couldn't be read: start nothing and report it.
 
-Two lists come beside the action, and neither stops it:
+Three lists come beside the action, and none stops it:
 - `update`: PRs waiting for the owner that conflict with main, usually in notes another sprint's
   close-out changed. Merge `origin/main` into each one's branch and resolve the conflicts as the
   team would, keeping what both sides meant: notes yourself, product code with the builder who
   wrote it, checks with Probe. Push, and once its checks pass tell the owner its head changed and
   needs their approval again. Only when the two sides want different things the owner decided,
-  abort the merge, ask it as an Owner's pick, and end the comment with
-  `theseus:conflict <head sha>` so later runs leave that head alone.
+  abort the merge, ask it as an Owner's pick (waits) in the PR's body, and comment that you did,
+  ending the comment with `theseus:conflict <head sha>` so later runs leave that head alone.
 - `remind`: PRs that have waited a day for the owner. Send one push notification naming each and
   what it needs, then comment on each that you reminded the owner, which restarts its day.
 - `picks`: the owner's answers to an Owner's pick (below) that differ from what was built. Build
-  each choice: in its PR while that's open, or riding with this sprint once it merged. Then add a
-  line `Applied: <the option's text>, in #<n>.` under that pick in the PR's body, so no later run
-  builds it again; a later tick on another option comes back here.
+  each choice: in its PR while that's open, or riding with this sprint once it merged. Then, in
+  the PR's body, leave only that option's box ticked and add a line
+  `Applied: <the option's text>, in #<n>.` under the pick, so no later run builds it again; a
+  later tick on another option comes back here.
 
 ## Choose the work
 
@@ -116,17 +117,22 @@ scripts, or ever carried `needs-owner`, until the owner approves its head; `merg
 a PR for the owner to merge.
 
 Ask the owner only what only they can decide: an owner path, their own facts, money, accounts and
-secrets, and anything that can't be undone. Put each question in the PR as an Owner's pick: a
-heading `### Owner's pick: <the question>`, then two to four task-list options (`- [ ] …`), the
-one you'd choose ending in `(Recommended)`, each with a few words on what it means. When the choice
+secrets, and anything that can't be undone. The one exception is L work's directions, which you
+offer as a pick without waiting (above). Put each question in the PR's body as an Owner's pick: a
+heading `### Owner's pick: <the question>`, then right under it two to four task-list options
+(`- [ ] …`) in one tight list, with no blank lines or nested checkboxes, the one you'd choose ending
+in `(Recommended)`, each with a few words on what it means. When the choice
 can be undone, build the recommended option and don't wait: if the owner ticks another, the next
 run switches (`picks`). When it can't be undone, head it `### Owner's pick (waits): <the question>`,
 add the `needs-owner` label, and take other work meanwhile. A pick restates nothing the owner
 already decided; read earlier PRs' picks and the sprint folders first. Send one push notification
 per PR that asks or waits for the owner: its link and Vercel preview, and each question in a line
-with its options, the recommended one first, or else what the owner needs to look at.
+with its options, the recommended one first, or else what the owner needs to look at. For a pick
+that waits, say what follows the tick: you build the answer, then the owner approves and merges
+that head.
 Never ask the owner to do a chore. Something only an account can do (an env var, a dashboard
-setting, a domain) goes on the open issue titled `Owner chores` as one checkbox line saying what it
+setting, a domain) goes on the open issue titled `Owner chores` that the owner's account opened
+(open it if there's none) as one checkbox line saying what it
 unblocks, while the build ships a fallback that works without it. When a PR waits for the owner,
 mark it ready once every required check but `gate` passed on its final head.
 

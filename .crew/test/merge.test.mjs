@@ -424,3 +424,41 @@ test("knows owner/repo from every kind of remote", () => {
     assert.equal(repoFromRemote(url), REPO, url);
   }
 });
+
+test("holds a PR whose waiting pick the team hasn't applied, whatever its checks say", () => {
+  const pick =
+    "### Owner's pick (waits): Spend $20 a month on fonts\n- [ ] Yes\n- [ ] No (Recommended)";
+  const unanswered = merge(github({ pulls: pr({ body: pick }) }));
+  assert.equal(unanswered.code, 1);
+  assert.match(
+    unanswered.stderr,
+    /the owner's pick "Spend \$20 a month on fonts" waits for their answer/,
+  );
+  assert.equal(unanswered.merges.length, 0);
+  const answered = pick.replace("- [ ] Yes", "- [x] Yes");
+  const unbuilt = merge(github({ pulls: pr({ body: answered }) }));
+  assert.equal(unbuilt.code, 1);
+  assert.match(
+    unbuilt.stderr,
+    /the owner answered "Spend \$20 a month on fonts": build their answer and mark it Applied first/,
+  );
+  const applied = merge(
+    github({ pulls: pr({ body: `${answered}\nApplied: Yes, in #12.` }) }),
+  );
+  assert.equal(applied.code, 0);
+  assert.equal(applied.merges.length, 1);
+  // A tick after the answer was applied is a new answer, and the choice can't be undone.
+  const changed = merge(
+    github({
+      pulls: pr({
+        body: `${answered.replace("- [ ] No", "- [x] No")}\nApplied: Yes, in #12.`,
+      }),
+    }),
+  );
+  assert.equal(changed.code, 1);
+  assert.match(
+    changed.stderr,
+    /the owner changed their answer to "Spend \$20 a month on fonts": build it and mark it Applied first/,
+  );
+  assert.equal(changed.merges.length, 0);
+});

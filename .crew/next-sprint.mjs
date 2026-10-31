@@ -107,6 +107,13 @@ function preflight(repo) {
   const unopened = freshBranches(repo, branches, open, closed);
   const daily = mergedToday(closed, base);
   const merged = closed.filter((pr) => pr.base.ref === base && pr.merged_at);
+  // A pick on an open PR that a run worked on within ACTIVE_HOURS is that run's to build, as
+  // `update` leaves such a PR alone: two runs would build it twice.
+  const quiet = new Set(
+    open
+      .filter(({ workedAt }) => Date.now() - Date.parse(workedAt) >= ACTIVE_MS)
+      .map(({ number }) => number),
+  );
   return {
     repo,
     base,
@@ -116,7 +123,10 @@ function preflight(repo) {
     next,
     daily: { merged: daily.merged, cap: daily.cap },
     ...ownerQueue(repo, open),
-    picks: answeredPicks([...pulls, ...merged]),
+    picks: answeredPicks([
+      ...pulls.filter(({ number }) => quiet.has(number)),
+      ...merged,
+    ]),
     action: action(open, unopened, next, daily, ownerGoal),
   };
 }
