@@ -254,13 +254,14 @@ export type LinesPlan = {
   tip: Tip | null;
 };
 
-/** The tip's run, and its forward end, where PENCIL.tip's dot goes. */
-type Tip = { d: string; end: Point };
+/** The tip's run, and its dot at the run's forward end: a zero-length stroke, drawn by its round cap. */
+type Tip = { run: string; dot: string };
 
 /**
- * The copper tip (.crew/sprint/28/b4-plan.md, B4.2; main.webp's 17): a short run along the plank's
- * lower seam, under its number, where the pencil is drawing now (PENCIL.tip). `s` is the layout's
- * scale, which turns the tip's inset from viewBox units into the hull's.
+ * The copper tip (.crew/sprint/34/notes-iris.md, 3.4; main.webp's 17): the pen on the plank's
+ * visible lower edge, from under its number toward the bow, where the pencil is drawing now
+ * (PENCIL.tip). `s` is the layout's scale, which turns the tip's inset from viewBox units into the
+ * hull's.
  */
 function tipOf(
   plank: Plank | undefined,
@@ -278,7 +279,7 @@ function tipOf(
     },
   );
   const end = points.at(-1);
-  return end ? { d: curve(points), end } : null;
+  return end ? { run: curve(points), dot: `M${pt(end)}h0` } : null;
 }
 
 const BASE = HEIGHT + 10;
