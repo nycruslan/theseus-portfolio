@@ -835,15 +835,15 @@ test("B4.29 who started or stopped working: one [aria-live] in main, [data-annou
     downStates.push(`${await live.state()}`);
   }
   const atDown = await said();
-  live.answer({ json: LIVE });
+  // Each answer below would read differently from the region's text if it were announced: back
+  // from down with Lens working instead of Probe, then a held answer swapping them back.
+  live.answer({ json: told("live", { current: { roles: rolesWith(swap) } }) });
   await live.tick(60_000);
   const backLive = [await live.state(), await said()];
   live.answer({ hold: true });
   await live.tick(30_000);
   await live.press();
-  await live.release({
-    json: told("live", { current: { roles: rolesWith(swap) } }),
-  });
+  await live.release({ json: LIVE });
   const underPause = await said();
   expect
     .soft(
