@@ -127,6 +127,12 @@ export function bandAt(plank: Plank, x: number): [number, number] | null {
   return bottom - top > 0.05 ? [top, bottom] : null;
 }
 
+/** A plank's depth at station x, 0 where it has none. */
+const depthAt = (plank: Plank, x: number) => {
+  const band = bandAt(plank, x);
+  return band ? band[1] - band[0] : 0;
+};
+
 const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
 
 export type Station = { x: number; depth: number };
@@ -135,13 +141,12 @@ export type Station = { x: number; depth: number };
 export function depths(plank: Plank): Station[] {
   return Array.from({ length: 49 }, (_, i) => {
     const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
-    const band = bandAt(plank, x);
-    return { x, depth: band ? band[1] - band[0] : 0 };
+    return { x, depth: depthAt(plank, x) };
   });
 }
 
 /** The first and last x where a plank is at least `depth` deep, or null where it never is. */
-export function stretch(
+function stretch(
   stations: readonly Station[],
   depth: number,
 ): [number, number] | null {
@@ -219,12 +224,14 @@ const plankOf = (seat: string) => PLANKS.find((plank) => plank.id === seat);
  */
 export function tallyOf(seat: string): Tally | null {
   const plank = plankOf(seat);
-  const stations = plank && depths(plank);
-  const body = stations && plankBody(stations);
-  const room = stations && stretch(stations, MARKS.deep);
-  if (!body || !room) return null;
+  const body = plank && plankBody(depths(plank));
+  if (!plank || !body) return null;
   const tip = body[0] + (body[1] - body[0]) * PENCIL.tip.to;
-  return { tip, f: Math.min(1, (tip - room[0] - TALLY_STERN) / TALLY) };
+  // xs to a hundredth of a unit, not the body's 49 stations: on the short stern seats f turns on
+  // it, and the slots stand a tenth of a pixel apart from where a continuous reading puts them.
+  let xs = plank.x0;
+  while (xs < tip && depthAt(plank, xs) < MARKS.deep) xs += 0.01;
+  return { tip, f: Math.min(1, (tip - xs - TALLY_STERN) / TALLY) };
 }
 
 /** Slot k's x on a seat's tally: 0 the newest, nearest the pen; a new moment fills the next aft. */
@@ -256,20 +263,6 @@ function extent(seat: string, pencil: boolean): [number, number] {
   return tally
     ? [Math.min(tally.tip - TALLY * tally.f, number - 6), tally.tip + 2]
     : [number - 20, number + 20];
-}
-
-/**
- * The focus point's x: the tally's middle in pencil, else the seat's body middle. The 3D keeps it on
- * its frame-1 screen point through the move.
- */
-export function focusX(seat: string, pencil: boolean): number {
-  const plank = plankOf(seat);
-  const body = plank && plankBody(depths(plank));
-  if (pencil) {
-    const [stern, bow] = extent(seat, pencil);
-    return (stern + bow) / 2;
-  }
-  return body ? (body[0] + body[1]) / 2 : LENGTH / 2;
 }
 
 /** A detail drawing: its box, its scale and the profile's top (oy), in its viewBox's units. */

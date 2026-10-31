@@ -2281,7 +2281,8 @@ main:has(> [data-model]) {
 
 /*
  * The crew (app/crew/page.tsx, components/crew.tsx; .crew/sprint/31/contract.md, notes-iris.md,
- * crew-1440.webp and crew-390.webp): the drawing, then the panel. Below 1024 px one above the other,
+ * crew-1440.webp and crew-390.webp): the drawing (its model's layer over it, and its foot below
+ * 768 px), then the panel. Below 1024 px one above the other,
  * the panel under a 2 px ink rule as the title block opens on /; from 1024 side by side inside the
  * sheet's frame 16 px in, the panel at most 600 px behind an ink rule and the drawing held under the
  * bar while the panel scrolls. Copper is a Working row's dot and word and the now line, nothing
@@ -2650,8 +2651,14 @@ main:has(> [data-model]) {
   min-height: 44px;
 }
 
+/* The drawing and the model's layer over it (app/crew/page.tsx says why they share a box): the
+   layer lies on this box, and the scene lays its canvas on the drawing's. */
+.crew-drawing {
+  position: relative;
+}
+
 @media (width >= 48rem) and (width < 64rem) {
-  .crew-page > [data-plan] {
+  .crew-drawing {
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
@@ -2665,7 +2672,7 @@ main:has(> [data-model]) {
     margin: 0 16px;
   }
 
-  .crew-page > [data-plan] {
+  .crew-drawing {
     position: sticky;
     top: 72px;
     padding-top: 24px;
@@ -2709,9 +2716,57 @@ main:has(> [data-model]) {
   }
 }
 
-/* The page's drawing carries 13 px plank numbers once its lifts are 13.9 px deep. */
+/*
+ * The detail drawing (components/lines-plan.tsx's CrewPlan; .crew/sprint/36/contract.md, "The
+ * detail drawing" and "A tick", with Iris's final numbers): the sheet's lines plan close on one
+ * plank, clipped by its box, its lettering too. Below 768 px it sits 16 px in, as the panel's text
+ * does. The tally's ticks are graphite strokes, never copper, with no transition in any mode: a
+ * tick appears, it doesn't arrive. The poll moves data-run (components/crew-live.tsx); the rules
+ * below draw what each value leaves.
+ */
+@media (width < 48rem) {
+  .crew-drawing {
+    margin: 0 16px;
+  }
+}
+
+.plan-crew,
+.plan-crew svg {
+  overflow: clip;
+}
+
+.plank-marks {
+  stroke: var(--muted);
+}
+
+/* The pen is drawn whenever the server drew the pencil, and shown only while the crew is live. */
+[data-plan][data-run]:not([data-run="live"]) .plank-tip {
+  display: none;
+}
+
+/* Inked, or back to the record, the focus plank is seated: the erase goes, and its edge is solid
+   over the dash the server drew. */
+:is([data-run="inked"], [data-run="record"]) .plank-erase {
+  display: none;
+}
+
+.plan-crew path[data-plank]:not(.plank-pencil) {
+  stroke-dasharray: none;
+}
+
+/* The focus plank's number off the pencil, at rest, inked or back to the record: ink at 700, no
+   chip. */
+.plan-view > .plan-focus:not(.plan-pencil) {
+  font-weight: 700;
+}
+
+/* /crew's numbers keep the sizes its drawing has had: 11 px, 13 from 1280. */
+.plan-view.plan-crew > .plan-plank {
+  font-size: var(--step-xs);
+}
+
 @media (width >= 80rem) {
-  .crew-page .plan-page > .plan-plank {
+  .plan-view.plan-crew > .plan-plank {
     font-size: var(--step-sm);
   }
 }
