@@ -1,12 +1,21 @@
 import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { horizontalOverflow, MOTION, motionReady } from "./helpers";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 31, B4a (.crew/sprint/31/contract.md, "The bar" and B4.9 to B4.11): the bar on /crew, the
 // bar on / from 768 to 1023 px with Crew in it, and the way back from /crew. These run on the
 // suite's webServer, which has no feed URL: nothing here depends on the feed's state.
 
 const LABELS = ["Work", "Crew", "Log", "Contact", "Read as page"];
+
+// Sprint 36 (B4d, .crew/sprint/36/contract.md, "The live checks") puts the model on /crew: every
+// page here refuses WebGL (the Off path, as sprint 33 did for /log), so no SwiftShader build runs
+// under the bar's checks. With WebGL refused the control still shows its three buttons, Full and
+// Calm disabled (sprint 33, amendment 1).
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(refuseWebGl);
+});
 
 async function open(page: Page, url: string, width: number, height = 900) {
   await page.setViewportSize({ width, height });
@@ -88,8 +97,12 @@ function readBar(page: Page) {
       currents: [...document.querySelectorAll("[aria-current]")].map(
         (el) => `${squashed(el)} ${el.getAttribute("aria-current")}`,
       ),
-      headerControls:
-        header?.querySelectorAll("button, [data-motion]").length ?? -1,
+      headerButtons: [...(header?.querySelectorAll("button") ?? [])]
+        .filter((b) => b.getClientRects().length > 0)
+        .map((b) => squashed(b)),
+      footControl: [...document.querySelectorAll(`[data-foot] ${slot}`)].some(
+        (s) => s.getClientRects().length > 0,
+      ),
       headerOverflow: header ? header.scrollWidth - header.clientWidth : -1,
       readShown: [...document.querySelectorAll('a[href="/read"]')].filter(
         (a) => a.getClientRects().length > 0,
@@ -98,13 +111,14 @@ function readBar(page: Page) {
   }, MOTION);
 }
 
-test("B4.9 the bar on /crew: at 320, 390, 768, 1024 and 1440 the wordmark links home; Work /#work, Crew /crew current, Log, Contact /#contact, Read as page /read in order and no other current; no button or control in the header; the shown links targets inside the viewport (24 px from 1024, 44 px tall below) on one line with no overflow; five shown from 768, four below with Read as page shown and reachable on the page; at 390 and 1440 each lands", async ({
+test("B4.9 the bar on /crew: at 320, 390, 768, 1024 and 1440 the wordmark links home; Work /#work, Crew /crew current, Log, Contact /#contact, Read as page /read in order and no other current; from 768 the header's buttons exactly Full, Calm and Off right of Read as page on the bar's line, below 768 none and the control in the foot (sprint 36); the shown links targets inside the viewport (24 px from 1024, 44 px tall below) on one line with no overflow; five shown from 768, four below with Read as page shown and reachable on the page; at 390 and 1440 each lands", async ({
   page,
 }) => {
   test.setTimeout(180_000);
   for (const width of [320, 390, 768, 1024, 1440]) {
     const where = `on /crew at ${width}`;
     await open(page, "/crew", width);
+    await motionReady(page);
     const bar = await readBar(page);
     expect(
       bar.header && bar.nav,
@@ -126,12 +140,42 @@ test("B4.9 the bar on /crew: at 320, 390, 768, 1024 and 1440 the wordmark links 
     expect
       .soft(bar.currents, `aria-current on the page ${where}`)
       .toEqual(["Crew page"]);
+    // Sprint 36 (.crew/sprint/36/contract.md, B4.9's rewrite, B2.3's assertions carried to /crew as
+    // B5.1 and B5.25 did for /log): from 768 the header's shown buttons are exactly Full, Calm and
+    // Off, right of Read as page, on the bar's one line; below 768 none, the control in the foot.
+    const read = bar.links.find((l) => l.text === "Read as page");
+    const linkTops = bar.links.filter((l) => l.shown).map((l) => l.top);
     expect
       .soft(
-        bar.headerControls,
-        `buttons or [data-motion] in the header ${where}`,
+        {
+          buttons: bar.headerButtons,
+          rightOfRead: bar.buttons.every(
+            (b) => b.left >= (read?.right ?? Number.POSITIVE_INFINITY) - 0.5,
+          ),
+          oneLine: bar.buttons.every(
+            (b) =>
+              b.top < Math.max(...linkTops) + 24 &&
+              b.bottom > Math.min(...linkTops),
+          ),
+          footControl: bar.footControl,
+        },
+        `the header's shown buttons, right of Read as page and on the bar's line, and the control in the foot ${where}`,
       )
-      .toBe(0);
+      .toEqual(
+        width >= 768
+          ? {
+              buttons: ["Full", "Calm", "Off"],
+              rightOfRead: true,
+              oneLine: true,
+              footControl: false,
+            }
+          : {
+              buttons: [],
+              rightOfRead: true,
+              oneLine: true,
+              footControl: true,
+            },
+      );
     const shown = bar.links.filter((l) => l.shown);
     expect
       .soft(

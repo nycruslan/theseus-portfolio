@@ -78,6 +78,28 @@ export const GHOST_DURATION = 1800;
  */
 export const SETTLE_GHOST = { dx: 0, dy: 0, yaw: -20, pitch: 12, lift: LIFT };
 
+// The hull on /crew (.crew/sprint/36/contract.md, "The hull on /crew"): the card model lifting off
+// the detail drawing of the plank being drawn now. One constant a call, as the loft's are.
+
+/** Its one move, in ms, on the loft's ease, once a visit (the contract: 1.8 s). */
+export const CREW_DURATION = 1800;
+
+/**
+ * Its settled pose (Iris's calls, .crew/sprint/36/notes-iris.md): a turn of `yaw` degrees toward
+ * the end of the hull the focus plank is on, the bow (−35°) for a plank whose middle is at or
+ * forward of midships and the stern (+35°) otherwise, so the plank being drawn comes toward the
+ * visitor; pitch 6°; the sheet's lift and lens. It holds frame 1's framed height, as the sheet's
+ * loft does with no growth, which settles it at about 0.75 to 0.85 of frame 1's scale, and turns
+ * about the focus point, which keeps its frame-1 screen point.
+ */
+export const SETTLE_CREW = { yaw: 35, pitch: 6, lift: LIFT };
+
+/**
+ * The focus point while the plank is in pencil: on its lower edge, this many hull units × f aft of
+ * the pen's dot, the middle of the ten slots' stretch, 10 to 55 (notes-iris.md, section 3).
+ */
+export const CREW_FOCUS = 27.5;
+
 /**
  * The vellum (call 1): the card's lit material made translucent, at α 0.7 settled, its colour
  * solved so the unlit composite over the film is `--vellum`; at 0.4 of the card's lit mix, under
@@ -113,6 +135,11 @@ export const SHADOW_LIGHT = 0.18;
 export const SHADOW_DARK = 0.6;
 /** The shadow's blur radius in texels: a lobe edge of about 18 px, as main.webp's (Iris's early look). */
 export const SHADOW_BLUR = 2;
+/**
+ * On /crew, where the detail's box cuts the shadow, how far inside each edge it fades out, in CSS
+ * px: about two of its lobe edges (.crew/sprint/36/), so the box never rules a line across it.
+ */
+export const SHADOW_FADE = 40;
 
 /** Line weights in CSS px, the drawing's own: the seams and the outline (call 5; SVG untouched). */
 export const SEAM_PX = 0.9;

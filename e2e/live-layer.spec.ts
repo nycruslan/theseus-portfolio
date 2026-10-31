@@ -5,6 +5,7 @@ import { expected, textContrast } from "./crew";
 import {
   type Answer,
   type Crew,
+  crewOf,
   homeStateOf,
   STATE_WAIT,
   crewTest as test,
@@ -258,7 +259,9 @@ async function downFrom(
 // Every site's wait starts here, together, so the worker waits out the regenerations once: the
 // fixtures' first states, the variants' and the down switches overlap. Each check then awaits its
 // own scenario and asserts on what it saw.
-test.beforeAll(({ crew }) => {
+// The worker's crew from crewOf(): a beforeAll takes no test-scoped fixture (crew-feed.ts).
+test.beforeAll(async () => {
+  const crew = await crewOf();
   for (const name of Object.keys(KEPT)) void reach(crew, name);
   void reach(crew, "home-999", LIVE_999);
   void reach(crew, "home-quiet", QUIET);
