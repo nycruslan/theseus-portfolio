@@ -196,13 +196,16 @@ function transport(show: (replay: Replay | null) => void): Transport {
   };
   const step = () => {
     if (!replay) return;
-    // The pause hides at the end, and focus can't stay on a hidden button: it goes to the entry,
-    // the control that replays.
+    // The pause hides at the end, and focus can't stay on a hidden button: it goes to the block
+    // the replay played in, without scrolling, so the end never moves the page and the next Tab
+    // goes on from there (.crew/sprint/37/decisions.md, 7).
     if (
       replay.k === replay.moments.length &&
       document.activeElement?.matches("[data-replay-pause]")
     ) {
-      document.querySelector<HTMLElement>("a[data-replay]")?.focus();
+      document
+        .querySelector<HTMLElement>("#replay")
+        ?.focus({ preventScroll: true });
     }
     set({ ...replay, k: replay.k + 1 });
   };

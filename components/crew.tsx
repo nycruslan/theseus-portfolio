@@ -1,3 +1,5 @@
+"use no memo";
+
 import { CrewTable } from "@/components/crew-table";
 import { type Crew, type Moment, pullHref, type Run } from "@/lib/crew-run";
 import { REPO_URL } from "@/lib/site";
@@ -9,6 +11,9 @@ import { utcDay, utcTime } from "@/lib/utc";
 // only on a Working row and the now line, and both exist only while the crew is live. The server
 // renders it first and the browser again on each told poll (components/crew-live.tsx), from the
 // same props, so it imports nothing the browser can't have.
+// Not memoised by the React Compiler ("use no memo"), for /crew's script budget
+// (.crew/sprint/37/contract.md, call 8): its caches cost bytes and save little, since the panel
+// renders again only on a told poll or a replay's step (one every 1.5 s), a few dozen elements.
 
 /** What the panel shows from the build's retros, which the browser can't read. */
 export type Facts = {
@@ -140,21 +145,37 @@ function Now({ run }: { run: Run }) {
 }
 
 /**
- * Iris's key for the tally (.crew/sprint/37/contract.md, "The tick key"), its symbol the drawing's
- * own mark: a rule with three ticks hanging from it. Shown only while ticks are on the drawing,
- * since a key names only what is there.
+ * Iris's key for the tally (.crew/sprint/37/contract.md, "The tick key"; decision 7), its symbol
+ * what the words name: a small plank in pencil, hatched inside a dashed edge, with three ticks
+ * hanging from it. Shown only while ticks are on the drawing, since a key names only what is there.
  */
 const TICK_KEY = (
   <p data-tick-key="" className="crew-key">
     <svg
-      viewBox="0 0 20 8"
-      width="20"
-      height="8"
+      viewBox="0 0 28 12"
+      width="28"
+      height="12"
       aria-hidden="true"
       focusable="false"
     >
-      <path d="M0 .5h20" />
-      <path strokeWidth={1.4} d="M4 1v6m6-6v6m6-6v6" />
+      <pattern
+        id="tick-key-hatch"
+        patternUnits="userSpaceOnUse"
+        width="3"
+        height="3"
+        patternTransform="rotate(45)"
+      >
+        <path d="M0 0v3m3-3v3" />
+      </pattern>
+      <rect
+        x=".5"
+        y=".5"
+        width="27"
+        height="5"
+        fill="url(#tick-key-hatch)"
+        strokeDasharray="2 1.5"
+      />
+      <path strokeWidth={1.4} d="M12 6v5m5-5v5m5-5v5" />
     </svg>
     One tick on the plank in pencil for each moment above, up to ten.
   </p>
@@ -187,9 +208,11 @@ function Activity({
   // unique. Keys come from the moment alone, so a poll that adds one keeps every other's node.
   const seen = new Map<string, number>();
   return (
-    // At rest, the anchor the entry and /'s link land on, under the bar (app/globals.css).
+    // At rest, the anchor the entry and /'s link land on, under the bar (app/globals.css), and
+    // where focus goes when the pause hides at the end, never a Tab stop.
     <div
       id={resting ? "replay" : undefined}
+      tabIndex={resting ? -1 : undefined}
       data-replaying={replay ? "" : undefined}
       className="crew-block"
     >

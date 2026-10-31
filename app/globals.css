@@ -1063,6 +1063,13 @@ main:has(> [data-model]) {
   forced-color-adjust: none;
 }
 
+/* Kept from the system's colours, it would keep the author's ink: the link's colour instead. */
+@media (forced-colors: active) {
+  .rev-play {
+    background: LinkText;
+  }
+}
+
 /* The chip's line is 2 px short of the table's, so its border keeps the row's height. Its edge is
    the plank's, dashed graphite, in every mode: one pencil mark across the site. */
 .rev-chip {
@@ -2557,6 +2564,22 @@ a[data-replay]:not([data-ready]) {
   border-inline: 2.5px solid currentColor;
 }
 
+/* Kept from the system's colours, the glyphs would keep the author's ink: they take their
+   control's system colour instead (Iris). */
+@media (forced-colors: active) {
+  .crew-play {
+    background: LinkText;
+  }
+
+  .crew-bars {
+    border-color: ButtonText;
+  }
+
+  [aria-pressed="true"] > .crew-bars {
+    border-color: HighlightText;
+  }
+}
+
 /* The motion control's cell, alone and in ink: pressed is an ink fill with film text, as
    [data-motion]'s, so the site has one grammar for "on". Never copper, and no transition. */
 .crew-pause {
@@ -2722,9 +2745,14 @@ a[data-replay]:not([data-ready]) {
 }
 
 /* At rest the Activity block is the replay's anchor. The page's scroll padding already clears the
-   bar, so 16 px more lands the head just under it (Iris). */
+   bar, so 16 px more lands the head just under it (Iris). Script focuses it only when the pause
+   hides at the end, as the skip link lands on main: a landing spot, not a control, so no ring. */
 #replay {
   scroll-margin-top: 16px;
+}
+
+#replay:focus {
+  outline: none;
 }
 
 .crew-activity-head {
@@ -2777,6 +2805,24 @@ a[data-replay]:not([data-ready]) {
   align-items: baseline;
   padding: 4px 0;
   border-bottom: 1px solid var(--rule);
+}
+
+/* The list's time column is 3rem, the now line's, and widens to the widest time only where a day
+   shows, as a replay's rows do after midnight UTC: each row shares the list's columns, so a time
+   keeps its day on its own line (Iris, .crew/sprint/37/decisions.md, 7). */
+.crew-moments {
+  display: grid;
+  grid-template-columns: minmax(3rem, max-content) minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.crew-moments li {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.crew-moments time {
+  white-space: nowrap;
 }
 
 .crew-now {
@@ -2981,12 +3027,13 @@ a[data-replay]:not([data-ready]) {
 /* The drawing's own label while a replay has its plank in pencil (.crew/sprint/37/contract.md,
    "The stamp"; Iris): at the box's top-left on the sheet's text edge, 8 px in from its top, above
    the sheer and the Profile title, over the lines and the canvas. Ink on the film, at the plank
-   numbers' size, never copper. */
+   numbers' size, never copper. Below 1024 px the box is already on the text edge (its 16 px
+   margin), and 0.04em tracking keeps the word whole (decision 7). */
 .crew-stamp {
   position: absolute;
   z-index: 1;
   top: 8px;
-  left: 16px;
+  left: 0;
   padding: 3px 6px;
   border: 1px solid var(--foreground);
   background: var(--background);
@@ -2994,7 +3041,7 @@ a[data-replay]:not([data-ready]) {
   font-size: var(--step-xs);
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -3021,8 +3068,7 @@ a[data-replay]:not([data-ready]) {
 
 @media print {
   .crew-close,
-  .crew-pause,
-  .crew-entry {
+  .crew-pause {
     display: none;
   }
 }
