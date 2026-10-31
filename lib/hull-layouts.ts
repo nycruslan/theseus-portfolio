@@ -161,37 +161,62 @@ export function plankBody(
   return stretch(stations, 0.9 * Math.min(deepest, LIFT_DEPTH));
 }
 
-// --- /crew's detail drawing (.crew/sprint/36/contract.md, "The detail drawing", "A tick") -----
+/**
+ * A plank is led out when it is not two thirds of a lift deep (about its number's height) for
+ * this long: no place on it holds the number clear of the outline and the butts at any width, so
+ * the number is set aft of the hull with a leader to the plank (.crew/sprint/22/review-iris.md,
+ * Changes 1). Only 5.0, the stern wedge of lift 5, is today.
+ */
+const LEAD_OUT_UNDER = 24;
+const NUMBER_DEPTH = (2 / 3) * LIFT_DEPTH;
+
+export function ledOut(stations: readonly Station[]) {
+  const room = stretch(stations, NUMBER_DEPTH);
+  return !room || room[1] - room[0] < LEAD_OUT_UNDER;
+}
+
+/** A led-out number's anchor, this far aft of its plank's stern end; it is set to end there. */
+export const LEAD_OUT = 22;
+
+// --- /crew's detail drawing (.crew/sprint/36/contract.md, "The detail drawing", "A tick"; Iris's
+// final numbers, which replace the contract's 320 units, 16:9, and ticks rising into the plank) --
 
 /**
- * The tally on the plank in pencil: the sprint's number, then one graphite tick per moment the
- * panel lists, then the copper pen. Hull units but `width`; shared by the 2D drawing and the 3D.
+ * The tally on the plank in pencil: one graphite tick per moment the panel lists, aft of the
+ * copper pen, hanging from the plank's lower edge. Hull units but `width`; the 2D drawing and the
+ * 3D hull both draw from these, through `tallyOf` and `markX`.
  */
 export const MARKS = {
-  /** A tick's height, rising from the plank's lower edge into it. */
-  h: 3.5,
-  /** Tick i (0 the newest) stands at tip − (first + step·i)·f: by order, never by time. */
-  first: 6,
-  step: 4,
-  /** The slots: past this many moments the ten stay as they are. */
-  count: 10,
+  /** Between ticks, along x. */
+  pitch: 5,
+  /** Slot 0's distance aft of the pen's dot. */
+  first: 10,
+  /** How far a tick hangs down from the plank's lower edge (the seam, or the keel's outline). */
+  length: 4,
   /** A tick's weight, in CSS px: a line weight, which holds at every width. */
   width: 1.4,
-  /** f = min(1, (tip − xs) / span), xs the sternmost x where the plank is at least `deep` deep. */
-  span: 54,
-  deep: 6,
-  /** The tally's middle, tip − middle·f: the crop's centre and, while live, the 3D's focus point. */
-  middle: 26,
-  /** The number's anchor, tip − number·f, at the band's mid-depth: the tally's stern end. */
-  number: 52,
+  /** The slots: past this many moments the ten stay as they are. */
+  max: 10,
+  /** f's xs is the plank's sternmost x where it is at least this deep. */
+  deep: 2,
 } as const;
+
+/** The tally's length at f = 1, the pen's dot to the last slot. */
+const TALLY = MARKS.first + (MARKS.max - 1) * MARKS.pitch;
+/** The last slot is kept this far forward of xs. */
+const TALLY_STERN = 2;
+/** The pencil's number stands at least this far aft of the pen, so its chip clears the dot. */
+const NUMBER_AFT = 20;
 
 /** A seat's tally: the pen's x (`PENCIL.tip.to` of the plank's body) and its f. */
 export type Tally = { tip: number; f: number };
 
 const plankOf = (seat: string) => PLANKS.find((plank) => plank.id === seat);
 
-/** A seat's tally, or null for a seat the hull doesn't have. f depends on the seat, never the count. */
+/**
+ * A seat's tally, or null for a seat the hull doesn't have. f shortens the pitch on the short stern
+ * seats, so all ten slots fit; it depends on the seat, never on the count.
+ */
 export function tallyOf(seat: string): Tally | null {
   const plank = plankOf(seat);
   const stations = plank && depths(plank);
@@ -199,71 +224,111 @@ export function tallyOf(seat: string): Tally | null {
   const room = stations && stretch(stations, MARKS.deep);
   if (!body || !room) return null;
   const tip = body[0] + (body[1] - body[0]) * PENCIL.tip.to;
-  return { tip, f: Math.min(1, (tip - room[0]) / MARKS.span) };
+  return { tip, f: Math.min(1, (tip - room[0] - TALLY_STERN) / TALLY) };
 }
 
-/** Tick i's x on a seat's tally, 0 the newest, the slot nearest the pen. */
-export const markX = ({ tip, f }: Tally, i: number) =>
-  tip - (MARKS.first + MARKS.step * i) * f;
+/** Slot k's x on a seat's tally: 0 the newest, nearest the pen; a new moment fills the next aft. */
+export const markX = ({ tip, f }: Tally, k: number) =>
+  tip - (MARKS.first + MARKS.pitch * k) * f;
 
-/** A detail drawing's box and scale: 320 hull units across, in a 16:9 box (Iris). */
+/**
+ * The x of the focus plank's number: the body's middle, as on /; in pencil, no nearer the pen than
+ * NUMBER_AFT, so the chip clears the dot; for a led-out plank, its anchor aft of the hull.
+ */
+export function numberX(seat: string, pencil: boolean): number {
+  const plank = plankOf(seat);
+  if (!plank) return LENGTH / 2;
+  const stations = depths(plank);
+  if (ledOut(stations)) return plank.x0 - LEAD_OUT;
+  const body = plankBody(stations);
+  const middle = body ? (body[0] + body[1]) / 2 : (plank.x0 + plank.x1) / 2;
+  const tally = pencil ? tallyOf(seat) : null;
+  return tally ? Math.min(middle, tally.tip - NUMBER_AFT) : middle;
+}
+
+/**
+ * What the crop keeps in view, stern to bow: in pencil the tally, its number to just past the pen;
+ * otherwise the number, 20 units either side.
+ */
+function extent(seat: string, pencil: boolean): [number, number] {
+  const number = numberX(seat, pencil);
+  const tally = pencil ? tallyOf(seat) : null;
+  return tally
+    ? [Math.min(tally.tip - TALLY * tally.f, number - 6), tally.tip + 2]
+    : [number - 20, number + 20];
+}
+
+/**
+ * The focus point's x: the tally's middle in pencil, else the seat's body middle. The 3D keeps it on
+ * its frame-1 screen point through the move.
+ */
+export function focusX(seat: string, pencil: boolean): number {
+  const plank = plankOf(seat);
+  const body = plank && plankBody(depths(plank));
+  if (pencil) {
+    const [stern, bow] = extent(seat, pencil);
+    return (stern + bow) / 2;
+  }
+  return body ? (body[0] + body[1]) / 2 : LENGTH / 2;
+}
+
+/** A detail drawing: its box, its scale and the profile's top (oy), in its viewBox's units. */
 export type Detail = {
   box: readonly [number, number, number, number];
   s: number;
+  oy: number;
   /** Whether the planks other than the focus carry their numbers. */
   numbers: boolean;
 };
 
-/** From 768 px, numbered as /read's drawing is. */
+/** From 768 px: 480 hull units across, the profile's top 24% down, numbered as /crew always was. */
 export const CREW_WIDE: Detail = {
   box: [0, 0, 808, 454.5],
-  s: 2.525,
+  s: 808 / 480,
+  oy: 0.24 * 454.5,
   numbers: true,
 };
 
-/** Below 768 px: only the focus plank's number. */
+/** Below 768 px: 320 units across, the top 20% down, and only the focus plank's number. */
 export const CREW_NARROW: Detail = {
-  box: [0, 0, 390, 219.4],
-  s: 1.21875,
+  box: [0, 0, 390, 243.75],
+  s: 390 / 320,
+  oy: 0.2 * 243.75,
   numbers: false,
 };
 
-/** The crop's centre is held between these, in hull units, and its top 24 above the bow tip. */
-const CROP_X = [140, 484] as const;
-const CROP_TOP = 24;
-
 /**
- * The focus point's x in hull units: the tally's middle when the server drew `focus` in pencil
- * (live or open, with a number), else the seat's body middle. The crop centres on it, held inside
- * CROP_X; the 3D keeps it on its frame-1 screen point through the move. Fixed at first paint: no
- * poll moves it.
+ * The crop's centre in hull units: the end of the hull nearest the plank, moved only as far as
+ * keeps the tally (or the number) a margin inside the box; centred on it where it can't be.
+ * Fixed at first paint: no poll moves it.
  */
-export function focusX(focus: string, pencil: boolean): number {
-  const tally = pencil ? tallyOf(focus) : null;
+function cropX({ box, s }: Detail, focus: string, pencil: boolean): number {
+  const across = box[2] / s;
+  const margin = 0.12 * across;
   const plank = plankOf(focus);
-  const body = plank && plankBody(depths(plank));
-  return tally
-    ? tally.tip - MARKS.middle * tally.f
-    : body
-      ? (body[0] + body[1]) / 2
-      : LENGTH / 2;
+  const aft = plank ? (plank.x0 + plank.x1) / 2 < LENGTH / 2 : true;
+  const anchored = aft ? across / 2 - 20 : LENGTH + 20 - across / 2;
+  const [stern, bow] = extent(focus, pencil);
+  const lo = bow + margin - across / 2;
+  const hi = stern - margin + across / 2;
+  return lo > hi ? (stern + bow) / 2 : Math.min(hi, Math.max(lo, anchored));
 }
 
 /**
  * The layout a detail drawing is drawn on, centred on `focus` (`data-focus`); `pencil` when the
- * server drew that seat in pencil. The profile alone: no half-breadth or body plan, so `hbY` is
- * unused.
+ * server drew that seat in pencil (`data-tally`). The profile alone: no half-breadth or body plan,
+ * so `hbY` is unused.
  */
 export function crewLayout(
-  { box, s, numbers }: Detail,
+  detail: Detail,
   focus: string,
   pencil: boolean,
 ): Layout {
-  const xc = Math.min(CROP_X[1], Math.max(CROP_X[0], focusX(focus, pencil)));
+  const { box, s, oy, numbers } = detail;
   return {
     box,
-    ox: box[0] + box[2] / 2 - xc * s,
-    oy: box[1] + CROP_TOP * s,
+    ox: box[0] + box[2] / 2 - cropX(detail, focus, pencil) * s,
+    oy: box[1] + oy,
     s,
     hbY: 0,
     numbers,
