@@ -14,12 +14,13 @@ them carries the same proof.
 
 Quill's plan is `.crew/sprint/38/plan.md`, with the measurements behind it. On production on
 2026-10-31, one of the seven figures in `content/profile.ts` was in the first view, and the other
-six were 1.1 to 2.0 screens down at 1440 and 390 (3.0 at 360 × 640), inside one paragraph. "AI agents" appeared only in a 13 px muted
-caption, and `/crew` never used the word "AI". The checks are P1 to P17 across sprints Pa to Pc.
-No sprint needs an owner answer to start, touches an owner path, or edits `content/`: the
-particulars quote the owner's facts and add no figures. The owner may overrule the phrases, the
-particulars' place on the approved sheet, or the plain-words rule for goals, after the fact. The
-3D, the loft and the replay stay as built, because the owner's demos judge them.
+six were 1.1 to 2.0 screens down at 1440 and 390 (3.0 at 360 × 640), inside one paragraph. "AI
+agents" appeared only in a 13 px muted caption, and `/crew` never used the word "AI". The checks are
+P1 to P17 across sprints Pa to Pc. No sprint needs an owner answer to start, touches an owner path,
+or edits `content/`: the particulars quote the owner's facts and add no figures. The owner may
+overrule the phrases, the particulars' place on the approved sheet, or the plain-words rule for
+goals, after the fact. The 3D, the loft and the replay stay as built, because the owner's demos
+judge them.
 
 - [x] Sprint 38 (notes only): Quill's plan, the milestone as three sprints
   (`.crew/sprint/38/plan.md`), and Pa's contract ready for Iris, Probe and Forge
@@ -146,25 +147,27 @@ replaces today's page, and B3, the signature moment.
     to check at the demo and, if it shows, refit only on width or box changes; a stray JSDoc above
     `cardGeometry` in `lib/model/stage.ts`).
   - [x] Sprint 27 (M): the Full/Calm/Off control, remembered on the device; B2.3 and the keyboard
-    Tab bound rewritten with the same assertions. (PR #74, built in one run on 2026-10-23: Lens ship with no fix round, after its first run died and CI's cap cancelled the suite until the owner re-ran both,
-    Iris ship at 9.0/10, 166 of 166 checks; the contract is `.crew/sprint/27/contract.md` with
-    amendments 1 to 3 and decisions 1 to 13 in `decisions.md`.) The hints set the default (`off`
-    under Save-Data, `calm` under reduced motion, else `full`) and a press wins (decision 3); a
-    press of Full replays the loft (decision 4). Iris's call: below 768 px the control sits at the
-    drawing's foot, not the canvas's bottom strip, which the sheet no longer has (decision 8; her
-    paragraph for the owner is on the PR). Riders taken: Lens's three code nits on #73, the two
-    comment nits on #67, and the cold-cache fallback face at its cause (next/font's one-source
-    fallback; decision 13). **The B3 demo is the owner's**, on #74's preview and then production:
-    30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel, the dark hull under the
-    warm lamp, the control, the toolbar show/hide at rest (Lens's nit on #73), the control's place
-    against `hero-390.webp`, and the "Base" label under the shadow's tail on the narrow sheet.
-    Riding with the next sprint that touches the loader (`components/model.tsx`): Lens's nit on
-    #74 (with the WebGL 2 probe refused, pressing the already-pressed Off stores `off`, so a device
-    that gains WebGL later stays Off unasked; `onClick={() => refused || press(value)}`, about
-    3 B; taken in B5c). Left open: the text face's fallback has the same one `local(Arial)` source (Forge, with
-    the next sprint that touches the fonts); in forced colours with the model refused the control shows Full
-    or Calm pressed while nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client
-    code reopens the script budget with the owner.
+    Tab bound rewritten with the same assertions. (PR #74, built in one run on 2026-10-23: Lens ship
+    with no fix round, after its first run died and CI's cap cancelled the suite until the owner
+    re-ran both, Iris ship at 9.0/10, 166 of 166 checks; the contract is
+    `.crew/sprint/27/contract.md` with amendments 1 to 3 and decisions 1 to 13 in `decisions.md`.)
+    The hints set the default (`off` under Save-Data, `calm` under reduced motion, else `full`) and
+    a press wins (decision 3); a press of Full replays the loft (decision 4). Iris's call: below 768
+    px the control sits at the drawing's foot, not the canvas's bottom strip, which the sheet no
+    longer has (decision 8; her paragraph for the owner is on the PR). Riders taken: Lens's three
+    code nits on #73, the two comment nits on #67, and the cold-cache fallback face at its cause
+    (next/font's one-source fallback; decision 13). **The B3 demo is the owner's**, on #74's preview
+    and then production: 30 fps, the DPR ladder and the still frame on a GPU, the e² loft's feel,
+    the dark hull under the warm lamp, the control, the toolbar show/hide at rest (Lens's nit on
+    #73), the control's place against `hero-390.webp`, and the "Base" label under the shadow's tail
+    on the narrow sheet. Riding with the next sprint that touches the loader
+    (`components/model.tsx`): Lens's nit on #74 (with the WebGL 2 probe refused, pressing the
+    already-pressed Off stores `off`, so a device that gains WebGL later stays Off unasked;
+    `onClick={() => refused || press(value)}`, about 3 B; taken in B5c). Left open: the text face's
+    fallback has the same one `local(Arial)` source (Forge, with the next sprint that touches the
+    fonts); in forced colours with the model refused the control shows Full or Calm pressed while
+    nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client code reopens the
+    script budget with the owner.
 - [x] B4: `/crew`, the crew at work, from the Studio's data. **It waits for the owner's feed:**
   the Studio serves no read a third party can use (its own roadmap lists the API as unbuilt), so
   nothing of B4 ships before it (`.crew/sprint/28/b4-plan.md`, "Before the feed"; decision 7).
@@ -299,10 +302,11 @@ replaces today's page, and B3, the signature moment.
     retro: a workflow that writes the record after each merge (until then the newest revision
     sits under "Undated" until the next sprint's PR merges), moving the writer into `.crew/` with
     a test and a skill step, and still the closed sprints' rows and a public `design` retro
-    field. Riding with the next sprint that touches `/log` (sprint 38 found these taken in B5c as B5.26 a and b, except the commit-hash link, which waits; see B5c): Lens's nit on #82 (B5.16 checks records
-    only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two (the lines
-    figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left open:
-    the unknown record's scripts-off blank 404.
+    field. Riding with the next sprint that touches `/log` (sprint 38 found these taken in B5c as
+    B5.26 a and b, except the commit-hash link, which waits; see B5c): Lens's nit on #82 (B5.16
+    checks records only up to sprint 30; assert every `merge.json` on disk parses), and Iris's two
+    (the lines figure's rule stops at the text's width from 640 to 1023; link the commit hash). Left
+    open: the unknown record's scripts-off blank 404.
   - [x] B5c (M): the ghost hull in 3D on `/log` and every record, under Full/Calm/Off, the control
     in `/log`'s bar, and a plank opening its record. (Sprint 33, PR #83, built in one run on
     2026-10-25: Lens ship on 9b8743a after one fix round, Iris ship at 8.7/10, 184 of 184 checks;
