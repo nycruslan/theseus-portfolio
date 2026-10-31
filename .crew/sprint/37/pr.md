@@ -28,6 +28,10 @@ amendment 1). Decisions: `.crew/sprint/37/decisions.md` (1 to 10).
   `p[data-tick-key]`: the tick key (rider 3, checked by B4.50) follows the drawing's state, not the
   told answer.
 - Retired: none.
+- Three new `test.skip(` lines (`e2e/crew-replay.spec.ts:70`, `e2e/crew-replay-hull.spec.ts:60`,
+  `e2e/crew-replay-home.spec.ts:30`) are file-level guards on `PLAYWRIGHT_BASE_URL`, which CI never
+  sets, the same guard `crew.spec.ts`, `crew-live.spec.ts` and `live-layer.spec.ts` carry: these
+  specs start their own servers. They are in new files, so no existing check loses coverage.
 
 ### Riders
 - Lens's nit on #91: the poller's "outside React's tree" comment and Forge's memory line corrected.

@@ -69,3 +69,9 @@
     "with no replay offered, every page is today's", which rider 3's tick key broke: the key shows
     on a page whose server drew the tally, and B4.26 compares that panel with a poll-told one that
     has none. B4.26 now compares the text without `p[data-tick-key]`; B4.50 checks the key.
+11. **Lens changes on 5f20964: only the three new specs' unnamed `test.skip(` guards** (Important,
+    all one fix). They are `PLAYWRIGHT_BASE_URL` file guards CI never sets, now named in the PR body
+    as sprint 36's were; no code changes. CI's `check` passed on 5f20964. Lens's two nits on
+    `components/crew-live.tsx` (a `#replay` arrival in a background tab plays unseen; the
+    transport's state doesn't survive a dev Strict Mode re-run of the mount effect) ride with the
+    next sprint that touches `/crew` (Forge).
