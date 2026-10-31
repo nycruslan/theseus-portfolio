@@ -199,8 +199,10 @@ Activity's head.
   `.crew-pause[aria-pressed="true"]`.
 - **When it shows.** Its box is reserved whenever a replay is offered. It is visible (and
   focusable) only while a replay plays or is paused: from moment 1 until the end. At the end it
-  hides by `visibility`. If it had focus, focus moves to the entry, the control that replays,
-  since focus can't stay on a hidden button. That focus rule is mine, for keyboard visitors.
+  hides by `visibility`. If it had focus, focus moves to `#replay` (`tabindex="-1"`, no ring)
+  with `preventScroll`, since focus can't stay on a hidden button and focusing the entry would
+  scroll the page (530 px at 320 × 640; Iris's early look, decision 7). The next Tab reaches what
+  follows the Activity block's head; Shift+Tab reaches back toward the entry.
 
 **Playing.** Let k be the moments played (0 before the first press).
 - The entry sets k to 1 at once, then adds 1 every 1,500 ms on `setTimeout`, so `page.clock`
@@ -343,7 +345,7 @@ Probe writes these first, by B4d's method:
   - Space with the focus on the body or on the pause toggles it. Space before a press and at the
     end does nothing to the replay, and the page scrolls. Space on Pause updates presses Pause
     updates alone.
-  - At the end the pause is hidden and not focusable. If it had focus, focus is on the entry.
+  - At the end the pause is hidden and not focusable. If it had focus, focus is on `#replay` and the page's scroll position is unchanged.
   - Pressing the entry, mid-play, paused or at the end, restarts at k = 1, playing.
   - After the entry's press, the next Tab reaches "Pause replay". Otherwise the order of Tab stops
     in the panel is today's, plus the entry after the status and the pause in Activity's head.

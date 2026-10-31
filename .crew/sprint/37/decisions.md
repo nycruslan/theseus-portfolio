@@ -47,3 +47,11 @@
 6. **The script budget holds at call 8's figures** (Atlas): Forge's first build read 21,277 B
    beyond the 404's (797 over). He trims rather than raising it, first with `"use no memo"` on
    `components/crew.tsx` (the React Compiler's caches), then by cutting code.
+7. **Iris's early look on da76dd0** (her two musts and three shoulds, accepted by Atlas). The focus
+   rule changes: at the end, a focused "Pause replay" hands focus to `#replay` with `preventScroll`,
+   not to the entry, since focusing the entry scrolled the page 530 px at 320 × 640 against the
+   contract's "the scroll position doesn't change" (B4.45 checks it). The stamp moves onto the text
+   edge below 1024; its tracking is 0.04em; the key's symbol becomes a small hatched plank with
+   ticks; the time column widens by subgrid when a day shows, since sprint 37's own replay may
+   cross midnight UTC. Each replay step's layout shift (0.004 at 1440, 0.043 at 320) is known and
+   stays: a row arriving is the content.
