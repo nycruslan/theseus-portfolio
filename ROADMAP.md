@@ -98,7 +98,7 @@ replaces today's page, and B3, the signature moment.
     the next sprint that touches the fonts); in forced colours with the model refused the control shows Full
     or Calm pressed while nothing can play (Iris); B2.10 has 10 B of headroom on `/`, so B4's client
     code reopens the script budget with the owner.
-- [ ] B4: `/crew`, the crew at work, from the Studio's data. **It waits for the owner's feed:**
+- [x] B4: `/crew`, the crew at work, from the Studio's data. **It waits for the owner's feed:**
   the Studio serves no read a third party can use (its own roadmap lists the API as unbuilt), so
   nothing of B4 ships before it (`.crew/sprint/28/b4-plan.md`, "Before the feed"; decision 7).
   - [x] Sprint 28 (M, notes only): Quill's plan, B4 as five M sprints
@@ -177,8 +177,22 @@ replaces today's page, and B3, the signature moment.
       verified from the cloud: the move's feel on a GPU and a phone.
     - CI: the suite outgrew the `check` job's 25 minutes (decisions 10 and 11). Left open: split
       the 3D and feed specs into their own job, or a deeper pass on the existing 3D suites.
-  - [ ] B4e (M): Replay of the last merged sprint, from the feed's later `last.replay`. Iris:
-    the pace.
+  - [x] B4e (M): Replay of the last merged sprint on `/crew`, from the feed's `last.replay`
+    (nycruslan/theseus-studio#49). (Sprint 37, PR #95, built in one run on 2026-10-31: Quill's
+    contract B4.43 to B4.51 with Iris's calls and amendment 1, Probe's checks red first, Forge's
+    build with two early looks from Iris; Lens ship on 6470d74 after naming three skip guards, Iris
+    ship at 8.4/10, 249 of 249 locally; `decisions.md` 1 to 12.)
+    - Iris's calls: a fixed 1.5 s a moment with the real UTC times (no "4×"), the same in every
+      mode; the panel's head keeps telling the present; a boxed REPLAY stamp; the plank goes to
+      pencil, ticks, and inks at the merge. The entry sits under `/crew`'s status and at the end of
+      `/`'s rest line (server HTML, `/` unchanged); "Pause replay" in Activity's head, Space.
+    - `/crew`'s script limits rise to 20,480 B beyond the 404's and 18,432 B beyond `/log`'s
+      (measured 18,508 B and 16,469 B), accepted by Lens; B4.26 reads the panel without the key.
+    - Riding with the next sprint that touches `/crew` (Forge): Lens's four nits (Shift/Meta+Space,
+      an unused `crew-block` class, a `#replay` arrival in a hidden tab, Strict Mode's re-run).
+    - **The milestone's close is the owner's:** on production at rest, Replay sprint 37 on a phone
+      and a GPU, then a live run. Iris asks the owner to judge the plank inking above the fold on a
+      phone and the 70 s length ("Skip to the merge" if long).
 - [x] B5: `/log` and the ghost hull. B5's demo is the owner's, on a preview that deploys (Vercel
   rate-limited #82 and #83 on 2026-10-25).
   - [x] Sprint 29 (M, notes only): Quill's plan, B5 as three M sprints

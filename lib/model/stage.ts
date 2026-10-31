@@ -40,7 +40,7 @@ import {
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
-import { PENCIL, PLANKS } from "@/lib/hull-layouts";
+import { MARKS, PENCIL, PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
   DARK_LIGHT,
@@ -447,7 +447,7 @@ export function createStage(
       seams.material.linewidth = (ghost ? GHOST_EDGE_PX : SEAM_PX) * ratio;
       outline.material.linewidth =
         (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
-      marks.material.linewidth = MARK_PX * ratio;
+      marks.material.linewidth = (tally ? MARKS.width : MARK_PX) * ratio;
       leads.material.linewidth = GHOST_EDGE_PX * ratio;
     },
 
