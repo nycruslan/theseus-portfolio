@@ -38,3 +38,12 @@
      plays or is paused. Its box is reserved, and focus moves to the entry if the toggle hides
      while focused.
    - Checks B4.43, B4.44, B4.45, B4.46, B4.48, B4.49 and B4.51 are amended to match.
+5. **Three of Probe's checks read the viewport across the contract's own jump** (Quill, on Forge's
+   finding; accepted by Atlas). B4.46's "the box never moves", B4.45's "no shift" and B4.45's Tab
+   walk compared viewport positions, which amendment 1's jump to `#replay` moves on purpose. Each
+   keeps its assertion and is read in page coordinates or the drawing's own geometry; the Tab walk
+   starts from `main#main`. The contract's two clauses now say so. Lens: these checks show as
+   edited for this reason, not loosened.
+6. **The script budget holds at call 8's figures** (Atlas): Forge's first build read 21,277 B
+   beyond the 404's (797 over). He trims rather than raising it, first with `"use no memo"` on
+   `components/crew.tsx` (the React Compiler's caches), then by cutting code.
