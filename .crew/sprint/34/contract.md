@@ -83,7 +83,7 @@ its numbers in one `PENCIL` constant in `lib/hull-layouts.ts`, shared with the h
 ```ts
 hatch: { period: 6, width: 1.4 },   // viewBox units
 dash: [4, 3],                       // CSS px
-tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },  // width and dot in CSS px
+tip: { from: 1 / 2, to: 7 / 8, inset: 0, width: 2, dot: 8 },  // width and dot in CSS px
 ```
 
 - **Hatch:** 45°, rising to the bow ("/"), one 1.4-unit `--pencil` line every 6 units across, tiled
@@ -97,7 +97,7 @@ tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },  // width and dot i
   padding 1 px 3 px), so the hatch never crosses the digits. Forced colours: `Canvas` chip,
   `CanvasText` digits.
 - **Tip,** `live` only: a 2 px copper (`--accent`) run with round caps on the plank's visible lower
-  edge (`bandAt`'s bottom), from 1/3 to 3/4 of its body's stretch, then a 7 px copper dot at its
+  edge (`bandAt`'s bottom), from 1/2 to 7/8 of its body's stretch, then an 8 px copper dot at its
   forward end (a zero-length subpath with a round cap, non-scaling). Both are drawn after the
   outline, outside the hull's clip. The hollow rule hides it; under reduced motion it fades with the
   numbers (240 ms). Forced colours: `Highlight`.
@@ -109,7 +109,7 @@ tip: { from: 1 / 3, to: 3 / 4, inset: 0, width: 2, dot: 7 },  // width and dot i
   on the 2D's hatch.
 - **Edge:** graphite on the pencil plank's seams and butts, solid, as colours in the seams' existing
   batch (no draw).
-- **Tip,** `live` only: the 2D's run and 7 px dot in the same CSS px, unlit, exactly `--accent` in
+- **Tip,** `live` only: the 2D's run and 8 px dot in the same CSS px, unlit, exactly `--accent` in
   both schemes, depth-tested with the seams' offset; at most two draws.
 - **Number,** from 768 only: the pencil plank's number (its film chip) rides the hull at the plank
   body's projected middle, every frame of the loft and at rest, as `/log`'s numbers ride.
@@ -132,7 +132,7 @@ inside, as B1.5 holds the others. Feed text is text (B4a's "Text"). The look is 
   colours drop the hatch and keep the dashed edge.
 - **Description:** one `a[href="/crew"]` whose text is `run.goal` whole, or "In progress" when it is
   `null`, in ink with the site's underline, at least 24 px tall. In `live`, `[data-drawing]` "drawing
-  now" follows it 8 px after: copper, weight 600, with a 7 px copper dot, `nowrap`, shown whole and
+  now" follows it 8 px after: copper, weight 600, with an 8 px copper dot, `nowrap`, shown whole and
   never cut by the ellipsis (from 1024 the goal takes the ellipsis; below, it follows the goal inline
   and wraps as a unit).
 - **Drawn, Checked, Tested and Approved** are graphite (`--muted`), pencil entries inked when the
@@ -180,7 +180,7 @@ only. Their words and swatches (Iris's call 3.6):
 - `[data-key="pencil"]` "In progress": a 28 × 12 swatch, hatch 135° 1 px in 4 on the film, a 1 px
   dashed `--muted` edge. Forced colours: a `CanvasText` hatch on `Canvas`, dashed `CanvasText`.
 - `[data-key="copper"]` "Drawing now", the row's words, so copper says one thing on `/`: the swatch
-  is the tip itself, a 2 px copper run across the 28 × 12 slot ending in a 7 px copper dot, no frame
+  is the tip itself, a 2 px copper run across the 28 × 12 slot ending in an 8 px copper dot, no frame
   and no fill. Forced colours: `Highlight`, with `forced-color-adjust: none`.
 
 The frame's "the sprint running now" would be false in `open`. With these words, live at 1440 × 900
@@ -258,7 +258,7 @@ Probe masks those and says so.
 **B4.21 The hull agrees, and stays cheap and still.** With WebGL on (the B3 harness), at 1440 × 900
 and 390 × 844, on the live and open fixtures, at rest: the canvas differs from the default server's
 at the same pose only inside the pencil seat's projected plank and a band around its outline (at
-least 4 CSS px, since the tip's dot sits 3.5 px past the seam by design; Probe tunes it on
+least 5 CSS px, since the tip's dot sits 4 px past the seam by design; Probe tunes it on
 SwiftShader and reports it), and does differ there (the hatch); pixels
 within ΔE 10 of `--accent` (B3.7's test) appear only there in live, and nowhere in open. From 768, at rest, the pencil number's chip is centred inside the plank's projected box. Draws at
 most 8 a frame (Iris: 7 with the tip) and triangles at most the default server's at the same width
@@ -340,3 +340,10 @@ layer".
   accepting the triangle bound, which loosens only a new check.
 - **Owner:** none to merge. The first change to the visitor's first screen since B3 is the plan's
   B4 demo; whether it is an Owner's pick is Atlas's call.
+
+## Amendment 1 (Atlas, from Iris's section 5)
+
+Iris's look on Forge's build moved the tip to 1/2 to 7/8 of the stretch, made every copper dot
+8 px (a 4 px border, as `/crew`'s Working dot: the row's `.rev-dot`, the swatch and the tip), the
+number's chip padding `0 2px`, and B4.21's band at least 5 px (the dot sits 4 px past the seam).
+The numbers above are amended in place (`notes-iris.md`, section 5).
