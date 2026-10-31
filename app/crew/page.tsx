@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
-import { CrewPanel } from "@/components/crew";
+import { CrewLive } from "@/components/crew-live";
 import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { SkipLink } from "@/components/skip-link";
@@ -36,13 +36,22 @@ export const metadata: Metadata = {
 // The crew at work (.crew/sprint/31/contract.md; crew-1440.webp, crew-390.webp): the sheet's
 // drawing at the left, seated from the retros as on /, and the panel at the right, told from the
 // Studio's feed. Static, regenerated in the background as the feed's read expires
-// (lib/crew-feed.ts), with no script of its own: no model and no motion control until B4d, so the
-// bar has none either.
+// (lib/crew-feed.ts); in the browser the panel then follows /api/crew (.crew/sprint/35/contract.md),
+// its only script. No model and no motion control until B4d, so the bar has none either.
 export default async function Crew() {
   // Read when the page is rendered, like /, so the two drawings and the record agree. Newest first.
   const entries = readSprintLog();
   const seats = seatPlanks(entries.map((entry) => entry.sprint).reverse());
   const crew = await readCrew();
+  // Only what the panel shows from the retros: the browser gets these, not the reader or profile.
+  const [record] = entries;
+  const facts = {
+    owner: profile.name,
+    record: record
+      ? { sprint: record.sprint, goal: record.goal, pr: record.pr ?? null }
+      : null,
+    retros: entries.map(({ sprint, ownersCall }) => ({ sprint, ownersCall })),
+  };
 
   return (
     <>
@@ -56,7 +65,7 @@ export default async function Crew() {
       >
         <LinesPlan seats={seats} view="page" />
         <Foot />
-        <CrewPanel crew={crew} entries={entries} />
+        <CrewLive crew={crew} facts={facts} />
       </main>
     </>
   );

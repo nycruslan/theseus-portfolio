@@ -1,4 +1,4 @@
-import type { Crew, RosterRole, Run } from "@/lib/crew-feed";
+import type { Crew, RosterRole, Run } from "@/lib/crew-run";
 import { nextSeat, seatOf } from "@/lib/lines-plan";
 
 // The live layer on / (.crew/sprint/34/contract.md, "Data rules"; the plan's B4.2): the crew's
@@ -10,7 +10,7 @@ import { nextSeat, seatOf } from "@/lib/lines-plan";
 /** The sprint in progress: a plank in pencil, and the row that leads the revision block. */
 export type Pencil = {
   sprint: number;
-  /** The feed's goal, whole; null when the feed sends none. */
+  /** The feed's goal, whole; null when the feed sends none or a blank one (lib/crew-run.ts). */
   goal: string | null;
   /** Its seat (the contract's "The pencil seat"). */
   seat: string;

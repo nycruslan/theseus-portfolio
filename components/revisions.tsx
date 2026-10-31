@@ -1,5 +1,5 @@
 import { PlankCount, PlankLegend } from "@/components/plank-key";
-import type { Run } from "@/lib/crew-feed";
+import type { Run } from "@/lib/crew-run";
 import type { Pencil } from "@/lib/live-layer";
 import type { SprintEntry } from "@/lib/sprint-log";
 import { utcDay, utcTime } from "@/lib/utc";
