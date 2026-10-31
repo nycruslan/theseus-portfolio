@@ -20,12 +20,17 @@ import {
   sheer,
 } from "./half-model";
 import {
+  bandAt,
+  depths,
   GHOST,
   type Layout,
   NARROW,
   PENCIL,
   PLANKS,
   type Plank,
+  plankBody,
+  type Station,
+  stretch,
   WIDE,
 } from "./hull-layouts";
 
@@ -97,39 +102,7 @@ export function ghostPlanks(merged: readonly number[]): Map<string, number> {
   return ghost;
 }
 
-/** A plank's depth at station x, top and bottom, or null where it has none. */
-function bandAt(plank: Plank, x: number): Point | null {
-  const top = Math.max(plank.yTop, sheer(x));
-  const bottom = Math.min(plank.yBot, profile(x));
-  return bottom - top > 0.05 ? [top, bottom] : null;
-}
-
 const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
-
-/** A plank's depth at 49 stations along it, stern to bow. */
-function depths(plank: Plank) {
-  return Array.from({ length: 49 }, (_, i) => {
-    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
-    const band = bandAt(plank, x);
-    return { x, depth: band ? band[1] - band[0] : 0 };
-  });
-}
-
-/** The first and last x where a plank is at least `depth` deep, or null where it never is. */
-function stretch(stations: ReturnType<typeof depths>, depth: number) {
-  const deep = stations.filter((station) => station.depth >= depth);
-  const [first, last] = [deep[0], deep.at(-1)];
-  return first && last ? ([first.x, last.x] as Point) : null;
-}
-
-/**
- * The plank's body, where its number goes: where it is nearly a whole lift deep, or nearly as deep
- * as it ever gets, for one the stem, stern or keel cuts.
- */
-function plankBody(stations: ReturnType<typeof depths>) {
-  const deepest = Math.max(...stations.map((station) => station.depth));
-  return stretch(stations, 0.9 * Math.min(deepest, LIFT_DEPTH));
-}
 
 /**
  * A plank is led out when it is not two thirds of a lift deep (about its number's height) for
@@ -140,7 +113,7 @@ function plankBody(stations: ReturnType<typeof depths>) {
 const LEAD_OUT_UNDER = 24;
 const NUMBER_DEPTH = (2 / 3) * LIFT_DEPTH;
 
-function ledOut(stations: ReturnType<typeof depths>) {
+function ledOut(stations: readonly Station[]) {
   const room = stretch(stations, NUMBER_DEPTH);
   return !room || room[1] - room[0] < LEAD_OUT_UNDER;
 }
