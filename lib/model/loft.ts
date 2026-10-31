@@ -12,6 +12,7 @@
 import { HEIGHT, LENGTH } from "@/lib/half-model";
 import { GHOST, type Layout, NARROW } from "@/lib/hull-layouts";
 import {
+  CREW_DURATION,
   DURATION,
   G_NARROW,
   GHOST_DURATION,
@@ -19,6 +20,7 @@ import {
   HOLD,
   LIFT,
   SETTLE,
+  SETTLE_CREW,
   SETTLE_GHOST,
   SETTLE_NARROW,
 } from "./calls";
@@ -176,9 +178,20 @@ function poses({ drawing, viewport }: Frame, layout: Layout, settle: Settle) {
 
 export type Loft = ReturnType<typeof makeLoft>;
 
-/** The loft for one canvas over `layout`'s drawing: the pose and the camera's 1/D at eased
- * progress e. */
-export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
+/** /crew's move: the point it turns about, in the model's frame, and its settled yaw in degrees. */
+export type Crew = { focus: Vec3; yaw: number };
+
+/**
+ * The loft for one canvas over `layout`'s drawing: the pose and the camera's 1/D at eased progress
+ * e. With `crew`, /crew's move instead: a turn of `yaw` degrees about `focus`, a point in the
+ * model's frame.
+ */
+export function makeLoft(
+  frame: Frame,
+  points: Vec3[],
+  layout: Layout,
+  crew?: Crew,
+) {
   const { width, height, ratio = 1 } = frame;
   const margin = EDGE + 0.5 / ratio;
   const settle = settleOn(layout);
@@ -241,11 +254,60 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
     return worldPose(screen, s, invD);
   };
 
-  // Solved once at SAMPLES + 1 points; a frame interpolates instead of solving.
-  const table = Array.from({ length: SAMPLES + 1 }, (_, i) =>
-    solve(i / SAMPLES),
-  );
+  // /crew's detail (.crew/sprint/36/contract.md, "Full"; notes-iris.md): the model turns and lifts
+  // about the focus point, which keeps its frame-1 screen point through the move, so the plank being
+  // drawn stays where the visitor's eye is. Given the scale, the pose is closed form: the focus,
+  // turned and scaled, lies at depth z_F = z + s (R F).z; its frame-1 point is unprojected at that
+  // depth, and the origin set off it.
+  const crewAt = crew
+    ? (e: number, s: number): Pose => {
+        const yaw = crew.yaw * e;
+        const pitch = SETTLE_CREW.pitch * e;
+        const invD = e / lens;
+        const z = from.lift + SETTLE_CREW.lift * scale * e;
+        const r = place(crew.focus, { x: 0, y: 0, z: 0, yaw, pitch, s });
+        const k = 1 - (z + r[2]) * invD;
+        const [fx, fy] = [
+          from.cx + crew.focus[0] * scale,
+          from.cy - crew.focus[1] * scale,
+        ];
+        return {
+          x: width / 2 + (fx - width / 2) * k - r[0],
+          y: -(height / 2 + (fy - height / 2) * k) - r[1],
+          z,
+          yaw,
+          pitch,
+          s,
+        };
+      }
+    : null;
+  /** /crew's scale at e: the one that holds frame 1's framed height, the sheet's HOLD with no growth. */
+  const crewScale = (e: number) => {
+    let s = scale;
+    for (let i = 0; i < 4 && crewAt; i++) {
+      s *=
+        target / framed(points, crewAt(e, s), width, height, e / lens).height;
+    }
+    return s;
+  };
+
+  // Solved once at SAMPLES + 1 points; a frame interpolates instead of solving. On /crew only the
+  // scale is tabled: each frame places the model off the focus point exactly, so it holds to the
+  // float's precision between samples too.
+  const table = crewAt
+    ? []
+    : Array.from({ length: SAMPLES + 1 }, (_, i) => solve(i / SAMPLES));
+  const scales = crewAt
+    ? Array.from({ length: SAMPLES + 1 }, (_, i) => crewScale(i / SAMPLES))
+    : [];
   const at = (e: number): { pose: Pose; invD: number } => {
+    if (crewAt) {
+      const u = Math.min(1, Math.max(0, e));
+      const f = u * SAMPLES;
+      const i = Math.min(SAMPLES - 1, Math.floor(f));
+      const s = lerp(scales[i] ?? scale, scales[i + 1] ?? scale, f - i);
+      return { pose: crewAt(u, s), invD: u / lens };
+    }
     const f = Math.min(1, Math.max(0, e)) * SAMPLES;
     const i = Math.min(SAMPLES - 1, Math.floor(f));
     const a = table[i] as Pose;
@@ -271,7 +333,7 @@ export function makeLoft(frame: Frame, points: Vec3[], layout: Layout) {
       return points.map((p) => project(place(p, pose), width, height, invD));
     },
     /** The move's length in ms. */
-    duration: settle.duration,
+    duration: crew ? CREW_DURATION : settle.duration,
     /** The scale of the drawing: what the shadow's texels follow. */
     scale,
     /** The camera's nearest distance D (1/D peaks at 1/lens): the depth range must stay in
