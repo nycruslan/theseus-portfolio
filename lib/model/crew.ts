@@ -14,6 +14,7 @@ import {
   MARKS,
   markX,
   numberX,
+  numberY,
   PLANKS,
   tallyOf,
 } from "@/lib/hull-layouts";
@@ -108,8 +109,8 @@ export const detailLayout = (plan: HTMLElement, detail: Detail): Layout =>
 /**
  * /crew's move (the contract, "Full"; notes-iris.md, section 3): the point it turns about, in the
  * model's frame, and its settled yaw. The point is on the plank's lower edge CREW_FOCUS × f aft of
- * the pen when the server drew a tally, or the focus number's anchor otherwise (the body's middle at
- * mid-depth, as numberX sets it). The turn brings the plank's end of the hull toward the visitor:
+ * the pen when the server drew a tally, or the focus number's anchor otherwise (numberX and numberY:
+ * the body's middle at mid-depth). The turn brings the plank's end of the hull toward the visitor:
  * the bow for a plank whose middle is at or forward of midships, the stern for one aft of it.
  */
 export function crewMove(seat: string, pencil: boolean): Crew {
@@ -119,7 +120,7 @@ export function crewMove(seat: string, pencil: boolean): Crew {
   const band = plank && bandAt(plank, x);
   // A led-out number (5.0's) stands aft of the hull at its lift's mid-depth.
   const mid = plank ? (plank.yTop + plank.yBot) / 2 : 0;
-  const y = band ? (tally ? band[1] : (band[0] + band[1]) / 2) : mid;
+  const y = tally ? (band?.[1] ?? mid) : (numberY(seat, false) ?? mid);
   const forward = plank ? (plank.x0 + plank.x1) / 2 >= LENGTH / 2 : true;
   return {
     focus: nearSide(x, y),
