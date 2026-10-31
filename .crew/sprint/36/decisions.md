@@ -33,3 +33,8 @@
    would leave the hull empty for an instant, which `/`'s fill fade exists to avoid, and reduced
    motion protects against movement, not a fade. B4.38 now allows opacity, fill and visibility
    transitions and still fails any transform, position, size or camera move, within 300 ms.
+8. **B4.36's depth floor is painted pixels** (Iris, on Probe's and Pixel's finding): her 18 and 16
+   were geometric seam-to-seam depths (Pixel's 20.4, 19.0, 18.4), and the lines' ink takes a steady
+   3.0 to 3.4 px off what Probe reads between them. The pose stays; Probe's painted read holds
+   at least 15 px at 1440 and 1024 and at least 13 px at 390 on 6.1 and 3.0 (5.0 exempt), which
+   keeps today's 16, 17 and 15 with 1 to 2 px of margin and fails a pose about 15% shallower.
