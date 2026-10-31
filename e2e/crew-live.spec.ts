@@ -1171,6 +1171,11 @@ function pauseGeometry(page: Page) {
       right: r.right,
       closeRight: close.getBoundingClientRect().right,
       top: r.top + scrollY,
+      atRowTop:
+        Math.abs(
+          r.top -
+            (button.parentElement?.getBoundingClientRect().top ?? Number.NaN),
+        ) <= 0.5,
       height: r.height,
       width: r.width,
       inside:
@@ -1249,7 +1254,7 @@ async function scripts(browser: Browser, url: string) {
   };
 }
 
-test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top still from live to resting; 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 16,384 B more; / polls nothing in 5 minutes", async ({
+test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top the row's and still from live to resting (the chip unchanged); 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 16,384 B more; / polls nothing in 5 minutes", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1267,7 +1272,19 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
       ["down", DOWN, 0],
       ["live", LIVE, 60_000],
       ["open", OPEN, 30_000],
-      ["resting", RESTING, 60_000],
+      // The live run ended: the resting answer keeps its sprint and goal, as a run that ends while
+      // a visitor watches does, so the chip keeps its lines and only the status changes (Atlas,
+      // on Forge's finding: the fixtures are two runs with goals of different lengths).
+      [
+        "resting",
+        told("resting", {
+          last: {
+            sprint: (feedOf("live").current as { sprint: number }).sprint,
+            goal: (feedOf("live").current as { goal: string }).goal,
+          },
+        }),
+        60_000,
+      ],
     ];
     const found: Record<string, unknown>[] = [];
     const wanted: Record<string, unknown>[] = [];
@@ -1296,6 +1313,7 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
           shown,
           order: g?.order,
           row: g?.row,
+          atRowTop: g?.atRowTop,
           rightOnClose:
             width === 320 || !g
               ? null
@@ -1311,6 +1329,7 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
           shown: state,
           order: true,
           row: true,
+          atRowTop: true,
           rightOnClose: width === 320 ? null : true,
           height: width >= 1024 ? 32 : 44,
           wide: true,
@@ -1331,7 +1350,7 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
     expect
       .soft(
         found,
-        `Pause in each state and size, ${scheme}: DOM order (status, button, table), the row, the right edge on Close's within 0.5 px, height, 24 px wide, inside the viewport, overflow at 320, named Pause updates unpressed, pressed and again`,
+        `Pause in each state and size, ${scheme}: DOM order (status, button, table), the row, its top the row's, the right edge on Close's within 0.5 px, height, 24 px wide, inside the viewport, overflow at 320, named Pause updates unpressed, pressed and again`,
       )
       .toEqual(wanted);
     expect
