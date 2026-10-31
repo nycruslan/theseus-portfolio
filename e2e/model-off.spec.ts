@@ -73,11 +73,9 @@ test("B3.5 the Off paths download nothing: WebGL refused, forced colours, Save-D
         { name: `scripts off ${at}`, options: { ...size, noScript: true } },
       ];
     });
-  // The refused page at each width is that width's baseline: it comes first among its cases.
-  let baseline: Set<string> | null = null;
-  let baseTitle = "";
-  for (const { name, options, print } of cases) {
-    if (options.refuse) baseline = null;
+  // Each width's five pages load side by side, in contexts of their own (none loads WebGL, and
+  // each waits out the idle import), and are asserted in order below (sprint 36, decision 10).
+  const visit = async ({ options, print }: (typeof cases)[number]) => {
     const run = await openModel(browser, options);
     if (print) await run.page.emulateMedia({ media: "print" });
     if (options.noScript) {
@@ -92,6 +90,19 @@ test("B3.5 the Off paths download nothing: WebGL refused, forced colours, Save-D
       (s) => new URL(s.url).pathname,
     );
     await run.close();
+    return { seen, requests, scripts };
+  };
+  const visits: Awaited<ReturnType<typeof visit>>[] = [];
+  for (let i = 0; i < cases.length; i += 5)
+    visits.push(...(await Promise.all(cases.slice(i, i + 5).map(visit))));
+  // The refused page at each width is that width's baseline: it comes first among its cases.
+  let baseline: Set<string> | null = null;
+  let baseTitle = "";
+  for (const [i, { name, options }] of cases.entries()) {
+    if (options.refuse) baseline = null;
+    const read = visits[i];
+    if (!read) throw new Error(`no visit read for ${name}`);
+    const { seen, requests, scripts } = read;
     if (!baseline) {
       baseline = new Set(scripts);
       baseTitle = seen.title;

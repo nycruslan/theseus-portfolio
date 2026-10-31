@@ -13,6 +13,7 @@ import {
 import {
   type Answer,
   type Crew,
+  crewOf,
   STATE_WAIT,
   crewTest as test,
   untilState,
@@ -102,7 +103,9 @@ const RESTING_VARIANTS = [
 // Every site's wait starts here, together, so a worker waits out the regenerations once: the
 // fixtures' first states, the down variants' switches and the kept reads' windows overlap. Each
 // check then awaits its own scenario and asserts on what it saw, as before.
-test.beforeAll(({ crew }) => {
+// The worker's crew from crewOf(): a beforeAll takes no test-scoped fixture (crew-feed.ts).
+test.beforeAll(async () => {
+  const crew = await crewOf();
   for (const fixture of ["live", "open"] as const)
     void reach(crew, fixture, { fixture });
   for (const [name, patch] of RESTING_VARIANTS)

@@ -237,6 +237,8 @@ export type Site = {
   /** What the server printed, for a failure's message. */
   log(): string;
   stop(): Promise<void>;
+  /** Kills the server's process group and removes its folder, synchronously (the worker's exit). */
+  kill(): void;
 };
 
 /**
@@ -301,13 +303,23 @@ async function startSite(feedUrl: string | null, ca?: string): Promise<Site> {
     }
     rmSync(dir, { recursive: true, force: true });
   };
+  const kill = () => {
+    if (child.pid && child.exitCode === null) {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        // Already gone.
+      }
+    }
+    rmSync(dir, { recursive: true, force: true });
+  };
   const started = Date.now();
   while (Date.now() - started < 60_000) {
     if (child.exitCode !== null) break;
     const up = await fetch(`${baseURL}/robots.txt`)
       .then((r) => r.ok)
       .catch(() => false);
-    if (up) return { baseURL, log: () => output, stop };
+    if (up) return { baseURL, log: () => output, stop, kill };
     await pause(200);
   }
   await stop();
@@ -415,66 +427,85 @@ export type Crew = {
 
 const KEPT = ["live", "open", "resting"];
 
+/** The worker's feed server and sites, made on first use (`crewOf`). */
+let shared: Promise<Crew> | null = null;
+
 /**
- * The fixture for the specs that read the feed (crew.spec.ts, live-layer.spec.ts): one fixture
- * server per worker, a site per kept channel, and one variant site at a time.
+ * The worker's feed server, a site per kept channel, and one variant site at a time, for the specs
+ * that read the feed: made once per worker process on first use, its promise shared, and its sites
+ * killed as the worker exits. A spec's beforeAll takes it from here; a check, from `crewTest`'s
+ * `crew`.
+ *
+ * Sprint 36 (decision 10) moved it out of a worker-scoped fixture: Playwright keys a worker by its
+ * worker fixtures, and runs a free worker's own kind of job first, so every feed spec waited until
+ * the rest of the suite was done and then ran as one long tail, with a worker idle at the end. As
+ * a module's value and a test-scoped fixture, the feed specs run in the suite's order with the rest.
  */
-export const crewTest = base.extend<object, { crew: Crew }>({
-  crew: [
-    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern, and this one has none.
-    async ({}, use) => {
-      const feed = await startFeed();
-      const sites = new Map<string, Promise<Site>>();
-      const scenarios = new Map<string, Promise<unknown>>();
-      let variant: Promise<Site> | null = null;
-      const stop = (site: Promise<Site> | null) =>
-        site?.then((s) => s.stop()).catch(() => undefined);
-      await use({
-        feed,
-        once<T>(key: string, make: () => Promise<T>) {
-          let started = scenarios.get(key);
-          if (started === undefined) {
-            started = make();
-            // Awaited by its check, which reports a failure; unawaited here, it mustn't crash the run.
-            started.catch(() => undefined);
-            scenarios.set(key, started);
-          }
-          return started as Promise<T>;
-        },
-        site(name, answer, keep = KEPT.includes(name)) {
-          if (keep) {
-            const known = sites.get(name);
-            if (known !== undefined) return known;
-            const started = startSite(feed.set(name, answer), feed.ca);
-            sites.set(name, started);
-            return started;
-          }
-          const previous = variant;
-          // A fresh answer for the channel: nothing carried over from an earlier switch.
-          const fresh: Partial<Answer> = {
-            fixture: "live",
-            status: 200,
-            ageMs: 0,
-            delayMs: 0,
-            patch: undefined,
-            raw: undefined,
-            ...answer,
-          };
-          variant = (async () => {
-            await stop(previous);
-            return startSite(feed.set(name, fresh), feed.ca);
-          })();
-          return variant;
-        },
-      });
-      await Promise.all(
-        [...scenarios.values()].map((p) => p.catch(() => undefined)),
-      );
-      // All at once: one by one, a worker that kept 17 sites (crew.spec.ts's 15 and sprint 36's
-      // hull checks) overran the fixture's 30 s teardown and failed the worker's last test.
-      await Promise.all([...sites.values(), variant].map(stop));
-      await feed.stop();
+export function crewOf(): Promise<Crew> {
+  shared ??= makeCrew();
+  return shared;
+}
+
+async function makeCrew(): Promise<Crew> {
+  const feed = await startFeed();
+  const sites = new Map<string, Promise<Site>>();
+  const scenarios = new Map<string, Promise<unknown>>();
+  const made: Site[] = [];
+  let variant: Promise<Site> | null = null;
+  const start = (url: string | null) =>
+    startSite(url, feed.ca).then((site) => {
+      made.push(site);
+      return site;
+    });
+  // The worker's exit: each site's process group killed and its folder removed, synchronously,
+  // since an exit handler can't wait (the feed server goes with the process).
+  process.once("exit", () => {
+    for (const site of made) site.kill();
+  });
+  return {
+    feed,
+    once<T>(key: string, make: () => Promise<T>) {
+      let started = scenarios.get(key);
+      if (started === undefined) {
+        started = make();
+        // Awaited by its check, which reports a failure; unawaited here, it mustn't crash the run.
+        started.catch(() => undefined);
+        scenarios.set(key, started);
+      }
+      return started as Promise<T>;
     },
-    { scope: "worker" },
-  ],
+    site(name, answer, keep = KEPT.includes(name)) {
+      if (keep) {
+        const known = sites.get(name);
+        if (known !== undefined) return known;
+        const started = start(feed.set(name, answer));
+        sites.set(name, started);
+        return started;
+      }
+      const previous = variant;
+      // A fresh answer for the channel: nothing carried over from an earlier switch.
+      const fresh: Partial<Answer> = {
+        fixture: "live",
+        status: 200,
+        ageMs: 0,
+        delayMs: 0,
+        patch: undefined,
+        raw: undefined,
+        ...answer,
+      };
+      variant = (async () => {
+        await previous?.then((s) => s.stop()).catch(() => undefined);
+        return start(feed.set(name, fresh));
+      })();
+      return variant;
+    },
+  };
+}
+
+/** The specs that read the feed take `crew`, the worker's (`crewOf`), from this test. */
+export const crewTest = base.extend<{ crew: Crew }>({
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern, and this one has none.
+  crew: async ({}, use) => {
+    await use(await crewOf());
+  },
 });

@@ -2,6 +2,7 @@ import { type Browser, expect, type Page } from "@playwright/test";
 import { expected } from "./crew";
 import {
   type Crew,
+  crewOf,
   STATE_WAIT,
   crewTest as test,
   untilState,
@@ -46,7 +47,9 @@ function liveSite(crew: Crew) {
   });
 }
 
-test.beforeAll(({ crew }) => {
+// The worker's crew from crewOf(): a beforeAll takes no test-scoped fixture (crew-feed.ts).
+test.beforeAll(async () => {
+  const crew = await crewOf();
   void liveSite(crew);
 });
 
@@ -154,7 +157,32 @@ test("B4.39 Off downloads nothing on /crew: on the live site at 1440 and 390, wi
   const url = `${site.base}/crew`;
   for (const size of SIZES) {
     const at = `the live site at ${size.width} x ${size.height}`;
-    const plain = await baseline(browser, url, size);
+    const cases: { name: string; options: ModelOptions; print?: boolean }[] = [
+      { name: "off stored before load", options: { stored: "off" } },
+      { name: "forced colours", options: { forcedColors: "active" } },
+      { name: "Save-Data", options: { saveData: true } },
+      { name: "print media at load", options: {}, print: true },
+      { name: "scripts off", options: { noScript: true } },
+    ];
+    // The baseline and the five Off paths load side by side, each in a context of its own (none
+    // loads WebGL, and each waits out the idle import): read first, asserted in order below.
+    const [plain, ...visits] = await Promise.all([
+      baseline(browser, url, size),
+      ...cases.map(async ({ options, print }) => {
+        const run = await openCrewModel(browser, { ...size, ...options });
+        if (print) await run.page.emulateMedia({ media: "print" });
+        if (options.noScript) await run.page.goto(url);
+        else await run.goto(url);
+        await pause(IDLE);
+        const seen = await detail(run.page);
+        const requests = (await run.requests()).map((r) => r.type);
+        const scripts = (await run.scripts()).list.map(
+          (s) => new URL(s.url).pathname,
+        );
+        await run.close();
+        return { seen, requests, scripts };
+      }),
+    ]);
     expect(
       plain.drawing.marks.length,
       `ticks on the WebGL-refused page, ${at}`,
@@ -168,31 +196,16 @@ test("B4.39 Off downloads nothing on /crew: on the live site at 1440 and 390, wi
         `context requests but the probe's webgl2, and at most one, WebGL refused, ${at}`,
       )
       .toEqual([[], true]);
-    const cases: { name: string; options: ModelOptions; print?: boolean }[] = [
-      { name: "off stored before load", options: { stored: "off" } },
-      { name: "forced colours", options: { forcedColors: "active" } },
-      { name: "Save-Data", options: { saveData: true } },
-      { name: "print media at load", options: {}, print: true },
-      { name: "scripts off", options: { noScript: true } },
-    ];
-    for (const { name, options, print } of cases) {
+    for (const [i, { name, options, print }] of cases.entries()) {
       const where = `${name}, ${at}`;
       const base = options.forcedColors
         ? plain.forced
         : print
           ? plain.print
           : plain.drawing;
-      const run = await openCrewModel(browser, { ...size, ...options });
-      if (print) await run.page.emulateMedia({ media: "print" });
-      if (options.noScript) await run.page.goto(url);
-      else await run.goto(url);
-      await pause(IDLE);
-      const seen = await detail(run.page);
-      const requests = (await run.requests()).map((r) => r.type);
-      const scripts = (await run.scripts()).list.map(
-        (s) => new URL(s.url).pathname,
-      );
-      await run.close();
+      const visit = visits[i];
+      if (!visit) throw new Error(`no visit read for ${where}`);
+      const { seen, requests, scripts } = visit;
       expect
         .soft(
           scripts.filter((s) => !plain.scripts.has(s)),

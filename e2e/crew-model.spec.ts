@@ -3,6 +3,7 @@ import { expected } from "./crew";
 import {
   type Answer,
   type Crew,
+  crewOf,
   STATE_WAIT,
   crewTest as test,
   untilState,
@@ -25,23 +26,21 @@ import {
   deltaAt,
   differs,
   LAYOUT,
-  MOVE,
   marksDrawn,
   openCrewModel,
   plankPoints,
   planksAlone,
-  pressMode,
+  rested,
+  svgBox,
 } from "./crew-model";
-import { copper, markVisit, sinceMark, token } from "./ghost";
+import { copper, token } from "./ghost";
 import { installRgba } from "./helpers";
 import {
   type Box,
   FIRST,
-  FRAME,
   note,
   pause,
   REST,
-  runTo,
   SHOWN,
   TRIANGLES_AT,
   whole,
@@ -54,12 +53,13 @@ import {
   type Image,
   pixel,
 } from "./pixels";
-import type { ModelOptions, Script } from "./webgl";
+import type { Script } from "./webgl";
 
-// Sprint 36, B4d (.crew/sprint/36/contract.md, B4.36 to B4.38 and B4.40, with Iris's amendments,
+// Sprint 36, B4d (.crew/sprint/36/contract.md, B4.36, B4.37 and B4.40, with Iris's amendments,
 // decisions.md 6 and notes-iris.md): the card model on /crew's detail drawing, on B3's harness
-// (CI's SwiftShader, every GPU number a floor), written before the build. B4.36 and B4.38 run on
-// the default server (down: the drawing is `record`, the focus point the focus number's anchor);
+// (CI's SwiftShader, every GPU number a floor), written before the build. B4.38 needs no site and
+// runs with the suite's bulk from crew-motion.spec.ts (decision 10). B4.36 runs on the default
+// server (down: the drawing is `record`, the focus point the focus number's anchor);
 // B4.37 and B4.40 on B4a's kept live site, with `page.route` answering `/api/crew` and the clock
 // driving the poll, and B4.36's framing on the live (3.0) and sprint 999 (6.1) sites. Pages are
 // shared per size where a check allows (sprint 33, decision 12: a WebGL page is 5 to 7 s to rest).
@@ -77,8 +77,6 @@ const SIZES = [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },
 ];
-/** Two animation frames on the clock: "within 2 frames". */
-const TWO_FRAMES = Math.ceil(2 * FRAME);
 /** Past load, the idle callback's 2,000 ms timeout and a margin. */
 const IDLE = 3500;
 const LIVE_999: Partial<Answer> = {
@@ -117,7 +115,9 @@ async function siteOf(
   return { base, where: `the ${name} site`, n: n ?? Number.NaN };
 }
 
-test.beforeAll(({ crew }) => {
+// The worker's crew from crewOf(): a beforeAll takes no test-scoped fixture (crew-feed.ts).
+test.beforeAll(async () => {
+  const crew = await crewOf();
   void kept(crew, "live", { fixture: "live" });
   void kept(crew, "open", { fixture: "open" });
   void kept(crew, "home-999", LIVE_999);
@@ -165,18 +165,6 @@ async function onHull(page: Page, clip: Box) {
     .map((f) => f.text);
 }
 
-async function rested(run: CrewRun, url: string, clock = false) {
-  await run.goto(url);
-  if (clock) await run.until([...REST], 50, FIRST);
-  else await run.waitFor([...REST], FIRST);
-  await pause(300);
-}
-
-/** The shown svg's box as a Box. */
-async function svgBox(page: Page): Promise<Box | null> {
-  return (await crewFit(page)).svg;
-}
-
 /** The focus number at rest: the shown figures in [data-plan] (B4.37: only the focus plank's). */
 const figures = (page: Page) =>
   readDetail(page).then((r) =>
@@ -218,6 +206,29 @@ async function fitChecks(
       `the canvas (${JSON.stringify(c)}, buffer ${bw} x ${bh} at ${ratio}x) on the drawing's box ${JSON.stringify(s)} in whole buffer pixels, ${where}`,
     )
     .toBe(true);
+}
+
+/**
+ * Resizes a page at rest and waits for the layer to land on the new width's drawing: the canvas on
+ * the shown svg's box (up to 15 s, in real time), at rest, and a frame's grace. A crossing of
+ * 768 px builds the other level's scene once, so it waits the longest.
+ */
+async function atWidth(run: CrewRun, width: number, height: number) {
+  await run.page.setViewportSize({ width, height });
+  const end = Date.now() + 15_000;
+  for (;;) {
+    const fit = await crewFit(run.page);
+    const on =
+      fit.canvas &&
+      fit.svg &&
+      Math.abs(fit.canvas.width - fit.svg.width) <= 1 &&
+      Math.abs(fit.canvas.x - fit.svg.x) <= 1 &&
+      Math.abs(fit.canvas.y - fit.svg.y) <= 1;
+    if (on || Date.now() > end) break;
+    await pause(100);
+  }
+  await run.waitFor([...REST], FIRST);
+  await pause(300);
 }
 
 /** Copper pixels (within ΔE 10 of --accent over the ground) in an image, with their positions. */
@@ -389,30 +400,43 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
     const seat = focusOf("live", site.n);
     const widths =
       site === live ? [1440, 1024, 768, 390, 320] : [1440, 1024, 390];
+    const g = seatGeometry(seat);
+    // One page per site, resized from width to width (the layer moves to the other drawing,
+    // settled, across 768 px, and refits on a resize: lib/model/mount.ts), instead of a fresh
+    // build per width (decision 10). The hydration poll is held, so the page stays as the server
+    // drew it; once every width's settled pencil frame is read, it is released turned record and
+    // each framing width read again at the same pose, for the depth.
+    const run = await openCrewModel(
+      browser,
+      { width: 1440, height: 900, stored: "calm" },
+      { hold: true },
+    );
+    await run.context.addInitScript(installRgba);
+    await rested(run, `${site.base}/crew`);
+    const accent = await token(run.page, "--accent");
+    const ground = await token(run.page, "--background");
+    const framed = new Map<
+      number,
+      {
+        where: string;
+        clip: Box;
+        focusPoint: [number, number];
+        pencilShot: Awaited<ReturnType<typeof canvasOnly>>;
+        dot: number[] | null;
+        numberX: number;
+      }
+    >();
     for (const width of widths) {
       const height = width < 768 ? 844 : 900;
       const where = `${site.where} (${seat}) at ${width} x ${height}`;
-      // The hydration poll held, so the page stays as the server drew it until it's released.
-      const run = await openCrewModel(
-        browser,
-        { width, height, stored: "calm" },
-        { hold: true },
-      );
-      await run.context.addInitScript(installRgba);
-      await rested(run, `${site.base}/crew`);
+      await atWidth(run, width, height);
       await fitChecks(run, width, 1, where);
-      if (![1440, 1024, 390].includes(width)) {
-        await run.close();
-        continue;
-      }
+      expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
+      if (![1440, 1024, 390].includes(width)) continue;
       const c = (await crewFit(run.page)).canvas;
       const clip = whole(c as Box);
       const live2d = await readDetail(run.page);
-      const fit = fitOf(live2d);
-      const g = seatGeometry(seat);
-      const focusPoint = cssOf(live2d, fit, g.focus);
-      const accent = await token(run.page, "--accent");
-      const ground = await token(run.page, "--background");
+      const focusPoint = cssOf(live2d, fitOf(live2d), g.focus);
       const pencilShot = await canvasOnly(run.page, clip);
       const coppers = copperAt(pencilShot.image, accent, ground);
       const maxX = Math.max(...coppers.map(([x]) => x));
@@ -429,15 +453,18 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
       const numberX = number
         ? (number.box.left + number.box.right) / 2 - clip.x
         : Number.NaN;
-      const cw = clip.width;
-      const sides = (x: number) => x >= 0.08 * cw && x <= 0.92 * cw;
-      // The plank's depth at the tally's middle: the pencil plank's pixels (the settled frame's
-      // difference from the same pose with the run turned record) in the focus point's column.
-      await run.release({
-        json: told("live", { current: { sprint: site.n + 1 } }),
-      });
-      await run.waitFor(["settled", "still"], 5_000);
-      await pause(400);
+      framed.set(width, { where, clip, focusPoint, pencilShot, dot, numberX });
+    }
+    // The plank's depth at the tally's middle: the pencil plank's pixels (the settled frame's
+    // difference from the same pose with the run turned record) in the focus point's column.
+    await run.release({
+      json: told("live", { current: { sprint: site.n + 1 } }),
+    });
+    await run.waitFor(["settled", "still"], 5_000);
+    await pause(400);
+    for (const [width, f] of framed) {
+      const { where, clip, focusPoint, pencilShot, dot, numberX } = f;
+      await atWidth(run, width, width < 768 ? 844 : 900);
       const recordShot = await canvasOnly(run.page, clip);
       // The focus point is on the lower edge, held on its 2D place: the plank is the changed rows
       // above it (the ticks hang below it, so rows past it are left out), top to bottom.
@@ -460,6 +487,8 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
         );
       }
       const depth = [...depths].sort((a, b) => a - b)[2] ?? 0;
+      const cw = clip.width;
+      const sides = (x: number) => x >= 0.08 * cw && x <= 0.92 * cw;
       // Decision 8 (Iris): painted depth, the lines' ink between, at least 15 px from 1024 and 13
       // at 390 (her geometric 18 and 16, less the 3.0 to 3.4 px the ink takes).
       const floor = width >= 1024 ? 15 : 13;
@@ -471,16 +500,15 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
       expect
         .soft(
           {
-            dot: Boolean(dot && sides(dot[0])),
+            dot: Boolean(dot && sides(dot[0] ?? Number.NaN)),
             number: sides(numberX),
             depth: depth >= floor,
           },
           `settled: the dot (${dot?.[0]?.toFixed(1)}) and the focus number's centre (${numberX.toFixed(1)}) 8% or more of ${cw} px from each side, and the plank ${depth} px deep at the tally's middle, at least ${floor}, ${where}`,
         )
         .toEqual({ dot: true, number: true, depth: true });
-      expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
-      await run.close();
     }
+    await run.close();
   }
 });
 
@@ -646,283 +674,6 @@ test("B4.37 the ticks in 3D, and copper only while live: on the live and open si
       .toEqual({ live: true, outside: 0, open: 0, record: 0 });
     expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
     await run.close();
-  }
-});
-
-test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1 and settles 1.8 s +/- one frame on the clock; a reload and a Back from / open settled with one live context, a new tab plays the move; a key, a click, a wheel, a tap and a scroll each settle it within 2 frames; Full from Calm or Off replays it; Calm stored or reduce with nothing stored never set landed or moving; Calm mid-move settles within 2 frames and stores calm; under reduce the fade is /'s, opacity, fill and visibility with nothing moving (decision 7), ending within 300 ms", async ({
-  browser,
-}, testInfo) => {
-  test.setTimeout(420_000);
-  for (const size of SIZES) {
-    const where = `/crew at ${size.width} x ${size.height}`;
-    // The move on the clock, then each input in a replay.
-    const run = await openCrewModel(browser, {
-      ...size,
-      touch: true,
-      clock: true,
-    });
-    await run.goto("/crew");
-    expect(
-      await run.until(SHOWN, 4, FIRST),
-      `frame 1 is landed, ${where}`,
-    ).toBe("landed");
-    await run.until(["lofting"], 4, 20_000);
-    const t0 =
-      (await run.states()).find((s) => s.state === "lofting")?.t ?? Number.NaN;
-    await runTo(run, t0 + MOVE - FRAME);
-    await run.until([...REST], 4, 10_000);
-    const settledAt =
-      (await run.states()).find((s) => s.state === "settled")?.t ?? Number.NaN;
-    const moving = (await run.frames()).filter(
-      (f) => f.state === "landed" || f.state === "lofting",
-    );
-    note(
-      testInfo,
-      "move",
-      `${where}: settled ${(settledAt - t0).toFixed(1)} ms after the first lofting frame, ${moving.length} moving frames. ${SWIFTSHADER}.`,
-    );
-    expect.soft(moving.length, `moving frames, ${where}`).toBeGreaterThan(1);
-    expect
-      .soft(
-        Math.abs(settledAt - t0 - MOVE),
-        `ms from the first moving frame to settled, against ${MOVE} +/- one frame, ${where}`,
-      )
-      .toBeLessThanOrEqual(FRAME + 0.5);
-    const middle = async () => {
-      const b = await svgBox(run.page);
-      return {
-        x: (b?.x ?? 0) + (b?.width ?? 0) / 2,
-        y: (b?.y ?? 0) + (b?.height ?? 0) / 2,
-      };
-    };
-    const replay = async (from: "Calm" | "Off") => {
-      await run.page.evaluate(() => {
-        scrollTo(0, 0);
-        (document.activeElement as HTMLElement | null)?.blur();
-      });
-      await pressMode(run.page, from);
-      await run.step(from === "Off" ? 500 : 100);
-      const drawn = (await run.frames()).length;
-      await pressMode(run.page, "Full");
-      await run.until(["lofting"], 4, FIRST);
-      expect
-        .soft(
-          (await run.frames())[drawn]?.state,
-          `the first frame after Full pressed from ${from}, ${where}`,
-        )
-        .toBe("landed");
-    };
-    const inputs: [string, () => Promise<unknown>][] = [
-      ["a key (Tab)", () => run.page.keyboard.press("Tab")],
-      [
-        "a click on the hull",
-        async () => {
-          const at = await middle();
-          await run.page.mouse.click(at.x, at.y);
-        },
-      ],
-      [
-        "a wheel over the hull",
-        async () => {
-          const at = await middle();
-          await run.page.mouse.move(at.x, at.y);
-          await run.page.mouse.wheel(0, 120);
-        },
-      ],
-      [
-        "a tap on the hull",
-        async () => {
-          const at = await middle();
-          await run.page.touchscreen.tap(at.x, at.y);
-        },
-      ],
-      [
-        "a scroll",
-        // /crew can fit a 1440 x 900 screen: a spacer after main gives it room to scroll, as a
-        // longer panel would.
-        () =>
-          run.page.evaluate(() => {
-            if (document.documentElement.scrollHeight <= innerHeight + 60) {
-              const spacer = document.createElement("div");
-              spacer.style.height = "200px";
-              document.body.append(spacer);
-            }
-            scrollTo(0, 60);
-          }),
-      ],
-    ];
-    for (const [name, act] of inputs) {
-      await replay("Calm");
-      await act();
-      await pause(150);
-      await run.step(TWO_FRAMES);
-      expect
-        .soft(
-          await run.state(),
-          `${name} during the move settles it within 2 frames, ${where}`,
-        )
-        .toBe("settled");
-      await run.step(300);
-    }
-    await replay("Off");
-    // Calm pressed mid-move.
-    await pressMode(run.page, "Calm");
-    await pause(150);
-    await run.step(TWO_FRAMES);
-    expect
-      .soft(
-        [
-          await run.state(),
-          await run.page.evaluate(() => localStorage.getItem("theseus:motion")),
-        ],
-        `Calm pressed mid-move: settled within 2 frames, and calm stored, ${where}`,
-      )
-      .toEqual(["settled", "calm"]);
-    expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
-    await run.close();
-
-    // Once a visit, in real time.
-    const visit = await openCrewModel(browser, size);
-    await rested(visit, "/crew");
-    expect
-      .soft(
-        (await visit.states()).map((s) => s.state),
-        `the first visit plays the move, ${where}`,
-      )
-      .toContain("lofting");
-    for (const [label, go] of [
-      ["a reload", () => visit.page.reload()],
-      [
-        "Back from /",
-        async () => {
-          await visit.page.goto("/");
-          await visit.waitFor([...REST], FIRST);
-          await markVisit(visit.page);
-          await visit.page.goBack();
-          await visit.page.waitForURL((u) => u.pathname === "/crew");
-        },
-      ],
-    ] as const) {
-      await markVisit(visit.page);
-      await go();
-      await visit.waitFor([...REST], FIRST);
-      await pause(300);
-      const since = await sinceMark(visit.page);
-      expect
-        .soft(
-          {
-            state: await visit.state(),
-            moving: since.states.filter(
-              (s) => s === "landed" || s === "lofting",
-            ),
-            live: await visit.live(),
-          },
-          `${label} opens settled, with no moving state and one live context, ${where}`,
-        )
-        .toEqual({ state: "settled", moving: [], live: 1 });
-    }
-    const tab = await visit.context.newPage();
-    await tab.goto("/crew");
-    const end = Date.now() + FIRST;
-    let seen: string[] = [];
-    while (Date.now() < end && !seen.some((s) => REST.includes(s))) {
-      seen = await tab.evaluate(
-        () =>
-          (window as Window & { __states?: { state: string }[] }).__states?.map(
-            (s) => s.state,
-          ) ?? [],
-      );
-      await pause(100);
-    }
-    expect
-      .soft(seen, `a new tab plays the move again, ${where}`)
-      .toContain("lofting");
-    expect
-      .soft(visit.errors, `console errors over the visit, ${where}`)
-      .toEqual([]);
-    await visit.close();
-
-    // Calm stored, and reduce with nothing stored.
-    for (const [label, options] of [
-      ["Calm stored", { stored: "calm" }],
-      ["reduce with nothing stored", { reducedMotion: "reduce" }],
-    ] as [string, ModelOptions][]) {
-      const at = `${label}, ${where}`;
-      const quiet = await openCrewModel(browser, { ...size, ...options });
-      await quiet.context.addInitScript(() => {
-        // The fade: transitions in the drawing and the model layer (the panel's own, a dot's or a
-        // button's, aren't the model's fade).
-        const list: { property: string; end: number; target: string }[] = [];
-        (window as Window & { __runs?: typeof list }).__runs = list;
-        addEventListener(
-          "transitionrun",
-          (event) => {
-            const e = event as TransitionEvent;
-            const el = e.target as Element | null;
-            if (!el?.closest?.("[data-plan], [data-model]")) return;
-            const own = (el.getAnimations?.() ?? []).find(
-              (a) =>
-                (a as Animation & { transitionProperty?: string })
-                  .transitionProperty === e.propertyName,
-            );
-            list.push({
-              property: e.propertyName,
-              end: Number(
-                own?.effect?.getComputedTiming().endTime ?? Number.NaN,
-              ),
-              target: `<${el.tagName.toLowerCase()} ${el.getAttribute("class") ?? ""}>`,
-            });
-          },
-          true,
-        );
-      });
-      await rested(quiet, "/crew");
-      await pause(600);
-      const states = (await quiet.states()).map((s) => s.state);
-      expect
-        .soft(
-          {
-            settled: states.includes("settled"),
-            moving: states.filter((s) => s === "landed" || s === "lofting"),
-          },
-          `the states, ${at}`,
-        )
-        .toEqual({ settled: true, moving: [] });
-      if (options.reducedMotion) {
-        const runs = await quiet.page.evaluate(
-          () =>
-            (
-              window as Window & {
-                __runs?: { property: string; end: number; target: string }[];
-              }
-            ).__runs ?? [],
-        );
-        expect
-          .soft(
-            {
-              any: runs.length > 0,
-              other: [
-                ...new Set(
-                  runs
-                    // Decision 7: /'s fade, opacity, fill and visibility; nothing that moves.
-                    .filter(
-                      (r) =>
-                        !["opacity", "fill", "visibility"].includes(r.property),
-                    )
-                    .map((r) => `${r.property} on ${r.target}`),
-                ),
-              ],
-              late: runs
-                .filter((r) => !(r.end <= 300))
-                .map((r) => `${r.property} ${r.end}`),
-            },
-            `the fade under reduce: transitions run, none but opacity, fill and visibility (decision 7: no transform, position or size), all ending within 300 ms, ${at}`,
-          )
-          .toEqual({ any: true, other: [], late: [] });
-      }
-      expect.soft(quiet.errors, `console errors, ${at}`).toEqual([]);
-      await quiet.close();
-    }
   }
 });
 

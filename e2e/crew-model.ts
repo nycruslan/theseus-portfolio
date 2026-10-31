@@ -1,6 +1,6 @@
 import type { Browser, Page, Route } from "@playwright/test";
 import { MOTION } from "./helpers";
-import { type Box, pause } from "./model";
+import { type Box, FIRST, pause, REST } from "./model";
 import { coverage, decodePng, type Image, pixel } from "./pixels";
 import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 
@@ -323,4 +323,17 @@ export async function pressMode(page: Page, label: string) {
   );
   if (at) await page.mouse.click(at.x, at.y);
   return at !== null;
+}
+
+/** Opens `url` and waits for the model at rest: on the clock, in 50 ms steps, or in real time. */
+export async function rested(run: CrewRun, url: string, clock = false) {
+  await run.goto(url);
+  if (clock) await run.until([...REST], 50, FIRST);
+  else await run.waitFor([...REST], FIRST);
+  await pause(300);
+}
+
+/** The shown svg's box as a Box. */
+export async function svgBox(page: Page): Promise<Box | null> {
+  return (await crewFit(page)).svg;
 }

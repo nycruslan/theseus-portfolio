@@ -3,6 +3,7 @@ import { expected } from "./crew";
 import {
   type Answer,
   type Crew,
+  crewOf,
   type Fixture,
   STATE_WAIT,
   crewTest as test,
@@ -125,7 +126,9 @@ async function siteOf(
 
 const FIXTURE = (fixture: Fixture): Partial<Answer> => ({ fixture });
 
-test.beforeAll(({ crew }) => {
+// The worker's crew from crewOf(): a beforeAll takes no test-scoped fixture (crew-feed.ts).
+test.beforeAll(async () => {
+  const crew = await crewOf();
   for (const fixture of ["live", "open", "resting"] as const)
     void kept(crew, fixture, FIXTURE(fixture));
   void kept(crew, "home-999", LIVE_999);
