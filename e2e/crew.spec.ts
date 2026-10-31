@@ -26,6 +26,7 @@ import {
   SCHEMES,
   textStyles,
 } from "./helpers";
+import { refuseWebGl } from "./webgl";
 
 // Sprint 31, B4a (.crew/sprint/31/contract.md): `/crew` from the Studio's feed. The feed can't be
 // reached from CI or the cloud, so these checks serve fixtures of its shape (e2e/fixtures/crew,
@@ -113,8 +114,13 @@ test.beforeAll(({ crew }) => {
   for (const [kind, answer] of FAILED_READS)
     void keptScenario(crew, kind, answer);
 });
+// Sprint 36 (B4d, .crew/sprint/36/contract.md, "The live checks") puts the model on /crew, and it
+// restyles the drawing these checks read. So every context here refuses WebGL (the Off path, as
+// sprint 33 did for /log): this beforeEach for `page`, and `refuseWebGl` in each context a test
+// opens itself. The model's own checks are crew-model.spec.ts and its siblings.
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
+  await context.addInitScript(refuseWebGl);
 });
 
 test("B4 harness: the fixture server answers each fixture with the Studio's headers and a fresh asOf, a 503 with no-store, a stale asOf and a late answer as set; a site of its own pointed at the live fixture shows live on /crew", async ({
@@ -345,7 +351,7 @@ async function panelIs(page: Page, shown: Shown) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first landing on main#main, one main and one h1 Crew, the drawing aria-hidden and seated as on / with nothing hatched, no canvas, model or control, the panel's parts in order, its title, description, canonical, og:url and one og:image and twitter:image as PNG, and in the sitemap", async ({
+test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first landing on main#main, one main and one h1 Crew, the drawing aria-hidden and seated as on / with nothing hatched, no canvas with WebGL refused or scripts off (sprint 36: the model and the control are B4.36's and B4.41's), the panel's parts in order, its title, description, canonical, og:url and one og:image and twitter:image as PNG, and in the sitemap", async ({
   page,
   browser,
   request,
@@ -407,8 +413,7 @@ test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first 
             `${getComputedStyle(el).fill} ${getComputedStyle(el).stroke}`,
           ),
         ).length,
-      model: document.querySelectorAll("canvas, [data-model], [data-motion]")
-        .length,
+      model: document.querySelectorAll("canvas").length,
       panel: Boolean(panel?.closest("main")),
       state: panel?.getAttribute("data-crew-state") ?? null,
       missing: parts
@@ -458,9 +463,7 @@ test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first 
   expect.soft(crew.planHidden, "[data-plan] aria-hidden").toBe("true");
   expect.soft(crew.planInMain, "[data-plan] in main").toBe(true);
   expect.soft(crew.hatched, "hatched parts of the drawing").toBe(0);
-  expect
-    .soft(crew.model, "canvas, [data-model] or [data-motion] on /crew")
-    .toBe(0);
+  expect.soft(crew.model, "canvas on /crew, WebGL refused").toBe(0);
   expect.soft(crew.panel, "the panel in main").toBe(true);
   expect
     .soft(crew.state, "[data-crew-state] on the default server")
@@ -544,13 +547,16 @@ test("B4.1 the route: /crew is 200 with scripts on and off, the skip link first 
   const response = await noScript.goto("/crew");
   expect.soft(response?.status(), "status of /crew with scripts off").toBe(200);
   const off = await readPanel(noScript);
+  const canvases = await noScript.evaluate(
+    () => document.querySelectorAll("canvas").length,
+  );
   await context.close();
   expect
     .soft(
-      { state: off.state, h1: off.h1, rows: off.rows.length },
-      "/crew with scripts off",
+      { state: off.state, h1: off.h1, rows: off.rows.length, canvases },
+      "/crew with scripts off, and its canvases",
     )
-    .toEqual({ state: "down", h1: "Crew", rows: 7 });
+    .toEqual({ state: "down", h1: "Crew", rows: 7, canvases: 0 });
 });
 
 test("B4.2 down, honestly, on the default server: down, the down line, the record's chip, seven roles in roster order with no state or line, no activity, now line or Studio link, the record's PR linked, Approval and Rules", async ({
@@ -751,16 +757,26 @@ test("B4.5 resting, from the resting fixture: Crew resting with the merge's day 
   }
 });
 
-/** Every copper paint not allowed, at rest, with each link hovered and with each stop focused. */
-async function copperSweep(page: Page, shown: Shown, scheme: string) {
+/**
+ * Every copper paint not allowed, at rest, with each link hovered and with each stop focused. With
+ * `tip` (live, since sprint 36: .crew/sprint/36/contract.md, B4.6's rewrite) the drawing's
+ * `[data-tip]` is allowed too.
+ */
+async function copperSweep(
+  page: Page,
+  shown: Shown,
+  scheme: string,
+  tip = false,
+) {
   const accent = (await resolveColors(page))["--accent"]?.rgba ?? [];
   const where = `${shown.where}, ${scheme}`;
   const stray = new Set<string>();
   const allowed = new Set<string>();
   const note = (hits: Awaited<ReturnType<typeof copperPaint>>, how: string) => {
     for (const hit of hits) {
-      (hit.allowed ? allowed : stray).add(
-        `${hit.where} ${hit.property}${hit.allowed ? "" : ` (${how})`}`,
+      const ok = hit.allowed || (tip && hit.inTip);
+      (ok ? allowed : stray).add(
+        `${hit.where} ${hit.property}${ok ? "" : ` (${how})`}`,
       );
     }
   };
@@ -794,7 +810,7 @@ async function copperSweep(page: Page, shown: Shown, scheme: string) {
 }
 
 for (const state of ["live", "open", "resting", "down"] as const) {
-  test(`B4.6 state words and copper, ${state}: only a Working row's dot and word and the now line resolve to --accent, at rest, hovered and focused, in both schemes; ${state === "live" ? "a Working word and the now line are copper, and copper text meets 4.5:1" : "nothing is copper"}; the state words are the four`, async ({
+  test(`B4.6 state words and copper, ${state}: only a Working row's dot and word, the now line and, in live, the drawing's [data-tip] (sprint 36) resolve to --accent, at rest, hovered and focused, in both schemes; ${state === "live" ? "a Working word and the now line are copper, and copper text meets 4.5:1" : "nothing is copper"}; the state words are the four`, async ({
     page,
     crew,
   }) => {
@@ -824,7 +840,7 @@ for (const state of ["live", "open", "resting", "down"] as const) {
           `state words outside the four on ${shown.where}, ${scheme}`,
         )
         .toEqual([]);
-      const copper = await copperSweep(page, shown, scheme);
+      const copper = await copperSweep(page, shown, scheme, state === "live");
       if (state === "live") {
         expect
           .soft(
@@ -1085,7 +1101,7 @@ test("B4.12 the first screen, on the live fixture: at 1440 x 900 the h1, the sta
   }
 });
 
-test("B4.13 /crew's own sweeps: text contrast in both schemes on the default server and the live fixture; with scripts off the panel's state, rows and Rules as with them on; Tab visits the skip link, the wordmark, the shown bar links, Close, Pause updates (sprint 35) and Evidence's links in DOM order, each with one 2 px ink ring 2 px out; on the live fixture axe with the strict tags and every text in a token", async ({
+test("B4.13 /crew's own sweeps: text contrast in both schemes on the default server and the live fixture; with scripts off the panel's state, rows and Rules as with them on; Tab visits the skip link, the wordmark, the shown bar links, Off (the control with WebGL refused, sprint 36), Close, Pause updates (sprint 35) and Evidence's links in DOM order, each with one 2 px ink ring 2 px out; on the live fixture axe with the strict tags and every text in a token", async ({
   page,
   browser,
   crew,
@@ -1163,6 +1179,10 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
         ...[...(header?.querySelectorAll("nav a") ?? [])]
           .filter(shown)
           .map((a) => a.getAttribute("href") ?? ""),
+        // Sprint 36 (.crew/sprint/36/contract.md, B4.13's rewrite): the control's enabled buttons
+        // after Read as page, in the bar at 1440; with WebGL refused, Off alone (sprint 33,
+        // amendment 1: Full and Calm are disabled).
+        "<button> Off",
         document.querySelector("a[data-close]")?.getAttribute("href") ??
           "(no Close)",
         "<button>",
@@ -1199,8 +1219,13 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
             cs.outlineStyle !== "none" && Number.parseFloat(cs.outlineWidth) > 0
           );
         });
+        const control = el.closest("[data-motion]")
+          ? ` ${(el.textContent ?? "").trim()}`
+          : "";
         return {
-          href: el.getAttribute("href") ?? `<${el.tagName.toLowerCase()}>`,
+          href:
+            el.getAttribute("href") ??
+            `<${el.tagName.toLowerCase()}>${control}`,
           ring: `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} ${s.outlineOffset}`,
           count: ringed.length,
         };
@@ -1246,6 +1271,7 @@ async function scripts(
   url: string,
 ) {
   const context = await browser.newContext();
+  await context.addInitScript(refuseWebGl);
   const page = await context.newPage();
   const bodies: Promise<[string, number]>[] = [];
   page.on("response", (response) => {
@@ -1281,7 +1307,7 @@ async function scripts(
   };
 }
 
-test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew requests every script file the 404 does and at most 16,384 B more (its poller, sprint 35), within 2,048 B of /log's; two woff2 within 86,016 B", async ({
+test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew, WebGL refused, requests every script file the 404 does and at most 18,432 B more (its poller, sprint 35, and the model's loader, sprint 36), within 16,384 B of /log's; two woff2 within 86,016 B", async ({
   page,
   browser,
 }, testInfo) => {
@@ -1343,6 +1369,9 @@ test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP 
   expect.soft(log.status, "status of /log").toBe(200);
   // Sprint 35 gives /crew its poller (.crew/sprint/35/contract.md, B4.14's rewrite; the plan's
   // B4.3 sets /crew's own budget): the 404's files all included, and 16,384 B beyond its bytes.
+  // Sprint 36 adds the model's loader and the control, read with WebGL refused on every page
+  // (.crew/sprint/36/contract.md, call 7): 18,432 B beyond the 404's, the poller's allowance plus
+  // B2.10's loader's; and 16,384 B beyond /log's, which was vacuous while /log loaded its chunk.
   expect
     .soft(
       missing.paths.filter((path) => !crew.paths.includes(path)),
@@ -1352,19 +1381,20 @@ test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP 
   expect
     .soft(
       crew.bytes - missing.bytes,
-      `/crew's script bytes beyond the 404's (${missing.bytes} B)`,
+      `/crew's script bytes beyond the 404's (${missing.bytes} B), WebGL refused`,
     )
-    .toBeLessThanOrEqual(16_384);
+    .toBeLessThanOrEqual(18_432);
   expect
     .soft(
       crew.bytes - log.bytes,
-      `script bytes on /crew beyond /log's (${log.bytes} B)`,
+      `script bytes on /crew beyond /log's (${log.bytes} B), both WebGL refused`,
     )
-    .toBeLessThanOrEqual(2_048);
+    .toBeLessThanOrEqual(16_384);
 
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
   });
+  await context.addInitScript(refuseWebGl);
   const fresh = await context.newPage();
   const fonts: Promise<number>[] = [];
   fresh.on("response", (response) => {

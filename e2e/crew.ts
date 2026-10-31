@@ -406,7 +406,8 @@ export function readPanel(page: Page) {
  * Every painted property on the page that resolves to `accent` ([r, g, b, a]): text colour (where
  * the element shows text), background, borders, outline, text decoration, fill and stroke, pseudo-
  * elements included. `allowed` when it sits in a Working row's state cell or in [data-now]; `layer`
- * when it is B4b's copper on `/`.
+ * when it is B4b's copper on `/`; `inTip` when it is in a `[data-tip]` in `[data-plan]` (B4d's
+ * copper on /crew, live only: .crew/sprint/36/contract.md, B4.6's rewrite).
  * Needs installRgba as an init script.
  */
 export function copperPaint(page: Page, accent: number[]) {
@@ -416,7 +417,13 @@ export function copperPaint(page: Page, accent: number[]) {
     ).__rgba;
     if (!rgba)
       return [
-        { where: "page", property: "no __rgba", allowed: false, layer: false },
+        {
+          where: "page",
+          property: "no __rgba",
+          allowed: false,
+          layer: false,
+          inTip: false,
+        },
       ];
     const same = (value: string) => {
       const c = rgba(value);
@@ -443,6 +450,7 @@ export function copperPaint(page: Page, accent: number[]) {
       property: string;
       allowed: boolean;
       layer: boolean;
+      inTip: boolean;
     }[] = [];
     for (const el of [
       document.documentElement,
@@ -458,6 +466,7 @@ export function copperPaint(page: Page, accent: number[]) {
           '[data-drawing], [data-tip], li[data-key="copper"] .swatch-tip',
         ),
       );
+      const inTip = Boolean(el.closest("[data-plan] [data-tip]"));
       const name = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}"`;
       for (const pseudo of [null, "::before", "::after", "::marker"] as const) {
         const s = getComputedStyle(el, pseudo);
@@ -471,7 +480,7 @@ export function copperPaint(page: Page, accent: number[]) {
         const where = `${name}${pseudo ?? ""}`;
         const check = (property: string, value: string, painted = true) => {
           if (painted && same(value))
-            hits.push({ where, property, allowed, layer });
+            hits.push({ where, property, allowed, layer, inTip });
         };
         check(
           "color",
