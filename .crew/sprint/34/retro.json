@@ -4,17 +4,48 @@
   "goal": "B4b: the live layer on /, the crew's state on the drawing",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "merged: Lens ship on b2b87d7 with no fix round and three nits; Iris ship at 8.7/10; B4.15 to B4.24 red first, then green; no owner path touched",
-  "fixRounds": 0,
-  "minutes": 125,
+  "outcome": "merged: Lens ship on 415b4c0 after one fix round (CI's 25-minute cap), with nits riding; Iris ship at 8.7/10; B4.15 to B4.24 red first, then green; no owner path touched",
+  "fixRounds": 1,
+  "minutes": 195,
   "agents": [
-    { "role": "product-owner", "model": "opus", "tokens": 170529, "minutes": 26 },
-    { "role": "design-director", "model": "opus", "tokens": 446314, "minutes": 72 },
-    { "role": "engineer", "model": "opus", "tokens": 446254, "minutes": 102 },
-    { "role": "creative-engineer", "model": "opus", "tokens": 519247, "minutes": 91 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 345032, "minutes": 113 }
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 170529,
+      "minutes": 26
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 446314,
+      "minutes": 72
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 446254,
+      "minutes": 102
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 519247,
+      "minutes": 91
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 345032,
+      "minutes": 140
+    }
   ],
-  "lens": { "runs": 1, "tokens": 8004426, "important": 0, "actedOn": 0, "nits": 3 },
+  "lens": {
+    "runs": 2,
+    "tokens": 15942581,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 7
+  },
   "wentWrong": [
     {
       "what": "The live legend would not wrap, so the home page scrolled 61 px sideways on a phone",
@@ -25,8 +56,8 @@
       "evidence": "Iris saw a 13 px dash under \"31\" on seat 3.0 in the build; the tip moved to 1/2 to 7/8 of the plank (contract amendment 1)"
     },
     {
-      "what": "A check file reached the sprint branch with an unused import, failing lint",
-      "evidence": "Forge's verify failed on f5fed13; Probe's lint step had grepped output instead of the exit code (a9969bb)"
+      "what": "The first finished build ran past CI's 25-minute limit, so the suite was cancelled",
+      "evidence": "check cancelled on 316a660 at 25 min; Probe's feed specs now start their sites together, 7.4 to 3.5 min, and check passed in 20.3 min on 415b4c0"
     }
   ],
   "proposals": [
@@ -40,8 +71,21 @@
     }
   ],
   "followUps": [
-    { "who": "Owner", "what": "The B4 demo on #87's preview and production: the pencil and copper while a run is live, the rest line after, on a GPU and a phone" },
-    { "who": "Forge", "what": "Lens's empty-goal nit on #87 (goal?.trim() in layerOf and the oracle), and the tip drawn after the lettering on short seats" },
-    { "who": "Pixel", "what": "Move the hull's pencil label stern-ward when it covers the copper dot on a short seat (3.0) at 1024 and below" }
+    {
+      "who": "Owner",
+      "what": "The B4 demo on #87's preview and production: the pencil and copper while a run is live, the rest line after, on a GPU and a phone"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens's empty-goal nit on #87 (goal?.trim() in layerOf and the oracle), and the tip drawn after the lettering on short seats"
+    },
+    {
+      "who": "Pixel",
+      "what": "Move the hull's pencil label stern-ward when it covers the copper dot on a short seat (3.0) at 1024 and below"
+    },
+    {
+      "who": "Probe",
+      "what": "Lens's three test nits on 415b4c0: the copper scans count the legend's words as the swatch (match .swatch-tip), B4.15's title says --pencil, and crew-feed.ts's site-count comment (stop a scenario's site once read)"
+    }
   ]
 }

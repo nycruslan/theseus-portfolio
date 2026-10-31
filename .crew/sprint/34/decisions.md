@@ -47,3 +47,10 @@
    link to `/crew`; `goal?.trim()` in `layerOf` and the oracle) rides the next sprint that touches
    the layer. Iris ship at 8.7; her cheap change (the riding numbers on whole device pixels) was
    taken before the label, and the chip covering the dot on a short seat rides later.
+
+9. **CI's 25-minute cap cancelled the first finished build** (`check` on 316a660, in `pnpm test:e2e`;
+   main's whole job took 21.5 min at 0c033a8). The cap is in `.github/workflows/ci.yml`, the
+   owner's, so the specs got faster instead: Probe's 415b4c0 starts each spec's fixture sites
+   together in a per-worker `beforeAll`, and the two feed specs went from 7.4 to 3.5 min with no
+   assertion changed. `check` passed in 20.3 min, and Lens shipped 415b4c0 again with four nits (the
+   empty goal from before, and three in the tests, riding with the next sprint that touches them).
