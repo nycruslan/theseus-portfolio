@@ -221,11 +221,14 @@ function start(
       const found =
         run === "live" || run === "open" ? readPencil(drawing) : null;
       const label = focusLabel(drawing);
+      // At its anchor's own point on the hull, which at rest is the point the move holds, so it
+      // keeps its frame-1 place: centred between the plank's projected edges, as `/`'s number is,
+      // it strayed up to 0.55 px under the turn (B4.36's bound is 1 px).
       return {
         pencil: found && { ...found, live: found.live && run === "live" },
         ride: label
           ? riders(
-              { labels: [riderLabel(label, crew.dataset.focus ?? "", layout)] },
+              { labels: [riderLabel(label, undefined, layout)] },
               layout,
               true,
             )

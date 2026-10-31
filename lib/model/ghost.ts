@@ -70,12 +70,13 @@ export function pencilLabel(
 }
 
 /**
- * A number that rides its plank alone, `fixed` at its 2D anchor: the sheet's pencil number, and
- * /crew's focus number (.crew/sprint/36/contract.md, "The hull on /crew").
+ * A number that rides its plank alone, `fixed` at its 2D anchor: the sheet's pencil number, centred
+ * between its plank's projected edges at `seat`; or with no seat, /crew's focus number, at its
+ * anchor's own point on the hull (.crew/sprint/36/contract.md, "The hull on /crew").
  */
 export function riderLabel(
   span: HTMLElement,
-  seat: string,
+  seat: string | undefined,
   layout: Layout,
 ): Label {
   const { share, anchor } = placeOf(span, layout);
