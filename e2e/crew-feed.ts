@@ -470,7 +470,9 @@ export const crewTest = base.extend<object, { crew: Crew }>({
       await Promise.all(
         [...scenarios.values()].map((p) => p.catch(() => undefined)),
       );
-      for (const site of [...sites.values(), variant]) await stop(site);
+      // All at once: one by one, a worker that kept 17 sites (crew.spec.ts's 15 and sprint 36's
+      // hull checks) overran the fixture's 30 s teardown and failed the worker's last test.
+      await Promise.all([...sites.values(), variant].map(stop));
       await feed.stop();
     },
     { scope: "worker" },

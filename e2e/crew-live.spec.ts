@@ -89,17 +89,26 @@ const moment = (minute: number, text: string) => ({
   text,
 });
 
+// Sprint 36 (B4d, .crew/sprint/36/contract.md, "The live checks") puts the model on /crew: every
+// context here refuses WebGL (the Off path, as sprint 33 did for /log), the test's own page by this
+// beforeEach and the rest through freshContext, so no SwiftShader build runs under these checks.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(refuseWebGl);
+});
+
 /** A context of its own, as the test's own page has it, for a page with a clock of its own. */
 async function freshContext(
   browser: Browser,
   options: Parameters<Browser["newContext"]>[0] = {},
 ): Promise<BrowserContext> {
-  return browser.newContext({
+  const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
     timezoneId: "America/Los_Angeles",
     viewport: { width: 1440, height: 900 },
     ...options,
   });
+  await context.addInitScript(refuseWebGl);
+  return context;
 }
 
 /** The poller's readiness, the first failure a page without it meets. */
@@ -666,6 +675,83 @@ test("B4.28 a failed poll keeps the panel: a 503, an abort, not JSON, version 2,
       "This run on the Studio links for the fixture's https URL, then javascript:alert(1), then an http: run page",
     )
     .toEqual([1, 0, 0]);
+});
+
+test("B4.42 a poll that never settles is aborted (Lens on #90): held unanswered, it is aborted 30,000 ms after it starts on the clock and counts as failed, the next poll 30 s later while live; with every poll held after the told answer, the live panel turns into B4.2's down panel at the first abort more than 10 minutes after it, and not before", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(150_000);
+  // Sprint 36 (.crew/sprint/36/contract.md, B4.42): extends B4.28, which it loosens nowhere.
+  const aborted = (p: Page) => {
+    const failed: string[] = [];
+    p.on("requestfailed", (request) => {
+      if (new URL(request.url()).pathname === "/api/crew")
+        failed.push(request.failure()?.errorText ?? "failed");
+    });
+    return failed;
+  };
+  const failed = aborted(page);
+  const live = await livePage(page, "/crew", { json: LIVE });
+  ready(live, "the default server");
+  live.answer({ hold: true });
+  const held = await live.tick(30_000);
+  const early = await live.tick(29_999);
+  const failedEarly = failed.length;
+  await live.tick(1);
+  // In Node's time: the page's timers are on the paused clock.
+  await new Promise((done) => setTimeout(done, 300));
+  const failedAt30 = failed.length;
+  live.answer({ json: LIVE });
+  const next = [await live.tick(29_000), await live.tick(1_000)];
+  expect
+    .soft(
+      { held, early, failedEarly, failedAt30, next, state: await live.state() },
+      "the held poll at 30 s, polls and aborted requests 29,999 ms into it, aborted requests at 30,000 ms, the polls 29 s and 30 s after the abort, and the panel",
+    )
+    .toEqual({
+      held: 1,
+      early: 0,
+      failedEarly: 0,
+      failedAt30: 1,
+      next: [0, 1],
+      state: "live",
+    });
+
+  // Every poll held from the told answer on: a poll at 30 s, aborted at 60 s, the next at 90 s,
+  // aborted at 120 s, and so on; abort k is 60·k s after the answer, the 10th exactly 10 minutes.
+  const context = await freshContext(browser);
+  const p = await context.newPage();
+  const failedHeld = aborted(p);
+  const holding = await livePage(p, "/crew", { json: LIVE });
+  ready(holding, "the default server");
+  holding.answer({ hold: true });
+  const cycles: string[] = [];
+  for (let k = 1; k <= 11; k++) {
+    const polls = await holding.tick(30_000);
+    await holding.tick(30_000);
+    await new Promise((done) => setTimeout(done, 200));
+    cycles.push(`${k}: ${polls} ${failedHeld.length} ${await holding.state()}`);
+  }
+  expect
+    .soft(
+      cycles,
+      "each cycle k: polls in its first 30 s, aborted requests so far, and the panel after abort k (60·k s after the told answer)",
+    )
+    .toEqual(
+      Array.from(
+        { length: 11 },
+        (_, i) => `${i + 1}: 1 ${i + 1} ${i + 1 <= 10 ? "live" : "down"}`,
+      ),
+    );
+  const down = await panelAgainst(p, null, null);
+  expect
+    .soft(
+      down.found,
+      "the panel after the 11th abort, against B4.2's down panel",
+    )
+    .toEqual(down.expected);
+  await context.close();
 });
 
 test("B4.29 who started or stopped working: one [aria-live] in main, [data-announce], polite, atomic, sr-only, the panel's last child, empty in the HTML and after hydration; the contract's swap reads Lens started working. Probe stopped working.; moments, the now line, a line or Waiting to Done change nothing; live to resting and back by the oracle; down and a paused answer change nothing; [data-now] and [data-status] aren't live", async ({
@@ -1254,7 +1340,7 @@ async function scripts(browser: Browser, url: string) {
   };
 }
 
-test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top the row's and still from live to resting (the chip unchanged); 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 16,384 B more; / polls nothing in 5 minutes", async ({
+test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top the row's and still from live to resting (the chip unchanged); 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 18,432 B more (sprint 36), WebGL refused; / polls nothing in 5 minutes", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1494,7 +1580,9 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
     await context.close();
   }
 
-  // The script: the 404's files all in /crew's, and at most 16,384 B beyond its bytes.
+  // The script: the 404's files all in /crew's, and at most 18,432 B beyond its bytes, both read
+  // with WebGL refused (freshContext): the poller's 16,384 B and, since sprint 36, B2.10's model
+  // loader's 2,048 B (.crew/sprint/36/contract.md, call 7).
   const crew = await scripts(browser, "/crew");
   const missing = await scripts(browser, "/no-such-page");
   testInfo.annotations.push({
@@ -1506,7 +1594,7 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
       {
         status: [crew.status, missing.status],
         notInCrew: missing.paths.filter((p) => !crew.paths.includes(p)),
-        beyond: crew.bytes - missing.bytes <= 16_384,
+        beyond: crew.bytes - missing.bytes <= 18_432,
       },
       `/crew's script against the 404's: /crew ${crew.bytes} B, the 404 ${missing.bytes} B (${crew.bytes - missing.bytes} B beyond)`,
     )
