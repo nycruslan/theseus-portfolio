@@ -1340,7 +1340,7 @@ async function scripts(browser: Browser, url: string) {
   };
 }
 
-test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top the row's and still from live to resting (the chip unchanged); 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 18,432 B more (sprint 36), WebGL refused; / polls nothing in 5 minutes", async ({
+test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and 390 Pause follows the status and precedes the table, named Pause updates pressed and not; its right edge on Close's at 1440, 1024 and 390, its top the row's and still from live to resting (the chip unchanged); 32 px tall from 1024, 44 below, 24 wide, inside the viewport, no overflow at 320; Space and Enter toggle it; one 2 px ink ring; pressed ink with film text, Highlight in forced colours; never --accent; /crew's script the 404's and at most 20,480 B more (sprint 37), WebGL refused; / polls nothing in 5 minutes", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1580,9 +1580,10 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
     await context.close();
   }
 
-  // The script: the 404's files all in /crew's, and at most 18,432 B beyond its bytes, both read
-  // with WebGL refused (freshContext): the poller's 16,384 B and, since sprint 36, B2.10's model
-  // loader's 2,048 B (.crew/sprint/36/contract.md, call 7).
+  // The script: the 404's files all in /crew's, and at most 20,480 B beyond its bytes, both read
+  // with WebGL refused (freshContext): the poller's 16,384 B, since sprint 36 B2.10's model
+  // loader's 2,048 B (.crew/sprint/36/contract.md, call 7), and since sprint 37 the replay's
+  // measured 2,048 B (.crew/sprint/37/contract.md, call 8).
   const crew = await scripts(browser, "/crew");
   const missing = await scripts(browser, "/no-such-page");
   testInfo.annotations.push({
@@ -1594,7 +1595,7 @@ test("B4.31 Pause, and the budget: in the four states, both schemes, at 1440 and
       {
         status: [crew.status, missing.status],
         notInCrew: missing.paths.filter((p) => !crew.paths.includes(p)),
-        beyond: crew.bytes - missing.bytes <= 18_432,
+        beyond: crew.bytes - missing.bytes <= 20_480,
       },
       `/crew's script against the 404's: /crew ${crew.bytes} B, the 404 ${missing.bytes} B (${crew.bytes - missing.bytes} B beyond)`,
     )

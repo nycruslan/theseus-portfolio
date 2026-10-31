@@ -1310,7 +1310,7 @@ async function scripts(
   };
 }
 
-test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew, WebGL refused, requests every script file the 404 does and at most 18,432 B more (its poller, sprint 35, and the model's loader, sprint 36), within 16,384 B of /log's; two woff2 within 86,016 B", async ({
+test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew, WebGL refused, requests every script file the 404 does and at most 20,480 B more (its poller, sprint 35, the model's loader, sprint 36, and the replay, sprint 37), within 18,432 B of /log's; two woff2 within 86,016 B", async ({
   page,
   browser,
 }, testInfo) => {
@@ -1375,6 +1375,8 @@ test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP 
   // Sprint 36 adds the model's loader and the control, read with WebGL refused on every page
   // (.crew/sprint/36/contract.md, call 7): 18,432 B beyond the 404's, the poller's allowance plus
   // B2.10's loader's; and 16,384 B beyond /log's, which was vacuous while /log loaded its chunk.
+  // Sprint 37 adds the replay (.crew/sprint/37/contract.md, call 8, measured at +2,259 B by a
+  // sketch): 20,480 B beyond the 404's and 18,432 B beyond /log's.
   expect
     .soft(
       missing.paths.filter((path) => !crew.paths.includes(path)),
@@ -1386,13 +1388,13 @@ test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP 
       crew.bytes - missing.bytes,
       `/crew's script bytes beyond the 404's (${missing.bytes} B), WebGL refused`,
     )
-    .toBeLessThanOrEqual(18_432);
+    .toBeLessThanOrEqual(20_480);
   expect
     .soft(
       crew.bytes - log.bytes,
       `script bytes on /crew beyond /log's (${log.bytes} B), both WebGL refused`,
     )
-    .toBeLessThanOrEqual(16_384);
+    .toBeLessThanOrEqual(18_432);
 
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },

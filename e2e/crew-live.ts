@@ -49,6 +49,8 @@ export type AnswerRun = {
   moments: { kind: string; at: string; text: string }[];
   url: string | null;
   mergedAt: string | null;
+  /** Only in a resting answer that offers a replay (.crew/sprint/37/contract.md, call 6). */
+  replay?: { kind: string; at: string; text: string }[];
 };
 export type CrewAnswer =
   | { version: 1; state: "down"; run: null }
@@ -148,20 +150,16 @@ export function toAnswer(
     roles.set(role, { role, state: agentState, line: str(entry.line) });
   }
 
-  const moments = (run.moments as unknown[])
-    .flatMap((m) => {
-      if (!isObject(m)) return [];
-      const kind = str(m.kind);
-      const at = str(m.at);
-      const text = str(m.text);
-      if (!kind || !KINDS.includes(kind) || !at || Number.isNaN(Date.parse(at)))
-        return [];
-      if (!text) return [];
-      return [{ kind, at, text }];
-    })
+  const moments = keptMoments(run.moments)
     // Newest first; Array.prototype.sort is stable, so ties keep the feed's order.
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     .slice(0, 10);
+  // The replay (.crew/sprint/37/contract.md, "Data rules"): offered at rest with a sprint number
+  // and at least one kept entry; the key is absent otherwise.
+  const replay =
+    state === "resting" && typeof run.sprint === "number"
+      ? replayOf(run.replay)
+      : [];
 
   let url: string | null = null;
   const runUrl = str(run.url);
@@ -193,8 +191,33 @@ export function toAnswer(
       moments,
       url,
       mergedAt: str(run.mergedAt),
+      ...(replay.length > 0 ? { replay } : {}),
     },
   };
+}
+
+/** B4a's moment rules: a known kind, an `at` that parses and a non-empty text; `who` ignored. */
+function keptMoments(list: unknown) {
+  return (Array.isArray(list) ? list : []).flatMap((m) => {
+    if (!isObject(m)) return [];
+    const kind = str(m.kind);
+    const at = str(m.at);
+    const text = str(m.text);
+    if (!kind || !KINDS.includes(kind) || !at || Number.isNaN(Date.parse(at)))
+      return [];
+    if (!text) return [];
+    return [{ kind, at, text }];
+  });
+}
+
+/**
+ * "The replay": a feed's `last.replay` kept by B4a's moment rules, oldest first by `at` (stable, so
+ * ties keep the feed's order), the newest 60; a missing or non-array value keeps nothing.
+ */
+export function replayOf(list: unknown) {
+  return keptMoments(list)
+    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+    .slice(-60);
 }
 
 /** Each object in an answer whose keys aren't exactly "The route"'s, by its path. */
