@@ -238,7 +238,7 @@ function copperAt(image: Image, accent: number[], ground: number[]) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to rest; frame 1 registered on the shown detail within B3.1's bound with the planks' fills the Off page's within 8 levels; the canvas on the drawing's box in whole buffer pixels at 320, 390, 768, 1024 and 1440; settled on seats 3.0 and 6.1 the dot and the focus number's centre 8% or more of the canvas's width from each side and the plank 18 px deep at the tally's middle at 1440 and 1024 (16 at 390); through the move the focus point within 1 px of its frame-1 point; with WebGL on /crew requests the 3D chunk file / requests", async ({
+test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to rest; frame 1 registered on the shown detail within B3.1's bound with the planks' fills the Off page's within 8 levels; the canvas on the drawing's box in whole buffer pixels at 320, 390, 768, 1024 and 1440; settled on seats 3.0 and 6.1 the dot and the focus number's centre 8% or more of the canvas's width from each side and the plank painted 15 px deep at the tally's middle at 1440 and 1024 (13 at 390; decision 8); through the move the focus point within 1 px of its frame-1 point; with WebGL on /crew requests the 3D chunk file / requests", async ({
   browser,
   crew,
 }, testInfo) => {
@@ -460,7 +460,9 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
         );
       }
       const depth = [...depths].sort((a, b) => a - b)[2] ?? 0;
-      const floor = width >= 1024 ? 18 : 16;
+      // Decision 8 (Iris): painted depth, the lines' ink between, at least 15 px from 1024 and 13
+      // at 390 (her geometric 18 and 16, less the 3.0 to 3.4 px the ink takes).
+      const floor = width >= 1024 ? 15 : 13;
       note(
         testInfo,
         "framing",
@@ -647,7 +649,7 @@ test("B4.37 the ticks in 3D, and copper only while live: on the live and open si
   }
 });
 
-test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1 and settles 1.8 s +/- one frame on the clock; a reload and a Back from / open settled with one live context, a new tab plays the move; a key, a click, a wheel, a tap and a scroll each settle it within 2 frames; Full from Calm or Off replays it; Calm stored or reduce with nothing stored never set landed or moving; Calm mid-move settles within 2 frames and stores calm; under reduce the fade is opacity only and ends within 300 ms", async ({
+test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1 and settles 1.8 s +/- one frame on the clock; a reload and a Back from / open settled with one live context, a new tab plays the move; a key, a click, a wheel, a tap and a scroll each settle it within 2 frames; Full from Calm or Off replays it; Calm stored or reduce with nothing stored never set landed or moving; Calm mid-move settles within 2 frames and stores calm; under reduce the fade is /'s, opacity, fill and visibility with nothing moving (decision 7), ending within 300 ms", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(420_000);
@@ -902,7 +904,11 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
               other: [
                 ...new Set(
                   runs
-                    .filter((r) => r.property !== "opacity")
+                    // Decision 7: /'s fade, opacity, fill and visibility; nothing that moves.
+                    .filter(
+                      (r) =>
+                        !["opacity", "fill", "visibility"].includes(r.property),
+                    )
                     .map((r) => `${r.property} on ${r.target}`),
                 ),
               ],
@@ -910,7 +916,7 @@ test("B4.38 Full, Calm and reduced motion, once a visit: Full moves from frame 1
                 .filter((r) => !(r.end <= 300))
                 .map((r) => `${r.property} ${r.end}`),
             },
-            `the fade under reduce: transitions run, none but opacity, all ending within 300 ms, ${at}`,
+            `the fade under reduce: transitions run, none but opacity, fill and visibility (decision 7: no transform, position or size), all ending within 300 ms, ${at}`,
           )
           .toEqual({ any: true, other: [], late: [] });
       }
