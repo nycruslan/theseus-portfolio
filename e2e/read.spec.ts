@@ -843,7 +843,7 @@ async function scriptBytes(browser: Browser, url: string, refuse = false) {
   };
 }
 
-test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /log and /log/13 (WebGL refused), /read and /crew within 2,048 B of the 404's", async ({
+test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the drawing, within 2,500 ms at 4x CPU; two woff2 within 86,016 B with the display face preloaded; script bytes on /, /log and /log/13 (WebGL refused) and /read within 2,048 B of the 404's", async ({
   page,
   browser,
 }, testInfo) => {
@@ -970,14 +970,14 @@ test("B2.10 LCP, fonts and script: /read's LCP is text in main, outside the draw
 
   // Script bytes against the 404's in the same run: the framework's alone. Sprint 30 (B5.10) moved
   // the baseline from /sprints to /log; sprint 33 (B5c) moves it to the 404, since /log now loads
-  // the model's loader, and /log and /log/13 join / with WebGL refused. Sprint 31
-  // (.crew/sprint/31/contract.md, B4.14) adds /crew, which has no model and ships no client code of
-  // its own: B4.14 in crew.spec.ts holds it to the 404's files and bytes exactly.
+  // the model's loader, and /log and /log/13 join / with WebGL refused. Sprint 31 added /crew, and
+  // sprint 35 (.crew/sprint/35/contract.md, "keep, rewrite, retire") takes it out again: its poller
+  // has a budget of its own, which B4.14 in crew.spec.ts and B4.31 in crew-live.spec.ts hold.
   const missing = await scriptBytes(browser, "/no-such-page");
   expect(missing.status, "status of the 404").toBe(404);
   expect(missing.files, "script files the 404 requests").toBeGreaterThan(0);
-  for (const route of ["/", "/log", "/log/13", READ, "/crew"]) {
-    const refused = route !== READ && route !== "/crew";
+  for (const route of ["/", "/log", "/log/13", READ]) {
+    const refused = route !== READ;
     const route_ = await scriptBytes(browser, route, refused);
     testInfo.annotations.push({
       type: "script-bytes",

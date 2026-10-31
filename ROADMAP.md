@@ -118,10 +118,8 @@ replaces today's page, and B3, the signature moment.
     with no Important, again on 405355f after #83 merged in and a failed read kept the last good
     answer; 209 of 210 checks, then green on rerun; `decisions.md` 1 to 13.) B4's sprints now take letters
     (B4a to B4e). **Its PR waits for the owner:** `CREW_FEED_URL` on Vercel, the feed deployed and
-    answering `live` or `open` on the preview, and the six calls in the PR body. Riding with the
-    next sprint that touches `/crew`: Lens's four nits on #78 (the `lib/sprint-log.ts` and
-    `next.config.ts` comments now miss `/crew`'s request-time read of the retros; `crew.spec.ts`
-    serial, its 40 s deadline, and skipping under `PLAYWRIGHT_BASE_URL`).
+    answering `live` or `open` on the preview, and the six calls in the PR body. Lens's four nits
+    on #78 were found already done on main by sprint 35 (`.crew/sprint/35/decisions.md`, 5).
   - [x] B4b (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
     rest line with the merge time, 0 B of new script. (Sprint 34, PR #87, built in one run on
     2026-10-31: Quill's contract B4.15 to B4.24 with amendment 1, Probe's checks red first, Forge's
@@ -133,16 +131,29 @@ replaces today's page, and B3, the signature moment.
       on 4.0. The tip costs 2 draws and 18 triangles while live.
     - **The B4 demo is the owner's,** on #87's preview and production: the pencil and copper while
       a run is live, the rest line after, on a GPU and a phone.
-    - Riding with the next sprint that touches the layer: Lens's empty-goal nit on #87 (a blank
-      feed goal renders an empty link; `goal?.trim()` in `layerOf` and the oracle), Lens's three test
-      nits on 415b4c0 (the copper scans take the legend's words for the swatch: match `.swatch-tip`;
-      B4.15's title says `--pencil`; `crew-feed.ts`'s site-count comment), and Iris's chip
+    - Lens's empty-goal nit on #87 and his three test nits on 415b4c0 rode with sprint 35 (B4.32
+      checks the blank goal, fixed once in `readCrew()`). Still riding with the next sprint that
+      touches the layer: Iris's chip
       covering the copper dot on a short seat (3.0) at 1024 and below (the tip after the lettering;
       the hull's label moved stern-ward). Left open: the legend's "Original" while nothing original
       is left (B1.2's words), and `/` and `/crew`'s dev-only instant-navigation message
       (`export const instant = false`, Forge).
-  - [ ] B4c (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
-    "Pause updates" (WCAG 2.2.2) and its own script budget.
+  - [x] B4c (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
+    "Pause updates" (WCAG 2.2.2) and its own script budget. (Sprint 35, PR #90, built in one run on
+    2026-10-31: Quill's contract B4.25 to B4.32 with Iris's calls, Probe's checks red first and
+    proven on three mutants, Forge's build; Iris ship at 8.1/10, Lens ship on 6a7d9fa after a
+    description fix; `/crew` loads 13,659 B over the 404's scripts against a 16,384 B budget, `/`
+    unchanged; `decisions.md` 1 to 9.)
+    - Riding with the next sprint that touches `/crew` (B4d): Lens's nit on #90, a poll that never
+      settles stops the poller and outlives copper's 10-minute window (abort it after about 30 s
+      with an `AbortController` and `setTimeout`, so `page.clock` still drives it).
+    - Iris's follow-ups (`decisions.md` 8): the first visit after a quiet spell gets #88's stale
+      prerender, which the first poll corrects with a layout shift (0.12 at 1440): give `/crew` a
+      long cache `expire`. **Open for the owner:** the Studio's role lines run to about 140
+      characters, so the table reflows on about half the polls; a short line from the Studio fixes
+      it, where clamping here would break B4a's "the line whole".
+    - Not verified from the cloud: the preview's CDN caching of `/api/crew` (the proxy refuses
+      preview hosts) and a real screen reader.
   - [ ] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control
     joins `/crew`'s bar. It reuses B5c's second-route mount (sprint 33), which took Lens's nit
     on #74.

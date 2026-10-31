@@ -181,7 +181,8 @@ export function expected(
     : "resting";
   const health = run.health as Json;
   const sprint = typeof run.sprint === "number" ? run.sprint : null;
-  const goal = str(run.goal);
+  // A blank goal is no goal (.crew/sprint/35/contract.md, "The read"): the string whole otherwise.
+  const goal = str(run.goal)?.trim() ? str(run.goal) : null;
 
   // The roles: the first valid entry per key.
   const entries = new Map<string, { state: string; line: string | null }>();
@@ -281,7 +282,8 @@ export function expected(
   let approval = APPROVAL_LIVE;
   if (state === "open") {
     const waiting = health.state === "waiting";
-    status = waiting ? "Waiting on the owner" : "Paused";
+    // Iris's word since sprint 35 (.crew/sprint/35/contract.md, "The status words").
+    status = waiting ? "Waiting on the owner" : "Between sessions";
     approval = waiting
       ? `${OWNER}, on the pull request. Not given yet.`
       : APPROVAL_LIVE;
@@ -450,9 +452,11 @@ export function copperPaint(page: Page, accent: number[]) {
         continue;
       const allowed = working(el) || Boolean(el.closest("[data-now]"));
       // B4b's copper on / (.crew/sprint/34/contract.md, "Copper on /"): "drawing now" and its dot,
-      // the tips and the copper swatch.
+      // the tips and the copper swatch itself, not the legend's words beside it (Lens on 415b4c0).
       const layer = Boolean(
-        el.closest('[data-drawing], [data-tip], li[data-key="copper"]'),
+        el.closest(
+          '[data-drawing], [data-tip], li[data-key="copper"] .swatch-tip',
+        ),
       );
       const name = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}"`;
       for (const pseudo of [null, "::before", "::after", "::marker"] as const) {

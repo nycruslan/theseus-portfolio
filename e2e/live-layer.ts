@@ -132,7 +132,9 @@ export function layerFor(feed: unknown, origin: string | null): Layer {
     ([, name]) => name,
   );
   const health = isObject(run.health) ? run.health.state : null;
-  const goal = typeof run.goal === "string" ? run.goal : null;
+  // A blank goal is no goal (.crew/sprint/35/contract.md, "The read"; Lens on #87).
+  const goal =
+    typeof run.goal === "string" && run.goal.trim() !== "" ? run.goal : null;
   const link = goal ?? "In progress";
   const pencilRow = {
     rev: String(n),
@@ -335,7 +337,8 @@ export type Hit = {
  * Every element on `/` painted in `accent` ([r, g, b, a]; B1.6's properties: text colour where it
  * shows text, background, borders, outline, decoration, fill and stroke, pseudo-elements included),
  * and whether it is the layer's copper: `[data-drawing]` and its dot, a `[data-tip]` or the copper
- * swatch. Needs installRgba as an init script.
+ * swatch, `.swatch-tip` (not the legend's words beside it: Lens on 415b4c0). Needs installRgba as an
+ * init script.
  */
 export function copperOnHome(page: Page, accent: number[]) {
   return page.evaluate((target) => {
@@ -376,7 +379,7 @@ export function copperOnHome(page: Page, accent: number[]) {
         ? "tip"
         : el.closest("[data-drawing]")
           ? "drawing"
-          : el.closest('li[data-key="copper"]')
+          : el.closest('li[data-key="copper"] .swatch-tip')
             ? "swatch"
             : null;
       const layer = part !== null;

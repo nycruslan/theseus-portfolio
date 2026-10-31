@@ -1,4 +1,4 @@
-import { type Crew, ROSTER, type RosterRole, type Run } from "@/lib/crew-feed";
+import { type Crew, ROSTER, type RosterRole, type Run } from "@/lib/crew-run";
 
 // The crew table (.crew/sprint/31/contract.md, "The crew"): the seven roles of this site's roster,
 // always, named as the frames name them, whatever the feed sends. The feed only says what each is
@@ -54,6 +54,25 @@ function rowsOf(crew: Crew): Row[] {
     const entry = run.roles.find((line) => line.role === role);
     return { role, word: wordOf(state, entry), line: entry?.line ?? null };
   }).sort((a, b) => WORDS.indexOf(a.word) - WORDS.indexOf(b.word)); // stable: roster order holds
+}
+
+/**
+ * What a screen reader hears when a told panel replaces a told one (.crew/sprint/35/contract.md,
+ * "The announcement"): who started or stopped working, by the rows' own Working, in roster order;
+ * "" when nobody did. The moments and the now line change far more often, so they aren't said.
+ */
+export function announcement(before: Crew, after: Crew): string {
+  const working = (crew: Crew) =>
+    new Set(
+      rowsOf(crew).flatMap((row) => (row.word === "Working" ? [row.role] : [])),
+    );
+  const was = working(before);
+  const is = working(after);
+  return ROSTER.flatMap((role) =>
+    was.has(role) === is.has(role)
+      ? []
+      : [`${CREW[role].name} ${is.has(role) ? "started" : "stopped"} working.`],
+  ).join(" ");
 }
 
 /** "Forge, Pixel and Probe are not on this sprint." */
