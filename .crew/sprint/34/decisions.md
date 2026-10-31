@@ -28,3 +28,22 @@
    `forge/34`; Quill 4740 to 4749 in `/home/user/wt-quill-34` on `quill/34`; Pixel 4750 to 4759 in
    `/home/user/wt-pixel-34` on `pixel/34`. Roles push after every commit; Atlas cherry-picks onto
    the sprint branch as commits land.
+
+6. **Iris's corrections on the build are the contract's amendment 1** (the tip from 1/2 to 7/8, every
+   copper dot 8 px, the chip's padding, B4.21's band at least 5 px), and her looser triangle bound
+   for B4.21 is accepted: it loosens only a new check, and draws stay at most 8 (6 while live).
+
+7. **Two departures in Probe's checks, recorded at Lens's ask (nits on b2b87d7).**
+   - B4.21 judges "only inside the pencil plank and its band" and "copper only there" at frame 1,
+     where the model lies on the drawing and the 2D plank is its projection, not at rest as the
+     contract says: `/` has no seat pick to locate the plank at rest. At rest it checks that the
+     canvas differs, by at most 5% of the hull, with the chip inside the changed box, and copper
+     present. The hatch and tip live in the model's frame, so right at frame 1 is right at rest.
+   - `e2e/live-layer.spec.ts` skips under `PLAYWRIGHT_BASE_URL`, as `crew.spec.ts` does: a deployed
+     site has a feed (so it isn't the down reference) and the fixture sites copy this checkout's
+     `.next`. CI never sets it. Lens accepts both.
+
+8. **Lens ship on b2b87d7 with no fix round;** the empty-goal nit (a blank feed goal renders an empty
+   link to `/crew`; `goal?.trim()` in `layerOf` and the oracle) rides the next sprint that touches
+   the layer. Iris ship at 8.7; her cheap change (the riding numbers on whole device pixels) was
+   taken before the label, and the chip covering the dot on a short seat rides later.

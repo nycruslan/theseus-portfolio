@@ -122,9 +122,23 @@ replaces today's page, and B3, the signature moment.
     next sprint that touches `/crew`: Lens's four nits on #78 (the `lib/sprint-log.ts` and
     `next.config.ts` comments now miss `/crew`'s request-time read of the retros; `crew.spec.ts`
     serial, its 40 s deadline, and skipping under `PLAYWRIGHT_BASE_URL`).
-  - [ ] B4b (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
-    rest line with the merge time, 0 B of new script. Iris: the fold trade at 1440 × 900. The B4
-    demo.
+  - [x] B4b (M): the live layer on `/`: the pencil plank and row, the copper tip while live, the
+    rest line with the merge time, 0 B of new script. (Sprint 34, PR #87, built in one run on
+    2026-10-31: Quill's contract B4.15 to B4.24 with amendment 1, Probe's checks red first, Forge's
+    2D and Pixel's hull in parallel on the drawing's `data-pencil`; Iris ship at 8.7/10, Lens ship
+    on b2b87d7 with no fix round; `decisions.md` 1 to 8.)
+    - Iris's calls: no row traded (the rest line is the revision block's first line, the links stay
+      at 866.3 at 1440 × 900); the rest line is `/crew`'s resting line, naming a merge, not a seat.
+    - The pencil seat keeps a merged sprint's own seat, else the next (Quill); production draws 34
+      on 4.0. The tip costs 2 draws and 18 triangles while live.
+    - **The B4 demo is the owner's,** on #87's preview and production: the pencil and copper while
+      a run is live, the rest line after, on a GPU and a phone.
+    - Riding with the next sprint that touches the layer: Lens's empty-goal nit on #87 (a blank
+      feed goal renders an empty link; `goal?.trim()` in `layerOf` and the oracle), and Iris's chip
+      covering the copper dot on a short seat (3.0) at 1024 and below (the tip after the lettering;
+      the hull's label moved stern-ward). Left open: the legend's "Original" while nothing original
+      is left (B1.2's words), and `/` and `/crew`'s dev-only instant-navigation message
+      (`export const instant = false`, Forge).
   - [ ] B4c (M): `/crew` live in the browser through the portfolio's own `/api/crew`, with
     "Pause updates" (WCAG 2.2.2) and its own script budget.
   - [ ] B4d (M): the hull on `/crew`, one mark per moment, under Full/Calm/Off; the control

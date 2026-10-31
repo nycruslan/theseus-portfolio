@@ -1,0 +1,47 @@
+{
+  "sprint": 34,
+  "pr": 87,
+  "goal": "B4b: the live layer on /, the crew's state on the drawing",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on b2b87d7 with no fix round and three nits; Iris ship at 8.7/10; B4.15 to B4.24 red first, then green; no owner path touched",
+  "fixRounds": 0,
+  "minutes": 125,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 170529, "minutes": 26 },
+    { "role": "design-director", "model": "opus", "tokens": 446314, "minutes": 72 },
+    { "role": "engineer", "model": "opus", "tokens": 446254, "minutes": 102 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 519247, "minutes": 91 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 345032, "minutes": 113 }
+  ],
+  "lens": { "runs": 1, "tokens": 8004426, "important": 0, "actedOn": 0, "nits": 3 },
+  "wentWrong": [
+    {
+      "what": "The live legend would not wrap, so the home page scrolled 61 px sideways on a phone",
+      "evidence": "Probe's B4.24 caught it at 320 on the live fixture; the legend list now wraps at every width, overflow 0 in all four states"
+    },
+    {
+      "what": "The first copper tip hid under the plank's number on a short stern plank",
+      "evidence": "Iris saw a 13 px dash under \"31\" on seat 3.0 in the build; the tip moved to 1/2 to 7/8 of the plank (contract amendment 1)"
+    },
+    {
+      "what": "A check file reached the sprint branch with an unused import, failing lint",
+      "evidence": "Forge's verify failed on f5fed13; Probe's lint step had grepped output instead of the exit code (a9969bb)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Give CI's check job a timeout that scales with the suite, or split the feed and 3D specs into their own job",
+      "moves": "The full suite took 41 min locally on 2 workers against CI's 25-minute cap; the two feed specs take 7 to 8 min each"
+    },
+    {
+      "change": "Sprint 32's still stand: a workflow that writes the merge record after each merge, and merge-record.mjs moved into .crew/ with a test",
+      "moves": "How long the newest revision sits under Undated"
+    }
+  ],
+  "followUps": [
+    { "who": "Owner", "what": "The B4 demo on #87's preview and production: the pencil and copper while a run is live, the rest line after, on a GPU and a phone" },
+    { "who": "Forge", "what": "Lens's empty-goal nit on #87 (goal?.trim() in layerOf and the oracle), and the tip drawn after the lettering on short seats" },
+    { "who": "Pixel", "what": "Move the hull's pencil label stern-ward when it covers the copper dot on a short seat (3.0) at 1024 and below" }
+  ]
+}

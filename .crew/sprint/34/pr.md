@@ -51,6 +51,17 @@ words `/` mustn't show, and the copper scan excludes the layer's own parts. Its 
 unchanged: `readPlan` to `e2e/plan.ts`, B1.1's reads to `e2e/first-screen.ts`, `crewTest` to
 `e2e/crew-feed.ts`.
 
+**Skips and departures, at Lens's ask:** `e2e/live-layer.spec.ts` skips under
+`PLAYWRIGHT_BASE_URL`, as `crew.spec.ts` does (a deployed site has a feed, so it isn't the down
+reference, and the fixture sites copy this checkout's `.next`; CI never sets it). B4.21 judges where
+the canvas changes, and where copper lands, at frame 1, where the model lies on the drawing, not at
+rest: `/` has no seat pick to find the plank at rest (`decisions.md` 7).
+
+### Lens
+
+**Ship on b2b87d7**, no Important, three nits: the two above, now recorded, and a blank feed goal
+rendering an empty link to `/crew`, which rides the next sprint that touches the layer.
+
 ### Iris
 
 **Verdict: ship, 8.7/10**, no musts. axe `[]` on 56 runs, overflow 0 at 320, LCP text 1.86 to
