@@ -271,8 +271,9 @@ Probe writes these first:
   - A key, a click, a wheel, a tap and a scroll each settle the move within 2 frames.
   - Full pressed from Calm or Off replays the move.
   - Calm, or reduce with nothing stored: no landed or moving state is ever set. Calm pressed
-    mid-move settles within 2 frames and stores `calm`. Under reduce, the fade is opacity only and
-    ends within 300 ms.
+    mid-move settles within 2 frames and stores `calm`. Under reduce, the fade is `/`'s: it
+    transitions only opacity, fill and visibility, never a transform, position or size, and ends
+    within 300 ms (amended, decision 7).
 - **B4.39 Off downloads nothing on `/crew`.**
   - Paths: `off` stored, Off pressed at rest and mid-move, WebGL refused, forced colours, Save-Data,
     print, and scripts off.

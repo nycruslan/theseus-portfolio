@@ -27,3 +27,9 @@
    with B4.36's framing bounds (8% from the sides; depth ≥ 18 px at 1440 and 1024, ≥ 16 px at 390;
    seat 5.0 exempt). B4.34's dot clearance reads as Probe checks it: no tick's box within 4 px of
    the dot's centre.
+7. **B4.38's reduced-motion fade is `/`'s** (Atlas, on Pixel's and Probe's finding): the contract
+   says `/crew` inherits `/`'s 240 ms fade, which also fades the planks' fill and the numbers',
+   tip's and ticks' visibility, while B4.38's wording allowed opacity only. An opacity-only fade
+   would leave the hull empty for an instant, which `/`'s fill fade exists to avoid, and reduced
+   motion protects against movement, not a fade. B4.38 now allows opacity, fill and visibility
+   transitions and still fails any transform, position, size or camera move, within 300 ms.
