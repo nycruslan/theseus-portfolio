@@ -9,7 +9,7 @@ import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 // poll. The hooks are the contract's: `[data-model]` right after `[data-plan]`, its `data-state`
 // and `data-marks`, its one canvas; the drawing is the svg in `[data-plan]` that has a box.
 
-export const SHOWN_SVG = "[data-plan] svg";
+const SHOWN_SVG = "[data-plan] svg";
 /** Below 768 the phone's level and the 1.5x cap, from 768 the desktop's and 2x. */
 export const capAt = (width: number, dpr: number) =>
   Math.min(dpr, width < 768 ? 1.5 : 2);
