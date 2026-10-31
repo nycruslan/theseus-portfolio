@@ -66,7 +66,19 @@ export function pencilLabel(
   const span =
     spans.find((candidate) => candidate.classList.contains("plan-pencil")) ??
     spans.find((candidate) => candidate.textContent === sprint);
-  if (!span) return null;
+  return span ? riderLabel(span, seat, layout) : null;
+}
+
+/**
+ * A number that rides its plank alone, `fixed` at its 2D anchor: the sheet's pencil number, centred
+ * between its plank's projected edges at `seat`; or with no seat, /crew's focus number, at its
+ * anchor's own point on the hull (.crew/sprint/36/contract.md, "The hull on /crew").
+ */
+export function riderLabel(
+  span: HTMLElement,
+  seat: string | undefined,
+  layout: Layout,
+): Label {
   const { share, anchor } = placeOf(span, layout);
   return {
     span,

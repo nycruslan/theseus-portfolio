@@ -20,12 +20,27 @@ import {
   sheer,
 } from "./half-model";
 import {
+  bandAt,
+  CREW_NARROW,
+  CREW_WIDE,
+  crewLayout,
+  type Detail,
+  depths,
   GHOST,
   type Layout,
+  LEAD_OUT,
+  ledOut,
+  MARKS,
+  markX,
   NARROW,
+  numberX,
+  numberY,
   PENCIL,
   PLANKS,
   type Plank,
+  plankBody,
+  type Tally,
+  tallyOf,
   WIDE,
 } from "./hull-layouts";
 
@@ -95,54 +110,6 @@ export function ghostPlanks(merged: readonly number[]): Map<string, number> {
     if (first !== undefined) ghost.set(id, first);
   }
   return ghost;
-}
-
-/** A plank's depth at station x, top and bottom, or null where it has none. */
-function bandAt(plank: Plank, x: number): Point | null {
-  const top = Math.max(plank.yTop, sheer(x));
-  const bottom = Math.min(plank.yBot, profile(x));
-  return bottom - top > 0.05 ? [top, bottom] : null;
-}
-
-const LIFT_DEPTH = seamDepth(1) - seamDepth(0);
-
-/** A plank's depth at 49 stations along it, stern to bow. */
-function depths(plank: Plank) {
-  return Array.from({ length: 49 }, (_, i) => {
-    const x = plank.x0 + ((plank.x1 - plank.x0) * i) / 48;
-    const band = bandAt(plank, x);
-    return { x, depth: band ? band[1] - band[0] : 0 };
-  });
-}
-
-/** The first and last x where a plank is at least `depth` deep, or null where it never is. */
-function stretch(stations: ReturnType<typeof depths>, depth: number) {
-  const deep = stations.filter((station) => station.depth >= depth);
-  const [first, last] = [deep[0], deep.at(-1)];
-  return first && last ? ([first.x, last.x] as Point) : null;
-}
-
-/**
- * The plank's body, where its number goes: where it is nearly a whole lift deep, or nearly as deep
- * as it ever gets, for one the stem, stern or keel cuts.
- */
-function plankBody(stations: ReturnType<typeof depths>) {
-  const deepest = Math.max(...stations.map((station) => station.depth));
-  return stretch(stations, 0.9 * Math.min(deepest, LIFT_DEPTH));
-}
-
-/**
- * A plank is led out when it is not two thirds of a lift deep (about its number's height) for
- * this long: no place on it holds the number clear of the outline and the butts at any width, so
- * the number is set aft of the hull with a leader to the plank (.crew/sprint/22/review-iris.md,
- * Changes 1). Only 5.0, the stern wedge of lift 5, is today.
- */
-const LEAD_OUT_UNDER = 24;
-const NUMBER_DEPTH = (2 / 3) * LIFT_DEPTH;
-
-function ledOut(stations: ReturnType<typeof depths>) {
-  const room = stretch(stations, NUMBER_DEPTH);
-  return !room || room[1] - room[0] < LEAD_OUT_UNDER;
 }
 
 // --- Path strings ---------------------------------------------------------------------------
@@ -252,6 +219,8 @@ export type LinesPlan = {
   lettering: Lettering[];
   /** The plank in pencil's copper tip, drawn only while the crew is live; null without one. */
   tip: Tip | null;
+  /** /crew's tally: its ten tick slots on the plank in pencil, 0 the newest; null without one. */
+  marks: string[] | null;
 };
 
 /** The tip's run, and its dot at the run's forward end: a zero-length stroke, drawn by its round cap. */
@@ -289,33 +258,96 @@ const SEAMS = Array.from({ length: BUTTS.length - 1 }, (_, i) =>
   seamDepth(i + 1),
 );
 
+/** What one pass draws beside the layout and the seats. */
+type Pass = {
+  /** The Log's ghost: the profile alone, only the planks in `seats`. */
+  ghost?: boolean;
+  /** The seat of the sprint in progress, whose number `seats` carries: it gets the tip. */
+  pencil?: string;
+  /**
+   * /crew's detail (.crew/sprint/36/contract.md, "The detail drawing"): the seat it is centred on,
+   * whose number is lettered at every width, clear of the pen when it is in pencil. The profile
+   * alone, its ticks, and nothing lettered whose anchor falls outside the box.
+   */
+  focus?: string;
+};
+
+/**
+ * The number on a seated plank: in the middle of its body, at the band's mid-depth, or, for a body
+ * too short for it, aft of the hull at its lift's mid-depth with a leader to the plank. On /crew,
+ * the plank in pencil's number stands clear of the pen and of the edge its ticks hang from
+ * (`numberX`, `numberY`).
+ */
+function numberPlank(
+  plank: Plank,
+  sprint: number,
+  pencil: boolean,
+  draw: { P: (x: number, y: number) => Point; letter: Letter; lines: Lines },
+) {
+  const { P, letter, lines } = draw;
+  const seat = { plank: plank.id };
+  if (ledOut(depths(plank))) {
+    const yMid = (plank.yTop + plank.yBot) / 2;
+    letter(String(sprint), P(plank.x0 - LEAD_OUT, yMid), "end", "plank", seat);
+    lines.leaders += `M${pt(P(plank.x0 - LEAD_OUT + 2, yMid))}H${num(P(plank.x1 - 2, 0)[0])}`;
+    return;
+  }
+  const y = numberY(plank.id, pencil);
+  if (y !== null) {
+    letter(
+      String(sprint),
+      P(numberX(plank.id, pencil), y),
+      "middle",
+      "plank",
+      seat,
+    );
+  }
+}
+
+/**
+ * The tally's ten tick slots on the plank in pencil, 0 the newest, nearest the pen: each a vertical
+ * stroke hanging MARKS.length from the plank's lower edge (the seam, or the keel's outline).
+ */
+function marksOf(
+  plank: Plank,
+  tally: Tally,
+  P: (x: number, y: number) => Point,
+) {
+  return Array.from({ length: MARKS.max }, (_, k) => {
+    const x = markX(tally, k);
+    const bottom = bandAt(plank, x)?.[1] ?? plank.yBot;
+    return `M${pt(P(x, bottom))}V${num(P(x, bottom + MARKS.length)[1])}`;
+  });
+}
+
 /**
  * Draws one layout. The ghost pass draws the profile alone, the outline, the planks in `seats`,
  * each numbered, and its leader, and leaves a gap where a seat has none (.crew/sprint/30/
  * notes-iris.md, section 1.1); otherwise a plank missing from `seats` is drawn as an original.
- * `pencil` is the seat of the sprint in progress, whose number `seats` carries: it gets the tip.
  */
 function draw(
   layout: Layout,
   seats: ReadonlyMap<string, number>,
-  ghost = false,
-  pencil?: string,
+  { ghost = false, pencil, focus }: Pass = {},
 ): LinesPlan {
   const { box, ox, oy, s, hbY, body } = layout;
+  const crew = focus !== undefined;
   const P = (x: number, y: number): Point => [ox + x * s, oy + y * s];
-  const H = (x: number, z: number): Point => [ox + x * s, hbY - z * s];
-  const X = (x: number) => num(ox + x * s);
+  const outside = ([x, y]: Point) =>
+    x < box[0] || x > box[0] + box[2] || y < box[1] || y > box[1] + box[3];
   const lettering: Lettering[] = [];
-  const letter: Letter = (text, [x, y], align, kind, extra) =>
+  const letter: Letter = (text, at, align, kind, extra) => {
+    if (crew && outside(at)) return;
     lettering.push({
       text,
-      left: Math.round(((x - box[0]) / box[2]) * 10000) / 100,
-      top: Math.round(((y - box[1]) / box[3]) * 10000) / 100,
+      left: Math.round(((at[0] - box[0]) / box[2]) * 10000) / 100,
+      top: Math.round(((at[1] - box[1]) / box[3]) * 10000) / 100,
       align,
       kind,
       ...(extra?.wideOnly ? { wideOnly: true } : {}),
       ...(extra?.plank ? { plank: extra.plank } : {}),
     });
+  };
 
   const lines: Lines = {
     construction: "",
@@ -328,22 +360,10 @@ function draw(
     outline: "",
   };
 
-  // The profile's construction. Stations 0 to 10 run down through the half-breadth plan too.
+  // The profile's construction. Stations 0 to 10 run down through the half-breadth plan too, or,
+  // on /crew's detail, which has none, to just past the base line.
   if (!ghost) {
-    for (let i = 0; i <= 10; i++) {
-      const [x] = P((LENGTH * i) / 10, 0);
-      lines.construction += `M${num(x)} ${num(oy - 14)}V${num(hbY + 6)}`;
-      letter(String(i), [x, oy + BASE * s + 12], "middle", "figure");
-    }
-    for (const y of SEAMS) {
-      const [a, b] = ends(y);
-      lines.waterlines += `M${pt(P(a - 18, y))}H${X(b + 18)}`;
-    }
-    lines.base += `M${pt(P(-30, BASE))}H${X(LENGTH + 30)}`;
-    lines.centrelines += `M${pt(P(-30, DWL))}H${X(LENGTH + 30)}`;
-    letter("DWL", P(LENGTH + 34, DWL), "start", "figure");
-    letter("Base", P(LENGTH + 34, BASE), "start", "figure");
-    letter("Profile", [ox, oy - 30], "start", "caption");
+    drawProfile(layout, crew ? oy + BASE * s + 4 : hbY + 6, lines, letter);
   }
 
   // The outline: the sheer from the transom to the bow tip, then the stem and keel back, and the
@@ -354,8 +374,9 @@ function draw(
   lines.outline += hull;
 
   // Each plank is its lift's box between two butts, cut by the outline; the seated ones carry
-  // their sprint's number, in the middle of the plank's body. A plank whose body is too short for
-  // it has its number set aft of the hull, at its lift's mid-depth, with a leader to the plank.
+  // their sprint's number (numberPlank). On /crew's detail the focus plank is numbered at every
+  // width, and the others where the layout numbers them.
+  const tally = crew && pencil ? tallyOf(pencil) : null;
   const drawn = ghost ? PLANKS.filter((plank) => seats.has(plank.id)) : PLANKS;
   const planks = drawn.map((plank): PlankShape => {
     // The deck lift's box starts above the hull for the outline to cut. The ghost's box hugs the
@@ -364,19 +385,13 @@ function draw(
     const [x0, y0] = P(plank.x0, ghost ? Math.max(plank.yTop, 0) : plank.yTop);
     const [x1, y1] = P(plank.x1, plank.yBot);
     const sprint = seats.get(plank.id);
-    if (layout.numbers && sprint !== undefined) {
-      const stations = depths(plank);
-      const at = plankBody(stations);
-      const band = at && bandAt(plank, (at[0] + at[1]) / 2);
-      const seat = { plank: plank.id };
-      if (ledOut(stations)) {
-        const yMid = (plank.yTop + plank.yBot) / 2;
-        letter(String(sprint), P(plank.x0 - 22, yMid), "end", "plank", seat);
-        lines.leaders += `M${pt(P(plank.x0 - 20, yMid))}H${X(plank.x1 - 2)}`;
-      } else if (at && band) {
-        const mid: Point = [(at[0] + at[1]) / 2, (band[0] + band[1]) / 2];
-        letter(String(sprint), P(...mid), "middle", "plank", seat);
-      }
+    const focused = plank.id === focus;
+    if (sprint !== undefined && (layout.numbers || focused)) {
+      numberPlank(plank, sprint, focused && tally !== null, {
+        P,
+        letter,
+        lines,
+      });
     }
     return {
       id: plank.id,
@@ -385,38 +400,67 @@ function draw(
     };
   });
 
-  // The half-breadth plan: each seam's breadth along the hull, the deck line and the transom.
-  if (!ghost) {
-    lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 30)}`;
-    for (const y of SEAMS) {
-      const [a, b] = ends(y);
-      lines.construction += curve(
-        spaced(a, b, 16).map((x) => H(x, halfBreadth(x, y))),
-      );
-    }
-    const deck = (x: number) => halfBreadth(x, sheer(x));
-    lines.deck += `${curve(spaced(0, LENGTH, 20).map((x) => H(x, deck(x))))}M${pt(
-      H(0, 0),
-    )}V${num(H(0, deck(0))[1])}`;
-    letter("Half-breadth plan", [ox, hbY + 16], "start", "caption");
-
+  if (!ghost && !crew) {
+    drawHalfBreadth(layout, lines, letter);
     if (body) drawBody(body, lines, letter);
   }
 
+  const inPencil = PLANKS.find((plank) => plank.id === pencil);
   return {
     viewBox: box.join(" "),
     hull,
     planks,
     lines,
     lettering,
-    tip: pencil
-      ? tipOf(
-          PLANKS.find((plank) => plank.id === pencil),
-          P,
-          s,
-        )
-      : null,
+    tip: pencil ? tipOf(inPencil, P, s) : null,
+    marks: inPencil && tally ? marksOf(inPencil, tally, P) : null,
   };
+}
+
+/**
+ * The profile's construction: the stations, from above the sheer down to `foot`, numbered under
+ * the base line; the seams' waterlines; the base line and the designed waterline.
+ */
+function drawProfile(
+  { ox, oy, s }: Layout,
+  foot: number,
+  lines: Lines,
+  letter: Letter,
+) {
+  const P = (x: number, y: number): Point => [ox + x * s, oy + y * s];
+  const X = (x: number) => num(ox + x * s);
+  for (let i = 0; i <= 10; i++) {
+    const [x] = P((LENGTH * i) / 10, 0);
+    lines.construction += `M${num(x)} ${num(oy - 14)}V${num(foot)}`;
+    letter(String(i), [x, oy + BASE * s + 12], "middle", "figure");
+  }
+  for (const y of SEAMS) {
+    const [a, b] = ends(y);
+    lines.waterlines += `M${pt(P(a - 18, y))}H${X(b + 18)}`;
+  }
+  lines.base += `M${pt(P(-30, BASE))}H${X(LENGTH + 30)}`;
+  lines.centrelines += `M${pt(P(-30, DWL))}H${X(LENGTH + 30)}`;
+  letter("DWL", P(LENGTH + 34, DWL), "start", "figure");
+  letter("Base", P(LENGTH + 34, BASE), "start", "figure");
+  letter("Profile", [ox, oy - 30], "start", "caption");
+}
+
+/** The half-breadth plan: each seam's breadth along the hull, the deck line and the transom. */
+function drawHalfBreadth({ ox, s, hbY }: Layout, lines: Lines, letter: Letter) {
+  const H = (x: number, z: number): Point => [ox + x * s, hbY - z * s];
+  const X = (x: number) => num(ox + x * s);
+  lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 30)}`;
+  for (const y of SEAMS) {
+    const [a, b] = ends(y);
+    lines.construction += curve(
+      spaced(a, b, 16).map((x) => H(x, halfBreadth(x, y))),
+    );
+  }
+  const deck = (x: number) => halfBreadth(x, sheer(x));
+  lines.deck += `${curve(spaced(0, LENGTH, 20).map((x) => H(x, deck(x))))}M${pt(
+    H(0, 0),
+  )}V${num(H(0, deck(0))[1])}`;
+  letter("Half-breadth plan", [ox, hbY + 16], "start", "caption");
 }
 
 /**
@@ -471,9 +515,27 @@ export function linesPlans(
   pencil?: string,
 ) {
   return {
-    wide: draw(WIDE, seats, false, pencil),
-    narrow: draw(NARROW, seats, false, pencil),
+    wide: draw(WIDE, seats, { pencil }),
+    narrow: draw(NARROW, seats, { pencil }),
   };
+}
+
+/**
+ * /crew's two detail drawings, one shown per width as the sheet's are, centred on `focus`: the seat
+ * in pencil, `pencil`, whose number `seats` carries, or else the newest retro's seat
+ * (.crew/sprint/36/contract.md, call 2).
+ */
+export function crewPlans(
+  seats: ReadonlyMap<string, number>,
+  focus: string,
+  pencil?: string,
+) {
+  const at = (detail: Detail) =>
+    draw(crewLayout(detail, focus, pencil !== undefined), seats, {
+      pencil,
+      focus,
+    });
+  return { wide: at(CREW_WIDE), narrow: at(CREW_NARROW) };
 }
 
 /** The one drawing /read carries. */
@@ -486,5 +548,5 @@ export function pagePlan(seats: ReadonlyMap<string, number>) {
  * `ghostPlanks` (.crew/sprint/30/notes-iris.md, section 1).
  */
 export function ghostPlan(seats: ReadonlyMap<string, number>) {
-  return draw(GHOST, seats, true);
+  return draw(GHOST, seats, { ghost: true });
 }

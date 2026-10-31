@@ -141,6 +141,9 @@ makes stale, and keep the file under about 100 lines.
   first finished build was cancelled there). A spec that starts its own servers (the feed specs)
   starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
   full suite at CI's worker count before the label.
+- **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`
+  event too, so a body edit cancels a running check and starts it over (sprint 36: a 9-minute run
+  lost). Edit the body with the close-out push, which re-runs CI anyway.
 - **Add the `review` label alone, after the push and the other labels have landed.** Lens's
   concurrency group keeps only the newest pending run, so a label event right behind it can cancel
   the review run (sprint 31: cancelled in a second, re-run by hand, `.crew/sprint/31/retro.json`).
