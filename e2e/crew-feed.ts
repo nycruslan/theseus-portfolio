@@ -12,6 +12,7 @@ import { createServer, type Server } from "node:https";
 import { createServer as createNetServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test as base } from "@playwright/test";
 
 // The crew feed's harness (.crew/sprint/31/contract.md, "Data rules"; the feed's shape is
 // .crew/sprint/28/feed-contract.md). Nothing in the cloud or in CI can reach the Studio, so the
@@ -94,7 +95,7 @@ export type Feed = {
  * Starts the fixture server: `GET /<channel>/api/crew` answers as the channel is set, with the
  * Studio's headers; `POST /<channel>/control` with a JSON `Answer` sets it from outside the run.
  */
-export async function startFeed(): Promise<Feed> {
+async function startFeed(): Promise<Feed> {
   const dir = mkdtempSync(join(tmpdir(), "crew-feed-"));
   const key = join(dir, "key.pem");
   const cert = join(dir, "cert.pem");
@@ -243,10 +244,7 @@ export type Site = {
  * (unset when `feedUrl` is null) and the server's clock at UTC+14 (B4.7), so a time shown in the
  * server's zone instead of UTC is off by hours and, near midnight, by a day.
  */
-export async function startSite(
-  feedUrl: string | null,
-  ca?: string,
-): Promise<Site> {
+async function startSite(feedUrl: string | null, ca?: string): Promise<Site> {
   const dir = mkdtempSync(join(tmpdir(), "crew-site-"));
   for (const entry of readdirSync(ROOT)) {
     if (entry === ".next") continue;
@@ -343,3 +341,115 @@ export async function untilState(
   }
   return { seen, ms: Date.now() - started };
 }
+
+/**
+ * The polling rule's deadline (.crew/sprint/31/contract.md, "The polling rule": 40 s, named in the
+ * test). A switch is followed on the request after the next stale one, about 30 s at worst, so a
+ * poll a second apart shows it inside 40 s.
+ */
+export const STATE_WAIT = 40_000;
+
+/**
+ * The state `/` shows, from its HTML, by the hooks the polling rule names (.crew/sprint/34/
+ * contract.md, "Checks"): `live`, a `tr[data-pencil][data-live]`; `open`, a `tr[data-pencil]`
+ * without it; `resting`, a `p[data-rest]`; `down`, none of them.
+ */
+export function homeStateOf(html: string) {
+  const has = (tag: string, attribute: string) =>
+    new RegExp(`\\s${attribute}(?:=|\\s|/?>)`).test(tag);
+  const rows = [...html.matchAll(/<tr\b[^>]*>/g)]
+    .map((m) => m[0])
+    .filter((tag) => has(tag, "data-pencil"));
+  if (rows.some((tag) => has(tag, "data-live"))) return "live";
+  if (rows.length > 0) return "open";
+  const rests = [...html.matchAll(/<p\b[^>]*>/g)].filter((m) =>
+    has(m[0], "data-rest"),
+  );
+  return rests.length > 0 ? "resting" : "down";
+}
+
+/** The state `/` shows now, or what answered instead. */
+async function servedHome(baseURL: string) {
+  const response = await fetch(`${baseURL}/`).catch(() => null);
+  if (!response) return "no answer";
+  if (response.status !== 200) return `${response.status}`;
+  return homeStateOf(await response.text());
+}
+
+/**
+ * Reads `/` until it shows `expected`, at most `timeout` ms, as `untilState` reads `/crew`: `/` is
+ * regenerated on its own, so a site that shows a state on `/crew` may still serve the old `/`.
+ */
+export async function untilHome(
+  baseURL: string,
+  expected: string,
+  timeout = STATE_WAIT,
+) {
+  const started = Date.now();
+  let seen = await servedHome(baseURL);
+  while (seen !== expected && Date.now() - started < timeout) {
+    await pause(1000);
+    seen = await servedHome(baseURL);
+  }
+  return { seen, ms: Date.now() - started };
+}
+
+export type Crew = {
+  feed: Feed;
+  /**
+   * A site reading the channel `name`, set to `answer`. The three fixtures' sites, and any a spec
+   * asks to `keep`, are kept for the worker; a variant's site replaces the worker's previous variant
+   * site, so a worker runs at most four or five `next start`s at once (CI's runner is small).
+   */
+  site(name: string, answer?: Partial<Answer>, keep?: boolean): Promise<Site>;
+};
+
+const KEPT = ["live", "open", "resting"];
+
+/**
+ * The fixture for the specs that read the feed (crew.spec.ts, live-layer.spec.ts): one fixture
+ * server per worker, a site per kept channel, and one variant site at a time.
+ */
+export const crewTest = base.extend<object, { crew: Crew }>({
+  crew: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern, and this one has none.
+    async ({}, use) => {
+      const feed = await startFeed();
+      const sites = new Map<string, Promise<Site>>();
+      let variant: Promise<Site> | null = null;
+      const stop = (site: Promise<Site> | null) =>
+        site?.then((s) => s.stop()).catch(() => undefined);
+      await use({
+        feed,
+        site(name, answer, keep = KEPT.includes(name)) {
+          if (keep) {
+            const known = sites.get(name);
+            if (known !== undefined) return known;
+            const started = startSite(feed.set(name, answer), feed.ca);
+            sites.set(name, started);
+            return started;
+          }
+          const previous = variant;
+          // A fresh answer for the channel: nothing carried over from an earlier switch.
+          const fresh: Partial<Answer> = {
+            fixture: "live",
+            status: 200,
+            ageMs: 0,
+            delayMs: 0,
+            patch: undefined,
+            raw: undefined,
+            ...answer,
+          };
+          variant = (async () => {
+            await stop(previous);
+            return startSite(feed.set(name, fresh), feed.ca);
+          })();
+          return variant;
+        },
+      });
+      for (const site of [...sites.values(), variant]) await stop(site);
+      await feed.stop();
+    },
+    { scope: "worker" },
+  ],
+});

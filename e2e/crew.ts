@@ -403,7 +403,8 @@ export function readPanel(page: Page) {
 /**
  * Every painted property on the page that resolves to `accent` ([r, g, b, a]): text colour (where
  * the element shows text), background, borders, outline, text decoration, fill and stroke, pseudo-
- * elements included. `allowed` when it sits in a Working row's state cell or in [data-now].
+ * elements included. `allowed` when it sits in a Working row's state cell or in [data-now]; `layer`
+ * when it is B4b's copper on `/`.
  * Needs installRgba as an init script.
  */
 export function copperPaint(page: Page, accent: number[]) {
@@ -412,7 +413,9 @@ export function copperPaint(page: Page, accent: number[]) {
       window as Window & { __rgba?: (c: string) => number[] | null }
     ).__rgba;
     if (!rgba)
-      return [{ where: "page", property: "no __rgba", allowed: false }];
+      return [
+        { where: "page", property: "no __rgba", allowed: false, layer: false },
+      ];
     const same = (value: string) => {
       const c = rgba(value);
       return Boolean(
@@ -433,7 +436,12 @@ export function copperPaint(page: Page, accent: number[]) {
           (cell.textContent ?? "").replace(/\s+/g, " ").trim() === "Working",
       );
     };
-    const hits: { where: string; property: string; allowed: boolean }[] = [];
+    const hits: {
+      where: string;
+      property: string;
+      allowed: boolean;
+      layer: boolean;
+    }[] = [];
     for (const el of [
       document.documentElement,
       ...document.body.querySelectorAll("*"),
@@ -441,6 +449,11 @@ export function copperPaint(page: Page, accent: number[]) {
       if (el.getClientRects().length === 0 && el !== document.documentElement)
         continue;
       const allowed = working(el) || Boolean(el.closest("[data-now]"));
+      // B4b's copper on / (.crew/sprint/34/contract.md, "Copper on /"): "drawing now" and its dot,
+      // the tips and the copper swatch.
+      const layer = Boolean(
+        el.closest('[data-drawing], [data-tip], li[data-key="copper"]'),
+      );
       const name = `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 24)}"`;
       for (const pseudo of [null, "::before", "::after", "::marker"] as const) {
         const s = getComputedStyle(el, pseudo);
@@ -453,7 +466,8 @@ export function copperPaint(page: Page, accent: number[]) {
         if (pseudo === "::marker" && el.tagName !== "LI") continue;
         const where = `${name}${pseudo ?? ""}`;
         const check = (property: string, value: string, painted = true) => {
-          if (painted && same(value)) hits.push({ where, property, allowed });
+          if (painted && same(value))
+            hits.push({ where, property, allowed, layer });
         };
         check(
           "color",

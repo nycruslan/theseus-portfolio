@@ -206,7 +206,7 @@ export const PLANK_IDS = BUTTS.flatMap((butts, k) =>
 );
 
 /** The shipwright's order, copied from .crew/sprint/17/render/hull.mjs line 117. */
-const ORDER =
+export const ORDER =
   "5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0".split(
     " ",
   );

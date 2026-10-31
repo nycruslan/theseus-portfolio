@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { test as base, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { profile } from "../content/profile";
 import { SITE_URL } from "../lib/site";
 import {
@@ -12,10 +12,9 @@ import {
 } from "./crew";
 import {
   type Answer,
-  type Feed,
-  type Site,
-  startFeed,
-  startSite,
+  type Crew,
+  STATE_WAIT,
+  crewTest as test,
   untilState,
 } from "./crew-feed";
 import {
@@ -44,7 +43,6 @@ import {
 //
 // The site's server runs at UTC+14 and the browser in Los Angeles (B4.7), for every check here.
 
-const STATE_WAIT = 45_000;
 const AXE_TAGS = [
   "wcag2a",
   "wcag2aa",
@@ -55,63 +53,16 @@ const AXE_TAGS = [
 ];
 const SKIP = 'a[href="#main"]';
 
-type Crew = {
-  feed: Feed;
-  /**
-   * A site reading the channel `name`, set to `answer`. The three fixtures' sites are kept for the
-   * worker; a variant's site replaces the worker's previous variant site, so a worker runs at most
-   * four `next start`s at once (CI's runner is small).
-   */
-  site(name: string, answer?: Partial<Answer>): Promise<Site>;
-};
-
-const KEPT = ["live", "open", "resting"];
-
-// One fixture server per worker, a site per fixture, and one variant site at a time.
-const test = base.extend<object, { crew: Crew }>({
-  crew: [
-    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern, and this one has none.
-    async ({}, use) => {
-      const feed = await startFeed();
-      const sites = new Map<string, Promise<Site>>();
-      let variant: Promise<Site> | null = null;
-      const stop = (site: Promise<Site> | null) =>
-        site?.then((s) => s.stop()).catch(() => undefined);
-      await use({
-        feed,
-        site(name, answer) {
-          if (KEPT.includes(name)) {
-            const known = sites.get(name);
-            if (known !== undefined) return known;
-            const started = startSite(feed.set(name, answer), feed.ca);
-            sites.set(name, started);
-            return started;
-          }
-          const previous = variant;
-          // A fresh answer for the channel: nothing carried over from an earlier switch.
-          const fresh: Partial<Answer> = {
-            fixture: "live",
-            status: 200,
-            ageMs: 0,
-            delayMs: 0,
-            patch: undefined,
-            raw: undefined,
-            ...answer,
-          };
-          variant = (async () => {
-            await stop(previous);
-            return startSite(feed.set(name, fresh), feed.ca);
-          })();
-          return variant;
-        },
-      });
-      for (const site of [...sites.values(), variant]) await stop(site);
-      await feed.stop();
-    },
-    { scope: "worker" },
-  ],
-});
-
+// One test at a time, in order, on one worker, as the contract's harness says ("The spec runs
+// serially"): the worker's fixture server and sites serve every check in the file, so the file
+// starts its sites once. "default", not "serial": a failed check doesn't skip the ones after it.
+test.describe.configure({ mode: "default" });
+// Against a deployed site (PLAYWRIGHT_BASE_URL) no build is served without a feed, and the sites
+// would copy a `.next` that isn't what's deployed: neither the down state nor the fixtures apply.
+test.skip(
+  Boolean(process.env.PLAYWRIGHT_BASE_URL),
+  "PLAYWRIGHT_BASE_URL is set: these checks need this checkout's build, served without a feed (the down state) and from copies pointed at the fixture server",
+);
 test.use({ timezoneId: "America/Los_Angeles" });
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
@@ -621,7 +572,7 @@ for (const [kind, answer, what] of FAILED_READS) {
   });
 }
 
-test("B4.3 live, from the live fixture: the status, chip, rows, now line, activity, Evidence and Approval as the oracle says; quoted, the now line holds Atlas: and one q; and / on the same server is the sheet, with none of the feed's words and no copper", async ({
+test("B4.3 live, from the live fixture: the status, chip, rows, now line, activity, Evidence and Approval as the oracle says; quoted, the now line holds Atlas: and one q; and / on the same server is the sheet, with only the pencil row's goal, and copper only on the layer", async ({
   page,
   crew,
 }) => {
@@ -649,12 +600,13 @@ test("B4.3 live, from the live fixture: the status, chip, rows, now line, activi
   await openCrew(page, quoted);
   await panelIs(page, quoted);
 
-  // / on the live site: the sheet as on the default server.
+  // / on the live site: the sheet as on the default server, with B4b's layer (sprint 34's contract,
+  // "keep, rewrite, retire"): the pencil row shows the goal, so the list drops it, and copper may
+  // paint only the layer's parts.
   const words = [
     "Briefing Probe on the fixtures",
     "Probe pushed the fixtures and the harness",
     "Building the feed reader",
-    "The crew's page, /crew, from the Studio's feed",
   ];
   const response = await page.goto(`${live.base}/`);
   expect(response?.status(), "status of / on the live site").toBe(200);
@@ -670,8 +622,10 @@ test("B4.3 live, from the live fixture: the status, chip, rows, now line, activi
   const accent = (await resolveColors(page))["--accent"]?.rgba ?? [];
   expect
     .soft(
-      (await copperPaint(page, accent)).map((h) => `${h.where} ${h.property}`),
-      "copper on / of the live site",
+      (await copperPaint(page, accent))
+        .filter((h) => !h.layer)
+        .map((h) => `${h.where} ${h.property}`),
+      "copper on / of the live site, but on [data-drawing], its dot, a [data-tip] or the copper swatch",
     )
     .toEqual([]);
 });
