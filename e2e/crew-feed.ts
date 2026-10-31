@@ -45,7 +45,7 @@ export type Answer = {
   status: number;
   /** How old `asOf` is when served, in ms: over 600,000 is stale (the contract's down rule). */
   ageMs: number;
-  /** How long the answer waits before it is sent, in ms: over 2,000 is down. */
+  /** How long the answer waits before it is sent, in ms: over 6,000 is down. */
   delayMs: number;
   /** Shallow merges applied to the fixture, by top-level key, then by `current`'s and `last`'s. */
   patch?: {
@@ -247,6 +247,21 @@ export type Site = {
  * server's zone instead of UTC is off by hours and, near midnight, by a day.
  */
 async function startSite(feedUrl: string | null, ca?: string): Promise<Site> {
+  // freePort closes its probe before `next start` binds, so another process can take the port in
+  // between, and `next start` binds every interface where the probe only tried one.
+  for (let tries = 2; ; tries--) {
+    try {
+      return await startSiteOnce(feedUrl, ca);
+    } catch (error) {
+      if (tries === 0 || !String(error).includes("EADDRINUSE")) throw error;
+    }
+  }
+}
+
+async function startSiteOnce(
+  feedUrl: string | null,
+  ca?: string,
+): Promise<Site> {
   const dir = mkdtempSync(join(tmpdir(), "crew-site-"));
   for (const entry of readdirSync(ROOT)) {
     if (entry === ".next") continue;
@@ -355,11 +370,11 @@ export async function untilState(
 }
 
 /**
- * The polling rule's deadline (.crew/sprint/31/contract.md, "The polling rule": 40 s, named in the
- * test). A switch is followed on the request after the next stale one, about 30 s at worst, so a
- * poll a second apart shows it inside 40 s.
+ * The polling rule's deadline (.crew/sprint/31/contract.md, "The polling rule": 44 s, named in the
+ * test). A switch is followed on the request after the next stale one, about 30 s at worst, and a
+ * late answer takes the read's 6 s more, so a poll a second apart shows it inside 44 s.
  */
-export const STATE_WAIT = 40_000;
+export const STATE_WAIT = 44_000;
 
 /**
  * The state `/` shows, from its HTML, by the hooks the polling rule names (.crew/sprint/34/

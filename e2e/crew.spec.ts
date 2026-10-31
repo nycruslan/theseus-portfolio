@@ -178,8 +178,8 @@ test("B4 harness: the fixture server answers each fixture with the Studio's head
       "a stale asOf, ms old",
     )
     .toBeGreaterThan(600_000);
-  const late = await read(feed.set("check-late", { delayMs: 2_500 }));
-  expect.soft(late.ms, "a late answer, ms").toBeGreaterThanOrEqual(2_500);
+  const late = await read(feed.set("check-late", { delayMs: 6_500 }));
+  expect.soft(late.ms, "a late answer, ms").toBeGreaterThanOrEqual(6_500);
 
   const site = await crew.site("live", { fixture: "live" });
   const shown = await untilState(site.baseURL, "live", STATE_WAIT);
@@ -569,7 +569,7 @@ test("B4.2 down, honestly, on the default server: down, the down line, the recor
   await panelIs(page, DEFAULT);
 });
 
-// The reads that bring no answer back: a status other than 200, past the 2,000 ms timeout, or a
+// The reads that bring no answer back: a status other than 200, past the 6,000 ms timeout, or a
 // body that isn't JSON. Since the owner's measurement on #78 (2026-10-25, 17:48: an uncached read
 // of a cold Studio takes up to 8.4 s), such a read keeps the last good answer while that answer's
 // asOf is within the 10 minutes of the down rule, and only then reads down. An answer that fails
@@ -581,7 +581,7 @@ const FAILED_READS = [
     { raw: "<!doctype html><p>Not JSON" },
     "answers a body that isn't JSON",
   ],
-  ["late", { delayMs: 2_500 }, "answers after 2,500 ms"],
+  ["late", { delayMs: 6_500 }, "answers after 6,500 ms"],
 ] as const;
 /** A live answer at 9 min 50 s: the next read, 30 s or more later, finds it past the window. */
 const EDGE_OF_WINDOW = 590_000;
@@ -624,7 +624,7 @@ for (const [name, answer, what, first] of DOWNS) {
 
 /**
  * The kept read's scenario, once per worker: live first, then the failed read switched in, and
- * /crew's state each second until the feed counts a read past the switch, then 4 s, then five
+ * /crew's state each second until the feed counts a read past the switch, then 8 s, then five
  * reads a second apart.
  */
 function keptScenario(crew: Crew, kind: string, answer: Partial<Answer>) {
@@ -646,8 +646,8 @@ function keptScenario(crew: Crew, kind: string, answer: Partial<Answer>) {
       await new Promise((done) => setTimeout(done, 1000));
     }
     const after = crew.feed.reads(name);
-    // The failed read settles within the 2,000 ms timeout; then the regenerated page is served.
-    await new Promise((done) => setTimeout(done, 4000));
+    // The failed read settles within the 6,000 ms timeout; then the regenerated page is served.
+    await new Promise((done) => setTimeout(done, 8000));
     for (let i = 0; i < 5; i++) {
       seen.push((await untilState(live.base, "live", 0)).seen);
       await new Promise((done) => setTimeout(done, 1000));
