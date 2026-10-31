@@ -43,10 +43,10 @@ JavaScript, and adds no client code; the bar gains Crew on every page.
 ## Data rules (the page and Probe's oracle implement these word for word)
 
 **The read.** One server function reads `CREW_FEED_URL` (`GET`, no headers beyond the default,
-`AbortSignal.timeout(2000)`) inside `"use cache"` with `cacheLife({ stale: 30, revalidate: 30,
+`AbortSignal.timeout(6000)`, raised from 2000 after production read a cold Studio as down) inside `"use cache"` with `cacheLife({ stale: 30, revalidate: 30,
 expire: 300 })`. The answer is **down** when any of these hold:
 - `CREW_FEED_URL` is unset or empty;
-- the status isn't 200, the read takes over 2,000 ms, or the body isn't JSON, and no good answer
+- the status isn't 200, the read takes over 6,000 ms, or the body isn't JSON, and no good answer
   is kept whose `asOf` is within 10 minutes (amended by `decisions.md` 13: such a read keeps the
   last good answer, judged against that read's clock);
 - the shape doesn't check: `version !== 1`; `asOf` not a parseable ISO time; `current` and `last`
@@ -421,7 +421,7 @@ go red the moment the bar changes.
 | Script on `/crew` | the 404's files exactly; within 2,048 B of `/sprints'` | B4.14 | production: `/sprints` and the 404 each 5 files, 459,340 B decoded; `/read` 6 files, 460,072 B |
 | LCP on `/crew` | text in `main`, outside the drawing, within 2,500 ms at 4× CPU | B4.14 | `/`'s B1.9 holds the same |
 | Fonts | two woff2 within 86,016 B | B4.14 | B1.10 on `/` |
-| Feed read | 2,000 ms, then the kept answer while its `asOf` is within 10 minutes, else down (`decisions.md` 13); held at most 30 s | B4.2 (the 2,500 ms answer) | none yet |
+| Feed read | 6,000 ms, then the kept answer while its `asOf` is within 10 minutes, else down (`decisions.md` 13); held at most 30 s | B4.2 (the 2,500 ms answer) | none yet |
 | Staleness | `asOf` over 10 minutes is down | B4.2 | none yet |
 | Targets | 24 × 24 from 1024; 44 px tall below | B4.9, B4.11, B4.13 | B2.9 |
 | Overflow | 0 from 320 to 1440 | B4.9, B4.13 | B2.9 |
