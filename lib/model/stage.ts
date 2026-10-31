@@ -54,6 +54,7 @@ import {
   OUTLINE_PX,
   SEAM_PX,
   SHADOW_DARK,
+  SHADOW_FADE,
   SHADOW_LIGHT,
 } from "./calls";
 import { DECK, type Hull } from "./hull";
@@ -391,6 +392,23 @@ export function createStage(
   shadow.frustumCulled = false;
   scene.add(shadow);
   let darkness = SHADOW_LIGHT;
+  // On /crew the canvas is a detail's box and the shadow falls past it: it fades out over the last
+  // SHADOW_FADE px inside each edge, so it never ends in a ruled line where the box cuts it. The
+  // buffer's size and the fade, in buffer px, set by `fit`.
+  const frame = { value: new Vector3(1, 1, 1) };
+  if (tally) {
+    shadowMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uFrame = frame;
+      shader.fragmentShader = shader.fragmentShader
+        .replace("void main() {", "uniform vec3 uFrame;\nvoid main() {")
+        .replace(
+          "#include <alphamap_fragment>",
+          `#include <alphamap_fragment>
+          vec2 inside = min(gl_FragCoord.xy, uFrame.xy - gl_FragCoord.xy);
+          diffuseColor.a *= smoothstep(0.0, uFrame.z, min(inside.x, inside.y));`,
+        );
+    };
+  }
 
   // One camera for every frame, at the world's origin so the view is the identity. Its projection
   // is set per frame: orthographic at 1/D = 0, a dolly-zoom whose frustum at z = 0 is the canvas
@@ -421,6 +439,7 @@ export function createStage(
       // LineSegments2 sets each line's resolution to the viewport before it draws, and the
       // viewport is in buffer pixels here, so the weights are too: the drawing's CSS px × ratio.
       const ratio = buffer[0] / width;
+      frame.value.set(buffer[0], buffer[1], SHADOW_FADE * ratio);
       if (tip) {
         tip.run.material.linewidth = PENCIL.tip.width * ratio;
         tip.dot.material.linewidth = PENCIL.tip.dot * ratio;

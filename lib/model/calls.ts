@@ -135,6 +135,11 @@ export const SHADOW_LIGHT = 0.18;
 export const SHADOW_DARK = 0.6;
 /** The shadow's blur radius in texels: a lobe edge of about 18 px, as main.webp's (Iris's early look). */
 export const SHADOW_BLUR = 2;
+/**
+ * On /crew, where the detail's box cuts the shadow, how far inside each edge it fades out, in CSS
+ * px: about two of its lobe edges (.crew/sprint/36/), so the box never rules a line across it.
+ */
+export const SHADOW_FADE = 40;
 
 /** Line weights in CSS px, the drawing's own: the seams and the outline (call 5; SVG untouched). */
 export const SEAM_PX = 0.9;
