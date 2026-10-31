@@ -168,7 +168,8 @@ colours the dash stays. `[data-plan]` stays within 32,768 B (C6's measure).
 Drawn, Checked, Tested and Approved cells the oracle's; five rows, the other four the oracle's
 newest retros without n; at 1440 its description is one line, as B1.5 holds the others; at 390 it
 folds with its labels shown (B2.9's rider). Following the link lands on `/crew`'s `h1`. In live,
-"drawing now" is shown whole inside the row and the viewport; in open, absent, and Approved reads
+"drawing now" is shown whole inside the row, within the viewport's width and not cut by the
+ellipsis; in open, absent, and Approved reads
 "Waiting for owner"; with `health.state` patched to `quiet`, Approved reads "—". On the live site's
 `/`, none of the fixture's now line, role lines, health line or moments appears (B4.3's rewritten
 assertion).
