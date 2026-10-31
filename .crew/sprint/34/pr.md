@@ -62,6 +62,10 @@ rest: `/` has no seat pick to find the plank at rest (`decisions.md` 7).
 **Ship on b2b87d7**, no Important, three nits: the two above, now recorded, and a blank feed goal
 rendering an empty link to `/crew`, which rides the next sprint that touches the layer.
 
+**Fix round: CI's 25-minute cap.** `check` was cancelled in `pnpm test:e2e` on 316a660. Probe's
+415b4c0 starts each feed spec's sites together (7.4 to 3.5 min, no assertion changed); `check`
+passed in 20.3 min and Lens shipped 415b4c0 again, with three test nits riding (`decisions.md` 9).
+
 ### Iris
 
 **Verdict: ship, 8.7/10**, no musts. axe `[]` on 56 runs, overflow 0 at 320, LCP text 1.86 to
