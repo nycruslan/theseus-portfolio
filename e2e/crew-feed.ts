@@ -398,8 +398,10 @@ export type Crew = {
   feed: Feed;
   /**
    * A site reading the channel `name`, set to `answer`. The three fixtures' sites, and any a spec
-   * asks to `keep`, are kept for the worker; a variant's site replaces the worker's previous variant
-   * site, so a worker runs at most four or five `next start`s at once (CI's runner is small).
+   * asks to `keep`, are kept until the worker ends; a variant's site replaces the worker's previous
+   * variant site. So a worker runs one `next start` per kept site, across every feed spec it ran,
+   * plus one variant: crew.spec.ts keeps 15 and live-layer.spec.ts 11 (each scenario's own), and
+   * crew-live.spec.ts reuses crew.spec.ts's live, open and resting (Lens on 415b4c0).
    */
   site(name: string, answer?: Partial<Answer>, keep?: boolean): Promise<Site>;
   /**

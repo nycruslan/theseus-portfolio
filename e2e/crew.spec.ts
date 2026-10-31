@@ -721,7 +721,7 @@ test("B4.3 live, from the live fixture: the status, chip, rows, now line, activi
     .toEqual([]);
 });
 
-test("B4.4 open, from the open fixture: Waiting on the owner, no now line, a working role reads Waiting, Approval on the pull request not given yet; switched to quiet, Paused and the live Approval", async ({
+test("B4.4 open, from the open fixture: Waiting on the owner, no now line, a working role reads Waiting, Approval on the pull request not given yet; switched to quiet, Between sessions (Iris, sprint 35) and the live Approval", async ({
   page,
   crew,
 }) => {
@@ -734,7 +734,7 @@ test("B4.4 open, from the open fixture: Waiting on the owner, no now line, a wor
   await panelIs(page, open);
 
   const quiet = await onFixture(crew, "open-quiet", QUIET);
-  expect.soft(quiet.exp.status, "the oracle's status").toBe("Paused");
+  expect.soft(quiet.exp.status, "the oracle's status").toBe("Between sessions");
   await openCrew(page, quiet);
   await panelIs(page, quiet);
 });
@@ -1085,7 +1085,7 @@ test("B4.12 the first screen, on the live fixture: at 1440 x 900 the h1, the sta
   }
 });
 
-test("B4.13 /crew's own sweeps: text contrast in both schemes on the default server and the live fixture; with scripts off the panel's state, rows and Rules as with them on; Tab visits the skip link, the wordmark, the shown bar links, Close and Evidence's links in DOM order, each with one 2 px ink ring 2 px out; on the live fixture axe with the strict tags and every text in a token", async ({
+test("B4.13 /crew's own sweeps: text contrast in both schemes on the default server and the live fixture; with scripts off the panel's state, rows and Rules as with them on; Tab visits the skip link, the wordmark, the shown bar links, Close, Pause updates (sprint 35) and Evidence's links in DOM order, each with one 2 px ink ring 2 px out; on the live fixture axe with the strict tags and every text in a token", async ({
   page,
   browser,
   crew,
@@ -1145,8 +1145,14 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
         .toEqual([]);
     }
 
-    // The Tab order and the ring, on the default server at 1440.
+    // The Tab order and the ring, on the default server at 1440. Pause updates takes focus once the
+    // poller marks it ready (.crew/sprint/35/contract.md, "Pause updates"): waited for, not asserted,
+    // so a page without it fails on the stops below.
     await openCrew(page, DEFAULT, 1440);
+    await page
+      .locator("button[data-pause][data-ready]")
+      .waitFor({ timeout: 5_000 })
+      .catch(() => undefined);
     const order = await page.evaluate(() => {
       const shown = (el: Element) => el.getClientRects().length > 0;
       const header = document.querySelector("header:has(nav)");
@@ -1159,6 +1165,7 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
           .map((a) => a.getAttribute("href") ?? ""),
         document.querySelector("a[data-close]")?.getAttribute("href") ??
           "(no Close)",
+        "<button>",
         ...[...document.querySelectorAll("[data-evidence] a")]
           .filter(shown)
           .map((a) => a.getAttribute("href") ?? ""),
@@ -1274,7 +1281,7 @@ async function scripts(
   };
 }
 
-test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew requests the 404's script files and bytes, within 2,048 B of /log's; two woff2 within 86,016 B", async ({
+test("B4.14 text first, and the script within its budget: at 4x CPU /crew's LCP is text in main outside the drawing with no url within 2,500 ms at 1440 x 900 and 390 x 844; /crew requests every script file the 404 does and at most 16,384 B more (its poller, sprint 35), within 2,048 B of /log's; two woff2 within 86,016 B", async ({
   page,
   browser,
 }, testInfo) => {
@@ -1334,12 +1341,20 @@ test("B4.14 text first, the framework's script alone: at 4x CPU /crew's LCP is t
   expect.soft(missing.status, "status of the 404").toBe(404);
   // A missing /log is the 404, whose files are /crew's: the baseline must be the page.
   expect.soft(log.status, "status of /log").toBe(200);
+  // Sprint 35 gives /crew its poller (.crew/sprint/35/contract.md, B4.14's rewrite; the plan's
+  // B4.3 sets /crew's own budget): the 404's files all included, and 16,384 B beyond its bytes.
   expect
-    .soft(crew.paths, "/crew's script files against the 404's")
-    .toEqual(missing.paths);
+    .soft(
+      missing.paths.filter((path) => !crew.paths.includes(path)),
+      "the 404's script files not among /crew's",
+    )
+    .toEqual([]);
   expect
-    .soft(crew.bytes, "/crew's script bytes against the 404's")
-    .toBe(missing.bytes);
+    .soft(
+      crew.bytes - missing.bytes,
+      `/crew's script bytes beyond the 404's (${missing.bytes} B)`,
+    )
+    .toBeLessThanOrEqual(16_384);
   expect
     .soft(
       crew.bytes - log.bytes,
