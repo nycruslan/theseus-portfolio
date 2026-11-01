@@ -35,6 +35,9 @@ neighbouring site can copy a look; it can't truthfully copy that record.
   ships one pull request.
 - The Studio (a separate app) streams the crew's work live. Visitors only watch: they never start
   or steer the crew.
+- `/ask` is the one thing a visitor can spend a model call on. It answers from the owner's facts on
+  Claude Haiku, with a Vercel Firewall rate limit and a monthly quota on its AI Gateway key, and
+  `/evals` publishes its weekly test scores.
 - The crew makes its own calls: Iris sets the design on a Design canvas, and the owner may pick
   another there. The owner answers only what only they can decide, and is otherwise not involved.
 
@@ -54,10 +57,12 @@ neighbouring site can copy a look; it can't truthfully copy that record.
 
 ## Evidence on Hand
 
-- The owner's facts: `content/profile.ts`. Never invent numbers, clients or testimonials.
+- The owner's facts: `content/profile.ts` and the case studies in `content/work.ts`. Never invent
+  numbers, clients or testimonials.
 - The crew's record: `.crew/sprint/*/retro.json` and the Studio's events.
 - The research behind the redesign: `design/research/2027-redesign.md`.
-- The phone number, the email and anything about a job search stay off the site.
+- The email is on the site so a hiring executive can reach the owner in one click. The phone number
+  and anything about a job search stay off it.
 
 ## Product Principles
 

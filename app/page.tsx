@@ -16,6 +16,7 @@ import { PLANKS } from "@/lib/hull-layouts";
 import { seatPlanks } from "@/lib/lines-plan";
 import { layerOf } from "@/lib/live-layer";
 import { openGraph } from "@/lib/metadata";
+import { OWNER_EMAIL } from "@/lib/portfolio";
 import { SITE_URL } from "@/lib/site";
 import { readSprintLog } from "@/lib/sprint-log";
 
@@ -34,7 +35,10 @@ const person = {
   jobTitle: profile.headline,
   description: profile.bio,
   url: SITE_URL,
-  sameAs: profile.links.map((link) => link.href),
+  email: OWNER_EMAIL,
+  sameAs: profile.links
+    .map((link) => link.href)
+    .filter((href) => !href.startsWith("mailto:")),
 };
 
 export default async function Home() {

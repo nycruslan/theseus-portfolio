@@ -10,8 +10,8 @@ import type { ReactNode } from "react";
 // scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
 // It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
 // a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
-// end after Read as page, as the approved frame draws it. Every page with a bar has a model now,
-// /crew's since B4d (.crew/sprint/36/contract.md). The control is a slot, not an import, so its
+// end after Read as page, as the approved frame draws it. The sheet, the Log and /crew have one
+// (/crew's since B4d, .crew/sprint/36/contract.md); the reading pages in components/document.tsx don't. The control is a slot, not an import, so its
 // client module ships only where a page with a model renders it.
 //
 // Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and
@@ -20,8 +20,8 @@ import type { ReactNode } from "react";
 // .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
 // (components/log.tsx; .crew/sprint/33/).
 type BarProps = {
-  /** Where the bar is: the sheet, the Log, one of the Log's records, or the crew's page. */
-  at?: "sheet" | "log" | "record" | "crew";
+  /** Where the bar is: the sheet, the Log, a record, the crew's page, a case study, or any other. */
+  at?: "sheet" | "log" | "record" | "crew" | "work" | "page";
   /** The motion control, from a page with a model: the sheet, the Log and its records, and /crew. */
   control?: ReactNode;
   className?: string;
@@ -50,7 +50,11 @@ const decoration = ({ away, current }: BarLink) =>
 export function Bar({ at = "sheet", control, className = "" }: BarProps) {
   const home = at === "sheet" ? "" : "/";
   const links: BarLink[] = [
-    { label: "Work", href: `${home}#work` },
+    {
+      label: "Work",
+      href: `${home}#work`,
+      current: at === "work" ? "true" : undefined,
+    },
     {
       label: "Crew",
       href: "/crew",

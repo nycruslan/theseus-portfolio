@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
+import { caseStudies } from "../content/work";
 import {
   composite,
   contrast,
@@ -25,7 +26,8 @@ import {
 // (.crew/sprint/29/b5-first-contract.md, B5a): Log points at /log, and B2.9's forced-colours ring
 // holds on /log and a record too. Sprint 31 (.crew/sprint/31/contract.md, B4a): Crew follows Work
 // in the bar, so Contact's first link is the 16th stop and `tabUntil`'s bound is 16; B2.9's
-// forced-colours ring holds on /crew too.
+// forced-colours ring holds on /crew too. One site: Case studies, Ask AI and the five case studies
+// come first, so it's the 23rd stop and the bound is 23.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -54,7 +56,7 @@ async function settled(page: Page) {
 }
 
 /** Presses Tab until the focused element matches `selector`, at most `max` times. */
-async function tabUntil(page: Page, selector: string, max = 16) {
+async function tabUntil(page: Page, selector: string, max = 23) {
   for (let presses = 0; presses < max; presses++) {
     await page.keyboard.press("Tab");
     const found = await page.evaluate(
@@ -485,7 +487,7 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar links, Full, Calm, Off, the 3 title-block links, the Log link, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 23rd Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, the 3 title-block links, the Log link, the 5 case studies, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");
@@ -498,13 +500,16 @@ test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar link
     "#contact",
     "/read",
     ...MODES.map((mode) => `<button> ${mode}`),
+    "#case-studies",
+    "/ask",
     ...profile.links.map((link) => link.href),
     "/log",
+    ...caseStudies.map((study) => `/work/${study.slug}`),
     ...withLink.map((project) => project.href ?? ""),
     profile.links[0]?.href ?? "",
   ];
   // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
-  expect(expected, "the stops up to Contact's first link").toHaveLength(16);
+  expect(expected, "the stops up to Contact's first link").toHaveLength(23);
   const stops: string[] = [];
   for (let press = 0; press < expected.length; press++) {
     await page.keyboard.press("Tab");
@@ -518,13 +523,13 @@ test("B2.3 on /, Contact's first link is the 16th Tab stop: skip, the 5 bar link
       }, MOTION),
     );
   }
-  expect(stops, "the first 16 Tab stops on /").toEqual(expected);
+  expect(stops, "the first 23 Tab stops on /").toEqual(expected);
   expect(
     await page.evaluate(
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 16th stop is Contact's first link",
+    "the 23rd stop is Contact's first link",
   ).toBe(true);
 });
 

@@ -3291,3 +3291,334 @@ a[data-replay]:not([data-ready]) {
     margin: 0;
   }
 }
+
+/*
+ * The case studies, /ask and /evals: the sheet's schedule (.sched above) with a few pieces of their
+ * own, and their own print rules at the end.
+ */
+.entry-link {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* The padding takes the box to a 24 px target without moving the line. */
+.text-link {
+  padding-block: 3px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.doc-head {
+  padding: 18px 16px 32px;
+  border-top: 2px solid var(--foreground);
+}
+
+.doc-head h1 {
+  max-width: 18ch;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-3xl);
+  font-weight: 700;
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+.doc-lead {
+  max-width: 62ch;
+  margin-top: 16px;
+  font-size: var(--step-lg);
+  line-height: 1.4;
+}
+
+.doc-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 12px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Results: the drawing's principal particulars, the figure larger than anything but the title. */
+.doc-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0 24px;
+  margin-top: 24px;
+  border-top: 1px solid var(--foreground);
+}
+
+.doc-results > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.doc-results dt {
+  font-size: var(--step-sm);
+  color: var(--muted);
+}
+
+.doc-results dd {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+/* A system drawn left to right from 1024 px and top to bottom below it. The parts are real text and
+   the connectors are borders, so it reflows, prints and survives forced colors with no image. */
+.flow {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 18px;
+}
+
+.flow-stage {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+
+.flow-stage + .flow-stage::before {
+  position: absolute;
+  top: -18px;
+  left: 20px;
+  width: 0;
+  height: 18px;
+  content: "";
+  border-left: 1px solid var(--foreground);
+}
+
+/* The arrowhead, so the drawing's direction doesn't rest on reading order. */
+.flow-stage + .flow-stage::after {
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  content: "";
+  border-top: 6px solid var(--foreground);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.flow-part {
+  padding: 10px 12px;
+  font-size: var(--step-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  background: var(--card);
+  border: 1px solid var(--foreground);
+}
+
+.point {
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.point:last-child {
+  border-bottom: 0;
+}
+
+.point strong {
+  display: block;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.doc-next {
+  display: grid;
+  gap: 6px;
+  padding: 18px 16px 48px;
+  border-top: 2px solid var(--foreground);
+}
+
+.doc-next-link {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-display);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.doc-next p {
+  color: var(--muted);
+}
+
+/* The assistant: a transcript as a record of questions and answers, never chat bubbles (the brief). */
+.ask-turn {
+  padding: 14px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ask-turn h3 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.ask-answer {
+  max-width: 66ch;
+  min-height: 1.55em;
+  margin-top: 8px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.ask-wait {
+  color: var(--muted);
+}
+
+.ask-starters {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.ask-starter {
+  min-height: 44px;
+  padding: 4px 0;
+  font-size: var(--step-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+  text-align: left;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.ask-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  max-width: 66ch;
+  margin-top: 18px;
+}
+
+.ask-form label {
+  grid-column: 1 / -1;
+  font-weight: 650;
+}
+
+.ask-form input {
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  font-size: 1rem;
+  background: var(--card);
+  border: 1px solid var(--foreground);
+  border-radius: 0;
+}
+
+.ask-submit {
+  min-height: 48px;
+  padding: 0 20px;
+  font-weight: 700;
+  color: var(--background);
+  cursor: pointer;
+  background: var(--foreground);
+  border: 1px solid var(--foreground);
+}
+
+.ask-submit[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.score-note {
+  max-width: 66ch;
+  margin-top: 6px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  .entry-link:hover,
+  .doc-next-link:hover {
+    text-decoration-thickness: 3px;
+  }
+
+  .ask-starter:hover,
+  .text-link:hover,
+  .doc-back:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Forced colors repaint transparent borders too, which would square the arrowheads off. */
+@media (forced-colors: active) {
+  .flow-stage + .flow-stage::after {
+    forced-color-adjust: none;
+    border-top-color: CanvasText;
+  }
+}
+
+@media (width >= 64rem) {
+  .doc-head,
+  .doc-next {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .doc-head {
+    padding-top: 28px;
+    padding-bottom: 44px;
+  }
+
+  .flow {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 28px;
+  }
+
+  .flow-stage + .flow-stage::before {
+    top: 50%;
+    left: -28px;
+    width: 28px;
+    height: 0;
+    border-top: 1px solid var(--foreground);
+    border-left: 0;
+  }
+
+  .flow-stage + .flow-stage::after {
+    top: calc(50% - 4px);
+    left: -6px;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid var(--foreground);
+    border-right: 0;
+  }
+
+  @media (forced-colors: active) {
+    .flow-stage + .flow-stage::after {
+      border-top-color: transparent;
+      border-left-color: CanvasText;
+    }
+  }
+}
+
+@media print {
+  .ask-starters,
+  .ask-form {
+    display: none;
+  }
+
+  .ask-turn,
+  .point {
+    break-inside: avoid;
+  }
+}

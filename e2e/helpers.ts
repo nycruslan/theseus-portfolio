@@ -35,6 +35,9 @@ export const ROUTES = [
   "/crew",
   "/log",
   "/log/13",
+  "/ask",
+  "/evals",
+  "/work/hybrid-rag",
   "/no-such-page",
 ] as const;
 /** The status each of ROUTES answers with. */
@@ -44,6 +47,9 @@ export const STATUS: Record<(typeof ROUTES)[number], number> = {
   "/crew": 200,
   "/log": 200,
   "/log/13": 200,
+  "/ask": 200,
+  "/evals": 200,
+  "/work/hybrid-rag": 200,
   "/no-such-page": 404,
 };
 

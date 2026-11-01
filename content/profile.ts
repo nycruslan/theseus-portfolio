@@ -1,7 +1,7 @@
 // Owner-maintained facts. Agents may restyle how this renders, but never edit it.
-// From the owner's 2026 sources: their master résumé (June 2026) and the public facts on
-// ruslanshulga.com. The phone number and email stay out: this repository, the site and every
-// sprint's broadcast are public.
+// From the owner's 2026 sources: their master résumé (June 2026) and their earlier public portfolio.
+// The email is here so a hiring executive can reach them in one click. The phone number stays out:
+// this repository, the site and every sprint's broadcast are public.
 
 export type Link = {
   label: string;
@@ -36,7 +36,7 @@ export type Profile = {
   experience: Role[];
   projects: Project[];
   education: Education[];
-  /** The tools the owner works with, as they list them on ruslanshulga.com. */
+  /** The tools the owner works with. */
   stack: string[];
 };
 
@@ -46,9 +46,9 @@ export const profile: Profile = {
   location: "New York, NY",
   bio: "VP Engineering at JPMorgan Chase. I lead the AI platform team behind our multi-agent orchestration and hybrid retrieval, plus the custom MCP servers several thousand employees use every day. This site is where a team of AI agents shows what it can ship on its own.",
   links: [
-    { label: "GitHub", href: "https://github.com/nycruslan" },
+    { label: "Email", href: "mailto:nycruslan@gmail.com" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/nycruslan/" },
-    { label: "ruslanshulga.com", href: "https://ruslanshulga.com" },
+    { label: "GitHub", href: "https://github.com/nycruslan" },
   ],
   experience: [
     {
@@ -89,10 +89,10 @@ export const profile: Profile = {
       href: "https://github.com/nycruslan/theseus-portfolio",
     },
     {
-      name: "ruslanshulga.com",
+      name: "view-json-react",
       description:
-        "My main portfolio and a working demo: a portfolio assistant on Claude Haiku over a streaming API, a WebGL shader hero, and Astro with React islands on Vercel.",
-      href: "https://ruslanshulga.com",
+        "An accessible, dependency-free React JSON tree viewer with safe inspection, search and virtualization. Open source.",
+      href: "https://github.com/nycruslan/view-json-react",
     },
   ],
   education: [

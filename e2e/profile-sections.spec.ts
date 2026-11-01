@@ -70,14 +70,22 @@ function stackRows(page: Page) {
 }
 
 // Sprint 22 (B1) renames Experience to Work and puts the sheet's Revisions first.
-test("C1. Section order: the sheet's Revisions, then Work, Projects, Stack, Education, Contact", async ({
+test("C1. Section order: the sheet's Revisions, then Work, Case studies, Projects, Stack, Education, Contact", async ({
   page,
 }) => {
   await page.goto("/");
   expect(
     await page.locator("main h2").evaluateAll((els) => els.map((el) => el.id)),
     "ids of the h2s in main, in DOM order",
-  ).toEqual(["revisions", "work", "projects", "stack", "education", "contact"]);
+  ).toEqual([
+    "revisions",
+    "work",
+    "case-studies",
+    "projects",
+    "stack",
+    "education",
+    "contact",
+  ]);
   await expect(page.locator("main h2#stack"), "Stack heading").toHaveText(
     "Stack",
   );
