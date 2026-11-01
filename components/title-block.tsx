@@ -40,7 +40,8 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         >
           Ask AI
         </a>
-        <span className="text-muted lg:ml-auto">Contact</span>
+        {/* Below 1024 the links must keep to one line for the first screen's budget, so no label. */}
+        <span className="hidden text-muted lg:ml-auto lg:inline">Contact</span>
         {profile.links.map((link) => (
           <a
             key={link.href}

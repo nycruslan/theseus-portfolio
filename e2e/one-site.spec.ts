@@ -2,11 +2,12 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { caseStudies } from "../content/work";
-import { HISTORY_TURNS, TURN_MAX_CHARS } from "../lib/chat";
+import { HISTORY_TURNS, QUESTION_MAX_CHARS, TURN_MAX_CHARS } from "../lib/chat";
 
 // What the earlier portfolio brought here: the case studies, the assistant, its evals and the agent
-// surfaces. The model is never called: /api/chat is mocked in the browser, and the server is only
-// asked what it refuses. Facts are imported from content/, never copied.
+// surfaces. The model is never called: /api/chat is mocked in the browser, the server is asked what
+// it refuses, and the one test that gets past validation runs only on a local build with no key.
+// Facts are imported from content/, never copied.
 
 const PAGES = ["/ask", "/evals", ...caseStudies.map((s) => `/work/${s.slug}`)];
 
@@ -88,6 +89,22 @@ test("the assistant streams an answer, keeps the history and refocuses the quest
   expect(bodies[1]?.messages[1]?.content).toBe("Answer 1.");
 });
 
+test("sending with the Ask button keeps keyboard focus on it", async ({
+  page,
+}) => {
+  await page.route("/api/chat", (route) =>
+    route.fulfill({ contentType: "text/plain", body: "Answered." }),
+  );
+  await page.goto("/ask");
+  await page.getByLabel("Your question").fill("Hello?");
+  await page.keyboard.press("Tab");
+  const ask = page.getByRole("button", { name: "Ask", exact: true });
+  await expect(ask).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(page.getByText("Answered.")).toBeVisible();
+  await expect(ask).toBeFocused();
+});
+
 test("a long answer and a long conversation keep working", async ({ page }) => {
   const sizes: number[] = [];
   await page.route("/api/chat", async (route) => {
@@ -111,10 +128,14 @@ test("a long answer and a long conversation keep working", async ({ page }) => {
   expect(Math.max(...sizes)).toBe(HISTORY_TURNS);
 });
 
-test("the chat route takes a full history with a long answer in it", async ({
+test("the chat route takes a long answer in its history", async ({
   request,
   baseURL,
 }) => {
+  test.skip(
+    Boolean(process.env.PLAYWRIGHT_BASE_URL),
+    "A deployment has a key, so this would be a paid model call",
+  );
   // Refused only for a key that isn't set here: past validation, the route answers 200 and streams.
   const response = await request.post("/api/chat", {
     headers: { origin: baseURL ?? "" },
@@ -167,6 +188,13 @@ test("the chat route refuses other sites and malformed requests before any model
     headers: { origin: "null" },
   });
   expect(opaque.status()).toBe(403);
+  const tooLong = await request.post(url, {
+    data: {
+      messages: [{ role: "user", content: "x".repeat(QUESTION_MAX_CHARS + 1) }],
+    },
+    headers: { origin: baseURL ?? "" },
+  });
+  expect(tooLong.status()).toBe(400);
   const malformed = await request.post(url, {
     data: { messages: [{ role: "assistant", content: "Hi" }] },
     headers: { origin: baseURL ?? "" },
@@ -205,6 +233,49 @@ test("agent surfaces serve the owner's facts", async ({ request }) => {
   ]) {
     expect(tools).toContain(name);
   }
+});
+
+test("an MCP tool answers a call", async ({ request }) => {
+  const study = caseStudies[0];
+  const response = await request.post("/api/mcp", {
+    headers: {
+      accept: "application/json, text/event-stream",
+      "mcp-protocol-version": "2025-06-18",
+    },
+    data: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "get_project", arguments: { slug: study?.slug } },
+    },
+  });
+  expect(await response.text()).toContain(study?.title);
+});
+
+test("MCP search finds a short term, and an unknown slug is a tool error", async ({
+  request,
+}) => {
+  const call = async (name: string, args: Record<string, string>) => {
+    const response = await request.post("/api/mcp", {
+      headers: {
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2025-06-18",
+      },
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name, arguments: args },
+      },
+    });
+    return response.text();
+  };
+  expect(await call("search_portfolio", { query: "AI" })).not.toContain(
+    "No matches",
+  );
+  expect(await call("get_project", { slug: "nope" })).toContain(
+    '"isError":true',
+  );
 });
 
 test("the old portfolio's addresses lead somewhere", async ({ request }) => {

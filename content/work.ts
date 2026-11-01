@@ -116,7 +116,7 @@ export const caseStudies: CaseStudy[] = [
       {
         id: "shape",
         title: "The shape",
-        text: "Three retrievers run in parallel: dense (domain-tuned embeddings), sparse (BM25 over chunked text), and a small cross-encoder on the top-K union. Per use case, the index is whatever fits. Pinecone for the high-traffic general index. Weaviate where we needed hybrid out of the box. pgvector where the index lived next to relational data, so joins beat round-trips.",
+        text: "Two retrievers run in parallel: dense (domain-tuned embeddings) and sparse (BM25 over chunked text). A small cross-encoder then re-ranks the top-K union. Per use case, the index is whatever fits. Pinecone for the high-traffic general index. Weaviate where we needed hybrid out of the box. pgvector where the index lived next to relational data, so joins beat round-trips.",
       },
       {
         id: "decisions",

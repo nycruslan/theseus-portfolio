@@ -62,7 +62,7 @@ export default async function EvalsPage() {
           </dl>
         ) : (
           <p className="doc-lead">
-            No report is published yet. The next run is on Monday.
+            No report to show right now. The evals run every Monday.
           </p>
         )}
       </header>

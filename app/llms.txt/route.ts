@@ -26,7 +26,7 @@ ${studies.join("\n")}
 
 ## Contact
 
-${OWNER_EMAIL}
+- [Email](mailto:${OWNER_EMAIL})
 `;
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

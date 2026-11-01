@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { profile } from "@/content/profile";
 import { caseStudies } from "@/content/work";
-import { HISTORY_TURNS } from "@/lib/chat";
 import { OWNER_EMAIL, resumeAsText, studyAsText } from "@/lib/portfolio";
 
 // The portfolio's assistant: one model call over the owner's whole record, with no tools to run. The
@@ -14,15 +13,23 @@ export const CHAT_MODEL = "anthropic/claude-haiku-5.5";
 export type Turn = { role: "user" | "assistant"; content: string };
 
 /** Through Vercel AI Gateway, on a key whose monthly quota caps what the site can ever spend. */
-export const gateway = () =>
-  new Anthropic({
-    // Null, not undefined: the SDK would otherwise send ANTHROPIC_API_KEY to the Gateway.
-    apiKey: process.env.AI_GATEWAY_API_KEY ?? null,
+export function gateway() {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  // Without its own key the SDK would look for other Anthropic credentials and send them here.
+  if (!apiKey) throw new Error("AI_GATEWAY_API_KEY is not set");
+  return new Anthropic({
+    apiKey,
     authToken: null,
     baseURL: "https://ai-gateway.vercel.sh",
   });
+}
 
 export const CANNOT_ANSWER = `I can't answer that here. Email ${OWNER_EMAIL} and ${profile.name.split(" ")[0]} can.`;
+
+/** Everything the assistant may say, and what the evals' judge checks its answers against. */
+export const RECORD = `${resumeAsText()}
+
+${caseStudies.map(studyAsText).join("\n\n")}`;
 
 const SYSTEM = `You are the assistant on ${profile.name}'s portfolio. You answer questions from hiring executives, recruiters and engineers about his professional work. You speak about him, never as him.
 
@@ -37,9 +44,7 @@ Rules:
 6. If asked what you are: you're Claude Haiku, on a page he built, tested weekly with the scores published at /evals.
 
 <record>
-${resumeAsText()}
-
-${caseStudies.map(studyAsText).join("\n\n")}
+${RECORD}
 </record>`;
 
 /** The one request the assistant makes. Low effort: these are short answers from a given record. */
@@ -48,7 +53,7 @@ export function chatRequest(turns: Turn[]) {
     model: CHAT_MODEL,
     max_tokens: 2000,
     system: SYSTEM,
-    messages: turns.slice(-HISTORY_TURNS),
+    messages: turns,
     output_config: { effort: "low" },
   } satisfies Anthropic.MessageStreamParams;
 }

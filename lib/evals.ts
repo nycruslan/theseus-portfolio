@@ -1,7 +1,13 @@
 import { head, put } from "@vercel/blob";
 import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
-import { CHAT_MODEL, chatRequest, gateway } from "@/lib/assistant";
+import {
+  CANNOT_ANSWER,
+  CHAT_MODEL,
+  chatRequest,
+  gateway,
+  RECORD,
+} from "@/lib/assistant";
 
 // The assistant's weekly report: a fixed set of questions goes through the real chat request, a
 // stronger model judges each answer, and the run lands as one JSON file in Vercel Blob for /evals
@@ -143,6 +149,8 @@ const reportSchema = z.object({
 
 export type EvalReport = z.infer<typeof reportSchema>;
 
+const CASE_TIMEOUT_MS = 120_000;
+
 const textOf = (message: { content: { type: string; text?: string }[] }) =>
   message.content.map((block) => block.text ?? "").join("");
 
@@ -151,55 +159,73 @@ const mean = (scores: number[]) =>
 
 async function grade({ prompt, expect }: (typeof CASES)[number]) {
   const client = gateway();
+  // One hung call scores its case 0, well inside the cron's 300 s, instead of losing the whole run.
+  const options = { signal: AbortSignal.timeout(CASE_TIMEOUT_MS) };
   const answer = await client.messages
-    .stream(chatRequest([{ role: "user", content: prompt }]))
+    .stream(chatRequest([{ role: "user", content: prompt }]), options)
     .finalMessage();
+  // What a visitor would read: the route answers a refusal the same way.
+  const reply =
+    answer.stop_reason === "refusal" ? CANNOT_ANSWER : textOf(answer);
   const judged = await client.messages
-    .stream({
-      model: JUDGE_MODEL,
-      max_tokens: 2000,
-      system:
-        "You grade a portfolio's assistant strictly. Score its reply 0 to 10 against the expected behavior, with a one-sentence note saying why. 7 or above passes.",
-      messages: [
-        {
-          role: "user",
-          content: `Question:\n${prompt}\n\nExpected behavior:\n${expect}\n\nReply:\n${textOf(answer)}`,
-        },
-      ],
-      output_config: {
-        effort: "low",
-        format: {
-          type: "json_schema",
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              score: { type: "integer" },
-              note: { type: "string" },
+    .stream(
+      {
+        model: JUDGE_MODEL,
+        max_tokens: 2000,
+        system:
+          "You grade a portfolio's assistant strictly. Score its reply 0 to 10 against the expected behavior, with a one-sentence note saying why. 7 or above passes. Every fact in the reply must come from the record: a fact in the record is grounded even if the expected behavior doesn't mention it, and a fact that isn't in the record is invented.",
+        messages: [
+          {
+            role: "user",
+            content: `<record>\n${RECORD}\n</record>\n\nQuestion:\n${prompt}\n\nExpected behavior:\n${expect}\n\nReply:\n${reply}`,
+          },
+        ],
+        output_config: {
+          effort: "low",
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                score: { type: "integer" },
+                note: { type: "string" },
+              },
+              required: ["score", "note"],
             },
-            required: ["score", "note"],
           },
         },
       },
-    })
+      options,
+    )
     .finalMessage();
   const { score, note } = verdictSchema.parse(JSON.parse(textOf(judged)));
   return { prompt, score, passed: score >= 7, note };
 }
 
-/** One full run, saved over the last. A case that errors scores 0, so a failure can't look clean. */
+/**
+ * One full run, saved over the last. A case that errors scores 0, so a failure can't look clean. When
+ * most error, that's an outage and not the assistant's score: the run throws and the last report stays.
+ */
 export async function runEvals(): Promise<EvalReport> {
+  let errors = 0;
   const graded = await Promise.all(
     CASES.map(async (testCase) => {
-      const result = await grade(testCase).catch((error: Error) => ({
-        prompt: testCase.prompt,
-        score: 0,
-        passed: false,
-        note: `The run failed on this case: ${error.name}.`,
-      }));
+      const result = await grade(testCase).catch((error: Error) => {
+        errors += 1;
+        return {
+          prompt: testCase.prompt,
+          score: 0,
+          passed: false,
+          note: `The run failed on this case: ${error.name}.`,
+        };
+      });
       return { category: testCase.category, ...result };
     }),
   );
+  if (errors > CASES.length / 2) {
+    throw new Error(`${errors} of ${CASES.length} cases errored`);
+  }
   const categories = (Object.keys(CATEGORIES) as Category[]).map((key) => {
     const cases = graded
       .filter(({ category }) => category === key)
@@ -234,13 +260,17 @@ export async function runEvals(): Promise<EvalReport> {
 /** The latest report, or null before the first run or when the store can't be read. */
 export async function readEvals(): Promise<EvalReport | null> {
   "use cache";
-  cacheLife("days");
   cacheTag(EVALS_TAG);
   try {
-    const { url } = await head(REPORT_PATH);
-    const response = await fetch(url);
-    return reportSchema.parse(await response.json());
+    // The upload time in the URL gets past the CDN's copy of the last report.
+    const { url, uploadedAt } = await head(REPORT_PATH);
+    const response = await fetch(`${url}?v=${uploadedAt.getTime()}`);
+    const report = reportSchema.parse(await response.json());
+    cacheLife("days");
+    return report;
   } catch {
+    // A failed read mustn't say "no report" for a day.
+    cacheLife("minutes");
     return null;
   }
 }

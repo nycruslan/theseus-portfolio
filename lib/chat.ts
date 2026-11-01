@@ -4,5 +4,8 @@
 /** Past this many turns, older ones are dropped. Odd, so the kept history starts with a question. */
 export const HISTORY_TURNS = 11;
 
+/** The longest question a visitor can ask. */
+export const QUESTION_MAX_CHARS = 500;
+
 /** Long enough for the longest answer the request allows (2,000 tokens) to come back as history. */
 export const TURN_MAX_CHARS = 10_000;

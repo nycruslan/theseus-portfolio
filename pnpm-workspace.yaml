@@ -5,3 +5,6 @@ allowBuilds:
 # Refuse versions published less than a day ago. Setting it explicitly also makes resolution fail,
 # rather than fall back to an older version, when nothing is old enough (minimumReleaseAgeStrict).
 minimumReleaseAge: 1440
+overrides:
+  # @vercel/oidc pulls an older zod with a memory-exhaustion advisory (GHSA-mrhx-c7xc-m3w5).
+  "@vercel/cli-config>zod": ^4.6.6

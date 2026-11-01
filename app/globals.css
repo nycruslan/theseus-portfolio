@@ -3293,8 +3293,8 @@ a[data-replay]:not([data-ready]) {
 }
 
 /*
- * The case studies, /ask and /evals: the sheet's schedule (.sched above) with three pieces of their
- * own. They sit after the print rules, so the two that print say so themselves.
+ * The case studies, /ask and /evals: the sheet's schedule (.sched above) with a few pieces of their
+ * own, and their own print rules at the end.
  */
 .entry-link {
   color: var(--foreground);
@@ -3534,7 +3534,7 @@ a[data-replay]:not([data-ready]) {
   border: 1px solid var(--foreground);
 }
 
-.ask-submit:disabled {
+.ask-submit[aria-disabled="true"] {
   cursor: default;
   opacity: 0.55;
 }
@@ -3608,5 +3608,17 @@ a[data-replay]:not([data-ready]) {
       border-top-color: transparent;
       border-left-color: CanvasText;
     }
+  }
+}
+
+@media print {
+  .ask-starters,
+  .ask-form {
+    display: none;
+  }
+
+  .ask-turn,
+  .point {
+    break-inside: avoid;
   }
 }

@@ -30,7 +30,7 @@ function Sentences({ text }: { text: string }) {
 }
 
 // The record below the sheet, as a drawing's schedule (.crew/sprint/23/contract.md, data rules;
-// notes-iris.md, sections 2 and 3): Work, Projects, Stack, Education and Contact, the owner's facts
+// notes-iris.md, sections 2 and 3): Work, Case studies, Projects, Stack, Education and Contact, the owner's facts
 // from content/profile.ts as he wrote them. In every entry the h3 comes first in the DOM, so it is
 // read first; the grid sets the period in the left column from 1024 px and above the h3 below that
 // (app/globals.css, "The facts").

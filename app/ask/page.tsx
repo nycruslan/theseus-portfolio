@@ -88,7 +88,7 @@ export default function AskPage() {
                 )}
               </strong>
               <span className="entry-text">
-                {item.note}: {new URL(SITE_URL).host}
+                {item.note}: {SITE_URL}
                 {item.href}
               </span>
             </li>

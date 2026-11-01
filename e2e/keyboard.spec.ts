@@ -529,7 +529,7 @@ test("B2.3 on /, Contact's first link is the 23rd Tab stop: skip, the 5 bar link
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 16th stop is Contact's first link",
+    "the 23rd stop is Contact's first link",
   ).toBe(true);
 });
 

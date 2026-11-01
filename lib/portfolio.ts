@@ -60,23 +60,27 @@ export function resumeAsText() {
   ].join("\n\n");
 }
 
+const wordsOf = (text: string) =>
+  new Set(text.toLowerCase().match(/[\p{L}\p{N}]+/gu));
+
+const sectionsOf = (source: string, text: string) =>
+  text.split(/\n\n(?=## )/).map((section) => ({ source, text: section }));
+
 /** Passages that share the most words with the query. Plain and inspectable, for a few pages. */
 export function searchPortfolio(query: string, limit = 5) {
-  const terms = [...new Set(query.toLowerCase().split(/[^a-z0-9%+~.]+/))]
-    .filter((term) => term.length > 2)
+  const terms = [...wordsOf(query)]
+    .filter((term) => term.length > 1)
     .slice(0, 24);
   const passages = [
-    { source: "resume", text: resumeAsText() },
+    ...sectionsOf("resume", resumeAsText()),
     ...caseStudies.flatMap((study) =>
-      studyAsText(study)
-        .split(/\n\n(?=## )/)
-        .map((text) => ({ source: studyPath(study), text })),
+      sectionsOf(studyPath(study), studyAsText(study)),
     ),
   ];
   return passages
     .map((passage) => {
-      const text = passage.text.toLowerCase();
-      const score = terms.filter((term) => text.includes(term)).length;
+      const words = wordsOf(passage.text);
+      const score = terms.filter((term) => words.has(term)).length;
       return { ...passage, score };
     })
     .filter((passage) => passage.score > 0)

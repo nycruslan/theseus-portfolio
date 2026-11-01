@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useRef, useState } from "react";
-import { HISTORY_TURNS } from "@/lib/chat";
+import { HISTORY_TURNS, QUESTION_MAX_CHARS } from "@/lib/chat";
 
 type Exchange = { question: string; answer: string; done: boolean };
 
@@ -113,14 +113,15 @@ export function Ask({ fallback }: { fallback: string }) {
           id="ask-question"
           ref={input}
           value={draft}
-          maxLength={500}
+          maxLength={QUESTION_MAX_CHARS}
           autoComplete="off"
           onChange={(event) => setDraft(event.target.value)}
         />
         <button
           type="submit"
           className="ask-submit"
-          disabled={busy || !draft.trim()}
+          // Not disabled: that would drop keyboard focus from it on every send. submit() guards.
+          aria-disabled={busy || !draft.trim()}
         >
           Ask
         </button>

@@ -30,6 +30,7 @@ const handler = createMcpHandler(
     server.registerTool(
       "get_resume",
       {
+        annotations: { readOnlyHint: true },
         title: "Get résumé",
         description: `${profile.name}'s roles, projects, stack and education.`,
       },
@@ -39,6 +40,7 @@ const handler = createMcpHandler(
     server.registerTool(
       "list_projects",
       {
+        annotations: { readOnlyHint: true },
         title: "List case studies",
         description:
           "The case studies with their slugs, summaries and results. Follow with get_project for depth.",
@@ -58,6 +60,7 @@ const handler = createMcpHandler(
     server.registerTool(
       "get_project",
       {
+        annotations: { readOnlyHint: true },
         title: "Get a case study",
         description:
           "One case study in full: the problem, the architecture, the key decisions and what broke.",
@@ -69,13 +72,17 @@ const handler = createMcpHandler(
         const study = findStudy(slug);
         if (study) return text(studyAsText(study));
         const slugs = caseStudies.map((s) => s.slug).join(", ");
-        return text(`No case study "${slug}". Available: ${slugs}.`);
+        return {
+          ...text(`No case study "${slug}". Available: ${slugs}.`),
+          isError: true,
+        };
       },
     );
 
     server.registerTool(
       "search_portfolio",
       {
+        annotations: { readOnlyHint: true },
         title: "Search the portfolio",
         description:
           "Find passages across the résumé and case studies for a specific fact, tool or metric.",
@@ -95,6 +102,7 @@ const handler = createMcpHandler(
     server.registerTool(
       "get_eval_summary",
       {
+        annotations: { readOnlyHint: true },
         title: "Get the assistant's eval scores",
         description:
           "The latest weekly scores for this site's own assistant: groundedness, scope, persona and injection resistance.",
@@ -114,6 +122,7 @@ const handler = createMcpHandler(
     server.registerTool(
       "get_contact",
       {
+        annotations: { readOnlyHint: true },
         title: "Get contact details",
         description: `How to reach ${profile.name}.`,
       },

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { CANNOT_ANSWER, chatRequest, gateway } from "@/lib/assistant";
-import { HISTORY_TURNS, TURN_MAX_CHARS } from "@/lib/chat";
+import { HISTORY_TURNS, QUESTION_MAX_CHARS, TURN_MAX_CHARS } from "@/lib/chat";
 
 // The assistant's answers, streamed as plain text. Limits sit outside this code, where they hold
 // whatever it does: a Vercel Firewall rule rate-limits this route per IP, and the AI Gateway key has
@@ -12,10 +12,16 @@ export const maxDuration = 60;
 const body = z.object({
   messages: z
     .array(
-      z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().trim().min(1).max(TURN_MAX_CHARS),
-      }),
+      z.discriminatedUnion("role", [
+        z.object({
+          role: z.literal("user"),
+          content: z.string().trim().min(1).max(QUESTION_MAX_CHARS),
+        }),
+        z.object({
+          role: z.literal("assistant"),
+          content: z.string().trim().min(1).max(TURN_MAX_CHARS),
+        }),
+      ]),
     )
     .min(1)
     .max(HISTORY_TURNS)
@@ -61,7 +67,8 @@ export async function POST(request: Request) {
           }
         }
         const { stop_reason } = await stream.finalMessage();
-        if (stop_reason === "refusal") {
+        // A refusal, or an answer cut off at the length limit: never leave it hanging.
+        if (stop_reason !== "end_turn") {
           controller.enqueue(encoder.encode(closing()));
         }
       } catch (error) {
