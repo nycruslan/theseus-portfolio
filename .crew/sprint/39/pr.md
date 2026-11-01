@@ -56,10 +56,17 @@ y 336–477; 768 × 900 at y 602–708; 390 × 844 at y 653–812; no horizontal
   lettering's spans and asserts they exist. A stricter check.
 - The phrase's first letter is always lower case (Iris's pick, which the contract gives her).
 - P2 runs the oracle's fixtures on the product's rule too, as B2.2 does for Detail A.
+- Fix round 1 (`decisions.md` 8): CI's first run failed B3.1 (8,745 px changed at the 3D
+  hand-off, all the table's glyphs losing LCD anti-aliasing as the canvas gave them their own
+  layer). From 1280 the table gets an opaque fill in the film colour, measured 0 px different from
+  no fill; Forge reproduced CI's failure here with a fontconfig that turns LCD text on, and with it
+  particulars plus every `model-*`, `crew-model*` and `log-model*` spec passed (41), B3.1's
+  hand-off note back to main's 3,812 px.
 
 ## Not verified
 
-- CI's timing for the full suite (reported at close-out).
+- CI's timing: the first run's e2e step took 23.4 min (job 24.7 of its 35-minute cap; main's last
+  job 25.4); `particulars.spec.ts` adds about 1.5 test-minutes. This head's run is in its checks.
 - Agent-browser's Chrome measures text a little wider than Playwright's Chromium (and production
   shows the same): at 390 the bio wraps to five lines and the table ends at 835 of 844, still in the
   first view.
