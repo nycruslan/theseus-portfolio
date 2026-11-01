@@ -26,7 +26,12 @@ judge them.
   (`.crew/sprint/38/plan.md`), and Pa's contract ready for Iris, Probe and Forge
   (`.crew/sprint/38/first-contract.md`, P1 to P7). (PR #96, built in one run on 2026-10-31;
   `decisions.md` 1 to 4.) Pa starts with Iris's placement call.
-- [ ] Pa (M): the particulars, the owner's scope and scale on the first screen.
+- [x] Pa (M): the particulars, the owner's scope and scale on the first screen. Sprint 39, PR #97:
+  four rows in the drawing band's empty corner from 1280, a strip row from 1024, after the title
+  block below (Iris's option (b), `.crew/sprint/39/placement.md`); an invisible film fill keeps
+  their text unchanged as the model lands (`decisions.md` 8). Left open: from 1024 to 1279 the
+  table is below the fold at common heights (Iris's call), and P3's default-server pass under
+  `PLAYWRIGHT_BASE_URL` (Probe). The rows as first planned:
   - Four rows, each a term and a phrase quoted from the JPMorgan summary: the team of 7, the
     workflows several thousand employees use firm-wide, the around 8 product teams on the
     gateway, and the about 55% cut.
