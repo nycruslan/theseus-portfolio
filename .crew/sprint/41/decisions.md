@@ -11,3 +11,9 @@
    printable résumé and already holds the whole summary in its first viewport.
 5. **The sentences keep the entry's `textContent` with single spaces between them,** so B2.1, B1.7
    and C4's residue checks run unedited: they compare the entry's squashed text with the facts.
+6. **P17a was already done.** Probe measured the project link's rule gap below 1024 at 17.99 px
+   (390) and 17.73 px (768) on the head: sprint 23's `-10px` on `.when-link` landed in #67 after
+   Iris's review. P17a stays as a guard, green on main by nature; only P17b (`/read`'s figcaption
+   gap) is red first.
+7. **The hooks are Probe's** (`data-sentence` spans in `p.entry-text`, `lib/card.ts`'s `cardText`
+   and `CARD_FONTS`, "Sofia Sans Local"), relayed to Forge word for word.
