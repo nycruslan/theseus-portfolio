@@ -19,6 +19,8 @@ import { utcDay, utcTime } from "@/lib/utc";
 export type Facts = {
   /** The owner's name, for Approval (content/profile.ts stays on the server). */
   owner: string;
+  /** The key's first sentence (lib/crew-key.ts), which the table says where its job column folds. */
+  who: string;
   /** The newest merged retro: the record the panel falls back on with the feed down. */
   record: { sprint: number; goal: string; pr: number | null } | null;
   /** Every merged retro, newest first, for how each sprint's merge was approved. */
@@ -374,7 +376,7 @@ export function CrewPanel({
           Pause updates
         </button>
       </div>
-      <CrewTable crew={crew} />
+      <CrewTable crew={crew} who={facts.who} />
       {run && (
         <Activity
           run={run}

@@ -82,7 +82,14 @@ function absentSentence(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${last} are not on this sprint.`;
 }
 
-export function CrewTable({ crew }: { crew: Crew }) {
+export function CrewTable({
+  crew,
+  who,
+}: {
+  crew: Crew;
+  /** The key's first sentence, from the server (lib/crew-key.ts imports the owner's profile). */
+  who: string;
+}) {
   const rows = rowsOf(crew);
   const absent = rows
     .filter((row) => row.word === "Not on this sprint")
@@ -126,6 +133,10 @@ export function CrewTable({ crew }: { crew: Crew }) {
       {/* Below 768 px the roles not on this sprint fold into one line, as crew-390.webp draws it;
         their rows stay in the HTML, hidden there. */}
       {absent.length > 0 && <p data-absent="">{absentSentence(absent)}</p>}
+      {/* Where the job column folds away, the roster's key in /'s words, so a phone still reads
+        that every name is an AI agent (Iris, .crew/sprint/40/review-iris.md, must 2). Down keeps
+        the job column, so it has none. */}
+      {crew.state === "down" ? null : <p data-crew-who="">{who}</p>}
     </>
   );
 }

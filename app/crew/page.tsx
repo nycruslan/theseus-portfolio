@@ -8,6 +8,7 @@ import { Model, MotionControl } from "@/components/model";
 import { SkipLink } from "@/components/skip-link";
 import { profile } from "@/content/profile";
 import { readCrew } from "@/lib/crew-feed";
+import { CREW_WHO } from "@/lib/crew-key";
 import { nextSeat, seatOf, seatPlanks } from "@/lib/lines-plan";
 import { layerOf } from "@/lib/live-layer";
 import { openGraph } from "@/lib/metadata";
@@ -71,6 +72,7 @@ export default async function Crew() {
   // Only what the panel shows from the retros: the browser gets these, not the reader or profile.
   const facts = {
     owner: profile.name,
+    who: CREW_WHO,
     record: record
       ? { sprint: record.sprint, goal: record.goal, pr: record.pr ?? null }
       : null,
