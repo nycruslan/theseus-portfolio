@@ -12,13 +12,19 @@ export const ensureStatic = "navigation";
 
 // The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The condensed display
 // face is set by /, /read, /crew and /log alone (app/fonts.ts). `optional`: the face is used only if
-// it is there for the first paint, so it never swaps in later and shifts the page; the fallback
-// next/font sizes to its metrics holds the lines meanwhile. No `fallback` list: under Turbopack one
-// replaces that sized fallback instead of following it (app/globals.css adds the generic family).
+// it is there for the first paint, so it never swaps in later and shifts the page; a fallback sized
+// to its metrics holds the lines meanwhile. Not next/font's, whose one source is local Arial, which
+// Android and Linux lack, but the one app/fonts.ts uses for the display face: "Sofia Sans Local" in
+// app/globals.css carries next/font's metrics over Arial and its metric twins
+// (.crew/sprint/41/contract.md, P16). Under Turbopack a `fallback` list replaces next/font's sized
+// fallback rather than following it, hence `adjustFontFallback: false` with it; app/globals.css
+// adds the generic family.
 const sofiaSans = Sofia_Sans({
   subsets: ["latin"],
   display: "optional",
   variable: "--font-sofia",
+  adjustFontFallback: false,
+  fallback: ["Sofia Sans Local"],
 });
 
 // Every route gets these, unless it sets its own `openGraph` or `twitter`: those replace the objects

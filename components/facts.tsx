@@ -1,8 +1,31 @@
+import { Fragment } from "react";
 import { DetailA } from "@/components/detail-a";
 import { ProjectRow } from "@/components/project-row";
 import { Schedule } from "@/components/schedule";
 import { profile } from "@/content/profile";
 import { DETAIL_A_COMPANY, detailA } from "@/lib/detail-a";
+import { sentences } from "@/lib/sentences";
+
+/**
+ * A Work summary a sentence to a line (.crew/sprint/41/contract.md, P14), so the figures can be
+ * scanned: each sentence its own span, set on its own line by app/globals.css, still one paragraph
+ * of the owner's. The space between the spans keeps the paragraph's text as he wrote it, with
+ * single spaces, for anything that reads it as text. Keyed by the sentence and its occurrence, as
+ * the owner may repeat one.
+ */
+function Sentences({ text }: { text: string }) {
+  const seen = new Map<string, number>();
+  return sentences(text).map((sentence, i) => {
+    const occurrence = (seen.get(sentence) ?? 0) + 1;
+    seen.set(sentence, occurrence);
+    return (
+      <Fragment key={`${sentence}-${occurrence}`}>
+        {i > 0 ? " " : null}
+        <span data-sentence="">{sentence}</span>
+      </Fragment>
+    );
+  });
+}
 
 // The record below the sheet, as a drawing's schedule (.crew/sprint/23/contract.md, data rules;
 // notes-iris.md, sections 2 and 3): Work, Projects, Stack, Education and Contact, the owner's facts
@@ -22,7 +45,9 @@ export function Facts({ className = "" }: { className?: string }) {
                 <h3>{role.company}</h3>
                 <p className="entry-role">{role.title}</p>
                 <p className="when">{role.period}</p>
-                <p className="entry-text">{role.summary}</p>
+                <p className="entry-text">
+                  <Sentences text={role.summary} />
+                </p>
                 {labels ? <DetailA labels={labels} /> : null}
               </li>
             );
