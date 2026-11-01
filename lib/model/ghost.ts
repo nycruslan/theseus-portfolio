@@ -3,10 +3,11 @@
 // numbers riding their planks. The drawing is the record: the seats, their numbers, the record's
 // own seat and the leaders all come from it, so the 3D can't disagree with the 2D. No three.js.
 
-import { GHOST, type Layout, PLANKS } from "@/lib/hull-layouts";
+import { GHOST, type Layout, PENCIL, PLANKS } from "@/lib/hull-layouts";
 import { LEAD_GAP, LEAD_OUT, LED_OUT } from "./calls";
 import { bandAt, type Ghost, nearSide, plankBody, type Vec3 } from "./hull";
 import type { Loft } from "./loft";
+import { dotOf, type Pencil } from "./pencil";
 
 /** One of the drawing's numbers: its span, its seat, and where the drawing sets it. */
 type Label = {
@@ -20,13 +21,18 @@ type Label = {
   end: boolean;
   /**
    * Led out aft of the hull from 768 px, with a leader into its plank: by the 2D drawing ("2d",
-   * 5.0's, already there at frame 1), or by the 3D alone ("3d", LED_OUT's, riding out with e).
+   * 5.0's, already there at frame 1), or by the 3D alone ("3d", LED_OUT's, riding out with e). Or
+   * the sheet's pencil number on a seat the 2D leads out ("in"), which the hull brings in from the
+   * 2D's place onto its plank, as every other pencil number rides (.crew/sprint/43/placement.md,
+   * "Rider").
    */
-  lead: "2d" | "3d" | undefined;
+  lead: "2d" | "3d" | "in" | undefined;
   /** Where a led-out number's right edge stands at rest, in hull units. */
   out: [number, number];
-  /** Its leader's inner end, on the plank, in hull units. */
+  /** Its leader's inner end, on the plank, in hull units; an "in" number's place on its plank. */
   into: [number, number];
+  /** The copper dot an "in" number keeps clear of, in the model's frame, while the crew is live. */
+  dot?: Vec3 | null;
 };
 
 /** Hull units from a drawing's own (its viewBox's). */
@@ -51,13 +57,15 @@ function placeOf(span: HTMLElement, layout: Layout) {
 
 /**
  * The sheet's pencil number (.crew/sprint/34/): the wide drawing's span on the pencil plank, which
- * rides it on the hull as the Log's numbers ride theirs. A number the 2D leads out (5.0's) stays
- * aft of the hull, with no leader on the lifted hull (notes-iris.md, 3.3 and 4.4).
+ * rides it on the hull as the Log's numbers ride theirs. A number the 2D leads out (5.0's) has no
+ * place on its plank in the drawing, but the hull's only label is centred on its plank whatever
+ * its depth (notes-iris.md, 4.4): it rides in from the 2D's place onto its body's middle, clear of
+ * the copper dot while live (.crew/sprint/43/placement.md, "Rider"). Stood aft of the turned hull,
+ * it sat on the Base line.
  */
 export function pencilLabel(
   drawing: Element,
-  seat: string,
-  sprint: string,
+  pencil: Pencil,
   layout: Layout,
 ): Label | null {
   const spans = [
@@ -65,8 +73,21 @@ export function pencilLabel(
   ];
   const span =
     spans.find((candidate) => candidate.classList.contains("plan-pencil")) ??
-    spans.find((candidate) => candidate.textContent === sprint);
-  return span ? riderLabel(span, seat, layout) : null;
+    spans.find((candidate) => candidate.textContent === pencil.sprint);
+  if (!span) return null;
+  const label = riderLabel(span, pencil.seat, layout);
+  const plank = PLANKS[pencil.slot];
+  const body = plank && plankBody(plank);
+  if (!span.classList.contains("plan-end") || !plank || !body) return label;
+  const x = (body[0] + body[1]) / 2;
+  const [top, bottom] = bandAt(plank, x) ?? [label.anchor[1], label.anchor[1]];
+  return {
+    ...label,
+    end: true,
+    lead: "in",
+    into: [x, (top + bottom) / 2],
+    dot: pencil.live ? dotOf(plank, layout) : null,
+  };
 }
 
 /**
@@ -169,6 +190,31 @@ function leaderAt(label: Label, e: number): Vec3[] {
 type Box = { l: number; r: number; t: number; b: number };
 type Plank = (typeof PLANKS)[number];
 type Point = readonly [number, number];
+
+/** A number with a leader to its plank: led out by the 2D or the 3D, not one the hull brings in. */
+const leads = (label: Label) => label.lead === "2d" || label.lead === "3d";
+
+/**
+ * The film chip's padding on each side of a pencil number on the hull, in CSS px (app/globals.css,
+ * "The pencil's number"): an "in" number takes it once the loft begins, its digits where they were.
+ */
+const CHIP = 2;
+
+/** What an "in" number's chip keeps clear of the copper dot's centre: its radius and 2 px of air. */
+const DOT_CLEAR = PENCIL.tip.dot / 2 + 2;
+
+/**
+ * How far an "in" number's centre stays above its plank's lower edge, in CSS px: inside the hull's
+ * outline by more than the outline's half width and a device pixel's rounding of the offset.
+ */
+const KEEL = 3;
+
+/** The distance from a point to a box, 0 inside it. */
+const apartFrom = (box: Box, [x, y]: Point) =>
+  Math.hypot(
+    Math.max(box.l - x, 0, x - box.r),
+    Math.max(box.t - y, 0, y - box.b),
+  );
 
 /** A plank's edges on the near side as polylines in the model's frame: top, bottom and butts. */
 function edgesOf(plank: Plank) {
@@ -292,7 +338,7 @@ export function riders(
       // Centred in the 2D, right-aligned on its leader's end once out.
       return { at: [px - ((widths[i] ?? 0) / 2) * e, py] as const, depth: 0 };
     }
-    if (!label || !plank || label.lead) {
+    if (!label || !plank || leads(label)) {
       return {
         at: loft.screen([nearSide(...(label?.anchor ?? [0, 0]))], e)[0] ?? [
           0, 0,
@@ -307,10 +353,72 @@ export function riders(
     );
     const [tx, ty] = top ?? [0, 0];
     const [bx, by] = bottom ?? [0, 0];
+    // An "in" number's seat is a stern wedge whose lower edge is the keel's outline, and where its
+    // chip clears the dot the wedge is a pixel or two deep: its centre keeps KEEL px above that
+    // edge, so it stays on the hull and not on its shadow.
+    const keel = label.lead === "in" ? by - KEEL : Number.POSITIVE_INFINITY;
     return {
-      at: [(tx + bx) / 2, (ty + by) / 2] as const,
+      at: [(tx + bx) / 2, Math.min((ty + by) / 2, keel)] as const,
       depth: Math.hypot(bx - tx, by - ty),
     };
+  };
+
+  /**
+   * An "in" number's point at eased progress e, its digits' right edge: from the 2D's place riding
+   * the hull, right-aligned there, to its place x on its plank, centred there, so frame 1 is the
+   * drawing and the rest frame has it half its width on.
+   */
+  const inAt = (i: number, loft: Loft, x: number, e: number): Point => {
+    const [ax, ay] = loft.screen(
+      [nearSide(...(labels[i]?.out ?? [0, 0]))],
+      e,
+    )[0] ?? [0, 0];
+    const [bx, by] = pointAt(i, loft, x, e).at;
+    return [
+      ax + (bx - ax) * e + ((widths[i] ?? 0) / 2) * e,
+      ay + (by - ay) * e,
+    ];
+  };
+
+  /**
+   * Where an "in" number settles on its plank, in hull units: its body's middle, or while live,
+   * where its chip there would come within DOT_CLEAR of the copper dot's centre (the chip is HTML
+   * over the canvas and would hide it), the first place toward the plank's stern end that clears
+   * it, a quarter unit apart (.crew/sprint/43/placement.md, "Rider"). Its digits' width is read
+   * with it, since the number ends centred on that place: 11 px below 690 px tall, 13 above.
+   */
+  const seatIn = (i: number, loft: Loft) => {
+    const label = labels[i];
+    const plank = planks[i];
+    if (!label || !plank) return label?.anchor[0] ?? 0;
+    const { span } = label;
+    const style = getComputedStyle(span);
+    // The layout box, not offsetWidth, which rounds to a whole px; a translate doesn't size it.
+    const size = span.getBoundingClientRect();
+    const digits =
+      size.width -
+      Number.parseFloat(style.paddingLeft) -
+      Number.parseFloat(style.paddingRight);
+    widths[i] = digits;
+    const [x, dot] = [label.into[0], label.dot];
+    if (!dot) return x;
+    const [w, h] = [digits + 2 * CHIP, size.height];
+    const centre = loft.screen([dot], 1)[0] ?? [0, 0];
+    // Each offset is snapped to a device pixel (place), which moves the box by up to half of one.
+    const clear = DOT_CLEAR + 1 / devicePixelRatio;
+    let last = x;
+    for (let at = x; at >= plank.x0 && bandAt(plank, at); at -= 0.25) {
+      const [px, py] = pointAt(i, loft, at, 1).at;
+      const box = {
+        l: px - w / 2,
+        r: px + w / 2,
+        t: py - h / 2,
+        b: py + h / 2,
+      };
+      if (apartFrom(box, centre) >= clear) return at;
+      last = at;
+    }
+    return last;
   };
 
   const settle = (loft: Loft, drawn: Float32Array) => {
@@ -356,7 +464,7 @@ export function riders(
       if (a && b) add(a, b);
     }
     for (const label of labels) {
-      if (!label.lead) continue;
+      if (!leads(label)) continue;
       const line = loft.screen(leaderAt(label, 1), 1);
       for (let j = 1; j < line.length; j++) {
         const [a, b] = [line[j - 1], line[j]];
@@ -518,7 +626,9 @@ export function riders(
     ) {
       if (!shown) return this.clear();
       targets ??= fixed
-        ? labels.map((label) => label.anchor[0])
+        ? labels.map((label, i) =>
+            label.lead === "in" ? seatIn(i, loft) : label.anchor[0],
+          )
         : settle(loft, drawn());
       const now = targets;
       // Each offset is a whole number of device pixels, in the move (so frame 1 moves nothing) and
@@ -528,9 +638,11 @@ export function riders(
       const step = 1 / devicePixelRatio;
       const snap = (n: number) => `${Math.round(n / step) * step}px`;
       labels.forEach((label, i) => {
-        const x =
-          label.anchor[0] + ((now[i] ?? label.anchor[0]) - label.anchor[0]) * e;
-        const [px, py] = pointAt(i, loft, x, e).at;
+        const [ax] = label.anchor;
+        const [px, py] =
+          label.lead === "in"
+            ? inAt(i, loft, now[i] ?? label.into[0], e)
+            : pointAt(i, loft, ax + ((now[i] ?? ax) - ax) * e, e).at;
         // The span's own place on the canvas, which lies on the drawing's box: frame 1's point.
         const [x0, y0] = [label.share[0] * BW * k, label.share[1] * BH * k];
         label.span.style.setProperty("--ghost-x", snap(px - x0));
@@ -544,7 +656,7 @@ export function riders(
     leaders(e: number, shown: boolean) {
       if (!shown || e <= 0) return [];
       return labels
-        .filter((label) => label.lead && label.seat)
+        .filter((label) => leads(label) && label.seat)
         .map((label) => ({
           seat: label.seat ?? "",
           points: leaderAt(label, e),

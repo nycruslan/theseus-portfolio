@@ -819,6 +819,21 @@ main:has(> [data-model]) {
   [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
     transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
   }
+
+  /* A pencil number the 2D leads out (5.0's) rides in onto its plank, so from the first lofting
+     frame it takes the film chip the others have (.crew/sprint/43/placement.md, "Rider"). The
+     margin pays back the right padding, so its digits stay where the 2D set them. */
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) .plan-pencil.plan-end {
+    margin-left: 2px;
+    padding: 0 2px;
+    background: var(--background);
+  }
 }
 
 /* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the

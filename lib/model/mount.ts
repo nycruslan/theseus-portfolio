@@ -236,8 +236,7 @@ function start(
       };
     }
     const pencil = ghost ? null : readPencil(drawing);
-    const label =
-      pencil && pencilLabel(drawing, pencil.seat, pencil.sprint, layout);
+    const label = pencil && pencilLabel(drawing, pencil, layout);
     return {
       pencil,
       ride: label ? riders({ labels: [label] }, layout, true) : null,
