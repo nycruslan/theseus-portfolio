@@ -145,8 +145,8 @@ makes stale, and keep the file under about 100 lines.
     to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
-- **CI's `check` job has a 25-minute cap, and main's job takes about 21 of it** (sprint 34: the
-  first finished build was cancelled there). A spec that starts its own servers (the feed specs)
+- **CI's `check` job has a 35-minute cap (`ci.yml`), and the job took 28.8 of it on #100**, the e2e
+  step 27.3 (sprint 40's: 25.0 and 23.6). A spec that starts its own servers (the feed specs)
   starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
   full suite at CI's worker count before the label.
 - **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`

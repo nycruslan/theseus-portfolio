@@ -50,14 +50,18 @@ judge them.
   nothing fits under the table without pushing the contact links past B4.22's and B4.49's folds
   (`decisions.md` 9; Iris to find it a home that adds no height); the 3D label over the dot (Pixel);
   P8's and P9's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe, with P3's).
-- [ ] Pc (S): the facts, scannable and shared.
-  - Work's summaries read sentence by sentence, verbatim.
-  - `/`'s social card carries the bio's first sentence and Pa's particulars, in Sofia Sans from a
-    vendored TTF.
-  - Riders: the facts-and-fonts list that rode at the end of the redesign (the text face's fallback
-    over Arial's metric twins, the project link's gap below 1024, the figcaption's gap at 390, the
-    404's first paint in the fallback face, the card's typeface).
-  - Left open: Detail A's dark-scheme boxes, which need a look on a real phone.
+- [x] Pc (M): the facts, scannable and shared. Sprint 41, PR #100: Work's summaries a sentence to
+  a line (`lib/sentences.ts`, 6 px apart, `text-wrap: pretty`); `/`'s social card with the name in
+  the condensed display face, the bio's first sentence and the four particulars, from `lib/card.ts`
+  in vendored Sofia Sans TTFs (`assets/fonts/`, OFL); the text face's local fallback over Arial's
+  twins; `/read`'s figcaption at 6 px. P14 to P17 in `e2e/facts-scan.spec.ts`. The project link's
+  gap was already fixed in #67 (`decisions.md` 6). Left open: the 404's first visit paints in the
+  fallback face, since Next sends no font preload on the prerendered 404; Lens's two code nits on
+  #100 (Forge); the card drawn as a sheet (Iris); Detail A's dark-scheme boxes, which need a look on
+  a real phone.
+- **The milestone's sprints are all merged.** The next run starts with Quill: close this milestone
+  against P1 to P17 on production, and plan the next one (`/work/…` case studies or a published
+  keel, each starting with an Owner's pick).
 - Out of scope, and why:
   - `/work/…` case studies and a published keel need the owner's facts or setup, so they're the
     next candidates, each starting with an Owner's pick.

@@ -65,8 +65,11 @@ sentence markup unedited.
 - Iris on 7e1eea5: `changes` at 7.2 (7.5 with her must), every hard gate passing (axe 0 on `/` and
   `/read` at 390 and 1440 in both schemes, 320 without overflow, CLS 0); her must and should are
   built in d02f8da.
-- The new spec adds about 6 test-seconds, so the full suite wasn't timed here; CI's `check` runs
-  it.
+- CI's `check` on 4cc8c52: success; the full suite (`pnpm test:e2e`) took 27.3 min and the job
+  28.8 min, against the 35-minute cap. The new spec adds about 6 test-seconds.
+- Lens: ship on 4cc8c52, three nits, which ride with the next sprint that touches this code: the
+  `CARD_FONTS` comment says build only though `/log/[n]` reads the fonts on request, the card would
+  draw its table rule with no rows, and this full-suite time (now reported).
 
 ## Decisions the owner may overrule after the merge
 
