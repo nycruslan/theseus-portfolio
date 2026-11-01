@@ -1,0 +1,51 @@
+{
+  "sprint": 42,
+  "pr": 101,
+  "goal": "Check the first screen on real browser windows and plan the fix",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "notes only: Quill's close of the last milestone on production, the plan for the next with checks W1 to W15, and the first sprint's contract",
+  "fixRounds": 0,
+  "minutes": 40,
+  "agents": [
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 213649,
+      "minutes": 19
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 0,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 0
+  },
+  "wentWrong": [
+    {
+      "what": "The last milestone was checked on screen sizes, not browser windows, so a common laptop window still hid the name and the contact links",
+      "evidence": "At 1536 × 715 on production the name started at y 600 and the links at 907 (.crew/sprint/42/close.md)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have contracts for the first screen pin browser window heights (1536 × 715, 1366 × 625, 390 × 664) beside the screen sizes",
+      "moves": "Viewports in e2e/ that are real windows rather than screens: 0 of the sizes P1 to P17 pin"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Iris",
+      "what": "Make the placement call for the next sprint (the band gives way, the title block rises, or the drawing drops a view) before its build"
+    },
+    {
+      "who": "Iris",
+      "what": "Weigh the display face's 'optional' loading: the fallback painted on 8 of 8 slow first visits"
+    },
+    {
+      "who": "Owner",
+      "what": "Pick the proof after this milestone: a published keel, a case study, or stand down"
+    }
+  ]
+}

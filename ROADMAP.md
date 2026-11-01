@@ -5,9 +5,72 @@ sprints, each one pull request that leaves the site whole. Atlas takes the curre
 sprint, unless the owner set the goal, and at the close-out ticks it with its sprint and PR. Small
 fixes and follow-ups ride along with the sprint that touches the same code.
 
-## Now: the proof in five seconds
+## Now: the proof in the first window
 
-On `/`'s first screen, at 1440 and on a phone, a hiring executive reads the owner's scope and
+Whatever window a visitor opens `/` in, the first screen shows Ruslan's name, his role, his own
+lead, the four particulars and a way to reach him: a laptop browser 1280 to 1920 wide and 620 to
+950 tall, a tablet, or a phone browser with its toolbars showing. When the window is short, the
+drawing gives up height; the facts don't. At 1440 × 900 nothing moves.
+
+Quill's plan is `.crew/sprint/42/plan.md`, and the measurements are in `.crew/sprint/42/close.md`.
+On production on 2026-11-01 the last milestone held at the sizes its checks pin (1440 × 900 and
+390 × 844), which are screens, not browser windows. On a 1536 × 715 window (a 1920 × 1080 Windows
+laptop at 125%) the name sat on the fold, with the role, the bio and the contact links below it.
+At 1366 × 625 the name itself was cut. On every phone window measured (390 × 664 in Safari, for
+one), the particulars were below the fold. The cause is one rule: from 1024 the drawing band's
+height is a fixed share of the width. The checks are W1 to W15 across Wa to Wc. No sprint needs an
+owner answer to start, touches an owner path or edits `content/`.
+
+- [x] Sprint 42 (notes only): Quill closed "the proof in five seconds" on production
+  (`.crew/sprint/42/close.md`), planned this milestone (`plan.md`) and wrote Wa's contract
+  (`first-contract.md`, W1 to W7). (PR #101, built in one run on 2026-11-01; `decisions.md` 1 to
+  4.) Wa starts with Iris's placement call.
+- [ ] Wa (M): the sheet fits a laptop window, from 1280 wide. The title block, the particulars and
+  the revisions' caption are in the first window at 1280 × 680 to 1920 × 950, and 1440 × 900 is
+  unchanged. Iris picks how first: the band gives way, the title block rises beside the drawing,
+  or the drawing drops its half-breadth plan. Pixel joins, since the model registers to the
+  drawing. Rider: the led-out "42" on the Base line.
+- [ ] Wb (M): the sheet fits a phone window: B1.1's items and the particulars at 390 × 664 to
+  430 × 746, and B1.1's items at 375 × 548. Iris's call first. Rider: the 3D label over the copper
+  dot (Pixel).
+- [ ] Wc (S): tablets and the key from 1024 to 1439 (Pa's and Pb's left-opens), and P3's, P8's
+  and P9's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
+- Out of scope, and why:
+  - What the facts say, and the loft, the hull's look, the live marks and the replay: the owner's
+    demos judge them. The model only follows the drawing.
+  - A line about the crew in a phone's first window: belief 1 comes first there, and the bar's
+    Crew link is in view.
+- **Owner's pick, asked in sprint 42's PR so it doesn't hold the next milestone:** which proof
+  comes after this one. The options are a published keel quoted from the files that enforce it
+  (recommended; it can be undone), a JPMorgan case study from facts he writes, or standing down.
+  Both earlier candidates sit below a first window that is still losing belief 1, so they follow
+  this milestone.
+- **For the owner, optional:** his B3, B4 and B5 demos will be judged on his own laptop window,
+  which Wa changes, so they're best run after Wa merges. The five-second test still stands: show
+  `/` to a stranger for five seconds, on a laptop window and on a phone, and ask what he does, at
+  what scale, and how to reach him.
+
+## Finished: the proof in five seconds
+
+Pa, Pb and Pc merged by 2026-11-01 (Pc, #100, last). Quill closed it on production in sprint 42
+(`.crew/sprint/42/close.md`). At 1440 × 900 and 390 × 844, P1 to P17 hold: the four particulars,
+the key, `/crew`'s "AI agent" labels, Work's sentences and the card. Production's last code-named
+row (sprint 37's) ages out when sprint 42 merges. **Left open:**
+- Taken into "the proof in the first window": short laptop windows, phone windows, the
+  particulars below the fold from 1024 to 1279, the key hidden from 1024 to 1439, the default-server
+  passes under `PLAYWRIGHT_BASE_URL`, the 3D label over the dot, and the led-out 5.0 number on the
+  Base line.
+- Waiting for a sprint that touches their code: Lens's two nits on #100 (`lib/card.ts:13`'s
+  comment, and `app/opengraph-image.tsx:70`'s rule over an empty table); the 404's first paint in
+  the fallback face; the card drawn as a sheet (Iris); and `/` and `/crew`'s dev-only
+  instant-navigation message.
+- Waiting for a real phone: Detail A's dark-scheme boxes.
+- Waiting for a PR the owner reviews anyway: the legend's "Original", the commit-hash link (C5.3),
+  and the unknown record's scripts-off 404.
+- For Iris to weigh: on slow first visits the display face never paints (`display: optional`; 8
+  of 8 cold visits on Slow 4G painted the fallback).
+
+The outcome as planned: on `/`'s first screen, at 1440 and on a phone, a hiring executive reads the owner's scope and
 scale (the team he leads, the platform's reach, its users, its impact) in the owner's own words,
 and can tell that the names in the revision block are AI agents he directs. A link shared with
 them carries the same proof.
@@ -59,18 +122,9 @@ judge them.
   fallback face, since Next sends no font preload on the prerendered 404; Lens's two code nits on
   #100 (Forge); the card drawn as a sheet (Iris); Detail A's dark-scheme boxes, which need a look on
   a real phone.
-- **The milestone's sprints are all merged.** The next run starts with Quill: close this milestone
-  against P1 to P17 on production, and plan the next one (`/work/…` case studies or a published
-  keel, each starting with an Owner's pick).
-- Out of scope, and why:
-  - `/work/…` case studies and a published keel need the owner's facts or setup, so they're the
-    next candidates, each starting with an Owner's pick.
-  - Riders that loosen a live assertion wait for a PR that waits for the owner: the legend's
-    "Original" (B1.2 and B2.9), the commit-hash link (C5.3), and the unknown record's scripts-off
-    404.
-- **For the owner, optional:** on Pa's preview and then production, show `/` for five seconds, at
-  1440 and on a phone, to someone who doesn't know you. Ask what you do, at what scale, and how to
-  reach you. It's the research's comprehension test, which no one has run.
+- Out of scope then: `/work/…` case studies and a published keel (now the Owner's pick under
+  "Now"), and the riders that loosen a live assertion (the legend's "Original", C5.3, the
+  scripts-off 404).
 
 ## Finished: the redesign
 
