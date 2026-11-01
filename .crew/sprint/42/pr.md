@@ -16,7 +16,7 @@ production, and plan the next milestone with its first sprint's contract.
   - At 1366 × 625 the name is cut.
   - In every phone window measured (390 × 664 in Safari, for one) the particulars are below the fold.
   
-  One rule causes it: from 1024 the drawing band is a fixed share of the width (`.sheet-row`).
+  One rule causes it: from 1024 the drawing band is a fixed share of the width (the lines plan's proportions, `lib/hull-layouts.ts` WIDE.box, which `.sheet-row`'s min-height reuses).
 - `.crew/sprint/42/plan.md`: **the proof in the first window.** In any window, the first screen
   shows the name, role, lead, the four particulars and a way to reach him. When the window is
   short, the drawing gives up height, and 1440 × 900 doesn't move. Checks W1 to W15 across:

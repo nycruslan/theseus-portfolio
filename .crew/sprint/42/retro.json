@@ -4,7 +4,7 @@
   "goal": "Check the first screen on real browser windows and plan the fix",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "notes only: Quill's close of the last milestone on production, the plan for the next with checks W1 to W15, and the first sprint's contract",
+  "outcome": "notes only: Lens ship on bfc7527, its two nits fixed in the close-out; Quill's close of the last milestone, the plan for the next with checks W1 to W15, and the first sprint's contract",
   "fixRounds": 0,
   "minutes": 40,
   "agents": [
@@ -17,20 +17,20 @@
   ],
   "lens": {
     "runs": 1,
-    "tokens": 0,
+    "tokens": 242855,
     "important": 0,
-    "actedOn": 0,
-    "nits": 0
+    "actedOn": 2,
+    "nits": 2
   },
   "wentWrong": [
     {
       "what": "The last milestone was checked on screen sizes, not browser windows, so a common laptop window still hid the name and the contact links",
-      "evidence": "At 1536 × 715 on production the name started at y 600 and the links at 907 (.crew/sprint/42/close.md)"
+      "evidence": "At 1536 \u00d7 715 on production the name started at y 600 and the links at 907 (.crew/sprint/42/close.md)"
     }
   ],
   "proposals": [
     {
-      "change": "Have contracts for the first screen pin browser window heights (1536 × 715, 1366 × 625, 390 × 664) beside the screen sizes",
+      "change": "Have contracts for the first screen pin browser window heights (1536 \u00d7 715, 1366 \u00d7 625, 390 \u00d7 664) beside the screen sizes",
       "moves": "Viewports in e2e/ that are real windows rather than screens: 0 of the sizes P1 to P17 pin"
     }
   ],

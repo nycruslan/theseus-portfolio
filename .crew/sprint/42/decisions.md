@@ -9,7 +9,8 @@
    the last milestone holding at the sizes its checks pin (1440 × 900, 390 × 844) and failing on
    common browser windows. Atlas checked one: the screenshot at 1536 × 715 shows the name starting
    at y 600 and the title block's links below the fold. The cause Quill names is in
-   `app/globals.css` (`.sheet-row`, the drawing band at 0.3381 of the width). A first window
+   the lines plan's proportions (`lib/hull-layouts.ts` WIDE.box, 0.3381 of the width), which
+   `.sheet-row` in `app/globals.css` reuses (Lens's nit corrected the pointer). A first window
    that loses the name and the contact links fails `PRODUCT.md`'s first belief before any new
    proof could help, and fixing it needs no owner answer.
 3. **The milestone after next is asked now, as an Owner's pick that can be undone.** A published

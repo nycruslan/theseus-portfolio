@@ -86,7 +86,7 @@ Chrome on Android. None was measured on a real device.
 | 375 × 548 (iPhone SE, Safari) | 362–416 | 454 | **666–825** | 1,584 | **642** | 548 |
 
 Bold marks what is below the fold or cut by it. Why it happens: from 1024 the drawing band's height
-is a fixed share of the width (0.3381, `app/globals.css`, `.sheet-row`). It's 475 px at 1440 and 508
+is a fixed share of the width (0.3381: the lines plan's own proportions, `lib/hull-layouts.ts` WIDE.box 476/1408, drawn in `components/lines-plan.tsx`; `.sheet-row`'s min-height in `app/globals.css` reuses the same 0.3381, so the two change together). It's 475 px at 1440 and 508
 px at 1536, whatever the window's height, so a shorter window loses the title block, not the
 drawing. Below 768 the drawing and the motion control fill y 50 to 345 before the name starts. Iris
 recorded 1366 × 768, 1440 × 800 and 1536 × 864 as "already below the fold today" in sprint 34

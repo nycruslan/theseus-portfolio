@@ -28,8 +28,8 @@ laptop screen, and Safari's take more of a phone's. In the windows people actual
 4. **From 1024 to 1279 the particulars are below the fold even on the screen sizes** (1024 × 768:
    769 to 849), and the key is hidden from 1024 to 1439. These are Pa's and Pb's left-opens.
 
-The cause is one rule. From 1024 the drawing band's height is a fixed share of the width (0.3381,
-`app/globals.css`, `.sheet-row`), so a short window pushes the title block down and keeps the
+The cause is one rule. From 1024 the drawing band's height is a fixed share of the width (0.3381:
+the lines plan's own proportions, `lib/hull-layouts.ts` WIDE.box 476/1408, drawn in `components/lines-plan.tsx`; `.sheet-row`'s min-height in `app/globals.css` reuses the same 0.3381, so the two change together), so a short window pushes the title block down and keeps the
 drawing whole. Below 768 the drawing and the motion control fill y 50 to 345 before the name
 starts. Iris noted the laptop windows in sprint 34; no sprint took them up, and no check pins a
 window shorter than 768.
@@ -103,8 +103,8 @@ particulars' form.
 - **W9** The narrow drawing is whole: lettering and planks inside the band. B3.1's registration
   holds at 390 × 664 on Full.
 - **W10** The control: one group of Full, Calm and Off with 44 px targets, wherever it sits. If it
-  moves on `/`, B3.16's place clause (`motion.spec.ts`) is the only rewrite. Its contract names it,
-  and Lens accepts it, since the assertion changes place, not strength. `/crew`'s and `/log`'s
+  moves on `/`, B3.16's place clause (`motion.spec.ts`) is the only rewrite. Wb's contract and PR
+  name it with the reason (the assertion changes place, not strength), for Lens to confirm. `/crew`'s and `/log`'s
   controls (B4.41, B5.25) don't move.
 - **W11** Still: CLS 0 at load. The phone layout sizes from `svh`, never `vh` or `dvh`, so Safari's
   toolbar collapsing never moves the sheet (a source check; Chromium can't emulate the toolbar).
