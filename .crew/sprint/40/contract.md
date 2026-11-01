@@ -13,9 +13,10 @@ says "AI", and four of the five rows open with a milestone code or a URL path
 - **The key**, one source in `lib/` that `/` and `/log` both render, with `{first}` the first word
   of `profile.name` (today "Ruslan"):
 
-  `Every name here is an AI agent {first} directs: Drawn built the sprint, Checked reviewed its
-  code, Tested wrote its checks. Under Approved, Gate is CI, {first}'s rules and Lens's review;
-  Owner is {first}'s own decision.`
+  `Every name is an AI agent {first} directs. Approved: Gate is CI, his rules and Lens's review;
+  Owner is his own call.`
+
+  At 1440 it is one line (decisions 8).
 
   Its text, squashed of whitespace, is exactly that (one space where the line above breaks). Iris
   may set parts of it in another weight; the words don't change.

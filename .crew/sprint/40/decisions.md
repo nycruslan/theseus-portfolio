@@ -19,3 +19,10 @@
 7. **The key's hook is `p[data-crew-key]`, not `p[data-key]`** (Forge found it): `data-key` is
    already the live layer's legend hook, and B4.18 and B4.20 count it on any tag. Renaming the new
    attribute keeps both checks unedited, where narrowing their selectors would edit kept checks.
+8. **The key is one line, and shorter** (Forge measured the first wording): two lines at the
+   caption's 13 px put the contact links 3.7 px past the fold at 1440 × 900 in the resting state,
+   and tighter leading left 5.6 px, too thin for the next rest line or legend change. One line,
+   "Every name is an AI agent Ruslan directs. Approved: Gate is CI, his rules and Lens's review;
+   Owner is his own call." (115 characters), leaves about 20 px. Drawn, Checked and Tested lose
+   their glosses: with "AI agent" said, the column heads read as plain English, and Gate and Owner
+   were the words a stranger couldn't read.
