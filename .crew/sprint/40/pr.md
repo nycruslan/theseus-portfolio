@@ -42,7 +42,17 @@ and every sprint's goal from 38 on reads in a visitor's words.
 
 **Edited existing oracle, for Lens:** `e2e/crew.ts`'s expected job word becomes
 `<word>, AI agent`, because the job cell's text changed by design (contract, "Live checks"). It
-loosens nothing: the cell is compared exactly, as before. No check is retired or skipped.
+loosens nothing: the cell is compared exactly, as before. No check is retired.
+
+**Skip guards added, named for Lens** (STATE.md: an added `test.skip(` needs its reason here):
+five in `e2e/plain-words.spec.ts`, at lines 368 (P8's contrast, copper and 320), 456 (the
+fixtures group: P8's first screen and P9 with scripts off), 690 (P9 after a poll), 852 (the replay
+group: P12's keys and the hidden-tab arrival) and 1114 (P13). Each skips only when
+`PLAYWRIGHT_BASE_URL` is set, because the fixture sites, the down state and the replay site need
+this checkout's build served against the fixture feed, which a deployed URL can't be. CI never sets
+it (`ci.yml` runs `pnpm test:e2e` with only `PLAYWRIGHT_PREBUILT`), so CI runs all five in full.
+It's the guard `live-layer.spec.ts:67` and `particulars.spec.ts:413` use. Lens's nit that 368 and
+456 also skip the default server's passes against a deploy rides with P3's same follow-up.
 
 ## Results
 
@@ -65,6 +75,11 @@ loosens nothing: the cell is compared exactly, as before. No check is retired or
 
 None waits for him. The key's words name him by first name (decisions 3); he may change them, or
 the plain-words rule for goals, at any time.
+
+The key is hidden from 1024 to 1439 px, wider than the 1024 to 1279 Iris accepted (Lens's nit).
+Iris said she'd trade 1280 × 800's resting contact links for the key, but kept B4.49 pins them
+there, and a red kept check is a stop, not an edit. A home for the key at laptop widths that adds
+no height is Iris's follow-up.
 
 ## Retro proposal (owner's path)
 

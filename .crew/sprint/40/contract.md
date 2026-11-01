@@ -1,6 +1,6 @@
 # Sprint 40 contract: who built it, in plain words (Pb; Atlas wrote it from Quill's plan)
 
-**The outcome.** A hiring executive on `/` can tell, without leaving the first screen, that the
+**The outcome.** A hiring executive on `/` can tell, without leaving the first screen (at 1440 and up and on phones; from 1024 to 1439 the key is hidden, decisions 9), that the
 names in the revision block are AI agents the owner directs, and what each column means. `/crew`
 says the same of every member, and `/log`'s key reads the same words. From sprint 38 on, every
 sprint's goal is written for a visitor, so the five rows read plainly within five sprints without
