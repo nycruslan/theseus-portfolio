@@ -17,3 +17,6 @@
 6. **P2 runs on the product's rule too.** Probe's oracle is tested on its fixtures, and the same
    fixtures load `particulars` from `lib/particulars.ts` at run time, as B2.2 loads `detailA`, so
    the rule both places implement is checked on both.
+7. **The phrase's first letter is always lower case** (Iris's pick, which the contract gives her).
+   Atlas's brief to Probe first said "as in the source"; Forge caught the clash, and P2's product
+   expectation follows Iris.
