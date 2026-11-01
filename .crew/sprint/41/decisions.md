@@ -21,3 +21,12 @@
    in Sofia Sans Extra Condensed 700 at 128 px, since platforms cache the first card anyone shares,
    and `/read`'s figcaption sentence 6 px under the legend. Her follow-up, the card drawn as a
    sheet with an ink frame, waits for a later sprint.
+9. **The close-out's CI failure was the checks, not the page** (Forge's findings on cb44eba). With
+   sprint 41's retro the record holds 40 merged sprints, so the fixtures' sprint 999 pencils seat
+   `nextSeat(40)` = 5.0, the one led-out seat (`ledOut`, `lib/hull-layouts.ts`). B4.33, B4.15 and
+   B4.36 assumed a lettered, chipped, deep seat; 5.0's number leads out with no chip by design
+   (sprint 33, decisions 6; `app/globals.css`) and is exempt from B4.36's depth floor (sprint 36,
+   decisions 8). The fixture's seat moves with every merge, so Probe fixes the checks' side
+   without weakening them; no product change. Follow-up (Pixel, Iris): on `/` at 1440 with the
+   model settled, a led-out 5.0 number sits on the drawing's Base line, which sprint 42's live
+   pencil will show.
