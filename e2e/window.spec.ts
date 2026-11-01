@@ -20,7 +20,7 @@ import {
   SCHEMES,
   watchLayoutShift,
 } from "./helpers";
-import { layerFor } from "./live-layer";
+import { layerFor, pencilSeat } from "./live-layer";
 import {
   box,
   canvasFit,
@@ -36,9 +36,9 @@ import {
   SHOWN,
   whole,
 } from "./model";
-import { edges, hausdorff } from "./pixels";
+import { deltaE, edges, hausdorff, type Image, pixel } from "./pixels";
 import { PLAN } from "./plan";
-import { bioParts } from "./retros";
+import { bioParts, MERGED } from "./retros";
 import { type ModelRun, openModel, refuseWebGl } from "./webgl";
 
 // Sprint 43, Wa: the sheet fits a laptop window (.crew/sprint/43/contract.md, W1 to W7), written
@@ -69,9 +69,11 @@ const SHORT = [
 
 /**
  * Iris's floor for the drawing's height, in CSS px (W3): the smallest drawing she accepts on a
- * short window. Provisional: 300 until her placement call names the number.
+ * short window, measured on `[data-plan]`'s box (.crew/sprint/43/placement.md, "The floor": 240 px,
+ * a drawing 710 px wide, whose lift still holds an 11 px plank number). W3 asserts it on that box
+ * and reports the shown drawing's (`.plan-wide`) height beside it.
  */
-const DRAWING_FLOOR_PX = 300;
+const DRAWING_FLOOR_PX = 240;
 
 const BLOCK = "dl[data-particulars]";
 const REVISIONS = 'section[aria-labelledby="revisions"]';
@@ -232,20 +234,19 @@ function w2Boxes(page: Page) {
 }
 
 /**
- * Main's boxes at 1440 x 900, light, WebGL refused, recorded by this spec's W2 on main: commit
- * 1d1ab31 (#101), run from f7fa1b2, whose product code is the same. Each is [left, top, width,
- * height] in CSS px. They pin the owner's words as they wrap today: a change to content/profile.ts
- * that rewraps the title block moves them, and is a reason to record them again, said in the PR.
+ * Main's boxes at 1440 x 900, light, WebGL refused, recorded by this spec's W2 on main's product
+ * code at 5643a54 (#98, "One site", which moved the title block's contact row), run from the sprint
+ * branch's bfeaaa7. Each is [left, top, width, height] in CSS px. They pin the owner's words as
+ * they wrap today: a change to content/profile.ts that rewraps the title block moves them, and is a
+ * reason to record them again, said in the PR.
  */
 const MAIN_1440_900: Record<"default" | "live", Boxes> = {
   default: {
     h1: [848.563, 567.313, 546.438, 89.438],
     dl: [947.078, 407.578, 447.922, 123.734],
-    "link https://github.com/nycruslan": [931.563, 839.969, 54, 26.344],
-    "link https://www.linkedin.com/in/nycruslan/": [
-      1007.563, 839.969, 60, 26.344,
-    ],
-    "link https://ruslanshulga.com": [1089.563, 839.969, 125, 26.344],
+    "link mailto:nycruslan@gmail.com": [1198, 839.969, 39, 26.344],
+    "link https://www.linkedin.com/in/nycruslan/": [1259, 839.969, 60, 26.344],
+    "link https://github.com/nycruslan": [1341, 839.969, 54, 26.344],
     "row 1": [41, 631.203, 754.563, 31.891],
     "row 2": [41, 663.094, 754.563, 31.891],
     "row 3": [41, 694.984, 754.563, 31.891],
@@ -257,11 +258,9 @@ const MAIN_1440_900: Record<"default" | "live", Boxes> = {
   live: {
     h1: [848.563, 567.313, 546.438, 89.438],
     dl: [947.078, 407.578, 447.922, 123.734],
-    "link https://github.com/nycruslan": [931.563, 847.828, 54, 26.344],
-    "link https://www.linkedin.com/in/nycruslan/": [
-      1007.563, 847.828, 60, 26.344,
-    ],
-    "link https://ruslanshulga.com": [1089.563, 847.828, 125, 26.344],
+    "link mailto:nycruslan@gmail.com": [1198, 847.828, 39, 26.344],
+    "link https://www.linkedin.com/in/nycruslan/": [1259, 847.828, 60, 26.344],
+    "link https://github.com/nycruslan": [1341, 847.828, 54, 26.344],
     "row 1": [41, 631.203, 754.563, 31.906],
     "row 2": [41, 663.109, 754.563, 31.891],
     "row 3": [41, 695, 754.563, 31.891],
@@ -469,7 +468,7 @@ function drawingReads(page: Page, shown: string) {
   );
 }
 
-test("W3 the drawing stays whole and clear: at every window in the set, WebGL refused, every shown [data-plan] [data-plank] and lettering span lies inside [data-plan]'s box and the viewport, clipped by no overflow; the dl meets no plank box grown by 24 px and no lettering box; the shown drawing is at least Iris's floor tall, each window's height reported", async ({
+test("W3 the drawing stays whole and clear: at every window in the set, WebGL refused, every shown [data-plan] [data-plank] and lettering span lies inside [data-plan]'s box and the viewport, clipped by no overflow; the dl meets no plank box grown by 24 px and no lettering box; [data-plan]'s box is at least Iris's floor (240 px) tall, each window's height reported", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -492,15 +491,233 @@ test("W3 the drawing stays whole and clear: at every window in the set, WebGL re
     expect.soft(read.met, `what the dl's box meets ${where}`).toEqual([]);
     expect
       .soft(
-        read.height,
-        `${shown}'s height (px) ${where}, Iris's floor ${DRAWING_FLOOR_PX}`,
+        read.hostHeight,
+        `${PLAN}'s height (px) ${where}, Iris's floor ${DRAWING_FLOOR_PX}`,
       )
       .toBeGreaterThanOrEqual(DRAWING_FLOOR_PX);
     heights.push(
-      `${at(width, height)}: ${read.height.toFixed(1)} (${PLAN} ${read.hostHeight.toFixed(1)})`,
+      `${at(width, height)}: ${PLAN} ${read.hostHeight.toFixed(1)} (${shown} ${read.height.toFixed(1)})`,
     );
   }
   note(test.info(), "drawing height", heights.join("; "));
+});
+
+// ---------------------------------------------------------------------------------------------
+// The rider (.crew/sprint/43/placement.md, "Rider"): the 3D pencil number on seat 5.0, the one seat
+// whose 2D number is led out. A merged sprint's retro never leaves its seat (STATE.md, sprint 41),
+// so the live fixture told as the newest merged sprint seated on 5.0 puts the pencil there at any
+// count of retros, where the fixtures' 999 walks the hull one seat a merge.
+
+/** The seat the rider check pins, and the newest merged sprint the build seats on it. */
+const RIDER_SEAT = "5.0";
+const RIDER_SPRINT = MERGED.filter(
+  (r) => pencilSeat(r.sprint) === RIDER_SEAT,
+).at(-1)?.sprint;
+const RIDER_WINDOWS = [
+  [1440, 900],
+  [1536, 715],
+  [1366, 625],
+] as const;
+
+/** The pencil number in the shown wide drawing: its box, its chip and what lettering it meets. */
+function riderRead(page: Page) {
+  return page.evaluate(
+    ({ lettering }) => {
+      const rgba = (
+        window as Window & { __rgba?: (c: string) => number[] | null }
+      ).__rgba;
+      const seen = (el: Element) =>
+        el.getClientRects().length > 0 &&
+        el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+      const span = document.querySelector(
+        "[data-plan] .plan-wide > .plan-pencil",
+      );
+      if (!span) return null;
+      const r = span.getBoundingClientRect();
+      const box = {
+        left: r.left,
+        top: r.top,
+        right: r.right,
+        bottom: r.bottom,
+      };
+      const probe = document.createElement("div");
+      document.body.append(probe);
+      const token = (name: string) => {
+        probe.style.color = `var(${name})`;
+        return rgba?.(getComputedStyle(probe).color) ?? null;
+      };
+      const film = token("--background");
+      const accent = token("--accent");
+      probe.remove();
+      const met = [...document.querySelectorAll(lettering)]
+        .filter((el) => el !== span && seen(el))
+        .filter((el) => {
+          const b = el.getBoundingClientRect();
+          return (
+            b.left < box.right &&
+            box.left < b.right &&
+            b.top < box.bottom &&
+            box.top < b.bottom
+          );
+        })
+        .map((el) => `"${(el.textContent ?? "").trim()}"`);
+      return {
+        text: (span.textContent ?? "").trim(),
+        shown: seen(span),
+        box,
+        background: rgba?.(getComputedStyle(span).backgroundColor) ?? null,
+        film,
+        accent,
+        met,
+      };
+    },
+    { lettering: LETTERING },
+  );
+}
+
+/** The copper pixels a canvas-only image paints, composited over the film, and their centre. */
+function copperDot(image: Image, accent: number[], ground: number[]) {
+  const at: [number, number][] = [];
+  for (let y = 0; y < image.height; y++)
+    for (let x = 0; x < image.width; x++) {
+      const p = pixel(image, x, y);
+      const a = (p[3] ?? 0) / 255;
+      if (a < 0.02) continue;
+      const rgb = [0, 1, 2].map(
+        (c) => (p[c] ?? 0) * a + (ground[c] ?? 0) * (1 - a),
+      );
+      if (deltaE(rgb, accent) < 10) at.push([x, y]);
+    }
+  const centre = at.length
+    ? at.reduce(
+        (s, [x, y]) => [s[0] + x / at.length, s[1] + y / at.length],
+        [0, 0],
+      )
+    : null;
+  return { count: at.length, centre };
+}
+
+test.describe("the rider on seat 5.0", () => {
+  test.skip(
+    Boolean(process.env.PLAYWRIGHT_BASE_URL),
+    "PLAYWRIGHT_BASE_URL is set: the pencil on 5.0 needs this checkout's build served from a copy pointed at the fixture server (B4.22's harness)",
+  );
+
+  test("Wa rider: with the live pencil on seat 5.0, on Full at rest at 1440 x 900, 1536 x 715 and 1366 x 625, the 3D pencil number sits on the film chip, meets no [data-plan] .plan-view > span lettering box, doesn't contain the copper dot's centre, and its centre lies on the hull the canvas draws", async ({
+    browser,
+    crew,
+  }) => {
+    test.setTimeout(240_000);
+    expect(
+      RIDER_SPRINT,
+      `a merged sprint seated on ${RIDER_SEAT} in the build's retros`,
+    ).toBeDefined();
+    const name = "seat-50";
+    const site = await crew.site(
+      name,
+      { fixture: "live", patch: { current: { sprint: RIDER_SPRINT } } },
+      true,
+    );
+    const body = crew.feed.body(name);
+    const layer = layerFor(body, crew.feed.origin);
+    expect(layer.seat, `the oracle's pencil seat for ${RIDER_SPRINT}`).toBe(
+      RIDER_SEAT,
+    );
+    await untilState(
+      site.baseURL,
+      expected(body, crew.feed.origin).state,
+      STATE_WAIT,
+    );
+    const home = await untilHome(site.baseURL, layer.home, STATE_WAIT);
+    expect(home.seen, `the state / shows on the ${name} site`).toBe("live");
+
+    for (const [width, height] of RIDER_WINDOWS) {
+      const where = `at ${at(width, height)}, sprint ${RIDER_SPRINT} in pencil on ${RIDER_SEAT}`;
+      const run = await openModel(browser, { width, height });
+      try {
+        await run.context.addInitScript(installRgba);
+        await run.goto(`${site.baseURL}/`);
+        await run.waitFor([...REST], FIRST);
+        await pause(300);
+        const read = await riderRead(run.page);
+        expect(
+          read,
+          `the wide drawing's pencil number ${where}`,
+        ).not.toBeNull();
+        if (!read) continue;
+        expect
+          .soft(read.text, `the pencil number's text ${where}`)
+          .toBe(String(RIDER_SPRINT));
+        expect.soft(read.shown, `the pencil number shows ${where}`).toBe(true);
+
+        // The canvas alone over the viewport (the chip, HTML above it, hides the dot on screen).
+        const model = await modelCoverage(run.page, {
+          x: 0,
+          y: 0,
+          width,
+          height,
+        });
+        const dot = copperDot(model.image, read.accent ?? [], read.film ?? []);
+        const { box: b } = read;
+        const [cx, cy] = [(b.left + b.right) / 2, (b.top + b.bottom) / 2];
+        const onHull =
+          model.alpha[Math.floor(cy) * model.image.width + Math.floor(cx)] ?? 0;
+        note(
+          test.info(),
+          "rider",
+          `${where}: the number "${read.text}" at ${[b.left, b.top, b.right, b.bottom].map((v) => v.toFixed(1)).join(", ")}, background ${JSON.stringify(read.background)} (film ${JSON.stringify(read.film)}), meets ${read.met.join(", ") || "no lettering"}; ${dot.count} copper px, their centre ${dot.centre?.map((v) => v.toFixed(1)).join(", ") ?? "none"}; the canvas's coverage at the number's centre ${onHull.toFixed(2)}. SwiftShader.`,
+        );
+        const film = read.film ?? [];
+        expect
+          .soft(
+            Boolean(
+              read.background?.every(
+                (v, i) =>
+                  Math.abs(v - (film[i] ?? Number.NaN)) <= (i < 3 ? 1 : 0.02),
+              ),
+            ),
+            `the pencil number's background is the film, its chip, ${where}: ${JSON.stringify(read.background)}`,
+          )
+          .toBe(true);
+        expect
+          .soft(read.met, `lettering the pencil number's box meets ${where}`)
+          .toEqual([]);
+        expect(
+          dot.centre,
+          `the copper dot in the canvas ${where}`,
+        ).not.toBeNull();
+        if (dot.centre) {
+          const [dx = 0, dy = 0] = dot.centre;
+          expect
+            .soft(
+              dx >= b.left && dx <= b.right && dy >= b.top && dy <= b.bottom,
+              `the pencil number's box holds the copper dot's centre (${dx.toFixed(1)}, ${dy.toFixed(1)}) ${where}`,
+            )
+            .toBe(false);
+          // The control: the dot is on the plank, so the hull's coverage reads there, or "on the
+          // hull" below would read nothing.
+          const dotHull =
+            model.alpha[Math.floor(dy) * model.image.width + Math.floor(dx)] ??
+            0;
+          expect
+            .soft(
+              dotHull,
+              `the canvas's coverage at the copper dot's centre (the hull read's control) ${where}`,
+            )
+            .toBeGreaterThanOrEqual(0.5);
+        }
+        expect
+          .soft(
+            onHull,
+            `the canvas's coverage at the pencil number's centre, on the hull at 0.5 or more, ${where}`,
+          )
+          .toBeGreaterThanOrEqual(0.5);
+        expect.soft(run.errors, `console errors ${where}`).toEqual([]);
+      } finally {
+        await run.close();
+      }
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
