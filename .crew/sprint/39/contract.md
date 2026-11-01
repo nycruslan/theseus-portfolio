@@ -54,7 +54,7 @@ to 2.0 screens down inside one paragraph (`plan.md`, "Why this").
   - No text in the `dl` is as large as the `h1`.
 - **P4 Clear of the hull.**
   - With WebGL refused, at 768, 1024, 1280 and 1440 wide (900 tall), the `dl`'s box meets no
-    `[data-plan] [data-plank]` box grown by 24 px, and no `[data-plan] text` box.
+    `[data-plan] [data-plank]` box grown by 24 px, and no box of the drawing's lettering (`[data-plan] .plan-view > span`; the contract first said `[data-plan] text`, which matches nothing, decisions 5).
   - On Full at 1440 × 900, once the loft has settled (B3's settle wait), and with the `dl` set to
     `visibility: hidden`, take a screenshot clipped to its box. Take it again with
     `[data-model] canvas` hidden as well. At least 99.5% of the pixels match within 8 a channel,
