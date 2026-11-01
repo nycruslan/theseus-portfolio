@@ -1219,6 +1219,83 @@ main:has(> [data-model]) {
 }
 
 /*
+ * The particulars (components/particulars.tsx; .crew/sprint/39/placement.md): the owner's scope
+ * and scale in four ruled rows, lettered like the drawing and the revision table. Below 1024 px a
+ * table of its own after the title block, inset like it; 1024 to 1279 a strip row of the frame
+ * under the title block and the revisions; from 1280 the band's empty corner under the body plan.
+ * Positioned so it paints above the model's layer where it lies on the drawing's box; it has no
+ * fill and no box, so it never reads as a plank. Nothing in it moves (P5).
+ */
+.particulars {
+  position: relative;
+  margin: 0 0 24px;
+  padding: 0 16px;
+  font-size: var(--step-sm);
+  line-height: 1.35;
+}
+
+.particulars > div {
+  display: grid;
+  grid-template-columns: 3.75rem minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* The head rule in ink, as the revision table's. */
+.particulars > div:first-child {
+  border-top-color: var(--foreground);
+}
+
+.particulars dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Balanced lines keep "multi-agent" and "firm-wide" whole at every width (320 to 1920 scanned). */
+.particulars dd {
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* 1024 to 1279: the corner is too shallow for the four rows, so they become a row of the frame,
+   four across, each term above its phrase; row 2's bottom borders are its top. */
+@media (64rem <= width < 80rem) {
+  .particulars {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 24px;
+    margin: 0;
+    padding: 12px 24px 14px;
+    border-inline: 1px solid var(--foreground);
+    border-bottom: 1px solid var(--foreground);
+  }
+
+  .particulars > div,
+  .particulars > div:first-child {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+}
+
+/* From 1280: in the drawing's row, at its foot, 16 px above the frame's line (the frame's bottom
+   padding). Its left edge is on the DWL and Base lettering, 931.4 of the drawing's 1408 units
+   across the 1 px frame; its right edge is on the title block's text, 28 px in from the frame's
+   1 px border. */
+@media (width >= 80rem) {
+  .particulars {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: end;
+    margin: 0 29px 16px calc(1px + (100% - 2px) * 0.66151);
+    padding: 0;
+  }
+}
+
+/*
  * The sheet's bottom row, the revision block and the title block beside it. With one-line
  * descriptions it can end short of the fold and show the facts' rule under the frame, so from
  * 1024 px each cell is at least the height the viewport leaves under the bar and the drawing, less
