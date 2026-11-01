@@ -39,6 +39,7 @@ import {
   toAnswer,
 } from "./crew-live";
 import { installRgba, SCHEMES } from "./helpers";
+import { LED_OUT_2D } from "./live-layer";
 import { tokenRgba } from "./log";
 import { deltaE } from "./pixels";
 import { refuseWebGl } from "./webgl";
@@ -200,8 +201,14 @@ const same = (a: number[] | null | undefined, b: number[] | null | undefined) =>
       Math.abs((a[3] ?? 1) - (b[3] ?? 1)) <= 0.02,
   );
 
-/** The focus plank's numbers: the ones whose centre lies on it, inside the hull. */
-const onFocus = (read: DetailRead) => read.numbers.filter((n) => n.onFocus);
+/**
+ * The focus plank's numbers: the ones whose centre lies on it, inside the hull, or, as plan.ts
+ * reads `/`, one a leader joins to it (a led-out seat's, LED_OUT_2D).
+ */
+const onFocus = (read: DetailRead) =>
+  read.numbers.filter(
+    (n) => n.onFocus || (read.focus !== null && n.ledTo.includes(read.focus)),
+  );
 
 /**
  * B4.34's places for the shown ticks: matched to slots by x (stern-most last), so the shown ticks
@@ -233,7 +240,7 @@ function tickPlaces(r: Read) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("B4.33 the detail and the pencil: on the live, open and resting fixtures, sprint 999 and the default server, data-focus is the oracle's seat (3.0 for 31, 6.1 for 999, the newest retro's at rest and down) and data-run live, open or record; the shown drawing's box is Iris's size within 1 px at 320, 390, 768, 1024 and 1440 at the layout's s and oy; the focus number wholly inside it, the only number on the focus plank; in live and open one path[data-plank][data-pencil] on the seat with data-sprint n, data-live in live only, a hatch and a dashed --muted edge in both schemes, n on its film chip at B4b's place, one [data-tip] in live alone; every plank's data-plank, data-sprint and class the default server's, the pencil aside", async ({
+test("B4.33 the detail and the pencil: on the live, open and resting fixtures, sprint 999 and the default server, data-focus is the oracle's seat (3.0 for 31, the next seat for 999, the newest retro's at rest and down) and data-run live, open or record; the shown drawing's box is Iris's size within 1 px at 320, 390, 768, 1024 and 1440 at the layout's s and oy; the focus number wholly inside it, the only number on the focus plank; in live and open one path[data-plank][data-pencil] on the seat with data-sprint n, data-live in live only, a hatch and a dashed --muted edge in both schemes, n on its film chip at B4b's place (on a led-out seat, 5.0, at its leader's end on the film, off the hull), one [data-tip] in live alone; every plank's data-plank, data-sprint and class the default server's, the pencil aside", async ({
   page,
   crew,
 }) => {
@@ -315,7 +322,19 @@ test("B4.33 the detail and the pencil: on the live, open and resting fixtures, s
           `the focus number ${want} wholly inside the drawing's box, ${at}: ${JSON.stringify(number?.box)} in ${JSON.stringify(read.svg)}`,
         )
         .toBe(true);
-      if (pencilled && number) {
+      if (pencilled && number && LED_OUT_2D.includes(seat)) {
+        // A led-out seat (5.0): n stands off the hull, and its leader runs into the plank.
+        expect
+          .soft(
+            {
+              onPlank: number.onFocus,
+              ledTo: number.ledTo,
+              onFilm: number.onFilm,
+            },
+            `n led out on ${seat}: off the hull on the film, a leader from it into the plank, ${at}`,
+          )
+          .toEqual({ onPlank: false, ledTo: [seat], onFilm: true });
+      } else if (pencilled && number) {
         const b = number.box;
         const [x, y] = r.anchor;
         expect
@@ -387,14 +406,23 @@ test("B4.33 the detail and the pencil: on the live, open and resting fixtures, s
               .soft(p.dash, `the pencil plank's stroke-dasharray, ${at}`)
               .not.toMatch(/^(none|0(px)?)$/);
           }
+          // On a led-out seat n stands on the film itself, where no hatch is drawn: a chip, if
+          // any, is the film's colour, and without one the ground under it is.
+          const ledOut = LED_OUT_2D.includes(seat);
           expect
             .soft(
               [
                 same(number?.color, paint.muted),
                 number?.weight,
-                same(number?.chip, paint.ground),
+                same(number?.chip, paint.ground) ||
+                  (ledOut &&
+                    number?.chip === null &&
+                    number.onFilm &&
+                    same(number.ground, paint.ground)),
               ],
-              `n in graphite (--muted) at 600 on a film chip (--background), ${at}: ${JSON.stringify(number)}`,
+              ledOut
+                ? `n, led out, in graphite (--muted) at 600 on a film chip (--background) or on the film (no plank under it, its ground --background), ${at}: ${JSON.stringify(number)}`
+                : `n in graphite (--muted) at 600 on a film chip (--background), ${at}: ${JSON.stringify(number)}`,
             )
             .toEqual([true, 600, true]);
         } else {

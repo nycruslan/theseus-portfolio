@@ -25,6 +25,7 @@ import {
   DRAWING_NOW,
   hooks,
   type Layer,
+  LED_OUT_2D,
   layerFor,
   pencilPaint,
   pencilSeat,
@@ -451,6 +452,19 @@ test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on t
         `the wide drawing's numbers on or led to the pencil plank ${layer.seat}, ${where}`,
       )
       .toEqual([String(layer.n)]);
+    // Where n stands: on its plank, or, on a seat every drawing leads out (5.0), off the hull at
+    // its leader's end, the leader running into the plank (.crew/sprint/41/).
+    const ledOut = LED_OUT_2D.includes(layer.seat ?? "");
+    expect
+      .soft(
+        ((await readPlan(page))?.texts ?? [])
+          .filter((t) => t.text === String(layer.n))
+          .map((t) => ({ on: t.on, led: t.led })),
+        `the wide drawing's ${layer.n} ${ledOut ? `led out to ${layer.seat}` : `on ${layer.seat}`}, ${where}`,
+      )
+      .toEqual([
+        ledOut ? { on: null, led: [layer.seat] } : { on: layer.seat, led: [] },
+      ]);
     expect
       .soft(
         Object.fromEntries(
@@ -508,9 +522,16 @@ test("B4.15 the pencil plank: on the live fixture (31), with sprint 999 and on t
               paint.numbers.map(
                 (number) =>
                   sameColor(number.color, paint.muted) &&
-                  sameColor(number.background, paint.ground),
+                  (sameColor(number.background, paint.ground) ||
+                    // Led out, n stands on the film itself, where no hatch is drawn.
+                    (ledOut &&
+                      number.background === null &&
+                      number.onFilm &&
+                      sameColor(number.ground, paint.ground))),
               ),
-              `the wide drawing's ${layer.n}: --muted on a --background chip, ${at}: ${JSON.stringify(paint.numbers)}`,
+              ledOut
+                ? `the wide drawing's ${layer.n}, led out: --muted on a --background chip, or on the film (no plank under it, its ground --background), ${at}: ${JSON.stringify(paint.numbers)}`
+                : `the wide drawing's ${layer.n}: --muted on a --background chip, ${at}: ${JSON.stringify(paint.numbers)}`,
             )
             .toEqual([true]);
         }
