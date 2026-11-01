@@ -39,7 +39,12 @@ All in Forge's worktree on the build's head (Playwright's Chromium):
   turns P5 red.
 - The live neighbours the contract names, unedited (sheet, plan, facts, read, keyboard,
   invariants, live-layer, profile-sections, content): 81 passed.
-- Nothing retired, nothing skipped.
+- Nothing retired. One skip guard added, named for Lens (STATE.md: an added `test.skip(` needs its
+  reason here): `e2e/particulars.spec.ts:413` skips P3's `on the feed's fixtures` group when
+  `PLAYWRIGHT_BASE_URL` is set, because the live, open and resting states need this checkout's
+  build served from copies pointed at the fixture server, which a deployed URL can't be. CI never
+  sets it (`ci.yml` runs `pnpm test:e2e` with only `PLAYWRIGHT_PREBUILT`), so CI runs P3 in full.
+  It's the guard `live-layer.spec.ts:67` and `crew.spec.ts:64` use, as sprints 36 and 37 named.
 
 Measured boxes (WebGL refused): 1440 × 900 at y 408–531, 67 px under "Base"; 1280 × 800 at
 y 336–477; 768 × 900 at y 602–708; 390 × 844 at y 653–812; no horizontal scroll at 320.
