@@ -1,0 +1,46 @@
+{
+  "sprint": 39,
+  "pr": 97,
+  "goal": "Put the owner's scope and scale on the first screen, in his own words",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 4a6992a after one description fix and one CI fix, Iris ship at 7.8/10, P1 to P7 red first, CI green",
+  "fixRounds": 1,
+  "minutes": 125,
+  "agents": [
+    { "role": "design-director", "model": "opus", "tokens": 266900, "minutes": 29 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 185262, "minutes": 21 },
+    { "role": "engineer", "model": "opus", "tokens": 275080, "minutes": 58 }
+  ],
+  "lens": { "runs": 2, "tokens": 6206461, "important": 1, "actedOn": 1, "nits": 5 },
+  "wentWrong": [
+    {
+      "what": "The new table's text changed look as the 3D model landed, which only CI's screens show",
+      "evidence": "B3.1 counted 8,745 changed pixels at 1440 on CI and passed here; Forge reproduced it with LCD text on and fixed it with an invisible fill (decisions 8)"
+    },
+    {
+      "what": "The lead's brief left the 3D checks out, though the table sits on the drawing",
+      "evidence": "The contract tied them to option (a); option (b) puts text over the model's layer too, so they failed only in CI"
+    },
+    {
+      "what": "Two briefs disagreed on how a capitalised phrase should read",
+      "evidence": "Atlas told Probe the source's case, Iris's spec said lower case; Forge caught it before the build landed (decisions 7)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have scope.mjs accept a PLAYWRIGHT_BASE_URL skip guard in a new spec without a PR line, since CI never sets it",
+      "moves": "Lens's only Important finding on #97, as on #95 and #91, was this guard's missing line, costing a re-review"
+    },
+    {
+      "change": "Give the cloud's Chromium CI's LCD text, by a FONTCONFIG_FILE in the e2e setup",
+      "moves": "Text over WebGL passed here and failed on CI in sprints 25 and 39"
+    }
+  ],
+  "followUps": [
+    { "who": "Iris", "what": "From 1024 to 1279 wide the table is below the fold at common heights (Lens's nit); find a place in the first view or accept it" },
+    { "who": "Probe", "what": "Run P3's default-server pass outside the PLAYWRIGHT_BASE_URL guard (Lens's nit)" },
+    { "who": "Iris", "what": "Reword her memory line on text-wrap: balance as what the scan found, not a technique (Lens's nit); and the invisible fill, hers to overrule" },
+    { "who": "Owner", "what": "Show / for five seconds at 1440 and on a phone to someone who doesn't know you: what you do, at what scale, how to reach you" }
+  ]
+}
