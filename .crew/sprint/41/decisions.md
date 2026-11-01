@@ -17,3 +17,7 @@
    gap) is red first.
 7. **The hooks are Probe's** (`data-sentence` spans in `p.entry-text`, `lib/card.ts`'s `cardText`
    and `CARD_FONTS`, "Sofia Sans Local"), relayed to Forge word for word.
+8. **Iris's must and should are taken before the review label** (`review-iris.md`): the card's name
+   in Sofia Sans Extra Condensed 700 at 128 px, since platforms cache the first card anyone shares,
+   and `/read`'s figcaption sentence 6 px under the legend. Her follow-up, the card drawn as a
+   sheet with an ink frame, waits for a later sprint.
