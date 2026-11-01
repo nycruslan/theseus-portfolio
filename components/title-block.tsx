@@ -26,8 +26,10 @@ export function TitleBlock({ className = "" }: { className?: string }) {
       <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5 lg:mb-3">
         {splitBio(profile.bio).lead}
       </p>
-      {/* Pushed to the block's foot beside the revisions. No id: #contact is the Contact section. */}
-      <p className="mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:gap-x-[22px] lg:pt-2">
+      {/* Pushed to the block's foot beside the revisions, except on a window too short for the
+          whole sheet, where it follows the bio (app/globals.css, "The sheet on a laptop window").
+          No id: #contact is the Contact section. */}
+      <p className="title-contact mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:gap-x-[22px] lg:pt-2">
         <a
           href="#case-studies"
           className={`inline-flex min-h-11 items-center lg:min-h-0 ${LINK}`}
