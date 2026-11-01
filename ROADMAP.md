@@ -41,16 +41,15 @@ judge them.
     at 1440 (to y 909–936), so either the drawing band gives about 80 px (Pixel and the 3D suites
     come in) or the rows take the band's empty corner under the body plan.
   - No rider touches its code.
-- [ ] Pb (M): who built it, in plain words.
-  - `/`'s revision block gets a one-line key (AI agents; Drawn, Checked, Tested and Approved;
-    Gate and Owner); `/crew` labels each member an AI agent; `/log`'s key reads the same words.
-  - From sprint 38 on, each retro's goal is written in a visitor's words, with no milestone code
-    and no URL path, checked over the retros. `/`'s five rows read plainly within five sprints,
-    and no past retro is rewritten.
-  - Riders: Lens's four nits on #95 (Shift and Meta+Space toggle the pause, the unused
-    `crew-block` class, a `#replay` arrival in a hidden tab, a Strict Mode re-run); `/crew`'s long
-    cache `expire` (Iris, sprint 35; still 300 s in `lib/crew-feed.ts`); Iris's chip over the
-    copper dot on `/` at 1024 and below (B4b).
+- [x] Pb (M): who built it, in plain words. Sprint 40, PR #99: one key under the revision table,
+  "Every name is an AI agent Ruslan directs. Approved: Gate is CI, his rules and Lens's review;
+  Owner is his own call.", from `lib/crew-key.ts`, on `/` and `/log`; `/crew`'s jobs read
+  "Code, AI agent", with the first sentence where the job column folds; the goals rule as P11.
+  Riders done: Lens's four nits on #95 and the chip over the copper dot (2D). Dropped: `/crew`'s
+  long `expire` (`decisions.md` 5). Left open: the key is hidden from 1024 to 1439 px, where
+  nothing fits under the table without pushing the contact links past B4.22's and B4.49's folds
+  (`decisions.md` 9; Iris to find it a home that adds no height); the 3D label over the dot (Pixel);
+  P8's and P9's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe, with P3's).
 - [ ] Pc (S): the facts, scannable and shared.
   - Work's summaries read sentence by sentence, verbatim.
   - `/`'s social card carries the bio's first sentence and Pa's particulars, in Sofia Sans from a
