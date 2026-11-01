@@ -1,5 +1,35 @@
 import type { NextConfig } from "next";
 
+// Inline scripts stay allowed: Next's static pages carry them, and nonces would make every page
+// render per request. `next dev` needs eval, so the policy applies to production builds only.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "worker-src 'self' blob:",
+].join("; ");
+
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains",
+  },
+];
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
@@ -20,7 +50,24 @@ const nextConfig: NextConfig = {
   // The Log moved from /sprints to /log (.crew/sprint/29/b5-first-contract.md): a permanent redirect
   // keeps the share card and two weeks of links working, and tells search engines the page moved.
   async redirects() {
-    return [{ source: "/sprints", destination: "/log", permanent: true }];
+    return [
+      { source: "/sprints", destination: "/log", permanent: true },
+      // Addresses of the portfolio this site replaced at the same domain. Its AI crew's pages point
+      // to this site's; its private admin is gone, and only the old links remain.
+      ...[
+        "/bridge",
+        "/foundry",
+        "/garden",
+        "/substrate",
+        "/work/the-bridge",
+      ].map((source) => ({ source, destination: "/crew", permanent: true })),
+      { source: "/admin/:path*", destination: "/", permanent: true },
+    ];
+  },
+  async headers() {
+    return process.env.NODE_ENV === "production"
+      ? [{ source: "/:path*", headers: SECURITY_HEADERS }]
+      : [];
   },
   experimental: {
     // No Turbopack cache between builds. A restored `.next/cache` once kept serving an old

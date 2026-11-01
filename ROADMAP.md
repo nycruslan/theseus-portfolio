@@ -5,6 +5,14 @@ sprints, each one pull request that leaves the site whole. Atlas takes the curre
 sprint, unless the owner set the goal, and at the close-out ticks it with its sprint and PR. Small
 fixes and follow-ups ride along with the sprint that touches the same code.
 
+## Done by the owner's session: one site
+
+The earlier portfolio's valuable parts now live here, so this site can take ruslanshulga.com: the
+case studies (`content/work.ts`, `/work/[slug]`), the assistant (`/ask`, `/api/chat`), its weekly
+evals (`/evals`, `/api/cron/evals`), the agent surfaces (`/llms.txt`, `/api/me.json`, `/api/mcp`),
+security headers, Web Analytics, and redirects from the old addresses. `/work/…` case studies under
+this milestone's "Out of scope" are done.
+
 ## Now: the proof in five seconds
 
 On `/`'s first screen, at 1440 and on a phone, a hiring executive reads the owner's scope and
@@ -55,8 +63,8 @@ judge them.
     404's first paint in the fallback face, the card's typeface).
   - Left open: Detail A's dark-scheme boxes, which need a look on a real phone.
 - Out of scope, and why:
-  - `/work/…` case studies and a published keel need the owner's facts or setup, so they're the
-    next candidates, each starting with an Owner's pick.
+  - A published keel needs the owner's setup, so it's the next candidate, starting with an Owner's
+    pick.
   - Riders that loosen a live assertion wait for a PR that waits for the owner: the legend's
     "Original" (B1.2 and B2.9), the commit-hash link (C5.3), and the unknown record's scripts-off
     404.

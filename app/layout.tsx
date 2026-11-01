@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Sofia_Sans } from "next/font/google";
 import { profile } from "@/content/profile";
@@ -48,7 +49,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${sofiaSans.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        {children}
+        {/* Its script is served by Vercel alone, so anywhere else it would only log a 404. */}
+        {process.env.VERCEL ? <Analytics /> : null}
+      </body>
     </html>
   );
 }

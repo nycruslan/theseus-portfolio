@@ -20,8 +20,8 @@ import type { ReactNode } from "react";
 // .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
 // (components/log.tsx; .crew/sprint/33/).
 type BarProps = {
-  /** Where the bar is: the sheet, the Log, one of the Log's records, or the crew's page. */
-  at?: "sheet" | "log" | "record" | "crew";
+  /** Where the bar is: the sheet, the Log, a record, the crew's page, a case study, or any other. */
+  at?: "sheet" | "log" | "record" | "crew" | "work" | "page";
   /** The motion control, from a page with a model: the sheet, the Log and its records, and /crew. */
   control?: ReactNode;
   className?: string;
@@ -50,7 +50,11 @@ const decoration = ({ away, current }: BarLink) =>
 export function Bar({ at = "sheet", control, className = "" }: BarProps) {
   const home = at === "sheet" ? "" : "/";
   const links: BarLink[] = [
-    { label: "Work", href: `${home}#work` },
+    {
+      label: "Work",
+      href: `${home}#work`,
+      current: at === "work" ? "true" : undefined,
+    },
     {
       label: "Crew",
       href: "/crew",

@@ -1328,7 +1328,14 @@ test("B1.7 nothing today's page says is lost: the facts below the sheet, verbati
   });
   expect
     .soft(found.ids, "the facts' h2 ids, in order")
-    .toEqual(["work", "projects", "stack", "education", "contact"]);
+    .toEqual([
+      "work",
+      "case-studies",
+      "projects",
+      "stack",
+      "education",
+      "contact",
+    ]);
   expect.soft(found.first, "the first reads").toBe("Work");
   expect
     .soft(found.below, "the facts come after the revision block")

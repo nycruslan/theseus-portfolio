@@ -5,9 +5,11 @@ import { PlankCount, PlankLegend } from "@/components/plank-key";
 import { PrintButton } from "@/components/print-button";
 import { SkipLink } from "@/components/skip-link";
 import { profile } from "@/content/profile";
+import { caseStudies } from "@/content/work";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatPlanks } from "@/lib/lines-plan";
 import { openGraph } from "@/lib/metadata";
+import { studyPath } from "@/lib/portfolio";
 import { SITE_URL } from "@/lib/site";
 import { readSprintLog } from "@/lib/sprint-log";
 
@@ -83,6 +85,20 @@ export default function Read() {
               </li>
             ))}
           </ol>
+        </section>
+
+        <section aria-labelledby="case-studies">
+          <h2 id="case-studies">Case studies</h2>
+          <ul>
+            {caseStudies.map((study) => (
+              <li key={study.slug} className="read-entry">
+                <h3>
+                  <a href={studyPath(study)}>{study.title}</a>
+                </h3>
+                <p className="read-text">{study.blurb}</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section aria-labelledby="projects">
