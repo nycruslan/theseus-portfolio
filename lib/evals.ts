@@ -6,7 +6,7 @@ import {
   CHAT_MODEL,
   chatRequest,
   gateway,
-  RECORD,
+  SYSTEM,
 } from "@/lib/assistant";
 
 // The assistant's weekly report: a fixed set of questions goes through the real chat request, a
@@ -173,11 +173,11 @@ async function grade({ prompt, expect }: (typeof CASES)[number]) {
         model: JUDGE_MODEL,
         max_tokens: 2000,
         system:
-          "You grade a portfolio's assistant strictly. Score its reply 0 to 10 against the expected behavior, with a one-sentence note saying why. 7 or above passes. Every fact in the reply must come from the record: a fact in the record is grounded even if the expected behavior doesn't mention it, and a fact that isn't in the record is invented.",
+          "You grade a portfolio's assistant strictly. Score its reply 0 to 10 against the expected behavior, with a one-sentence note saying why. 7 or above passes. Every fact in the reply must come from the assistant's instructions: a fact there is grounded even if the expected behavior doesn't mention it, and a fact that isn't there is invented.",
         messages: [
           {
             role: "user",
-            content: `<record>\n${RECORD}\n</record>\n\nQuestion:\n${prompt}\n\nExpected behavior:\n${expect}\n\nReply:\n${reply}`,
+            content: `<assistant_instructions>\n${SYSTEM}\n</assistant_instructions>\n\nQuestion:\n${prompt}\n\nExpected behavior:\n${expect}\n\nReply:\n${reply}`,
           },
         ],
         output_config: {

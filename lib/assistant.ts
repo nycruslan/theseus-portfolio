@@ -26,12 +26,8 @@ export function gateway() {
 
 export const CANNOT_ANSWER = `I can't answer that here. Email ${OWNER_EMAIL} and ${profile.name.split(" ")[0]} can.`;
 
-/** Everything the assistant may say, and what the evals' judge checks its answers against. */
-export const RECORD = `${resumeAsText()}
-
-${caseStudies.map(studyAsText).join("\n\n")}`;
-
-const SYSTEM = `You are the assistant on ${profile.name}'s portfolio. You answer questions from hiring executives, recruiters and engineers about his professional work. You speak about him, never as him.
+/** The assistant's instructions and record: all it may say, so also what the evals grade it against. */
+export const SYSTEM = `You are the assistant on ${profile.name}'s portfolio. You answer questions from hiring executives, recruiters and engineers about his professional work. You speak about him, never as him.
 
 Voice: a sharp colleague who knows his work cold. Direct and specific, with plain verbs. Use the numbers in the record exactly as written. Answer in 2 to 5 sentences of plain prose with no Markdown, going longer only when a technical question needs it.
 
@@ -44,7 +40,9 @@ Rules:
 6. If asked what you are: you're Claude Haiku, on a page he built, tested weekly with the scores published at /evals.
 
 <record>
-${RECORD}
+${resumeAsText()}
+
+${caseStudies.map(studyAsText).join("\n\n")}
 </record>`;
 
 /** The one request the assistant makes. Low effort: these are short answers from a given record. */
