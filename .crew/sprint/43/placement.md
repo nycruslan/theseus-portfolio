@@ -326,3 +326,40 @@ Scripts are in my scratchpad, not the repo: `measure.mjs`, `sweep.mjs`, `shoot.m
 - Real GPUs and real devices. The hull is SwiftShader's.
 - The fallback face. The fonts-blocked run gave the same geometry to 0.1 px, which I don't trust
   as a real block; sprint 39 measured the fallback as same or fewer wraps at desktop widths.
+
+## Amendment (Forge's build, fdfb899): the foot ramps at the narrow end
+
+At 1280 wide the bio's three lines hold by 0.86 px in Playwright's Chromium, which draws glyphs at
+whole-pixel widths. Chrome 153 draws them at fractional widths, as real Mac and Windows Chrome do,
+and there "the" drops to a fourth line (+24.4 px): the contact row ends 2.1 px under the fold at
+1280 × 680. A fit must not hinge on a 1 px wrap, so the foot covers a fourth bio line wherever the
+bio's measure is near the wrap (under about 516 px, the 1366 column), and ramps down to 23.5rem by
+1366 with no step:
+
+```css
+main {
+  --sheet-foot: clamp(23.5rem, calc(25rem - (100vw - 80rem) * 0.279), 25rem); /* 400 px at 1280, 376 from 1366 */
+}
+```
+
+The short regime keeps its meaning (the drawing under about 0.66 scale), so its switch moves from
+690 to **712 px tall (`44.5rem`)**. At 1280 with a 400 px foot, that switch falls at 0.655 scale.
+At 1366 and wider, windows 690 to 711 tall now stand the particulars beside the drawing (at 0.66
+to 0.71 scale), where the table keeps 365 px or more. 1536 × 715 stays in the corner, 3 px above
+the switch.
+
+**Measured on production with the CSS injected (Chromium, whole-pixel glyphs, live state):**
+
+- 1280 × 680:
+  - band 280 at 0.588 scale, beside regime, particulars x 799–1235;
+  - contact row ends at 633.7, with 46.3 px of film, which leaves 21.9 px with a fourth line.
+- 1280 × 800:
+  - band 400 at 0.84 scale, so the drawing now gives way by 21 px there;
+  - corner regime, 33.3 px under "Base";
+  - contact row ends at 753.7, which leaves 21.9 px with a fourth line.
+- 1366 and wider: unchanged, and 1440 × 900 identical.
+- Sweep, every 10 px of height from 600 to 1000 at 1280, 1290, 1300, 1320, 1340, 1366, 1400, 1440
+  and 1536 wide: 367 of 369 pass. The two failures are at 600 tall (1440 and 1536), below the
+  contract's range, as before.
+
+The floor still holds in the set: the smallest band is 249 at 1366 × 625, and 280 at 1280 × 680.
