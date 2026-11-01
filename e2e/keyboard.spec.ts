@@ -25,8 +25,9 @@ import {
 // `tabUntil`'s bound is 15, and the buttons are stops with one clear ring each. Sprint 30
 // (.crew/sprint/29/b5-first-contract.md, B5a): Log points at /log, and B2.9's forced-colours ring
 // holds on /log and a record too. Sprint 31 (.crew/sprint/31/contract.md, B4a): Crew follows Work
-// in the bar, so Contact's first link is the 23rd stop and `tabUntil`'s bound is 23; B2.9's
-// forced-colours ring holds on /crew too.
+// in the bar, so Contact's first link is the 16th stop and `tabUntil`'s bound is 16; B2.9's
+// forced-colours ring holds on /crew too. One site: Case studies, Ask AI and the five case studies
+// come first, so it's the 23rd stop and the bound is 23.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';

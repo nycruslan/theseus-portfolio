@@ -16,6 +16,7 @@ const CONTENT_SECURITY_POLICY = [
   "worker-src 'self' blob:",
 ].join("; ");
 
+// No Strict-Transport-Security: Vercel sends it, without binding every subdomain for two years.
 const SECURITY_HEADERS = [
   { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -23,10 +24,6 @@ const SECURITY_HEADERS = [
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains",
   },
 ];
 

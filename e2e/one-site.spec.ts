@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { caseStudies } from "../content/work";
+import { HISTORY_TURNS, TURN_MAX_CHARS } from "../lib/chat";
 
 // What the earlier portfolio brought here: the case studies, the assistant, its evals and the agent
 // surfaces. The model is never called: /api/chat is mocked in the browser, and the server is only
@@ -86,6 +87,59 @@ test("the assistant streams an answer, keeps the history and refocuses the quest
   expect(bodies[1]?.messages[1]?.content).toBe("Answer 1.");
 });
 
+test("a long answer and a long conversation keep working", async ({ page }) => {
+  const sizes: number[] = [];
+  await page.route("/api/chat", async (route) => {
+    const { messages } = route.request().postDataJSON();
+    sizes.push(messages.length);
+    await route.fulfill({
+      contentType: "text/plain; charset=utf-8",
+      body: `${"x".repeat(2500)} ${sizes.length}`,
+    });
+  });
+  await page.goto("/ask");
+  for (let turn = 1; turn <= 8; turn++) {
+    await page.getByLabel("Your question").fill(`Question ${turn}`);
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".ask-turn").last()).toContainText(` ${turn}`);
+    await expect(page.locator(".ask-turn").last()).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
+  }
+  expect(Math.max(...sizes)).toBe(HISTORY_TURNS);
+});
+
+test("the chat route takes a full history with a long answer in it", async ({
+  request,
+  baseURL,
+}) => {
+  // Refused only for a key that isn't set here: past validation, the route answers 200 and streams.
+  const response = await request.post("/api/chat", {
+    headers: { origin: baseURL ?? "" },
+    data: {
+      messages: [
+        { role: "user", content: "Tell me more." },
+        { role: "assistant", content: "x".repeat(TURN_MAX_CHARS) },
+        { role: "user", content: "And then?" },
+      ],
+    },
+  });
+  expect(response.status()).toBe(200);
+});
+
+test("without scripts /ask shows the way forward and no dead controls", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("/ask");
+  await expect(page.getByRole("link", { name: /@/ })).toBeVisible();
+  await expect(page.getByRole("button")).toHaveCount(0);
+  await expect(page.getByLabel("Your question")).toBeHidden();
+  await context.close();
+});
+
 test("a rate-limited assistant gives the way forward, not a dead end", async ({
   page,
 }) => {
@@ -107,6 +161,11 @@ test("the chat route refuses other sites and malformed requests before any model
     headers: { origin: "https://example.com" },
   });
   expect(foreign.status()).toBe(403);
+  const opaque = await request.post(url, {
+    data,
+    headers: { origin: "null" },
+  });
+  expect(opaque.status()).toBe(403);
   const malformed = await request.post(url, {
     data: { messages: [{ role: "assistant", content: "Hi" }] },
     headers: { origin: baseURL ?? "" },
@@ -168,7 +227,6 @@ test("the old portfolio's addresses lead somewhere", async ({ request }) => {
 test("pages carry the security headers", async ({ request }) => {
   const all = (await request.get("/")).headers();
   expect(all["content-security-policy"]).toContain("frame-ancestors 'none'");
-  expect(all["strict-transport-security"]).toContain("max-age=63072000");
   expect(all["x-content-type-options"]).toBe("nosniff");
 });
 

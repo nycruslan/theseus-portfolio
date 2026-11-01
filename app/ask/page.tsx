@@ -42,6 +42,8 @@ export default function AskPage() {
 
       <Schedule id="questions" title="Questions">
         <noscript>
+          {/* These do nothing without scripts; the note below says what to do instead. */}
+          <style>{".ask-starters, .ask-form { display: none; }"}</style>
           <p className="sched-body entry-text">
             The assistant needs JavaScript. Email{" "}
             <a className="text-link" href={`mailto:${OWNER_EMAIL}`}>

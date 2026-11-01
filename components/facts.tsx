@@ -45,8 +45,9 @@ export function Facts({ className = "" }: { className?: string }) {
               {/* Only a figure earns the eye here; the words-only results stay on the study. */}
               {/\d/.test(study.metrics[0]?.value ?? "") ? (
                 <p className="when">
-                  {study.metrics[0]?.value}{" "}
-                  {study.metrics[0]?.label.toLowerCase()}
+                  {study.metrics[0]?.value}
+                  <br />
+                  {study.metrics[0]?.label}
                 </p>
               ) : (
                 <p className="when">{COMPANY}</p>

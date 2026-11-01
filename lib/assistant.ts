@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { profile } from "@/content/profile";
 import { caseStudies } from "@/content/work";
+import { HISTORY_TURNS } from "@/lib/chat";
 import { OWNER_EMAIL, resumeAsText, studyAsText } from "@/lib/portfolio";
 
 // The portfolio's assistant: one model call over the owner's whole record, with no tools to run. The
@@ -9,9 +10,6 @@ import { OWNER_EMAIL, resumeAsText, studyAsText } from "@/lib/portfolio";
 // so what the evals grade is what visitors get.
 
 export const CHAT_MODEL = "anthropic/claude-haiku-5.5";
-
-/** Past this many turns, older ones are dropped. Odd, so the kept history starts with a question. */
-const HISTORY_TURNS = 11;
 
 export type Turn = { role: "user" | "assistant"; content: string };
 

@@ -70,7 +70,7 @@ function stackRows(page: Page) {
 }
 
 // Sprint 22 (B1) renames Experience to Work and puts the sheet's Revisions first.
-test("C1. Section order: the sheet's Revisions, then Work, Projects, Stack, Education, Contact", async ({
+test("C1. Section order: the sheet's Revisions, then Work, Case studies, Projects, Stack, Education, Contact", async ({
   page,
 }) => {
   await page.goto("/");

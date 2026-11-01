@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useRef, useState } from "react";
+import { HISTORY_TURNS } from "@/lib/chat";
 
 type Exchange = { question: string; answer: string; done: boolean };
 
@@ -11,13 +12,15 @@ const STARTERS = [
   "Why build a crew of AI agents for his own site?",
 ];
 
-// The question and answer record behind /ask. Answers stream into a polite live region, so a screen
-// reader hears them, and earlier turns go back to the server as the conversation's history.
+// The question and answer record behind /ask. The live region is there from first paint, and a turn
+// stays aria-busy while it streams, so a screen reader hears each answer once, whole. Recent turns go
+// back to the server as the conversation's history.
 export function Ask({ fallback }: { fallback: string }) {
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const transcript = useRef<HTMLDivElement>(null);
 
   const update = (answer: string, done: boolean) =>
     setExchanges((all) => [
@@ -26,11 +29,15 @@ export function Ask({ fallback }: { fallback: string }) {
     ]);
 
   async function ask(question: string) {
-    const history = exchanges.flatMap(({ question: q, answer }) => [
-      { role: "user", content: q },
-      { role: "assistant", content: answer },
-    ]);
+    const history = exchanges
+      .flatMap(({ question: q, answer }) => [
+        { role: "user", content: q },
+        { role: "assistant", content: answer },
+      ])
+      .slice(-(HISTORY_TURNS - 1));
     setBusy(true);
+    // A starter is about to unmount with focus on it, so focus moves to what it opened.
+    transcript.current?.focus();
     setDraft("");
     setExchanges((all) => [...all, { question, answer: "", done: false }]);
     let answer = "";
@@ -68,6 +75,22 @@ export function Ask({ fallback }: { fallback: string }) {
 
   return (
     <div className="sched-body">
+      <div ref={transcript} tabIndex={-1} aria-live="polite">
+        {exchanges.map((exchange, index) => (
+          // Turns only ever append, so the index is stable.
+          // biome-ignore lint/suspicious/noArrayIndexKey: an append-only list
+          <div key={index} className="ask-turn" aria-busy={!exchange.done}>
+            <h3>{exchange.question}</h3>
+            <p className="ask-answer">
+              {exchange.answer ||
+                (exchange.done ? null : (
+                  <span className="ask-wait">Reading the record</span>
+                ))}
+            </p>
+          </div>
+        ))}
+      </div>
+
       {exchanges.length === 0 ? (
         <div className="ask-starters">
           {STARTERS.map((starter) => (
@@ -81,23 +104,7 @@ export function Ask({ fallback }: { fallback: string }) {
             </button>
           ))}
         </div>
-      ) : (
-        <div aria-live="polite">
-          {exchanges.map((exchange, index) => (
-            // Turns only ever append, so the index is stable.
-            // biome-ignore lint/suspicious/noArrayIndexKey: an append-only list
-            <div key={index} className="ask-turn">
-              <h3>{exchange.question}</h3>
-              <p className="ask-answer">
-                {exchange.answer ||
-                  (exchange.done ? null : (
-                    <span className="ask-wait">Reading the record</span>
-                  ))}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+      ) : null}
 
       <form className="ask-form" onSubmit={submit}>
         <label htmlFor="ask-question">Your question</label>

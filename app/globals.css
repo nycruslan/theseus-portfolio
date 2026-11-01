@@ -3394,6 +3394,14 @@ a[data-replay]:not([data-ready]) {
   }
 }
 
+/* Forced colors repaint transparent borders too, which would square the arrowheads off. */
+@media (forced-colors: active) {
+  .flow-stage + .flow-stage::after {
+    forced-color-adjust: none;
+    border-top-color: CanvasText;
+  }
+}
+
 @media (width >= 64rem) {
   .doc-head,
   .doc-next {
@@ -3428,5 +3436,12 @@ a[data-replay]:not([data-ready]) {
     border-bottom: 4px solid transparent;
     border-left: 6px solid var(--foreground);
     border-right: 0;
+  }
+
+  @media (forced-colors: active) {
+    .flow-stage + .flow-stage::after {
+      border-top-color: transparent;
+      border-left-color: CanvasText;
+    }
   }
 }
