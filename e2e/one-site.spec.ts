@@ -284,8 +284,15 @@ test("the résumé prints the email address", async ({ page }) => {
   await page.emulateMedia({ media: "print" });
   const printed = await page
     .locator(".read-contact a[data-address]")
-    .evaluate((link) => getComputedStyle(link, "::after").content);
-  expect(printed).toContain("@");
+    .evaluate((link) => {
+      const after = getComputedStyle(link, "::after");
+      return { content: after.content, gap: after.marginInlineStart };
+    });
+  const email = profile.links
+    .find((link) => link.href.startsWith("mailto:"))
+    ?.href.slice("mailto:".length);
+  expect(printed.content).toBe(`"${email}"`);
+  expect(Number.parseFloat(printed.gap)).toBeGreaterThan(0);
 });
 
 test("the old portfolio's addresses lead somewhere", async ({ request }) => {

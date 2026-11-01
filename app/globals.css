@@ -3626,6 +3626,7 @@ a[data-replay]:not([data-ready]) {
 /* On paper a link labelled Email reaches nobody, so the address prints beside it. */
 @media print {
   .read-contact a[data-address]::after {
-    content: " " attr(data-address);
+    margin-inline-start: 0.5ch;
+    content: attr(data-address);
   }
 }
