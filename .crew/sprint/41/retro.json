@@ -4,23 +4,44 @@
   "goal": "Make the work history scannable and the shared link carry the proof",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "merged: Lens ship on 4cc8c52 with three nits, Iris changes at 7.2 taken in full before the review, P14 to P17 red first, CI green",
-  "fixRounds": 1,
-  "minutes": 130,
+  "outcome": "merged: Lens ship after one fix round for Iris and one for checks a merged retro moved, P14 to P17 red first, CI green",
+  "fixRounds": 2,
+  "minutes": 200,
   "agents": [
-    { "role": "qa-engineer", "model": "opus", "tokens": 141314, "minutes": 12 },
-    { "role": "engineer", "model": "opus", "tokens": 257425, "minutes": 29 },
-    { "role": "design-director", "model": "opus", "tokens": 156937, "minutes": 11 }
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 274419,
+      "minutes": 44
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 343048,
+      "minutes": 45
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 156937,
+      "minutes": 11
+    }
   ],
-  "lens": { "runs": 1, "tokens": 1252525, "important": 0, "actedOn": 0, "nits": 3 },
+  "lens": {
+    "runs": 1,
+    "tokens": 1252525,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 3
+  },
   "wentWrong": [
     {
       "what": "The card's first version set the name in the body font, which read like any link preview",
       "evidence": "Iris's must on 7e1eea5: the name moved to the condensed display face at 128 px in d02f8da, before the review"
     },
     {
-      "what": "One planned fix was already done, so its check could not fail first",
-      "evidence": "Probe measured the project link's gap at 17.99 px on the head: sprint 23's fix had landed in #67 (decisions 6)"
+      "what": "Writing this sprint's record moved a test sprint onto the one plank whose number sits outside the hull",
+      "evidence": "CI on cb44eba failed B4.33, B4.15 and B4.36 at seat 5.0; Probe pinned or taught the checks, no product change (decisions 9)"
     },
     {
       "what": "The font loader first copied the whole project into each card's server bundle",
@@ -34,8 +55,25 @@
     }
   ],
   "followUps": [
-    { "who": "Forge", "what": "Lens's nits on #100: the CARD_FONTS comment says build only though /log/[n] reads on request; no table rule when the card has no rows" },
-    { "who": "Iris", "what": "The card drawn as a sheet: a 1 px ink frame inset like / and the name over the title block's rule" },
-    { "who": "Forge", "what": "The 404's first visit paints in the fallback face: Next sends no font preload on the prerendered 404" }
+    {
+      "who": "Forge",
+      "what": "Lens's nits on #100: the CARD_FONTS comment says build only though /log/[n] reads on request; no table rule when the card has no rows"
+    },
+    {
+      "who": "Iris",
+      "what": "The card drawn as a sheet: a 1 px ink frame inset like / and the name over the title block's rule"
+    },
+    {
+      "who": "Forge",
+      "what": "The 404's first visit paints in the fallback face: Next sends no font preload on the prerendered 404"
+    },
+    {
+      "who": "Iris",
+      "what": "Sprint 42's live pencil lands on seat 5.0: confirm the led-out number with no chip, and the leader crossing the ticks on /crew at 1440"
+    },
+    {
+      "who": "Pixel",
+      "what": "On / at 1440 with the model settled, a led-out 5.0 number sits on the drawing's Base line"
+    }
   ]
 }

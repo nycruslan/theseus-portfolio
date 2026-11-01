@@ -50,8 +50,27 @@ Red on e9bb761 for the right reasons: no `[data-sentence]`; no `lib/card`, alt w
 pixels are Sofia Sans: `app/opengraph-image.tsx` passes the `CARD_FONTS` files to
 `ImageResponse`'s `fonts:` (read it there).
 
-No existing check is edited, skipped or retired. B2.1, B2.2 and C4's residue checks read the
-sentence markup unedited.
+B2.1, B2.2 and C4's residue checks read the sentence markup unedited. No check is skipped or
+retired.
+
+**Edited kept checks, for Lens (decisions 9):** the close-out's `retro.json` made 40 merged retros,
+so the fixtures' unmerged sprint 999 pencils the next seat, `ORDER[40 mod 22]` = 5.0, the one seat
+every 2D drawing leads out (`ledOut`, `lib/hull-layouts.ts`): its number sits aft on a leader with
+no chip, by design since sprint 20, and B4.36's depth floor exempts it (sprint 36, decisions 8).
+CI's `check` on cb44eba failed B4.33, B4.15 and B4.36 there; the page agreed with the oracle on the
+seat. The checks had assumed whichever seat 999 happened to land on, which moves with every merge
+(6.1 at 39 retros). Probe's fix (39df047, 1a5da7a), product unchanged:
+- B4.36 (`crew-model.spec.ts`): its second seat is pinned to 6.1 by a new kept site, `seat-61`,
+  whose live fixture names sprint 36, a merged sprint whose retro holds 6.1 and never moves; it
+  asserts the oracle's seats are 3.0 and 6.1, then runs the same framing and depth floors.
+- B4.33 (`crew-hull.spec.ts`, `crew-hull.ts`) and B4.15 (`live-layer.spec.ts`, `live-layer.ts`):
+  on a seat in `LED_OUT_2D = ["5.0"]`, the number must be off the plank, led to exactly that seat,
+  on the film, `--muted` at 600, with a film chip or none over a film ground; every other seat
+  keeps the same expressions (on the plank, at B4b's place, on a chip). B4.15 gains a check that the
+  wide drawing's n is on its seat and unled everywhere but 5.0.
+- Mutants on a scratch build: the 5.0 leader removed turns B4.33 and B4.15 red on home-999; every
+  pencil number led out turns B4.33 red on the 3.0 sites. Locally the three checks and the four
+  spec files sharing the helpers: 20 passed, 6.5 min at 2 workers.
 
 ## Results
 
