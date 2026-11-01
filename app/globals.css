@@ -421,6 +421,18 @@ nav > [data-motion] {
   stroke-linecap: round;
 }
 
+/* The sheet's pen in an svg of its own, laid on the drawing's box after the lettering, so the
+   copper dot paints over the pencil number's chip on a short seat (Iris, .crew/sprint/34/
+   review-iris.md, cheap change 1). The numbers take z-index 1 over the model's layer, so the pen
+   takes it too and, later in the DOM, paints over them. The rules on .plank-tip still hollow and
+   fade it. */
+.plan-view > .plan-pen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
    a point in the drawing; the text centres on it vertically. */
 .plan-view > span {
@@ -1433,7 +1445,8 @@ main:has(> [data-model]) {
   line-height: 1.05;
 }
 
-/* The lede and the key to Approved: one line each beside the table from 1024, two on a phone. */
+/* The lede and the table's key (/'s, word for word): one line each beside the table from 1024,
+   two on a phone. */
 .log-lede {
   margin-top: 8px;
   font-size: var(--step-sm);

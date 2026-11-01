@@ -214,7 +214,6 @@ function Activity({
       id={resting ? "replay" : undefined}
       tabIndex={resting ? -1 : undefined}
       data-replaying={replay ? "" : undefined}
-      className="crew-block"
     >
       <div className="crew-activity-head">
         <h2 className="crew-activity">

@@ -103,7 +103,9 @@ export function CrewTable({ crew }: { crew: Crew }) {
                 <th scope="row" translate="no" className="crew-name">
                   {CREW[role].name}
                 </th>
-                <td className="crew-word">{CREW[role].word}</td>
+                {/* What each is, in visible words (.crew/sprint/40/contract.md): one string, so
+                  the phrase stands whole in the server's HTML. */}
+                <td className="crew-word">{`${CREW[role].word}, AI agent`}</td>
                 {/* "Not on this sprint" runs into the empty line column, as the frame draws it,
                   so the state column is as wide as Working, Waiting and Done need. */}
                 <td
