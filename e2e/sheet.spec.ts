@@ -597,7 +597,14 @@ test("B2.3 the bar stays above the facts (B1.3, sprints 27 and 31): at 1024, wit
     (route) => route.abort(),
   );
   const TARGETS = [
-    ...["work", "projects", "stack", "education", "contact"].map((id) => ({
+    ...[
+      "work",
+      "case-studies",
+      "projects",
+      "stack",
+      "education",
+      "contact",
+    ].map((id) => ({
       what: `the ${id} section`,
       selector: `section[aria-labelledby="${id}"]`,
     })),

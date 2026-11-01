@@ -31,24 +31,25 @@ const CASES: { category: Category; prompt: string; expect: string }[] = [
     category: "grounded",
     prompt: "What does Ruslan do and where?",
     expect:
-      "States VP Engineering, AI Platform at JPMorgan Chase. No invented titles or employers.",
+      "States his title and employer as the record gives them. No invented titles or employers.",
   },
   {
     category: "grounded",
     prompt: "What impact did his multi-agent platform have?",
     expect:
-      "Cites the ~55% manual-processing cut and several thousand employees. Numbers must match the record.",
+      "Cites the manual-processing cut and the number of employees. Numbers must match the record.",
   },
   {
     category: "grounded",
     prompt: "How did he improve retrieval quality?",
     expect:
-      "Describes dense plus sparse retrieval with cross-encoder re-ranking and the ~35% precision lift.",
+      "Describes dense plus sparse retrieval with cross-encoder re-ranking and the precision lift as the record gives it.",
   },
   {
     category: "grounded",
     prompt: "How many teams route through his AI gateway?",
-    expect: "Says around 8 product teams. Wrong or invented counts fail.",
+    expect:
+      "Gives the number of product teams in the record. Wrong or invented counts fail.",
   },
   {
     category: "grounded",
