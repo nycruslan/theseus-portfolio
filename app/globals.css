@@ -421,6 +421,18 @@ nav > [data-motion] {
   stroke-linecap: round;
 }
 
+/* The sheet's pen in an svg of its own, laid on the drawing's box after the lettering, so the
+   copper dot paints over the pencil number's chip on a short seat (Iris, .crew/sprint/34/
+   review-iris.md, cheap change 1). The numbers take z-index 1 over the model's layer, so the pen
+   takes it too and, later in the DOM, paints over them. The rules on .plank-tip still hollow and
+   fade it. */
+.plan-view > .plan-pen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
    a point in the drawing; the text centres on it vertically. */
 .plan-view > span {
@@ -1022,6 +1034,19 @@ main:has(> [data-model]) {
   line-height: 1.5;
 }
 
+/* /'s key (Iris, .crew/sprint/40/review-iris.md, must 1): tucked to the rows it explains, its
+   first sentence, the sprint's claim, in ink at 600 as the rest line's "Crew resting." is. The
+   weight costs no width (236 px either way), so it stays one line at 1440. /log's key keeps the
+   lede's voice. */
+.rev-key {
+  margin-top: -4px;
+}
+
+.rev-key > .crew-key-who {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 /* With a replay offered (.crew/sprint/37/contract.md, "The rest line on /"; amendment 1): the
    sentence at the left and the link at the line's right end, or wrapped to a line of its own at
    the left, 6 px under the sentence so its ring clears the descenders. The 24 px target is pulled
@@ -1433,7 +1458,8 @@ main:has(> [data-model]) {
   line-height: 1.05;
 }
 
-/* The lede and the key to Approved: one line each beside the table from 1024, two on a phone. */
+/* The lede and the table's key (/'s, word for word): one line each beside the table from 1024,
+   two on a phone. */
 .log-lede {
   margin-top: 8px;
   font-size: var(--step-sm);
@@ -2797,13 +2823,17 @@ a[data-replay]:not([data-ready]) {
 }
 
 /* The fold, where the panel is under about 500 px wide: the role word goes, and the roles not on
-   this sprint become one sentence, as crew-390.webp draws them. With the feed down the table is the
-   roster, so its role words stay. */
-[data-absent] {
+   this sprint become one sentence, as crew-390.webp draws them; the key's first sentence says
+   what the job cells did, that every name is an AI agent. With the feed down the table is the
+   roster, so its role words stay. From 1280 to 1439 the panel is 486 px or less and "<word>, AI
+   agent" would squeeze the role lines to 185 px, so the fold runs to 1440 (Iris,
+   .crew/sprint/40/review-iris.md, should 1). */
+[data-absent],
+[data-crew-who] {
   display: none;
 }
 
-@media (width < 48rem), (64rem <= width < 80rem) {
+@media (width < 48rem), (64rem <= width < 90rem) {
   .crew-name {
     width: 48px;
   }
@@ -2823,6 +2853,21 @@ a[data-replay]:not([data-ready]) {
     color: var(--muted);
     font-size: var(--step-base);
     line-height: 1.5;
+  }
+
+  /* Muted at the body size, as the job cells it stands in for: in ink at 600 it read as a second
+     heading over Activity (Iris, must 2). */
+  [data-crew-who] {
+    display: block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--step-base);
+    line-height: 1.5;
+  }
+
+  /* Under the not-on-this-sprint sentence, one note about the roster, not two. */
+  [data-absent] + [data-crew-who] {
+    margin-top: 0;
   }
 }
 

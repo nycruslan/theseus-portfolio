@@ -180,6 +180,22 @@ function Drawing({
         ...plan.planks.filter((plank) => plank.id === last),
       ]
     : plan.planks;
+  // The pen on the plank's lower edge while the crew is live: after the outline and outside the
+  // hull's clip, so it lies on every line and the keel lift's dot is whole. On /crew it is drawn in
+  // open too, hidden, for the poll to show when the crew is live again; never for a replay, which
+  // claims no now.
+  const pen =
+    pencil && plan.tip && !inked && (pencil.live || focus !== undefined) ? (
+      <g data-tip={pencil.live ? "" : undefined} className="plank-tip">
+        <path strokeWidth={PENCIL.tip.width} d={plan.tip.run} />
+        <path strokeWidth={PENCIL.tip.dot} d={plan.tip.dot} />
+      </g>
+    ) : null;
+  // On the sheet the pen has an svg of its own, the same viewBox on the same box, after the
+  // lettering, so on a short seat the copper dot paints over the pencil number's chip rather than
+  // under it (.crew/sprint/34/review-iris.md, cheap change 1; .crew/sprint/40/contract.md, P13).
+  // /crew's detail keeps it in the drawing, where its checks read the one svg.
+  const penOver = focus === undefined;
   return (
     <div className={`plan-view ${view}`}>
       <svg viewBox={plan.viewBox} aria-hidden="true" focusable="false">
@@ -281,19 +297,7 @@ function Drawing({
             ))}
           </g>
         ) : null}
-        {/* The pen on the plank's lower edge while the crew is live: after the outline and outside
-          the hull's clip, so it lies on every line and the keel lift's dot is whole. On /crew it
-          is drawn in open too, hidden, for the poll to show when the crew is live again; never for
-          a replay, which claims no now. */}
-        {pencil &&
-        plan.tip &&
-        !inked &&
-        (pencil.live || focus !== undefined) ? (
-          <g data-tip={pencil.live ? "" : undefined} className="plank-tip">
-            <path strokeWidth={PENCIL.tip.width} d={plan.tip.run} />
-            <path strokeWidth={PENCIL.tip.dot} d={plan.tip.dot} />
-          </g>
-        ) : null}
+        {penOver ? null : pen}
       </svg>
       {plan.lettering.map((letter) => (
         <span
@@ -309,6 +313,16 @@ function Drawing({
           {letter.text}
         </span>
       ))}
+      {pen && penOver ? (
+        <svg
+          viewBox={plan.viewBox}
+          aria-hidden="true"
+          focusable="false"
+          className="plan-pen"
+        >
+          {pen}
+        </svg>
+      ) : null}
     </div>
   );
 }

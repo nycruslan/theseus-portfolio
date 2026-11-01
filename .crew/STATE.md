@@ -48,6 +48,11 @@ makes stale, and keep the file under about 100 lines.
   - A contract writer reading a design for checks finds what the designer missed (sprint 15's
     cropped plank). Keep that read before the build.
   - A rule two places implement (the page and Probe's oracle) is briefed to both word for word.
+  - Before placing anything near the title block, list every viewport the kept checks pin
+    (`grep -n setViewportSize e2e/`): sprint 40's key was placed for 1440 × 900 and went red at
+    B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.
+- **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
+  code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
 - **The revision block is five rows, and a goal that wraps costs 17 px.** B1.1 wants the title
   block's contact links in the first viewport at 1440 × 900, and the block's height sets where they
   end. It never grows a row a sprint (`ROWS = 5`); each of the five goals that runs past one line at
