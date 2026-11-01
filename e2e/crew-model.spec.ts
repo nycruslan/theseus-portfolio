@@ -55,6 +55,7 @@ import {
   type Image,
   pixel,
 } from "./pixels";
+import { MERGED, SEAT_OF } from "./retros";
 import type { Script } from "./webgl";
 
 // Sprint 36, B4d (.crew/sprint/36/contract.md, B4.36, B4.37 and B4.40, with Iris's amendments,
@@ -63,7 +64,7 @@ import type { Script } from "./webgl";
 // runs with the suite's bulk from crew-motion.spec.ts (decision 10). B4.36 runs on the default
 // server (down: the drawing is `record`, the focus point the focus number's anchor);
 // B4.37 and B4.40 on B4a's kept live site, with `page.route` answering `/api/crew` and the clock
-// driving the poll, and B4.36's framing on the live (3.0) and sprint 999 (6.1) sites. Pages are
+// driving the poll, and B4.36's framing on the live (3.0) and the 6.1 sites. Pages are
 // shared per size where a check allows (sprint 33, decision 12: a WebGL page is 5 to 7 s to rest).
 
 test.describe.configure({ mode: "default" });
@@ -81,9 +82,19 @@ const SIZES = [
 ];
 /** Past load, the idle callback's 2,000 ms timeout and a margin. */
 const IDLE = 3500;
-const LIVE_999: Partial<Answer> = {
+/**
+ * B4.36's second framing seat, 6.1 (decisions.md 6 and 8 name 3.0 and 6.1, 5.0 exempt), pinned:
+ * the live fixture tells the newest merged sprint seated on 6.1, so the pencil takes the seat its
+ * retro holds (B4b's rule, as 31 holds 3.0) and no new retro moves it. Sprint 999 took the next
+ * seat, which walks every seat as retros are added: 6.1 at 39 retros, 5.0 at 40
+ * (.crew/sprint/41/), where the floor doesn't apply.
+ */
+const SEAT_61 =
+  [...MERGED].reverse().find((retro) => SEAT_OF.get(retro.sprint) === "6.1")
+    ?.sprint ?? Number.NaN;
+const LIVE_61: Partial<Answer> = {
   fixture: "live",
-  patch: { current: { sprint: 999 } },
+  patch: { current: { sprint: SEAT_61 } },
 };
 
 type Site = { base: string; where: string; n: number };
@@ -122,7 +133,7 @@ test.beforeAll(async () => {
   const crew = await crewOf();
   void kept(crew, "live", { fixture: "live" });
   void kept(crew, "open", { fixture: "open" });
-  void kept(crew, "home-999", LIVE_999);
+  void kept(crew, "seat-61", LIVE_61);
 });
 
 const told = (fixture: "live" | "open" | "resting", patch?: Patch) =>
@@ -395,10 +406,14 @@ test("B4.36 it stands on /crew: [data-model] follows [data-plan] and comes to re
     )
     .toEqual({ crew: home, home: true });
 
-  // The fit at five widths, and the framing on 3.0 (the live site) and 6.1 (sprint 999).
+  // The fit at five widths, and the framing on 3.0 (the live site) and 6.1 (its newest holder).
   const live = await siteOf(crew, "live", { fixture: "live" });
-  const s999 = await siteOf(crew, "home-999", LIVE_999);
-  for (const site of [live, s999]) {
+  const s61 = await siteOf(crew, "seat-61", LIVE_61);
+  expect(
+    [focusOf("live", live.n), focusOf("live", s61.n)],
+    `the oracle's seats for ${live.n} and ${s61.n}: decision 8's framing seats`,
+  ).toEqual(["3.0", "6.1"]);
+  for (const site of [live, s61]) {
     const seat = focusOf("live", site.n);
     const widths =
       site === live ? [1440, 1024, 768, 390, 320] : [1440, 1024, 390];

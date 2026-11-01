@@ -74,9 +74,9 @@
   --text-step-3xl: var(--step-3xl);
   --text-step-3xl--line-height: 0.9;
 
-  /* next/font's variables hold the face and its fallback, Arial sized to the face's metrics so a
-     page that paints before the font keeps its lines. A device without Arial needs a generic
-     family after them, or it falls to its default serif. */
+  /* next/font's variables hold the face and its fallback, Arial or a twin sized to the face's
+     metrics (the two local faces below) so a page that paints before the font keeps its lines. A
+     device with none of them needs a generic family after them, or it falls to its default serif. */
   --font-sans: var(--font-sofia), sans-serif;
   --font-cond: var(--font-sofia-cond), sans-serif;
 }
@@ -95,6 +95,20 @@
   descent-override: 49.17%;
   line-gap-override: 0%;
   size-adjust: 61.01%;
+}
+
+/* The text face's fallback (app/layout.tsx), the same way: next/font's metrics for Sofia Sans over
+   Arial, its twins and Roboto (.crew/sprint/41/contract.md, P16). */
+@font-face {
+  font-family: "Sofia Sans Local";
+  src:
+    local("Arial"), local("ArialMT"), local("Liberation Sans"),
+    local("LiberationSans"), local("Arimo"), local("Arimo-Regular"),
+    local("Roboto"), local("Roboto-Regular");
+  ascent-override: 93.31%;
+  descent-override: 31.1%;
+  line-gap-override: 0%;
+  size-adjust: 96.46%;
 }
 
 /* Night watch: the same sheet under one cool lamp. The address-bar colors in app/layout.tsx repeat
@@ -419,6 +433,18 @@ nav > [data-motion] {
 .plank-tip {
   stroke: var(--accent);
   stroke-linecap: round;
+}
+
+/* The sheet's pen in an svg of its own, laid on the drawing's box after the lettering, so the
+   copper dot paints over the pencil number's chip on a short seat (Iris, .crew/sprint/34/
+   review-iris.md, cheap change 1). The numbers take z-index 1 over the model's layer, so the pen
+   takes it too and, later in the DOM, paints over them. The rules on .plank-tip still hollow and
+   fade it. */
+.plan-view > .plan-pen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
 
 /* The lettering is HTML over the SVG, so it keeps its size while the drawing scales. Each anchor is
@@ -1022,6 +1048,19 @@ main:has(> [data-model]) {
   line-height: 1.5;
 }
 
+/* /'s key (Iris, .crew/sprint/40/review-iris.md, must 1): tucked to the rows it explains, its
+   first sentence, the sprint's claim, in ink at 600 as the rest line's "Crew resting." is. The
+   weight costs no width (236 px either way), so it stays one line at 1440. /log's key keeps the
+   lede's voice. */
+.rev-key {
+  margin-top: -4px;
+}
+
+.rev-key > .crew-key-who {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 /* With a replay offered (.crew/sprint/37/contract.md, "The rest line on /"; amendment 1): the
    sentence at the left and the link at the line's right end, or wrapped to a line of its own at
    the left, 6 px under the sentence so its ring clears the descenders. The 24 px target is pulled
@@ -1219,6 +1258,88 @@ main:has(> [data-model]) {
 }
 
 /*
+ * The particulars (components/particulars.tsx; .crew/sprint/39/placement.md): the owner's scope
+ * and scale in four ruled rows, lettered like the drawing and the revision table. Below 1024 px a
+ * table of its own after the title block, inset like it; 1024 to 1279 a strip row of the frame
+ * under the title block and the revisions; from 1280 the band's empty corner under the body plan.
+ * Positioned so it paints above the model's layer where it lies on the drawing's box; it has no
+ * ink fill and no box, so it never reads as a plank. Nothing in it moves (P5).
+ */
+.particulars {
+  position: relative;
+  margin: 0 0 24px;
+  padding: 0 16px;
+  font-size: var(--step-sm);
+  line-height: 1.35;
+}
+
+.particulars > div {
+  display: grid;
+  grid-template-columns: 3.75rem minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* The head rule in ink, as the revision table's. */
+.particulars > div:first-child {
+  border-top-color: var(--foreground);
+}
+
+.particulars dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Balanced lines keep "multi-agent" and "firm-wide" whole at every width (320 to 1920 scanned). */
+.particulars dd {
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* 1024 to 1279: the corner is too shallow for the four rows, so they become a row of the frame,
+   four across, each term above its phrase; row 2's bottom borders are its top. */
+@media (64rem <= width < 80rem) {
+  .particulars {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 24px;
+    margin: 0;
+    padding: 12px 24px 14px;
+    border-inline: 1px solid var(--foreground);
+    border-bottom: 1px solid var(--foreground);
+  }
+
+  .particulars > div,
+  .particulars > div:first-child {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+}
+
+/* From 1280: in the drawing's row, at its foot, 16 px above the frame's line (the frame's bottom
+   padding). Its left edge is on the DWL and Base lettering, 931.4 of the drawing's 1408 units
+   across the 1 px frame; its right edge is on the title block's text, 28 px in from the frame's
+   1 px border. Here it lies on the model's layer, so the canvas's arrival gives it a layer of its
+   own, and Chromium paints text in a transparent layer without LCD anti-aliasing: every glyph
+   pixel would change as the model lands (B3.1, sprint 39's fix round 1). Filled with the film,
+   which the corner holds anyway (0 px of drawing or model under it), its layer is opaque and keeps
+   the page's text rendering before and after the hand-off. */
+@media (width >= 80rem) {
+  .particulars {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: end;
+    margin: 0 29px 16px calc(1px + (100% - 2px) * 0.66151);
+    padding: 0;
+    background: var(--background);
+  }
+}
+
+/*
  * The sheet's bottom row, the revision block and the title block beside it. With one-line
  * descriptions it can end short of the fold and show the facts' rule under the frame, so from
  * 1024 px each cell is at least the height the viewport leaves under the bar and the drawing, less
@@ -1351,7 +1472,8 @@ main:has(> [data-model]) {
   line-height: 1.05;
 }
 
-/* The lede and the key to Approved: one line each beside the table from 1024, two on a phone. */
+/* The lede and the table's key (/'s, word for word): one line each beside the table from 1024,
+   two on a phone. */
 .log-lede {
   margin-top: 8px;
   font-size: var(--step-sm);
@@ -1843,6 +1965,19 @@ main:has(> [data-model]) {
   line-height: 1.55;
 }
 
+/* Work's summaries a sentence to a line, so the figures can be scanned (components/facts.tsx;
+   .crew/sprint/41/contract.md, P14). A little air between sentences, under half a line, so a
+   sentence that wraps still reads as one and the paragraph stays one block. Each sentence now ends
+   a block of its own, so `pretty` keeps a word or two from ending it alone ("or two."). */
+.entry-text [data-sentence] {
+  display: block;
+  text-wrap: pretty;
+}
+
+.entry-text [data-sentence] + [data-sentence] {
+  margin-top: 6px;
+}
+
 .entry-desc {
   margin-top: 6px;
 }
@@ -2282,11 +2417,20 @@ main:has(> [data-model]) {
   font-variant-numeric: tabular-nums;
 }
 
+/* 6 px between the count line and the legend once they stack, at 390 (.crew/sprint/23/
+   review-iris.md, 3). */
 .ship-key {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 24px;
+  gap: 6px 24px;
+}
+
+/* The sentence under the key, 6 px down as the key's own lines are (.crew/sprint/41/
+   review-iris.md, should 1). A class, not `.ship figcaption > p`: that outranks `.lost p` below,
+   which lint refuses, and the count line is a p of the key's that must keep its place. */
+.ship-note {
+  margin-top: 6px;
 }
 
 .ship figcaption a {
@@ -2715,13 +2859,17 @@ a[data-replay]:not([data-ready]) {
 }
 
 /* The fold, where the panel is under about 500 px wide: the role word goes, and the roles not on
-   this sprint become one sentence, as crew-390.webp draws them. With the feed down the table is the
-   roster, so its role words stay. */
-[data-absent] {
+   this sprint become one sentence, as crew-390.webp draws them; the key's first sentence says
+   what the job cells did, that every name is an AI agent. With the feed down the table is the
+   roster, so its role words stay. From 1280 to 1439 the panel is 486 px or less and "<word>, AI
+   agent" would squeeze the role lines to 185 px, so the fold runs to 1440 (Iris,
+   .crew/sprint/40/review-iris.md, should 1). */
+[data-absent],
+[data-crew-who] {
   display: none;
 }
 
-@media (width < 48rem), (64rem <= width < 80rem) {
+@media (width < 48rem), (64rem <= width < 90rem) {
   .crew-name {
     width: 48px;
   }
@@ -2741,6 +2889,21 @@ a[data-replay]:not([data-ready]) {
     color: var(--muted);
     font-size: var(--step-base);
     line-height: 1.5;
+  }
+
+  /* Muted at the body size, as the job cells it stands in for: in ink at 600 it read as a second
+     heading over Activity (Iris, must 2). */
+  [data-crew-who] {
+    display: block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--step-base);
+    line-height: 1.5;
+  }
+
+  /* Under the not-on-this-sprint sentence, one note about the roster, not two. */
+  [data-absent] + [data-crew-who] {
+    margin-top: 0;
   }
 }
 

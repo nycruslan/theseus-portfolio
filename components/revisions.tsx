@@ -1,4 +1,5 @@
 import { PlankCount, PlankLegend } from "@/components/plank-key";
+import { CREW_APPROVED, CREW_WHO } from "@/lib/crew-key";
 import type { Run } from "@/lib/crew-run";
 import type { Pencil } from "@/lib/live-layer";
 import type { SprintEntry } from "@/lib/sprint-log";
@@ -20,6 +21,21 @@ export const signatures = (
   ["Tested", entry.tested ? "Probe" : NONE, true],
   ["Approved", entry.ownersCall ? "Owner" : "Gate", false],
 ];
+
+/**
+ * The table's key (.crew/sprint/40/contract.md, "Data rules"): the names are AI agents, and what
+ * Gate and Owner mean under Approved. / and the Log set it under the same hook. Its first sentence
+ * is a span of its own, which / sets in ink (Iris, .crew/sprint/40/review-iris.md, must 1); the
+ * rest is one string, so each part's words stand whole in the server's HTML.
+ */
+export function CrewKey({ className }: { className: string }) {
+  return (
+    <p data-crew-key="" className={className}>
+      <span className="crew-key-who">{CREW_WHO}</span>
+      {` ${CREW_APPROVED}`}
+    </p>
+  );
+}
 
 type RevisionsProps = {
   /** Every sprint on record, newest first (lib/sprint-log.ts). */
@@ -209,6 +225,14 @@ export function Revisions({
           ))}
         </tbody>
       </table>
+      {/* Right under the rows it explains, so a visitor reads who the names are in the first
+        screen: at 1440 × 900 it takes one line of the block's slack above its foot, which the
+        resting state's rest line leaves at 45 px (.crew/sprint/40/decisions.md, 8). From 1024 to
+        1439 px nothing fits under the table and keeps the resting state's contact links in view
+        at 1024 × 768 and 1280 × 800, so there it stays in the HTML, hidden, as /crew's job column
+        folds over the same range, and the caption above says who builds the site (decisions.md,
+        9). */}
+      <CrewKey className="rev-key text-step-sm text-muted lg:max-[90rem]:hidden" />
       {/* At the cell's foot from 1024 px, on the title block's Contact line, when the row is
           taller than this block (the bottom row's minimum height, app/globals.css). */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">

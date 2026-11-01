@@ -175,7 +175,10 @@ type Transport = {
   playing: () => boolean;
   /** Closes the replay unless `crew` is still resting on its sprint (call 5). */
   follow: (crew: Crew) => void;
+  /** Stops the clock and keeps the replay where it is, for `resume` to go on from. */
   stop: () => void;
+  /** Times the next step again after a stop, if a replay is playing. */
+  resume: () => void;
 };
 
 /**
@@ -188,11 +191,14 @@ function transport(show: (replay: Replay | null) => void): Transport {
   let replay: Replay | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const playing = () => replay !== null && replay.k <= replay.moments.length;
+  const time = () => {
+    clearTimeout(timer);
+    if (playing() && !replay?.paused) timer = setTimeout(step, STEP_MS);
+  };
   const set = (next: Replay | null) => {
     replay = next;
     show(next);
-    clearTimeout(timer);
-    if (playing() && !next?.paused) timer = setTimeout(step, STEP_MS);
+    time();
   };
   const step = () => {
     if (!replay) return;
@@ -228,6 +234,7 @@ function transport(show: (replay: Replay | null) => void): Transport {
       }
     },
     stop: () => clearTimeout(timer),
+    resume: time,
   };
 }
 
@@ -324,16 +331,25 @@ export function CrewLive({
     () => false,
   );
   const poller = useRef<Poller | null>(null);
+  // The replay's clock and an arrival at #replay not yet played belong to the page, not to one run
+  // of the effect below: React's Strict Mode runs it, cleans it up and runs it again in development,
+  // and each run must go on from what the last left (Lens's nit on #95). A ref outlives the re-run.
   const replays = useRef<Transport | null>(null);
+  // Null until the effect has read the address once; then whether an arrival waits to play.
+  const arrival = useRef<boolean | null>(null);
   // A start's jump to #replay waits for the render that lists the replay, whose block it lands on.
   const jump = useRef(false);
 
   useEffect(() => {
     let current = first;
-    const transported = transport(setReplay);
+    replays.current ??= transport(setReplay);
+    const transported = replays.current;
+    // A replay the run before this one left playing goes on; on the first run, nothing plays.
+    transported.resume();
     const begin = (told: Crew) => {
       if (transported.start(told)) jump.current = true;
     };
+    const seen = () => document.visibilityState === "visible";
     // The entry is a link to the anchor (components/crew.tsx): its press plays from moment 1 and
     // jumps there once the replay is listed, adding no history entry. A press that opens a new tab
     // keeps its meaning, and the tab arrives at #replay.
@@ -347,11 +363,19 @@ export function CrewLive({
         begin(current);
       }
     };
-    // Space pauses and resumes a replay from the first moment to the end, unless the focus is on
-    // a link, a button or a field, which keep their own meaning (the pause's is the same). Before
-    // and after, it scrolls as always.
+    // Space alone pauses and resumes a replay from the first moment to the end, unless the focus
+    // is on a link, a button or a field, which keep their own meaning (the pause's is the same).
+    // With any modifier it keeps the browser's (Shift+Space scrolls back up), and before and after
+    // the replay it scrolls as always.
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== " " || event.repeat || event.ctrlKey || event.altKey)
+      if (
+        event.key !== " " ||
+        event.repeat ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        event.metaKey
+      )
         return;
       if (
         !transported.playing() ||
@@ -363,15 +387,21 @@ export function CrewLive({
       transported.toggle();
     };
     // Arriving at /crew#replay is the visitor's press made on / (call 3): it plays what the page
-    // offers, or, when the build's page offered nothing, what the first told answer does.
-    let arrived = location.hash === "#replay";
-    if (arrived) {
-      dropHash();
-      if (replayOf(first)) {
-        arrived = false;
-        begin(first);
-      }
+    // offers, or, when the build's page offered nothing, what the first told answer does. A tab
+    // opened in the background plays it only once it is seen, so its first moment isn't spent
+    // unseen (Lens's nit on #95); the poll waits for the tab too.
+    if (arrival.current === null) {
+      arrival.current = location.hash === "#replay";
+      if (arrival.current) dropHash();
     }
+    const land = () => {
+      if (arrival.current && seen() && replayOf(current)) {
+        arrival.current = false;
+        begin(current);
+      }
+    };
+    land();
+    document.addEventListener("visibilitychange", land);
     document.addEventListener("click", onClick);
     document.addEventListener("keydown", onKey);
     const watching = watch(first, (next, words) => {
@@ -379,18 +409,18 @@ export function CrewLive({
       setCrew(next);
       // Live beats replay: any told answer but resting on the replay's sprint closes it.
       transported.follow(next);
-      if (arrived) {
-        arrived = false;
+      if (arrival.current && seen()) {
+        arrival.current = false;
         begin(next);
       }
       // No one started or stopped: the region keeps its words.
       if (words) setSaid((old) => ({ text: words, count: old.count + 1 }));
     });
     poller.current = watching;
-    replays.current = transported;
     return () => {
       watching.stop();
       transported.stop();
+      document.removeEventListener("visibilitychange", land);
       document.removeEventListener("click", onClick);
       document.removeEventListener("keydown", onKey);
     };

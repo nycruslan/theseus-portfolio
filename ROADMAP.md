@@ -34,7 +34,12 @@ judge them.
   (`.crew/sprint/38/plan.md`), and Pa's contract ready for Iris, Probe and Forge
   (`.crew/sprint/38/first-contract.md`, P1 to P7). (PR #96, built in one run on 2026-10-31;
   `decisions.md` 1 to 4.) Pa starts with Iris's placement call.
-- [ ] Pa (M): the particulars, the owner's scope and scale on the first screen.
+- [x] Pa (M): the particulars, the owner's scope and scale on the first screen. Sprint 39, PR #97:
+  four rows in the drawing band's empty corner from 1280, a strip row from 1024, after the title
+  block below (Iris's option (b), `.crew/sprint/39/placement.md`); an invisible film fill keeps
+  their text unchanged as the model lands (`decisions.md` 8). Left open: from 1024 to 1279 the
+  table is below the fold at common heights (Iris's call), and P3's default-server pass under
+  `PLAYWRIGHT_BASE_URL` (Probe). The rows as first planned:
   - Four rows, each a term and a phrase quoted from the JPMorgan summary: the team of 7, the
     workflows several thousand employees use firm-wide, the around 8 product teams on the
     gateway, and the about 55% cut.
@@ -44,24 +49,27 @@ judge them.
     at 1440 (to y 909–936), so either the drawing band gives about 80 px (Pixel and the 3D suites
     come in) or the rows take the band's empty corner under the body plan.
   - No rider touches its code.
-- [ ] Pb (M): who built it, in plain words.
-  - `/`'s revision block gets a one-line key (AI agents; Drawn, Checked, Tested and Approved;
-    Gate and Owner); `/crew` labels each member an AI agent; `/log`'s key reads the same words.
-  - From sprint 38 on, each retro's goal is written in a visitor's words, with no milestone code
-    and no URL path, checked over the retros. `/`'s five rows read plainly within five sprints,
-    and no past retro is rewritten.
-  - Riders: Lens's four nits on #95 (Shift and Meta+Space toggle the pause, the unused
-    `crew-block` class, a `#replay` arrival in a hidden tab, a Strict Mode re-run); `/crew`'s long
-    cache `expire` (Iris, sprint 35; still 300 s in `lib/crew-feed.ts`); Iris's chip over the
-    copper dot on `/` at 1024 and below (B4b).
-- [ ] Pc (S): the facts, scannable and shared.
-  - Work's summaries read sentence by sentence, verbatim.
-  - `/`'s social card carries the bio's first sentence and Pa's particulars, in Sofia Sans from a
-    vendored TTF.
-  - Riders: the facts-and-fonts list that rode at the end of the redesign (the text face's fallback
-    over Arial's metric twins, the project link's gap below 1024, the figcaption's gap at 390, the
-    404's first paint in the fallback face, the card's typeface).
-  - Left open: Detail A's dark-scheme boxes, which need a look on a real phone.
+- [x] Pb (M): who built it, in plain words. Sprint 40, PR #99: one key under the revision table,
+  "Every name is an AI agent Ruslan directs. Approved: Gate is CI, his rules and Lens's review;
+  Owner is his own call.", from `lib/crew-key.ts`, on `/` and `/log`; `/crew`'s jobs read
+  "Code, AI agent", with the first sentence where the job column folds; the goals rule as P11.
+  Riders done: Lens's four nits on #95 and the chip over the copper dot (2D). Dropped: `/crew`'s
+  long `expire` (`decisions.md` 5). Left open: the key is hidden from 1024 to 1439 px, where
+  nothing fits under the table without pushing the contact links past B4.22's and B4.49's folds
+  (`decisions.md` 9; Iris to find it a home that adds no height); the 3D label over the dot (Pixel);
+  P8's and P9's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe, with P3's).
+- [x] Pc (M): the facts, scannable and shared. Sprint 41, PR #100: Work's summaries a sentence to
+  a line (`lib/sentences.ts`, 6 px apart, `text-wrap: pretty`); `/`'s social card with the name in
+  the condensed display face, the bio's first sentence and the four particulars, from `lib/card.ts`
+  in vendored Sofia Sans TTFs (`assets/fonts/`, OFL); the text face's local fallback over Arial's
+  twins; `/read`'s figcaption at 6 px. P14 to P17 in `e2e/facts-scan.spec.ts`. The project link's
+  gap was already fixed in #67 (`decisions.md` 6). Left open: the 404's first visit paints in the
+  fallback face, since Next sends no font preload on the prerendered 404; Lens's two code nits on
+  #100 (Forge); the card drawn as a sheet (Iris); Detail A's dark-scheme boxes, which need a look on
+  a real phone.
+- **The milestone's sprints are all merged.** The next run starts with Quill: close this milestone
+  against P1 to P17 on production, and plan the next one (`/work/…` case studies or a published
+  keel, each starting with an Owner's pick).
 - Out of scope, and why:
   - A published keel needs the owner's setup, so it's the next candidate, starting with an Owner's
     pick.

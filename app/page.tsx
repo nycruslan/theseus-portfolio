@@ -5,6 +5,7 @@ import { Facts } from "@/components/facts";
 import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { Model, MotionControl } from "@/components/model";
+import { Particulars } from "@/components/particulars";
 import { Revisions } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { TitleBlock } from "@/components/title-block";
@@ -58,8 +59,8 @@ export default async function Home() {
       <Bar className={sofiaCondensed.variable} control={<MotionControl />} />
       {/* The sheet (.crew/sprint/22/contract.md): the drawing, then the title block and the revision
         block side by side from 1024 px inside a frame 16 px in, stacked below it with the title
-        block first. The title block leads in the DOM at every width, so the name is read first. The
-        facts follow below the sheet. tabIndex -1: the skip link's landing spot, never a Tab stop. */}
+        block first. The title block leads in the DOM at every width, so the name is read first, then
+        the particulars. The facts follow below the sheet. tabIndex -1: the skip link's landing spot, never a Tab stop. */}
       <main
         id="main"
         tabIndex={-1}
@@ -72,10 +73,12 @@ export default async function Home() {
             __html: JSON.stringify(person).replace(/</g, "\\u003c"),
           }}
         />
+        {/* Placed on both axes: from 1280 px the particulars take row 1 too, and a drawing placed
+          by span alone would be moved into new implicit columns (.crew/sprint/39/placement.md). */}
         <LinesPlan
           seats={seats}
           pencil={pencil}
-          className="lg:col-span-2 lg:border-x lg:border-foreground"
+          className="lg:col-[1/-1] lg:row-start-1 lg:border-x lg:border-foreground"
         />
         <Model seated={[...seats.keys()]} />
         {/* Below 768 px Read as page and the motion control sit here, at the drawing's foot: after
@@ -83,6 +86,10 @@ export default async function Home() {
           the title block. */}
         <Foot control={<MotionControl />} />
         <TitleBlock className="lg:col-start-2 lg:row-start-2" />
+        {/* After the title block, so it is read after the name, the role and the bio: below it
+          under 1024 px, a strip row of the frame to 1279, and the drawing's empty corner from 1280
+          (app/globals.css, "The particulars"). Never between the drawing and the model. */}
+        <Particulars />
         <Revisions
           entries={entries}
           caption={splitBio(profile.bio).rest}

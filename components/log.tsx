@@ -5,7 +5,7 @@ import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
 import { LogRecord } from "@/components/log-record";
 import { Model, MotionControl } from "@/components/model";
-import { signatures } from "@/components/revisions";
+import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { PLANKS } from "@/lib/hull-layouts";
 import { ghostPlanks, seatHolders } from "@/lib/lines-plan";
@@ -198,11 +198,8 @@ export function Log({ entries, open }: LogProps) {
             <span className="whitespace-nowrap">{`${entries.length} revisions`}</span>
             {", newest first: choose one to open its record."}
           </p>
-          {/* The key to Approved, which the table and the records share (notes-iris.md, 3.2). */}
-          <p className="log-lede log-key">
-            Under Approved, Gate is CI, the owner's rules and Lens's review;
-            Owner is the owner's own decision.
-          </p>
+          {/* The table's key, which the records share, in /'s words (.crew/sprint/40/contract.md). */}
+          <CrewKey className="log-lede log-key" />
           <table className="rev rev-log">
             <thead>
               <tr>

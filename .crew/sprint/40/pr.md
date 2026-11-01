@@ -1,0 +1,93 @@
+# Sprint 40: who built it, in plain words (Pb)
+
+**Goal** (from the roadmap, milestone "the proof in five seconds", sprint Pb): a visitor can tell
+that the names in the revision block are AI agents the owner directs, on `/`, `/crew` and `/log`,
+and every sprint's goal from 38 on reads in a visitor's words.
+
+**Size:** M. Contract: `.crew/sprint/40/contract.md` (P8 to P13). Decisions:
+`.crew/sprint/40/decisions.md` (1 to 9). Iris's review: `.crew/sprint/40/review-iris.md`.
+
+## What a visitor sees
+
+- **`/`:** one line under the revision table, "Every name is an AI agent Ruslan directs.
+  Approved: Gate is CI, his rules and Lens's review; Owner is his own call.", the first sentence in
+  ink at 600 (Iris). From one source, `lib/crew-key.ts`, with the first name from `profile.name`.
+  It shows at 1440 and up and below 1024; from 1024 to 1439 it stays in the HTML, hidden, because
+  nothing fits under the table there without pushing the contact links past the fold that B4.22
+  (1024 × 768) and B4.49 (1280 × 800) hold (decisions 9).
+- **`/log`:** the same words replace the old Approved key.
+- **`/crew`:** every member's job reads `<word>, AI agent` ("Code, AI agent") in every state and
+  after a poll; where the job column folds (phones, and now 1024 to 1439), the panel says "Every
+  name is an AI agent Ruslan directs." under the rows (Iris).
+- **Riders:** Shift+Space and Meta+Space no longer toggle the replay's pause; the unused
+  `crew-block` class is gone; a `#replay` opened in a hidden tab waits until it's seen; the replay's
+  transport survives a Strict Mode re-run (Forge proved it under `next dev`: main's code froze at
+  moment 1, the fix advances and Pause and Space act); on `/`'s drawing the copper dot now paints
+  above the plank number's chip at 1024 and below (Iris, sprint 34).
+
+## Checks
+
+`e2e/plain-words.spec.ts` (Probe), written red first on the contract's head:
+- P8 the key on `/` in server HTML, first screen in every feed state at 1440 × 900, contrast,
+  not copper, no overflow at 320.
+- P9 `/crew`'s seven job cells, scripts off in four states and after a poll.
+- P10 `/log`'s key is `/`'s.
+- P11 the goals rule over retros 38 on (no milestone code, no URL path, at most 78 characters).
+  Green on main by nature: it judges the record, which already holds; its fixtures fail B4e's
+  goal and a `/crew` goal.
+- P12 the replay's keys, the class and the hidden-tab arrival.
+- P13 the dot over the chip, red on main at 768 to 1024 on the live fixture's seat 3.0. The test
+  turns on pointer events in-page, since the drawing is `pointer-events: none`, and checks a
+  control first.
+
+**Edited existing oracle, for Lens:** `e2e/crew.ts`'s expected job word becomes
+`<word>, AI agent`, because the job cell's text changed by design (contract, "Live checks"). It
+loosens nothing: the cell is compared exactly, as before. No check is retired.
+
+**Skip guards added, named for Lens** (STATE.md: an added `test.skip(` needs its reason here):
+five in `e2e/plain-words.spec.ts`, at lines 368 (P8's contrast, copper and 320), 456 (the
+fixtures group: P8's first screen and P9 with scripts off), 690 (P9 after a poll), 852 (the replay
+group: P12's keys and the hidden-tab arrival) and 1114 (P13). Each skips only when
+`PLAYWRIGHT_BASE_URL` is set, because the fixture sites, the down state and the replay site need
+this checkout's build served against the fixture feed, which a deployed URL can't be. CI never sets
+it (`ci.yml` runs `pnpm test:e2e` with only `PLAYWRIGHT_PREBUILT`), so CI runs all five in full.
+It's the guard `live-layer.spec.ts:67` and `particulars.spec.ts:413` use. Lens's nit that 368 and
+456 also skip the default server's passes against a deploy rides with P3's same follow-up.
+
+## Results
+
+- On the build's head (Forge, 2 workers): `pnpm verify` green; `plain-words` with `sheet`, `plan`,
+  `read`, `live-layer`, `particulars`, `crew`, `crew-live`, `crew-replay`, `crew-replay-home`,
+  `keyboard`, `log` and `invariants`: 165 passed, 0 failed, 9.6 min. `plain-words.spec.ts` alone:
+  11 tests, 15.5 test-seconds (107 s wall on its first run with its sites).
+- Two kept checks went red on the way and shaped decision 9, both left unedited: B4.22 (1024 ×
+  768) and B4.49 (1280 × 800, `crew-replay-home.spec.ts`).
+- At 1440 × 900 the contact links keep 19.8 px resting, 25.8 live, 33.7 default and open (as on
+  main). `/crew`'s role lines at 1280 measure 312 px with the wider fold, against 253 on production.
+- `/crew`'s chunk is 18,410 B (the 20,480 B budget holds); the "Every name…" sentence reaches the
+  live table as a prop from the page, not by importing the profile into client code.
+- Iris: `changes` at 8.2 on an early build; her two musts and one should are built.
+- The 3D suites (`model-*`, `crew-hull`, `crew-model*`, `log-model*`), run by Atlas on the final
+  build: 36 passed, 14.8 min.
+- CI's `check` on 1b6a0ea: success; the e2e step took 23.6 min and the job 25.0 min, against the
+  35-minute cap.
+
+## Decisions the owner may overrule after the merge
+
+None waits for him. The key's words name him by first name (decisions 3); he may change them, or
+the plain-words rule for goals, at any time.
+
+The key is hidden from 1024 to 1439 px, wider than the 1024 to 1279 Iris accepted (Lens's nit).
+Iris said she'd trade 1280 × 800's resting contact links for the key, but kept B4.49 pins them
+there, and a red kept check is a stop, not an edit. A home for the key at laptop widths that adds
+no height is Iris's follow-up.
+
+## Retro proposal (owner's path)
+
+The goals rule (a visitor's words, no milestone code or URL path, at most 78 characters) lives in
+`.crew/STATE.md` and P11 for now; its home is the sprint skill's retro step (`.claude/`), which is
+the owner's.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_01QrjXvb2keiVkgcEL87Azq2

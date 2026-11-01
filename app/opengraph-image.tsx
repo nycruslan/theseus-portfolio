@@ -1,15 +1,38 @@
+import { readFile } from "node:fs/promises";
+import { basename, join } from "node:path";
 import { ImageResponse } from "next/og";
 import { profile } from "@/content/profile";
-import { LIGHT, SITE_URL } from "@/lib/site";
+import { CARD_FONTS, cardText } from "@/lib/card";
+import { LIGHT } from "@/lib/site";
 
-// The card a shared link shows: the page's own header in the light tokens, generated at build time.
-// It is set in next/og's built-in Geist, not the site's Sofia Sans: satori reads TTF, OTF or WOFF,
-// not the site's woff2, so the card's own faces wait for a vendored font file (a follow-up,
-// .crew/sprint/23/notes-iris.md, section 10). Its rule is ink: copper is for what is live.
+// The card a shared link shows, generated at build time (.crew/sprint/41/contract.md, P15): the
+// owner's name, his bio's first sentence and the particulars the sheet quotes from his JPMorgan
+// summary, every word from lib/card.ts, so the proof reads on the card itself. Set in the site's
+// faces from the TTFs lib/card.ts names, the name in the condensed display face as / sets it and
+// the rest in Sofia Sans, in the light tokens. The table is ruled as the sheet's particulars are,
+// its head rule in ink: copper is for what is live.
 
-export const alt = `${profile.name}, ${profile.headline}`;
+const card = cardText(profile);
+
+export const alt = `${card.name}, ${card.lead}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+// Every face lib/card.ts names, read once. The folder is spelled in the call so the build traces
+// assets/fonts alone into the server code, which draws a record's card on request (/log/[n]): a
+// path wholly from a variable makes it trace, and ship, the whole project.
+const [regular, bold, condensedBold] = CARD_FONTS;
+const face = async (name: string, path: string, weight: 400 | 700) => ({
+  name,
+  data: await readFile(join(process.cwd(), "assets/fonts", basename(path))),
+  weight,
+  style: "normal" as const,
+});
+const fonts = await Promise.all([
+  face("Sofia Sans", regular, 400),
+  face("Sofia Sans", bold, 700),
+  face("Sofia Sans Extra Condensed", condensedBold, 700),
+]);
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -20,32 +43,60 @@ export default function OpengraphImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        padding: 80,
+        padding: "72px 80px",
         background: LIGHT.background,
         color: LIGHT.foreground,
+        fontFamily: "Sofia Sans",
       }}
     >
-      <div style={{ width: 120, height: 2, background: LIGHT.foreground }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <div style={{ fontSize: 128, lineHeight: 1, letterSpacing: -4 }}>
-          {profile.name}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div
+          style={{
+            fontFamily: "Sofia Sans Extra Condensed",
+            fontSize: 128,
+            fontWeight: 700,
+            lineHeight: 1,
+            letterSpacing: -1.28,
+          }}
+        >
+          {card.name}
         </div>
-        <div style={{ fontSize: 48 }}>{profile.headline}</div>
+        <div style={{ fontSize: 44, lineHeight: 1.2 }}>{card.lead}</div>
       </div>
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          borderTop: `2px solid ${LIGHT.rule}`,
-          paddingTop: 24,
-          fontSize: 28,
-          color: LIGHT.muted,
+          flexDirection: "column",
+          borderTop: `2px solid ${LIGHT.foreground}`,
         }}
       >
-        <span>{profile.location}</span>
-        <span>{new URL(SITE_URL).host}</span>
+        {card.rows.map(({ term, phrase }, i) => (
+          <div
+            key={term}
+            style={{
+              display: "flex",
+              gap: 24,
+              padding: "10px 0",
+              borderTop: i === 0 ? "none" : `1px solid ${LIGHT.rule}`,
+              fontSize: 30,
+              lineHeight: 1.3,
+            }}
+          >
+            <div
+              style={{
+                width: 128,
+                flexShrink: 0,
+                color: LIGHT.muted,
+                fontWeight: 700,
+              }}
+            >
+              {term}
+            </div>
+            <div style={{ flex: 1 }}>{phrase}</div>
+          </div>
+        ))}
       </div>
     </div>,
-    size,
+    { ...size, fonts },
   );
 }
