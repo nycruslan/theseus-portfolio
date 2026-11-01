@@ -66,7 +66,16 @@ export default function Read() {
           <ul id="contact" aria-label="Contact" className="read-contact">
             {profile.links.map((link) => (
               <li key={link.href}>
-                <a href={link.href}>{link.label}</a>
+                <a
+                  href={link.href}
+                  data-address={
+                    link.href.startsWith("mailto:")
+                      ? link.href.slice("mailto:".length)
+                      : undefined
+                  }
+                >
+                  {link.label}
+                </a>
               </li>
             ))}
           </ul>

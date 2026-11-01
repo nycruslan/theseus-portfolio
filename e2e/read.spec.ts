@@ -369,7 +369,14 @@ test("B2.4 /read is the plain page: 200, the data rules' structure with scripts 
 
   // Each fragment lands with its target's top in the viewport, and clear of a strip that sticks.
   for (const width of [390, 1440]) {
-    for (const id of ["work", "projects", "stack", "education", "contact"]) {
+    for (const id of [
+      "work",
+      "case-studies",
+      "projects",
+      "stack",
+      "education",
+      "contact",
+    ]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("about:blank");
       await page.goto(`${READ}#${id}`);
