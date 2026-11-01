@@ -20,6 +20,8 @@ const ROSTER = [
   ["qa-engineer", "Probe", "Tests"],
   ["design-director", "Iris", "Design"],
 ] as const;
+/** The job cell names each member an AI agent: "Code, AI agent" (.crew/sprint/40/contract.md). */
+const job = (word: string) => `${word}, AI agent`;
 
 const AGENT_STATES = ["working", "waiting", "done", "not-called"];
 const KINDS = [
@@ -150,7 +152,7 @@ export function expected(
       chip: `${r.sprint} ${r.goal}`,
       rows: ROSTER.map(([, name, role]) => ({
         name,
-        role,
+        role: job(role),
         state: "",
         line: "",
       })),
@@ -212,7 +214,7 @@ export function expected(
     const entry = entries.get(key);
     return {
       name,
-      role,
+      role: job(role),
       state: word(entry?.state),
       line: entry?.line ?? "",
     };
