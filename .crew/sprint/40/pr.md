@@ -44,7 +44,22 @@ and every sprint's goal from 38 on reads in a visitor's words.
 `<word>, AI agent`, because the job cell's text changed by design (contract, "Live checks"). It
 loosens nothing: the cell is compared exactly, as before. No check is retired or skipped.
 
-RESULTS_PLACEHOLDER
+## Results
+
+- On the build's head (Forge, 2 workers): `pnpm verify` green; `plain-words` with `sheet`, `plan`,
+  `read`, `live-layer`, `particulars`, `crew`, `crew-live`, `crew-replay`, `crew-replay-home`,
+  `keyboard`, `log` and `invariants`: 165 passed, 0 failed, 9.6 min. `plain-words.spec.ts` alone:
+  11 tests, 15.5 test-seconds (107 s wall on its first run with its sites).
+- Two kept checks went red on the way and shaped decision 9, both left unedited: B4.22 (1024 ×
+  768) and B4.49 (1280 × 800, `crew-replay-home.spec.ts`).
+- At 1440 × 900 the contact links keep 19.8 px resting, 25.8 live, 33.7 default and open (as on
+  main). `/crew`'s role lines at 1280 measure 312 px with the wider fold, against 253 on production.
+- `/crew`'s chunk is 18,410 B (the 20,480 B budget holds); the "Every name…" sentence reaches the
+  live table as a prop from the page, not by importing the profile into client code.
+- Iris: `changes` at 8.2 on an early build; her two musts and one should are built.
+- **Not run locally:** the 3D suites (`model-*`, `crew-hull`, `crew-model*`, `log-model*`) and the
+  full suite at CI's worker count; CI's `check` runs them. On `/` the pen now paints in its own
+  svg above the canvas, so a 3D check that reads the dot's pixels is the one to watch.
 
 ## Decisions the owner may overrule after the merge
 
