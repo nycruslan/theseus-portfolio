@@ -74,9 +74,9 @@
   --text-step-3xl: var(--step-3xl);
   --text-step-3xl--line-height: 0.9;
 
-  /* next/font's variables hold the face and its fallback, Arial sized to the face's metrics so a
-     page that paints before the font keeps its lines. A device without Arial needs a generic
-     family after them, or it falls to its default serif. */
+  /* next/font's variables hold the face and its fallback, Arial or a twin sized to the face's
+     metrics (the two local faces below) so a page that paints before the font keeps its lines. A
+     device with none of them needs a generic family after them, or it falls to its default serif. */
   --font-sans: var(--font-sofia), sans-serif;
   --font-cond: var(--font-sofia-cond), sans-serif;
 }
@@ -95,6 +95,20 @@
   descent-override: 49.17%;
   line-gap-override: 0%;
   size-adjust: 61.01%;
+}
+
+/* The text face's fallback (app/layout.tsx), the same way: next/font's metrics for Sofia Sans over
+   Arial, its twins and Roboto (.crew/sprint/41/contract.md, P16). */
+@font-face {
+  font-family: "Sofia Sans Local";
+  src:
+    local("Arial"), local("ArialMT"), local("Liberation Sans"),
+    local("LiberationSans"), local("Arimo"), local("Arimo-Regular"),
+    local("Roboto"), local("Roboto-Regular");
+  ascent-override: 93.31%;
+  descent-override: 31.1%;
+  line-gap-override: 0%;
+  size-adjust: 96.46%;
 }
 
 /* Night watch: the same sheet under one cool lamp. The address-bar colors in app/layout.tsx repeat
@@ -1951,6 +1965,19 @@ main:has(> [data-model]) {
   line-height: 1.55;
 }
 
+/* Work's summaries a sentence to a line, so the figures can be scanned (components/facts.tsx;
+   .crew/sprint/41/contract.md, P14). A little air between sentences, under half a line, so a
+   sentence that wraps still reads as one and the paragraph stays one block. Each sentence now ends
+   a block of its own, so `pretty` keeps a word or two from ending it alone ("or two."). */
+.entry-text [data-sentence] {
+  display: block;
+  text-wrap: pretty;
+}
+
+.entry-text [data-sentence] + [data-sentence] {
+  margin-top: 6px;
+}
+
 .entry-desc {
   margin-top: 6px;
 }
@@ -2390,11 +2417,20 @@ main:has(> [data-model]) {
   font-variant-numeric: tabular-nums;
 }
 
+/* 6 px between the count line and the legend once they stack, at 390 (.crew/sprint/23/
+   review-iris.md, 3). */
 .ship-key {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 24px;
+  gap: 6px 24px;
+}
+
+/* The sentence under the key, 6 px down as the key's own lines are (.crew/sprint/41/
+   review-iris.md, should 1). A class, not `.ship figcaption > p`: that outranks `.lost p` below,
+   which lint refuses, and the count line is a p of the key's that must keep its place. */
+.ship-note {
+  margin-top: 6px;
 }
 
 .ship figcaption a {

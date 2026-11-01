@@ -53,6 +53,10 @@ makes stale, and keep the file under about 100 lines.
     B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.
 - **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
   code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
+- **The fixtures' unmerged sprint 999 pencils the next seat, which walks the hull one seat per
+  merge.** A check that assumes its seat goes red when a retro moves it (sprint 41: 5.0, the
+  led-out seat, at 40 retros); pin seat-specific checks through a merged sprint's own seat, and
+  write a check over the pencil for every seat, 5.0's leader included (`.crew/sprint/41/decisions.md` 9).
 - **The revision block is five rows, and a goal that wraps costs 17 px.** B1.1 wants the title
   block's contact links in the first viewport at 1440 × 900, and the block's height sets where they
   end. It never grows a row a sprint (`ROWS = 5`); each of the five goals that runs past one line at
@@ -145,8 +149,8 @@ makes stale, and keep the file under about 100 lines.
     to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
-- **CI's `check` job has a 25-minute cap, and main's job takes about 21 of it** (sprint 34: the
-  first finished build was cancelled there). A spec that starts its own servers (the feed specs)
+- **CI's `check` job has a 35-minute cap (`ci.yml`), and the job took 28.8 of it on #100**, the e2e
+  step 27.3 (sprint 40's: 25.0 and 23.6). A spec that starts its own servers (the feed specs)
   starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
   full suite at CI's worker count before the label.
 - **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`

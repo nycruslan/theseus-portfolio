@@ -53,6 +53,15 @@ export function pencilSeat(n: number) {
   return ORDER[(i >= 0 ? i : MERGED.length) % ORDER.length] ?? "";
 }
 
+/**
+ * The seats whose number every 2D drawing sets aft of the hull on a leader to the plank, since no
+ * place on the plank holds it (.crew/sprint/22/review-iris.md, Changes 1): 5.0, the stern wedge of
+ * lift 5. The next seat walks every seat as retros are added (999's was 4.0 at 32 retros, 6.1 at
+ * 39, 5.0 at 40: .crew/sprint/41/), so a pencil check that meets 5.0 reads its number led out: on
+ * the film, joined by a leader to the plank, never on the plank and never skipped.
+ */
+export const LED_OUT_2D: readonly string[] = ["5.0"];
+
 export type Row = {
   rev: string;
   description: string;
@@ -433,8 +442,9 @@ export function copperOnHome(page: Page, accent: number[]) {
 
 /**
  * The pencil plank's paint in the shown drawing (its stroke, dash and fill), the wide drawing's
- * number on it (the lettering whose text is `n`: its colour and its chip's ground), and the
- * tokens `--muted` and `--background`, all as rgba.
+ * number on it (the lettering whose text is `n`: its colour, its chip's ground, whether it stands
+ * on the film, off every plank, and the ground it stands on), and the tokens `--muted` and
+ * `--background`, all as rgba.
  */
 export function pencilPaint(page: Page, n: number) {
   return page.evaluate((n) => {
@@ -482,9 +492,45 @@ export function pencilPaint(page: Page, n: number) {
             )
             .map((el) => {
               const s = getComputedStyle(el);
+              // On the film: no plank's fill under its box's corners or centre (the planks tile
+              // the hull, so this is outside it, where no hatch is drawn).
+              const svg = el.closest(".plan-view")?.querySelector("svg");
+              const inverse = svg?.getScreenCTM()?.inverse() ?? null;
+              const planks = [
+                ...(svg?.querySelectorAll<SVGPathElement>("path[data-plank]") ??
+                  []),
+              ];
+              const r = el.getBoundingClientRect();
+              const points = [
+                [r.left, r.top],
+                [r.right, r.top],
+                [r.left, r.bottom],
+                [r.right, r.bottom],
+                [(r.left + r.right) / 2, (r.top + r.bottom) / 2],
+              ];
+              const onFilm =
+                inverse !== null &&
+                points.every(([x = 0, y = 0]) => {
+                  const p = new DOMPoint(x, y).matrixTransform(inverse);
+                  return !planks.some((plank) => plank.isPointInFill(p));
+                });
+              // The ground it sits on: the first painted background from its parent up.
+              let ground: number[] | null = null;
+              for (
+                let a = el.parentElement;
+                a && !ground;
+                a = a.parentElement
+              ) {
+                const c = rgba
+                  ? rgba(getComputedStyle(a).backgroundColor)
+                  : null;
+                if (c) ground = c;
+              }
               return {
                 color: rgba ? rgba(s.color) : null,
                 background: rgba ? rgba(s.backgroundColor) : null,
+                onFilm,
+                ground,
               };
             }),
         ),

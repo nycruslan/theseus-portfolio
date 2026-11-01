@@ -253,6 +253,12 @@ export type DetailRead = {
     weight: number;
     /** Its own background, null when transparent: a chip. */
     chip: number[] | null;
+    /** The planks a `path.ln-leader` subpath joins it to: starting within 6 px of its box. */
+    ledTo: string[];
+    /** No plank's fill under its box's corners or centre: it stands on the film, off the hull. */
+    onFilm: boolean;
+    /** The first painted background from its parent up: what it stands on without a chip. */
+    ground: number[] | null;
   }[];
 };
 
@@ -377,6 +383,41 @@ export function readDetail(page: Page): Promise<DetailRead> {
         .trim();
       return /^\d+$/.test(own) ? own : null;
     };
+    // Leaders (plan.ts's reading on /): each subpath of the shown svg's path.ln-leader, its start
+    // on screen and the plank whose fill holds its far end.
+    const leaders = [
+      ...(svg?.querySelectorAll<SVGPathElement>("path.ln-leader") ?? []),
+    ]
+      .filter((el) => shown(el))
+      .flatMap((leader) => {
+        const lm = leader.getScreenCTM();
+        if (!lm) return [];
+        // Each subpath is `M x y H x` (lib's drawing, ghost.ts's reading), parsed without adding
+        // a probe to the svg: B4.35 counts every mutation in [data-plan].
+        return [
+          ...(leader.getAttribute("d") ?? "").matchAll(
+            /M\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*H\s*(-?[\d.]+)/g,
+          ),
+        ].map((m) => {
+          const y = Number(m[2]);
+          const start = new DOMPoint(Number(m[1]), y).matrixTransform(lm);
+          const end = new DOMPoint(Number(m[3]), y).matrixTransform(lm);
+          const into = planks.find((p) => {
+            const pm = p.getScreenCTM()?.inverse();
+            return pm ? p.isPointInFill(end.matrixTransform(pm)) : false;
+          });
+          return {
+            x: start.x,
+            y: start.y,
+            into: into?.getAttribute("data-plank") ?? null,
+          };
+        });
+      });
+    const LEADER_GAP = 6;
+    const onAnyPlank = (x: number, y: number) => {
+      const p = toUser(x, y);
+      return planks.some((plank) => plank.isPointInFill(p));
+    };
     const numbers = plan
       ? [...plan.querySelectorAll("*")]
           .filter(
@@ -390,6 +431,11 @@ export function readDetail(page: Page): Promise<DetailRead> {
           .map((el) => {
             const r = el.getBoundingClientRect();
             const s = getComputedStyle(el);
+            let ground: number[] | null = null;
+            for (let a = el.parentElement; a && !ground; a = a.parentElement) {
+              const c = colour(getComputedStyle(a).backgroundColor);
+              if (c) ground = c;
+            }
             return {
               text: ownDigits(el) ?? "",
               box: rect(r),
@@ -397,6 +443,22 @@ export function readDetail(page: Page): Promise<DetailRead> {
               color: colour(el instanceof SVGElement ? s.fill : s.color),
               weight: Number.parseInt(s.fontWeight, 10),
               chip: colour(s.backgroundColor),
+              ledTo: leaders
+                .filter(
+                  ({ x, y }) =>
+                    Math.max(r.left - x, 0, x - r.right) ** 2 +
+                      Math.max(r.top - y, 0, y - r.bottom) ** 2 <=
+                    LEADER_GAP ** 2,
+                )
+                .flatMap(({ into }) => (into ? [into] : [])),
+              onFilm: [
+                [r.left, r.top],
+                [r.right, r.top],
+                [r.left, r.bottom],
+                [r.right, r.bottom],
+                [r.left + r.width / 2, r.top + r.height / 2],
+              ].every(([x = 0, y = 0]) => !onAnyPlank(x, y)),
+              ground,
             };
           })
       : [];
