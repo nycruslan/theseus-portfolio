@@ -225,8 +225,11 @@ export function Revisions({
       </table>
       {/* Right under the rows it explains, so a visitor reads who the names are in the first
         screen: at 1440 × 900 it takes one line of the block's slack above its foot, which the
-        resting state's rest line leaves at 45 px (.crew/sprint/40/decisions.md, 8). */}
-      <CrewKey className="text-step-sm text-muted" />
+        resting state's rest line leaves at 45 px (.crew/sprint/40/decisions.md, 8). From 1024 to
+        1279 px the block's measure wraps it and the resting state has under 10 px to spare at
+        1024 × 768, so there it stays in the HTML, hidden, and the caption above says who builds
+        the site (decisions.md, 9). */}
+      <CrewKey className="text-step-sm text-muted lg:max-xl:hidden" />
       {/* At the cell's foot from 1024 px, on the title block's Contact line, when the row is
           taller than this block (the bottom row's minimum height, app/globals.css). */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">
