@@ -28,3 +28,12 @@
    stay on the hull. Iris weighs it at her review; it moves a pixel or two.
 9. **Main moved twice** (#98, #103). Both merged cleanly into the branch; after #103, Atlas ran
    `pnpm verify` and the window, sheet and first-screen specs (28 of 28) before the review.
+10. **Iris's review: changes, taken.** Main's #104 (Live Studio in the contact row, merged during
+    the review) wraps the row and puts the links under the fold at 1440 × 790 and 1470 × 840. Her
+    fix (the label from 1536, an 18 px gap below 1366) also un-widows "GitHub" at 1440 × 900, which
+    main shows on a second line today. Atlas takes it: the contract's "1440 × 900 unchanged" was
+    written against a main whose links kept to one line, and #104's own comment says they must.
+    Probe re-records only W2's contact-link boxes on the fixed build and names the reason in the
+    spec; every other box W2 pins stays main's. Her centreline should (the half-breadth line stops
+    short of the particulars' lettering column) rides along, one number. Pixel's 3 px keel margin:
+    accepted.
