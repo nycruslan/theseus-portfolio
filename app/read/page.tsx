@@ -136,7 +136,7 @@ export default function Read() {
                 <PlankCount planks={PLANKS.length} replaced={replaced} />
                 <PlankLegend />
               </div>
-              <p>
+              <p className="ship-note">
                 Each replaced plank is one merged sprint; all {entries.length}{" "}
                 revisions are in <a href="/log">the Log</a>.
               </p>

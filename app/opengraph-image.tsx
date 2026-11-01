@@ -7,9 +7,10 @@ import { LIGHT } from "@/lib/site";
 
 // The card a shared link shows, generated at build time (.crew/sprint/41/contract.md, P15): the
 // owner's name, his bio's first sentence and the particulars the sheet quotes from his JPMorgan
-// summary, every word from lib/card.ts, so the proof reads on the card itself. Set in Sofia Sans,
-// the site's text face, from the TTFs lib/card.ts names, in the light tokens. The table is ruled
-// as the sheet's particulars are, its head rule in ink: copper is for what is live.
+// summary, every word from lib/card.ts, so the proof reads on the card itself. Set in the site's
+// faces from the TTFs lib/card.ts names, the name in the condensed display face as / sets it and
+// the rest in Sofia Sans, in the light tokens. The table is ruled as the sheet's particulars are,
+// its head rule in ink: copper is for what is live.
 
 const card = cardText(profile);
 
@@ -20,14 +21,18 @@ export const contentType = "image/png";
 // Every face lib/card.ts names, read once. The folder is spelled in the call so the build traces
 // assets/fonts alone into the server code, which draws a record's card on request (/log/[n]): a
 // path wholly from a variable makes it trace, and ship, the whole project.
-const [regular, bold] = CARD_FONTS;
-const face = async (path: string, weight: 400 | 700) => ({
-  name: "Sofia Sans",
+const [regular, bold, condensedBold] = CARD_FONTS;
+const face = async (name: string, path: string, weight: 400 | 700) => ({
+  name,
   data: await readFile(join(process.cwd(), "assets/fonts", basename(path))),
   weight,
   style: "normal" as const,
 });
-const fonts = await Promise.all([face(regular, 400), face(bold, 700)]);
+const fonts = await Promise.all([
+  face("Sofia Sans", regular, 400),
+  face("Sofia Sans", bold, 700),
+  face("Sofia Sans Extra Condensed", condensedBold, 700),
+]);
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -44,13 +49,14 @@ export default function OpengraphImage() {
         fontFamily: "Sofia Sans",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div
           style={{
-            fontSize: 104,
+            fontFamily: "Sofia Sans Extra Condensed",
+            fontSize: 128,
             fontWeight: 700,
             lineHeight: 1,
-            letterSpacing: -2,
+            letterSpacing: -1.28,
           }}
         >
           {card.name}

@@ -6,13 +6,16 @@ import { sentences } from "./sentences";
 
 /**
  * Every font file the social card loads (app/opengraph-image.tsx), as paths from the project's
- * root, regular then bold: Sofia Sans, the site's text face, as static TTFs, since satori reads
- * TTF, OTF or WOFF and not the site's woff2. From Google Fonts (v20), under the SIL Open Font
- * License beside them (assets/fonts/OFL.txt). Read at build only, so they add no bytes to any page.
+ * root: Sofia Sans regular and bold, the site's text face, then Sofia Sans Extra Condensed bold,
+ * the display face the name is set in on / (.crew/sprint/41/review-iris.md, must 1). Static TTFs,
+ * since satori reads TTF, OTF or WOFF and not the site's woff2, from Google Fonts (Sofia Sans v20,
+ * Extra Condensed v6), under the SIL Open Font License beside them (assets/fonts/OFL.txt, the
+ * Sofia Sans Project's for both widths). Read at build only, so they add no bytes to any page.
  */
 export const CARD_FONTS = [
   "assets/fonts/SofiaSans-Regular.ttf",
   "assets/fonts/SofiaSans-Bold.ttf",
+  "assets/fonts/SofiaSansExtraCondensed-Bold.ttf",
 ] as const;
 
 type CardRow = { term: string; phrase: string };

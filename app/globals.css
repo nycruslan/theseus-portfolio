@@ -2426,6 +2426,13 @@ main:has(> [data-model]) {
   gap: 6px 24px;
 }
 
+/* The sentence under the key, 6 px down as the key's own lines are (.crew/sprint/41/
+   review-iris.md, should 1). A class, not `.ship figcaption > p`: that outranks `.lost p` below,
+   which lint refuses, and the count line is a p of the key's that must keep its place. */
+.ship-note {
+  margin-top: 6px;
+}
+
 .ship figcaption a {
   display: inline-flex;
   align-items: center;
