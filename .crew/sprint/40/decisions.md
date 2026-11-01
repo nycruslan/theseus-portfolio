@@ -16,3 +16,6 @@
    the build's page no longer claims a state.
 6. **P13 takes the 2D half of Iris's chip note only.** The 3D label's half is Pixel's and touches
    the hull the owner's demos judge.
+7. **The key's hook is `p[data-crew-key]`, not `p[data-key]`** (Forge found it): `data-key` is
+   already the live layer's legend hook, and B4.18 and B4.20 count it on any tag. Renaming the new
+   attribute keeps both checks unedited, where narrowing their selectors would edit kept checks.

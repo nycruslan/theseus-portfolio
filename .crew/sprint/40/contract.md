@@ -19,10 +19,10 @@ says "AI", and four of the five rows open with a milestone code or a URL path
 
   Its text, squashed of whitespace, is exactly that (one space where the line above breaks). Iris
   may set parts of it in another weight; the words don't change.
-- **On `/`:** one `p[data-key]` inside `section[aria-labelledby="revisions"]`, after its `table`
+- **On `/`:** one `p[data-crew-key]` inside `section[aria-labelledby="revisions"]`, after its `table`
   and before the plank count and legend in DOM order. Server HTML, inert (no `a`, `button` or
   `[tabindex]`), not copper.
-- **On `/log`:** the same `p[data-key]`, replacing today's `.log-key` paragraph ("Under Approved,
+- **On `/log`:** the same `p[data-crew-key]`, replacing today's `.log-key` paragraph ("Under Approved,
   Gate is CI, …"), with the same text as `/`'s.
 - **On `/crew`:** each `tr[data-role]`'s job cell (its first `td`) reads, squashed,
   `<word>, AI agent` (e.g. `Code, AI agent`, `Lead, AI agent`), in every feed state (live, open,
@@ -38,7 +38,7 @@ says "AI", and four of the five rows open with a milestone code or a URL path
 ## Checks (Probe writes them red first, in a new `e2e/plain-words.spec.ts`)
 
 - **P8 The key on `/`, in the first screen.**
-  - Scripts on and off, at 1440 and 390: exactly one `p[data-key]` in the revisions section, in
+  - Scripts on and off, at 1440 and 390: exactly one `p[data-crew-key]` in the revisions section, in
     the DOM order above, with the exact text; its words are in `GET /`'s HTML.
   - At 1440 × 900, in light and dark, on the default server and the live, open and resting
     fixtures (B4.22's harness): the key is wholly in the viewport, and so is every item B1.1 lists
@@ -49,7 +49,7 @@ says "AI", and four of the five rows open with a milestone code or a URL path
   server-rendered page in all four fixture states with scripts off, and again after a poll swaps
   the panel (crew-live's harness). The page's visible body text contains "AI agent" seven times
   at 1440.
-- **P10 `/log`'s key is `/`'s.** `/log` has one `p[data-key]` with the same text as `/`'s, and no
+- **P10 `/log`'s key is `/`'s.** `/log` has one `p[data-crew-key]` with the same text as `/`'s, and no
   `.log-key` element with other words.
 - **P11 The goals rule** over the retros in the checkout, as a data test (no browser), and the
   rule's oracle on fixtures: "B4e: replay …" and "… on /crew …" fail, sprint 39's goal passes.
