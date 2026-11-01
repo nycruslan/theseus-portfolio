@@ -72,6 +72,15 @@ test("the Studio is linked from the first screen and from /crew", async ({
   const live = first.getByRole("link", { name: "Live Studio" });
   await expect(live).toBeInViewport();
   await expect(live).toHaveAttribute("href", STUDIO_URL);
+  for (const width of [1440, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const tops = await first
+      .locator("a")
+      .evaluateAll((links) =>
+        links.map((link) => Math.round(link.getBoundingClientRect().top)),
+      );
+    expect(new Set(tops).size, `one line of links at ${width}`).toBe(1);
+  }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/crew");
   await expect(
@@ -228,6 +237,7 @@ test("agent surfaces serve the owner's facts", async ({ request }) => {
   const llms = await (await request.get("/llms.txt")).text();
   expect(llms).toContain(profile.name);
   for (const study of caseStudies) expect(llms).toContain(study.title);
+  expect(llms).toContain(STUDIO_URL);
 
   const me = await (await request.get("/api/me.json")).json();
   expect(me.name).toBe(profile.name);
