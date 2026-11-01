@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 import { profile } from "../content/profile";
-import { SITE_URL } from "../lib/site";
+import { SITE_URL, STUDIO_URL } from "../lib/site";
 import {
   copperPaint,
   type Expected,
@@ -963,8 +963,11 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
     .soft(made.tags, "elements the feed's strings could have made")
     .toEqual([]);
   expect
-    .soft(made.links, "links in the panel outside Close and Evidence")
-    .toEqual([]);
+    .soft(
+      made.links,
+      "links in the panel outside Close and Evidence: the fixed one to the Studio",
+    )
+    .toEqual([STUDIO_URL]);
   expect
     .soft(found.moments.length, "moments shown: the valid ones")
     .toBe(live.exp.moments.length);
@@ -1008,7 +1011,7 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
 
   const open = await onFixture(crew, "open", { fixture: "open" });
   const allowed = (href: string) =>
-    href.startsWith("/") && !href.startsWith("//")
+    href === STUDIO_URL || (href.startsWith("/") && !href.startsWith("//"))
       ? true
       : href.startsWith("#") ||
         href.startsWith(`${SITE_URL}/`) ||
@@ -1189,6 +1192,8 @@ test("B4.13 /crew's own sweeps: text contrast in both schemes on the default ser
         document.querySelector("a[data-close]")?.getAttribute("href") ??
           "(no Close)",
         "<button>",
+        document.querySelector("[data-studio] a")?.getAttribute("href") ??
+          "(no Studio link)",
         ...[...document.querySelectorAll("[data-evidence] a")]
           .filter(shown)
           .map((a) => a.getAttribute("href") ?? ""),
