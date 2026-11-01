@@ -334,7 +334,14 @@ function sheet(page: Page) {
           (p) =>
             `${p.getAttribute("data-plank")}:${p.getAttribute("data-sprint")}`,
         ),
-      facts: ["work", "projects", "stack", "education", "contact"].map((id) =>
+      facts: [
+        "work",
+        "case-studies",
+        "projects",
+        "stack",
+        "education",
+        "contact",
+      ].map((id) =>
         squashed(document.querySelector(`section[aria-labelledby="${id}"]`)),
       ),
       rect: r ? [r.left, r.top + scrollY, r.width, r.height] : null,
