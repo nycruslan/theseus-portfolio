@@ -1224,7 +1224,7 @@ main:has(> [data-model]) {
  * table of its own after the title block, inset like it; 1024 to 1279 a strip row of the frame
  * under the title block and the revisions; from 1280 the band's empty corner under the body plan.
  * Positioned so it paints above the model's layer where it lies on the drawing's box; it has no
- * fill and no box, so it never reads as a plank. Nothing in it moves (P5).
+ * ink fill and no box, so it never reads as a plank. Nothing in it moves (P5).
  */
 .particulars {
   position: relative;
@@ -1284,7 +1284,11 @@ main:has(> [data-model]) {
 /* From 1280: in the drawing's row, at its foot, 16 px above the frame's line (the frame's bottom
    padding). Its left edge is on the DWL and Base lettering, 931.4 of the drawing's 1408 units
    across the 1 px frame; its right edge is on the title block's text, 28 px in from the frame's
-   1 px border. */
+   1 px border. Here it lies on the model's layer, so the canvas's arrival gives it a layer of its
+   own, and Chromium paints text in a transparent layer without LCD anti-aliasing: every glyph
+   pixel would change as the model lands (B3.1, sprint 39's fix round 1). Filled with the film,
+   which the corner holds anyway (0 px of drawing or model under it), its layer is opaque and keeps
+   the page's text rendering before and after the hand-off. */
 @media (width >= 80rem) {
   .particulars {
     grid-column: 1 / -1;
@@ -1292,6 +1296,7 @@ main:has(> [data-model]) {
     align-self: end;
     margin: 0 29px 16px calc(1px + (100% - 2px) * 0.66151);
     padding: 0;
+    background: var(--background);
   }
 }
 
