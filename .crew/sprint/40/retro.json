@@ -1,0 +1,45 @@
+{
+  "sprint": 40,
+  "pr": 99,
+  "goal": "Say plainly that the crew's names are AI agents the owner directs",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 210fd57 after one description fix, Iris changes at 8.2 taken in full, P8 to P13 red first, CI green",
+  "fixRounds": 1,
+  "minutes": 110,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 218410, "minutes": 27 },
+    { "role": "engineer", "model": "opus", "tokens": 367865, "minutes": 74 },
+    { "role": "design-director", "model": "opus", "tokens": 226085, "minutes": 18 }
+  ],
+  "lens": { "runs": 2, "tokens": 9052235, "important": 1, "actedOn": 1, "nits": 6 },
+  "wentWrong": [
+    {
+      "what": "The key was placed for one screen size and broke two others the checks already held",
+      "evidence": "B4.22 at 1024 × 768 and then B4.49 at 1280 × 800 went red in turn, so the key is hidden from 1024 to 1439 px (decisions 9)"
+    },
+    {
+      "what": "The first wording ran to two lines and pushed the contact links off the first screen",
+      "evidence": "Forge measured them 3.7 px past the fold at 1440 × 900 resting; the key was cut to one line of 115 characters (decisions 8)"
+    },
+    {
+      "what": "The description said no check was skipped, though the new spec added five guarded skips",
+      "evidence": "Lens's Important finding on 1b6a0ea; naming the five guards and their reason cost a second review"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Move the goals rule (a visitor's words, no milestone code or URL path, at most 78 characters) into the sprint skill's retro step",
+      "moves": "Every goal from sprint 38 on passes P11, and the rule reaches the lead before the retro is written rather than in CI"
+    },
+    {
+      "change": "Have scope.mjs accept a PLAYWRIGHT_BASE_URL skip guard in a new spec without a PR line, since CI never sets it",
+      "moves": "Lens's only Important finding on #99, as on #97, #95 and #91, was this guard's missing line"
+    }
+  ],
+  "followUps": [
+    { "who": "Iris", "what": "Find the key a home from 1024 to 1439 px that adds no height, or take Lens's sr-only so screen readers keep it there" },
+    { "who": "Pixel", "what": "The 3D label over the copper dot on a short seat (Iris, sprint 34), the half this sprint left" },
+    { "who": "Probe", "what": "Run P8's default-server passes outside the PLAYWRIGHT_BASE_URL guard, with P3's" }
+  ]
+}
