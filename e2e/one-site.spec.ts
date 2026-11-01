@@ -279,6 +279,15 @@ test("MCP search finds a short term, and an unknown slug is a tool error", async
   );
 });
 
+test("the résumé prints the email address", async ({ page }) => {
+  await page.goto("/read");
+  await page.emulateMedia({ media: "print" });
+  const printed = await page
+    .locator(".read-contact a[data-address]")
+    .evaluate((link) => getComputedStyle(link, "::after").content);
+  expect(printed).toContain("@");
+});
+
 test("the old portfolio's addresses lead somewhere", async ({ request }) => {
   for (const [from, to] of [
     ["/bridge", "/crew"],
