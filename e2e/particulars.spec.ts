@@ -338,11 +338,11 @@ test("P2 the rule on fixtures: the real summary gives the four rows; each phrase
 });
 
 // The rule's interface (decisions.md 6): lib/particulars.ts exports `particulars(summary)`, the rows
-// as term and the phrase the dd shows (its first letter as the source has it), or null with fewer
+// as term and the phrase the dd shows (lower case first, Iris's call in placement.md), or null with fewer
 // than two. Loaded at run time, so a missing module fails here alone.
 const PARTICULARS_MODULE = "../lib/particulars";
 
-test("P2 the product's rule on the same fixtures: lib/particulars.ts's particulars gives the oracle's terms for each, in order, each phrase as the source holds it, and null for no block", async () => {
+test("P2 the product's rule on the same fixtures: lib/particulars.ts's particulars gives the oracle's terms for each, in order, each phrase lower case first as placement.md picks, and null for no block", async () => {
   const loaded = (await import(PARTICULARS_MODULE)) as {
     particulars?: unknown;
   };
@@ -359,7 +359,7 @@ test("P2 the product's rule on the same fixtures: lib/particulars.ts's particula
         ? null
         : PARTICULARS.filter((r) => terms.includes(r.term)).map((r) => ({
             term: r.term,
-            phrase: summary.includes(r.phrase) ? r.phrase : otherCase(r.phrase),
+            phrase: r.phrase,
           }));
     expect.soft(particulars(summary), name).toEqual(want);
   }
