@@ -1,5 +1,6 @@
 import { profile } from "@/content/profile";
 import { splitBio } from "@/lib/bio";
+import { STUDIO_URL } from "@/lib/site";
 
 const LINK =
   "text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
@@ -42,8 +43,17 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         >
           Ask AI
         </a>
-        {/* Below 1024 the links must keep to one line for the first screen's budget, so no label. */}
-        <span className="hidden text-muted lg:ml-auto lg:inline">Contact</span>
+        {/* From 768: a phone's row has no room, so a phone reaches the Studio from /crew. */}
+        <a
+          href={STUDIO_URL}
+          className={`hidden min-h-11 items-center md:inline-flex lg:min-h-0 ${LINK}`}
+        >
+          Live Studio
+        </a>
+        {/* Below 1440 the links must keep to one line for the first screen's budget, so no label. */}
+        <span className="hidden text-muted min-[90rem]:ml-auto min-[90rem]:inline">
+          Contact
+        </span>
         {profile.links.map((link) => (
           <a
             key={link.href}
