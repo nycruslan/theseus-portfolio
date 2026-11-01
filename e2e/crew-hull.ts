@@ -392,31 +392,26 @@ export function readDetail(page: Page): Promise<DetailRead> {
       .flatMap((leader) => {
         const lm = leader.getScreenCTM();
         if (!lm) return [];
-        return (leader.getAttribute("d") ?? "")
-          .split(/(?=M)/)
-          .filter((d) => d.trim() !== "")
-          .map((d) => {
-            const probe = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            probe.setAttribute("d", d);
-            leader.parentNode?.append(probe);
-            const a = probe.getPointAtLength(0);
-            const b = probe.getPointAtLength(probe.getTotalLength());
-            probe.remove();
-            const start = new DOMPoint(a.x, a.y).matrixTransform(lm);
-            const end = new DOMPoint(b.x, b.y).matrixTransform(lm);
-            const into = planks.find((p) => {
-              const pm = p.getScreenCTM()?.inverse();
-              return pm ? p.isPointInFill(end.matrixTransform(pm)) : false;
-            });
-            return {
-              x: start.x,
-              y: start.y,
-              into: into?.getAttribute("data-plank") ?? null,
-            };
+        // Each subpath is `M x y H x` (lib's drawing, ghost.ts's reading), parsed without adding
+        // a probe to the svg: B4.35 counts every mutation in [data-plan].
+        return [
+          ...(leader.getAttribute("d") ?? "").matchAll(
+            /M\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*H\s*(-?[\d.]+)/g,
+          ),
+        ].map((m) => {
+          const y = Number(m[2]);
+          const start = new DOMPoint(Number(m[1]), y).matrixTransform(lm);
+          const end = new DOMPoint(Number(m[3]), y).matrixTransform(lm);
+          const into = planks.find((p) => {
+            const pm = p.getScreenCTM()?.inverse();
+            return pm ? p.isPointInFill(end.matrixTransform(pm)) : false;
           });
+          return {
+            x: start.x,
+            y: start.y,
+            into: into?.getAttribute("data-plank") ?? null,
+          };
+        });
       });
     const LEADER_GAP = 6;
     const onAnyPlank = (x: number, y: number) => {
