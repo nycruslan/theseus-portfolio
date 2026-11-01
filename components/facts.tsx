@@ -3,7 +3,9 @@ import { DetailA } from "@/components/detail-a";
 import { ProjectRow } from "@/components/project-row";
 import { Schedule } from "@/components/schedule";
 import { profile } from "@/content/profile";
+import { COMPANY, caseStudies } from "@/content/work";
 import { DETAIL_A_COMPANY, detailA } from "@/lib/detail-a";
+import { studyPath } from "@/lib/portfolio";
 import { sentences } from "@/lib/sentences";
 
 /**
@@ -28,9 +30,9 @@ function Sentences({ text }: { text: string }) {
 }
 
 // The record below the sheet, as a drawing's schedule (.crew/sprint/23/contract.md, data rules;
-// notes-iris.md, sections 2 and 3): Work, Projects, Stack, Education and Contact, the owner's facts
-// from content/profile.ts as he wrote them. In every entry the h3 comes first in the DOM, so it is
-// read first; the grid sets the period in the left column from 1024 px and above the h3 below that
+// notes-iris.md, sections 2 and 3): Work, Case studies, Projects, Stack, Education and Contact, the
+// owner's facts from content/profile.ts and content/work.ts as he wrote them. In every entry the h3
+// comes first in the DOM, so it is read first; the grid sets the period in the left column from 1024 px and above the h3 below that
 // (app/globals.css, "The facts").
 export function Facts({ className = "" }: { className?: string }) {
   return (
@@ -53,6 +55,31 @@ export function Facts({ className = "" }: { className?: string }) {
             );
           })}
         </ol>
+      </Schedule>
+
+      <Schedule id="case-studies" title="Case studies">
+        <ul className="sched-body">
+          {caseStudies.map((study) => (
+            <li key={study.slug} className="entry">
+              <h3>
+                <a href={studyPath(study)} className="entry-link">
+                  {study.title}
+                </a>
+              </h3>
+              <p className="entry-text entry-desc">{study.blurb}</p>
+              {/* Only a figure earns the eye here; the words-only results stay on the study. */}
+              {/\d/.test(study.metrics[0]?.value ?? "") ? (
+                <p className="when">
+                  {study.metrics[0]?.value}
+                  <br />
+                  {study.metrics[0]?.label}
+                </p>
+              ) : (
+                <p className="when">{COMPANY}</p>
+              )}
+            </li>
+          ))}
+        </ul>
       </Schedule>
 
       <Schedule id="projects" title="Projects">

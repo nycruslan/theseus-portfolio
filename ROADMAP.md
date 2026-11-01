@@ -5,6 +5,14 @@ sprints, each one pull request that leaves the site whole. Atlas takes the curre
 sprint, unless the owner set the goal, and at the close-out ticks it with its sprint and PR. Small
 fixes and follow-ups ride along with the sprint that touches the same code.
 
+## Done by the owner's session: one site
+
+The earlier portfolio's valuable parts now live here, so this site can take ruslanshulga.com: the
+case studies (`content/work.ts`, `/work/[slug]`), the assistant (`/ask`, `/api/chat`), its weekly
+evals (`/evals`, `/api/cron/evals`), the agent surfaces (`/llms.txt`, `/api/me.json`, `/api/mcp`),
+security headers, Web Analytics, and redirects from the old addresses. So the Owner's pick below no
+longer needs its `/work/…` case study option: those are done.
+
 ## Now: the proof in the first window
 
 Whatever window a visitor opens `/` in, the first screen shows Ruslan's name, his role, his own

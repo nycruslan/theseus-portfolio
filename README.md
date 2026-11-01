@@ -38,6 +38,7 @@ Three parts, each in its own place:
 | What the team has done so far | [`.crew/STATE.md`](.crew/STATE.md) |
 | What comes next | [`ROADMAP.md`](ROADMAP.md) |
 | Owner-only facts the agents may restyle but never change | [`content/`](content) |
+| The assistant, its evals and the agent surfaces | [`lib/assistant.ts`](lib/assistant.ts), [`lib/evals.ts`](lib/evals.ts), [`app/api/`](app/api). Production needs `AI_GATEWAY_API_KEY` (a key with a monthly quota), `CRON_SECRET` and `BLOB_READ_WRITE_TOKEN`, and a Vercel Firewall rate limit on `/api/chat` |
 
 ## What binds and what guides
 

@@ -1,5 +1,6 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
+import { caseStudies } from "../content/work";
 import { SITE_URL } from "../lib/site";
 import {
   composite,
@@ -24,6 +25,7 @@ const READ = "/read";
 const ADDRESS = `${new URL(SITE_URL).host}/read`;
 const H2S = [
   { id: "work", text: "Work" },
+  { id: "case-studies", text: "Case studies" },
   { id: "projects", text: "Projects" },
   { id: "stack", text: "Stack" },
   { id: "education", text: "Education" },
@@ -790,6 +792,7 @@ test("B2.7 it prints as a document: on /read and /, light and dark, body text 7:
       }),
     [
       ...profile.experience.map((role) => squash(role.summary)),
+      ...caseStudies.map((study) => squash(study.blurb)),
       ...profile.projects.map((project) => squash(project.description)),
       ...profile.education.map((entry) => squash(entry.credential)),
     ],

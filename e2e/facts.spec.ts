@@ -17,7 +17,14 @@ import {
 // `section[aria-labelledby]` whose h2 carries the id; Detail A is the one `<figure>` in the
 // JPMorgan entry, its `<figcaption>` beginning "Detail A.".
 
-const IDS = ["work", "projects", "stack", "education", "contact"] as const;
+const IDS = [
+  "work",
+  "case-studies",
+  "projects",
+  "stack",
+  "education",
+  "contact",
+] as const;
 const of = (id: string) => `section[aria-labelledby="${id}"]`;
 const squash = (text: string) => text.replace(/\s+/g, " ").trim();
 
