@@ -20,3 +20,13 @@
 7. **The phrase's first letter is always lower case** (Iris's pick, which the contract gives her).
    Atlas's brief to Probe first said "as in the source"; Forge caught the clash, and P2's product
    expectation follows Iris.
+8. **Fix round 1: B3.1 on CI.** The hand-off from drawing to 3D changed 8,745 px at 1440, all the
+   particulars' glyphs: from 1280 the `dl` lies over the model's layer, and once the canvas arrives
+   Chromium gives it a transparent layer of its own, where text loses LCD anti-aliasing. The cloud
+   renders grayscale, so it passed here. Forge reproduced CI to the pixel with a fontconfig that
+   turns LCD on (`rgba` `rgb`) and fixed it with an opaque fill in the film colour from 1280,
+   measured 0 px different from no fill in both schemes and both model states. Atlas's call over
+   the other fix (`translateZ(0)`, which keeps "no fill" but renders those rows grayscale for good):
+   the fill is invisible and keeps the rows like the rest of the page. Iris may overrule. My brief
+   had left the 3D suites out, since the contract tied them to option (a); text in the band brings
+   them in too.

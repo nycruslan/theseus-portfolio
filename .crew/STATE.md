@@ -66,6 +66,9 @@ makes stale, and keep the file under about 100 lines.
     Chromium drops LCD anti-aliasing for grayscale and every glyph pixel moves; the cloud's renders
     grayscale either way, so sprint 25's "pixel-identical numbers" passed three times here and
     failed twice there. Assert what the text must do (its ink is still there), not its pixels.
+    New text over the model's layer gets the same treatment: an opaque fill in the film colour
+    keeps it LCD at the hand-off (sprint 39, B3.1). To see CI's LCD text here, point
+    `FONTCONFIG_FILE` at a config that sets `rgba` to `rgb` (`.crew/sprint/39/decisions.md` 8).
   - A kept check that reads what a new state restyles races it: B1.4 read the lettering the hollow
     rule hides and lost to the idle import once. Read such things on the Off path (sprint 25).
   - The stepping rule runs under load: a check that reads the canvas's ratio mid-move sees 1× on a
