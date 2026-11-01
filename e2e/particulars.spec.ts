@@ -44,6 +44,8 @@ import { openModel, refuseWebGl } from "./webgl";
 
 const BLOCK = "dl[data-particulars]";
 const REVISIONS = 'section[aria-labelledby="revisions"]';
+/** The drawing's lettering, HTML spans over its SVG (.crew/sprint/39/decisions.md, 5). */
+const LETTERING = "[data-plan] .plan-view > span";
 const AXE_TAGS = [
   "wcag2a",
   "wcag2aa",
@@ -269,18 +271,16 @@ test("P1 server-rendered, verbatim: with scripts on and off at 1440 and 390, / h
   }
 });
 
-test("P2 the rule on fixtures: the real summary gives the four rows; each phrase removed gives the other three; Cut capitalised still shows Impact; three removed, or none held, gives no block; the oracle's terms hold no digit", () => {
+/** P2's fixtures, from the contract's words: each a summary and the terms the rule shows for it. */
+function ruleCases(): [string, string, string[] | null][] {
   const real = SOURCE_SUMMARY ?? "";
-  expect(real, `the summary of the role at ${SOURCE_COMPANY}`).not.toBe("");
-  const rule = (summary: string) =>
-    particularsOf(summary)?.map((r) => r.term) ?? null;
   const without = (summary: string, ...terms: string[]) =>
     PARTICULARS.filter((r) => terms.includes(r.term)).reduce(
       (s, r) => s.replace(r.phrase, "something else"),
       summary,
     );
   const ALL = ["Leads", "Reach", "Gateway", "Impact"];
-  const cases: [string, string, string[] | null][] = [
+  return [
     ["the owner's summary", real, ALL],
     ...ALL.map((term): [string, string, string[]] => [
       `${term}'s phrase removed`,
@@ -314,6 +314,14 @@ test("P2 the rule on fixtures: the real summary gives the four rows; each phrase
     ]),
     ["an empty summary", "", null],
   ];
+}
+
+test("P2 the rule on fixtures: the real summary gives the four rows; each phrase removed gives the other three; Cut capitalised still shows Impact; three removed, or none held, gives no block; the oracle's terms hold no digit", () => {
+  const real = SOURCE_SUMMARY ?? "";
+  expect(real, `the summary of the role at ${SOURCE_COMPANY}`).not.toBe("");
+  const rule = (summary: string) =>
+    particularsOf(summary)?.map((r) => r.term) ?? null;
+  const cases = ruleCases();
   for (const [name, summary, want] of cases) {
     expect.soft(rule(summary), name).toEqual(want);
   }
@@ -327,6 +335,34 @@ test("P2 the rule on fixtures: the real summary gives the four rows; each phrase
       "terms with a digit",
     )
     .toEqual([]);
+});
+
+// The rule's interface (decisions.md 6): lib/particulars.ts exports `particulars(summary)`, the rows
+// as term and the phrase the dd shows (its first letter as the source has it), or null with fewer
+// than two. Loaded at run time, so a missing module fails here alone.
+const PARTICULARS_MODULE = "../lib/particulars";
+
+test("P2 the product's rule on the same fixtures: lib/particulars.ts's particulars gives the oracle's terms for each, in order, each phrase as the source holds it, and null for no block", async () => {
+  const loaded = (await import(PARTICULARS_MODULE)) as {
+    particulars?: unknown;
+  };
+  expect(
+    typeof loaded.particulars,
+    "lib/particulars.ts exports particulars",
+  ).toBe("function");
+  const particulars = loaded.particulars as (
+    summary: string,
+  ) => { term: string; phrase: string }[] | null;
+  for (const [name, summary, terms] of ruleCases()) {
+    const want =
+      terms === null
+        ? null
+        : PARTICULARS.filter((r) => terms.includes(r.term)).map((r) => ({
+            term: r.term,
+            phrase: summary.includes(r.phrase) ? r.phrase : otherCase(r.phrase),
+          }));
+    expect.soft(particulars(summary), name).toEqual(want);
+  }
 });
 
 // P3's feed states: live-layer.spec.ts's kept sites by name and answer, so a worker that ran B4b
@@ -445,10 +481,13 @@ test.describe("on the feed's fixtures", () => {
   });
 });
 
-/** The shown drawing's planks, grown by `grow` px, and its text boxes, against the block's box. */
+/**
+ * The shown drawing's planks, grown by `grow` px, and its lettering's boxes (HTML spans over the SVG,
+ * `LETTERING`), against the block's box.
+ */
 function clearance(page: Page, grow: number) {
   return page.evaluate(
-    ({ block, grow }) => {
+    ({ block, grow, lettering }) => {
       const shown = (el: Element) => {
         const r = el.getBoundingClientRect();
         return el.getClientRects().length > 0 && (r.width > 0 || r.height > 0);
@@ -472,9 +511,7 @@ function clearance(page: Page, grow: number) {
       const planks = [
         ...document.querySelectorAll("[data-plan] [data-plank]"),
       ].filter(shown);
-      const texts = [...document.querySelectorAll("[data-plan] text")].filter(
-        shown,
-      );
+      const texts = [...document.querySelectorAll(lettering)].filter(shown);
       if (!dl)
         return {
           dl: null,
@@ -493,15 +530,15 @@ function clearance(page: Page, grow: number) {
             .map((p) => `plank ${p.getAttribute("data-plank")} (+${grow} px)`),
           ...texts
             .filter((t) => meets(box, boxOf(t)))
-            .map((t) => `text "${(t.textContent ?? "").trim()}"`),
+            .map((t) => `lettering "${(t.textContent ?? "").trim()}"`),
         ],
       };
     },
-    { block: BLOCK, grow },
+    { block: BLOCK, grow, lettering: LETTERING },
   );
 }
 
-test("P4 clear of the hull: with WebGL refused at 768, 1024, 1280 and 1440 x 900 the dl's box meets no [data-plan] [data-plank] box grown by 24 px and no [data-plan] text box; on Full at 1440 x 900 at rest, with the dl hidden, its box's pixels with and without [data-model] canvas match (99.5% within 8 a channel)", async ({
+test("P4 clear of the hull: with WebGL refused at 768, 1024, 1280 and 1440 x 900 the dl's box meets no [data-plan] [data-plank] box grown by 24 px and no box of the drawing's lettering ([data-plan] .plan-view > span), which matches at every width; on Full at 1440 x 900 at rest, with the dl hidden, its box's pixels with and without [data-model] canvas match (99.5% within 8 a channel)", async ({
   page,
   browser,
 }) => {
@@ -515,6 +552,11 @@ test("P4 clear of the hull: with WebGL refused at 768, 1024, 1280 and 1440 x 900
     // Without planks on the page, "meets none" would be true of any block.
     expect
       .soft(read.planks, `shown planks in the drawing ${where}`)
+      .toBeGreaterThan(0);
+    // The contract's first selector, [data-plan] text, matched nothing (decisions.md 5): this one
+    // must match, or the clause is vacuous again.
+    expect
+      .soft(read.texts, `shown ${LETTERING} in the drawing ${where}`)
       .toBeGreaterThan(0);
     expect.soft(read.met, `what the dl's box meets ${where}`).toEqual([]);
   }
