@@ -28,7 +28,9 @@ his scope and scale, in the site's own typefaces.
   full size, 8 to 11% wider). The 404 still gets no font preload, so its first visit paints in the
   fallback: left open.
 - **`/read`:** the figcaption's count line, legend and sentence sit 6 px apart at 390 (row gap
-  4 → 6 px, and `.ship figcaption > p { margin-top: 6px }`, Iris's should).
+  4 → 6 px, and Iris's should: the sentence's `<p>` gets the class `ship-note` with
+  `margin-top: 6px`, since Biome's `noDescendingSpecificity` refuses her `.ship figcaption > p`
+  ahead of `.lost p`).
 
 ## Checks
 
@@ -53,7 +55,18 @@ sentence markup unedited.
 
 ## Results
 
-See the close-out below for the final head's numbers.
+- Build (Forge, 2 workers): `pnpm verify` green; `facts-scan` 4 passed (P14 2.0 s, P15 1.2 s,
+  P16 0.6 s, P17 1.8 s, about 6 test-seconds); with `facts`, `profile-sections`, `smoke`, `read`,
+  `invariants`, `sheet`, `plan` (B1.8, B1.9), `not-found`, `particulars` and `crew-replay-home`
+  (B4.49): 79 passed, 5.2 min; `live-layer` B4.22: passed.
+- Fix round 1 (Forge): `pnpm verify` green; `facts-scan`, `read` and `smoke`: 13 passed. On a
+  production server, `/opengraph-image` and `/log/13/opengraph-image` (rendered on request) return
+  byte-identical PNGs, so the fonts ship to the run-time route.
+- Iris on 7e1eea5: `changes` at 7.2 (7.5 with her must), every hard gate passing (axe 0 on `/` and
+  `/read` at 390 and 1440 in both schemes, 320 without overflow, CLS 0); her must and should are
+  built in d02f8da.
+- The new spec adds about 6 test-seconds, so the full suite wasn't timed here; CI's `check` runs
+  it.
 
 ## Decisions the owner may overrule after the merge
 
