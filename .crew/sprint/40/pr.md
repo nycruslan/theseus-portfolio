@@ -67,9 +67,10 @@ It's the guard `live-layer.spec.ts:67` and `particulars.spec.ts:413` use. Lens's
 - `/crew`'s chunk is 18,410 B (the 20,480 B budget holds); the "Every name…" sentence reaches the
   live table as a prop from the page, not by importing the profile into client code.
 - Iris: `changes` at 8.2 on an early build; her two musts and one should are built.
-- **Not run locally:** the 3D suites (`model-*`, `crew-hull`, `crew-model*`, `log-model*`) and the
-  full suite at CI's worker count; CI's `check` runs them. On `/` the pen now paints in its own
-  svg above the canvas, so a 3D check that reads the dot's pixels is the one to watch.
+- The 3D suites (`model-*`, `crew-hull`, `crew-model*`, `log-model*`), run by Atlas on the final
+  build: 36 passed, 14.8 min.
+- CI's `check` on 1b6a0ea: success; the e2e step took 23.6 min and the job 25.0 min, against the
+  35-minute cap.
 
 ## Decisions the owner may overrule after the merge
 
