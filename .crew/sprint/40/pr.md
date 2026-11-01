@@ -12,9 +12,9 @@ and every sprint's goal from 38 on reads in a visitor's words.
 - **`/`:** one line under the revision table, "Every name is an AI agent Ruslan directs.
   Approved: Gate is CI, his rules and Lens's review; Owner is his own call.", the first sentence in
   ink at 600 (Iris). From one source, `lib/crew-key.ts`, with the first name from `profile.name`.
-  It shows at 1280 and up and below 1024; from 1024 to 1279 it stays in the HTML, hidden, because
-  nothing fits under the table there without pushing the contact links past a 768 fold
-  (decisions 9).
+  It shows at 1440 and up and below 1024; from 1024 to 1439 it stays in the HTML, hidden, because
+  nothing fits under the table there without pushing the contact links past the fold that B4.22
+  (1024 × 768) and B4.49 (1280 × 800) hold (decisions 9).
 - **`/log`:** the same words replace the old Approved key.
 - **`/crew`:** every member's job reads `<word>, AI agent` ("Code, AI agent") in every state and
   after a poll; where the job column folds (phones, and now 1024 to 1439), the panel says "Every
