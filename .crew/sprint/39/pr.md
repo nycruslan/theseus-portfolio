@@ -1,19 +1,63 @@
 ## Sprint 39: the owner's scope and scale on the first screen
 
-**Goal (from the roadmap):** a hiring executive reads who the owner leads, who uses what he built,
-and its impact on `/`'s first screen, in his own words.
+**Goal (from the roadmap, milestone "the proof in five seconds", sprint Pa):** a hiring executive
+reads who the owner leads, who uses what he built, and its impact on `/`'s first screen, in his own
+words.
 
-**Size:** M. The contract is `.crew/sprint/39/contract.md` (Quill's, from sprint 38; checks P1 to P7).
+**Size:** M. Contract: `.crew/sprint/39/contract.md` (Quill's, from sprint 38; P1 to P7). Placement:
+`.crew/sprint/39/placement.md` (Iris). Decisions: `.crew/sprint/39/decisions.md`.
 
-**Status:** in progress. Iris makes the placement call first; Probe writes P1 to P7 red; Forge builds.
+## What a visitor sees
+
+A table of principal particulars, as a lines plan carries beside its title block: four rows, each a
+term and a phrase quoted verbatim from the JPMorgan summary in `content/profile.ts`.
+
+| Term | Phrase |
+|---|---|
+| Leads | a team of 7 across AI research, backend and platform |
+| Reach | multi-agent workflows several thousand employees use firm-wide |
+| Gateway | around 8 product teams route through |
+| Impact | cut manual processing on the flagship workflow by about 55% |
+
+- From 1280 wide it sits in the drawing band's empty corner under the body plan (Iris's option (b)),
+  so the drawing and the 3D don't move. From 1024 to 1279 it's a strip row of the frame; below 1024
+  it follows the title block.
+- Server-rendered, inert, 0 B of new script, 397 B of markup. If the owner edits the summary, a row
+  whose phrase is gone drops out rather than showing words he took out; under two rows, no block.
+- `content/` is unchanged, and no owner path is touched.
 
 ## Contract results
 
-To come.
+All in Forge's worktree on the build's head (Playwright's Chromium):
+
+- `pnpm verify`: exit 0.
+- `e2e/particulars.spec.ts` (P1, P2 on the oracle, P2 on the product's rule, P3 to P7): 8 passed,
+  55.8 s with the build. Red on main before the build: 7 failed, 1 passed (the oracle), each on the
+  missing block.
+- Probe proved the checks bite on scratch builds: the block at the name's size turns P6 (and P3)
+  red, the block over the hull turns P4 red (8% of pixels matched), and a 24 px drift after load
+  turns P5 red.
+- The live neighbours the contract names, unedited (sheet, plan, facts, read, keyboard,
+  invariants, live-layer, profile-sections, content): 81 passed.
+- Nothing retired, nothing skipped.
+
+Measured boxes (WebGL refused): 1440 × 900 at y 408–531, 67 px under "Base"; 1280 × 800 at
+y 336–477; 768 × 900 at y 602–708; 390 × 844 at y 653–812; no horizontal scroll at 320.
 
 ## Decisions
 
-See `.crew/sprint/39/decisions.md`.
+- Iris's placement (b): (a) would shrink the drawing for text, and pull Pixel and every 3D suite in.
+- P4's lettering clause pointed at `[data-plan] text`, which matches nothing; it now reads the
+  lettering's spans and asserts they exist. A stricter check.
+- The phrase's first letter is always lower case (Iris's pick, which the contract gives her).
+- P2 runs the oracle's fixtures on the product's rule too, as B2.2 does for Detail A.
+
+## Not verified
+
+- CI's timing for the full suite (reported at close-out).
+- Agent-browser's Chrome measures text a little wider than Playwright's Chromium (and production
+  shows the same): at 390 the bio wraps to five lines and the table ends at 835 of 844, still in the
+  first view.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
