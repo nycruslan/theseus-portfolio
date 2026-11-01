@@ -2,7 +2,7 @@
 
 import { CrewTable } from "@/components/crew-table";
 import { type Crew, type Moment, pullHref, type Run } from "@/lib/crew-run";
-import { REPO_URL } from "@/lib/site";
+import { REPO_URL, STUDIO_URL } from "@/lib/site";
 import { utcDay, utcTime } from "@/lib/utc";
 
 // The crew's panel on /crew (.crew/sprint/31/contract.md, "Data rules"; crew-1440.webp and
@@ -388,6 +388,12 @@ export function CrewPanel({
         />
       )}
       <dl className="crew-facts">
+        <dt>Studio</dt>
+        <dd data-studio="">
+          <a href={STUDIO_URL} className={LINK}>
+            Watch the crew work live on the Studio
+          </a>
+        </dd>
         <dt>Evidence</dt>
         <Evidence crew={crew} record={record} />
         <dt>Approval</dt>

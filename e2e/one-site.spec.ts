@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { profile } from "../content/profile";
 import { caseStudies } from "../content/work";
 import { HISTORY_TURNS, QUESTION_MAX_CHARS, TURN_MAX_CHARS } from "../lib/chat";
+import { STUDIO_URL } from "../lib/site";
 
 // What the earlier portfolio brought here: the case studies, the assistant, its evals and the agent
 // surfaces. The model is never called: /api/chat is mocked in the browser, the server is asked what
@@ -60,6 +61,22 @@ for (const study of caseStudies) {
 
 test("an unknown case study answers 404", async ({ page }) => {
   expect((await page.goto("/work/no-such-study"))?.status()).toBe(404);
+});
+
+test("the Studio is linked from the first screen and from /crew", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const first = page.locator("main header").first();
+  const live = first.getByRole("link", { name: "Live Studio" });
+  await expect(live).toBeInViewport();
+  await expect(live).toHaveAttribute("href", STUDIO_URL);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/crew");
+  await expect(
+    page.getByRole("link", { name: /live on the Studio/ }),
+  ).toHaveAttribute("href", STUDIO_URL);
 });
 
 test("the assistant streams an answer, keeps the history and refocuses the question", async ({

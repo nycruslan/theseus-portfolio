@@ -1,7 +1,7 @@
 import { profile } from "@/content/profile";
 import { caseStudies } from "@/content/work";
 import { OWNER_EMAIL, studyPath } from "@/lib/portfolio";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, STUDIO_URL } from "@/lib/site";
 
 // A map of the site for AI agents (https://llmstxt.org).
 export function GET() {
@@ -23,6 +23,7 @@ ${studies.join("\n")}
 - [Résumé as JSON](${SITE_URL}/api/me.json)
 - [Résumé as a page](${SITE_URL}/read)
 - [The assistant's eval scores](${SITE_URL}/evals)
+- [The Studio](${STUDIO_URL}): the AI crew building this site, live.
 
 ## Contact
 
