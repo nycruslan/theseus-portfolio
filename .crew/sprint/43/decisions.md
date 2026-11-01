@@ -18,3 +18,13 @@
 6. **The rider moves:** the live pencil's 3D number on seat 5.0 rides on its plank's chip, as
    every other pencil seat's does since sprint 34 (Iris). Pixel builds it in `lib/model/`, Forge
    the 2D sheet in parallel, on disjoint files.
+7. **The 1280 wrap, fixed rather than accepted.** Forge measured the bio's three lines at 1280
+   holding by 0.86 px in Playwright's Chromium, and wrapping to four under fractional glyph widths
+   (Chrome 153), which put the links 2.1 px under the fold at 1280 × 680. A real visitor's browser
+   is the fractional one, so Atlas asked Iris for a rule that doesn't hinge on 1 px; she set a foot
+   ramp (25rem at 1280 to 23.5rem by 1366) and moved the short-window switch to 712.
+8. **Pixel's 3 px keel margin accepted** for the rider: seat 5.0's body is 2.7 hull units and the
+   dot sits forward of its middle, so the chip's centre stays 3 px above the plank's lower edge to
+   stay on the hull. Iris weighs it at her review; it moves a pixel or two.
+9. **Main moved twice** (#98, #103). Both merged cleanly into the branch; after #103, Atlas ran
+   `pnpm verify` and the window, sheet and first-screen specs (28 of 28) before the review.
