@@ -72,7 +72,8 @@ test("the assistant streams an answer, keeps the history and refocuses the quest
     });
   });
   await page.goto("/ask");
-  await page.getByRole("button", { name: /scale/ }).click();
+  await page.getByRole("button", { name: /scale/ }).focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByText("Answer 1.")).toBeVisible();
   await expect(page.getByLabel("Your question")).toBeFocused();
 

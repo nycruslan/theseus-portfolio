@@ -20,9 +20,24 @@ export const metadata: Metadata = {
 };
 
 const FOR_AGENTS = [
-  { label: "MCP server", href: "/api/mcp", note: "Read-only, no auth" },
-  { label: "llms.txt", href: "/llms.txt", note: "A map of this site" },
-  { label: "Résumé as JSON", href: "/api/me.json", note: "The same facts" },
+  {
+    label: "MCP server",
+    href: "/api/mcp",
+    note: "Add this address to an MCP client. Read-only, no auth",
+    page: false,
+  },
+  {
+    label: "llms.txt",
+    href: "/llms.txt",
+    note: "A map of this site",
+    page: true,
+  },
+  {
+    label: "Résumé as JSON",
+    href: "/api/me.json",
+    note: "The same facts",
+    page: true,
+  },
 ];
 
 export default function AskPage() {
@@ -64,9 +79,13 @@ export default function AskPage() {
           {FOR_AGENTS.map((item) => (
             <li key={item.href} className="point">
               <strong>
-                <a className="text-link" href={item.href}>
-                  {item.label}
-                </a>
+                {item.page ? (
+                  <a className="text-link" href={item.href}>
+                    {item.label}
+                  </a>
+                ) : (
+                  item.label
+                )}
               </strong>
               <span className="entry-text">
                 {item.note}: {new URL(SITE_URL).host}

@@ -55,7 +55,7 @@ export default async function CaseStudyPage({
           </a>
           <h1>{study.title}</h1>
           <p className="doc-lead">{study.blurb}</p>
-          <dl className="particulars">
+          <dl className="doc-results">
             {study.metrics.map((metric) => (
               <div key={metric.label}>
                 <dt>{metric.label}</dt>
@@ -69,9 +69,9 @@ export default async function CaseStudyPage({
           </dl>
         </header>
 
-        <section aria-label="The system" className="sched">
+        <Schedule id="system" title="The system">
           <Flow stages={study.flow} title={study.title} />
-        </section>
+        </Schedule>
 
         {study.sections.map((section) => (
           <Schedule key={section.id} id={section.id} title={section.title}>

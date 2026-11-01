@@ -41,7 +41,7 @@ export default async function EvalsPage() {
           like anything else.
         </p>
         {report ? (
-          <dl className="particulars">
+          <dl className="doc-results">
             <div>
               <dt>Overall score, out of 10</dt>
               <dd>{report.overall}</dd>

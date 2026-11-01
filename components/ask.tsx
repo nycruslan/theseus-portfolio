@@ -20,7 +20,6 @@ export function Ask({ fallback }: { fallback: string }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  const transcript = useRef<HTMLDivElement>(null);
 
   const update = (answer: string, done: boolean) =>
     setExchanges((all) => [
@@ -36,8 +35,6 @@ export function Ask({ fallback }: { fallback: string }) {
       ])
       .slice(-(HISTORY_TURNS - 1));
     setBusy(true);
-    // A starter is about to unmount with focus on it, so focus moves to what it opened.
-    transcript.current?.focus();
     setDraft("");
     setExchanges((all) => [...all, { question, answer: "", done: false }]);
     let answer = "";
@@ -64,7 +61,6 @@ export function Ask({ fallback }: { fallback: string }) {
       update(answer ? `${answer}\n\n${fallback}` : fallback, true);
     }
     setBusy(false);
-    input.current?.focus();
   }
 
   function submit(event: FormEvent) {
@@ -75,7 +71,7 @@ export function Ask({ fallback }: { fallback: string }) {
 
   return (
     <div className="sched-body">
-      <div ref={transcript} tabIndex={-1} aria-live="polite">
+      <div aria-live="polite">
         {exchanges.map((exchange, index) => (
           // Turns only ever append, so the index is stable.
           // biome-ignore lint/suspicious/noArrayIndexKey: an append-only list
@@ -98,7 +94,12 @@ export function Ask({ fallback }: { fallback: string }) {
               key={starter}
               type="button"
               className="ask-starter"
-              onClick={() => void ask(starter)}
+              onClick={(event) => {
+                // From the keyboard (detail 0), focus would fall to the body when the starters go.
+                // Not on touch, where focusing the field would cover the answer with a keyboard.
+                if (event.detail === 0) input.current?.focus();
+                void ask(starter);
+              }}
             >
               {starter}
             </button>

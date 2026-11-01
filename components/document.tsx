@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
+import { Foot } from "@/components/foot";
 import { SkipLink } from "@/components/skip-link";
 
 // The frame of a reading page (a case study, /ask, /evals): the bar and its main, inside the same
@@ -23,6 +24,8 @@ export function Document({
         className={`lg:mx-4 ${sofiaCondensed.variable}`}
       >
         {children}
+        {/* The bar has no room for Read as page on a phone, so it sits here, as on the sheet. */}
+        <Foot />
       </main>
     </>
   );

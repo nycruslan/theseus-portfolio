@@ -16,7 +16,9 @@ export type Turn = { role: "user" | "assistant"; content: string };
 /** Through Vercel AI Gateway, on a key whose monthly quota caps what the site can ever spend. */
 export const gateway = () =>
   new Anthropic({
-    apiKey: process.env.AI_GATEWAY_API_KEY,
+    // Null, not undefined: the SDK would otherwise send ANTHROPIC_API_KEY to the Gateway.
+    apiKey: process.env.AI_GATEWAY_API_KEY ?? null,
+    authToken: null,
     baseURL: "https://ai-gateway.vercel.sh",
   });
 

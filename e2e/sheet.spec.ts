@@ -1370,7 +1370,12 @@ test("B1.7 nothing today's page says is lost: the facts below the sheet, verbati
     name: profile.name,
     jobTitle: profile.headline,
     description: profile.bio,
-    sameAs: profile.links.map((link) => link.href),
+    email: profile.links
+      .find((link) => link.href.startsWith("mailto:"))
+      ?.href.replace("mailto:", ""),
+    sameAs: profile.links
+      .map((link) => link.href)
+      .filter((href) => !href.startsWith("mailto:")),
   });
 });
 
