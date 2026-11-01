@@ -80,7 +80,7 @@ for (const scheme of SCHEMES) {
   test.describe(`in the ${scheme} scheme`, () => {
     test.use({ colorScheme: scheme });
 
-    test("B2.9 every text color and size comes from a token, and body text is at least 16 px, on /, /read, /crew, /log, /log/13 and the 404", async ({
+    test("B2.9 every text color and size comes from a token, and body text is at least 16 px, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
       page,
     }) => {
       for (const route of ROUTES) await textFromTokens(page, scheme, route);
@@ -89,14 +89,14 @@ for (const scheme of SCHEMES) {
     test("text meets its contrast thresholds", ({ page }) =>
       meetsContrast(page, scheme));
 
-    test("B2.9 axe finds no violation of any impact, with the strict tags, with or without the skip link showing, on /, /read, /crew, /log, /log/13 and the 404", async ({
+    test("B2.9 axe finds no violation of any impact, with the strict tags, with or without the skip link showing, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
       page,
     }) => {
       test.setTimeout(90_000);
       for (const route of ROUTES) await axeClean(page, route);
     });
 
-    test("B2.9 with JavaScript off, the first paint already has this scheme's background, on /, /read, /crew, /log, /log/13 and the 404", async ({
+    test("B2.9 with JavaScript off, the first paint already has this scheme's background, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
       browser,
       baseURL,
       page,
@@ -161,7 +161,7 @@ test("the type scale is fluid: no step shrinks from 320 to 1440 px, and the larg
 test.describe("on a 320 px wide phone", () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
-  test("B2.9 nothing overflows horizontally, on /, /read, /crew, /log, /log/13 and the 404", async ({
+  test("B2.9 nothing overflows horizontally, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
     page,
   }) => {
     for (const route of ROUTES) {
@@ -174,7 +174,7 @@ test.describe("on a 320 px wide phone", () => {
   });
 });
 
-test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, the skip link and the project links included, on /, /read, /crew, /log, /log/13 and the 404", async ({
+test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, the skip link and the project links included, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -201,7 +201,7 @@ test("B2.9 every link and button is a target of at least 24 x 24 px on a phone, 
   }
 });
 
-test("B2.9 one main, each section a region named by its heading, and no skipped heading level, on /, /read, /crew, /log, /log/13 and the 404", async ({
+test("B2.9 one main, each section a region named by its heading, and no skipped heading level, on /, /read, /crew, /log, /log/13, /ask, /evals, a case study and the 404", async ({
   page,
 }) => {
   for (const route of ROUTES) {

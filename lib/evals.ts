@@ -164,9 +164,12 @@ async function grade({ prompt, expect }: (typeof CASES)[number]) {
   const answer = await client.messages
     .stream(chatRequest([{ role: "user", content: prompt }]), options)
     .finalMessage();
-  // What a visitor would read: the route answers a refusal the same way.
+  // What a visitor would read: the route closes anything but a finished answer the same way.
+  const text = textOf(answer);
   const reply =
-    answer.stop_reason === "refusal" ? CANNOT_ANSWER : textOf(answer);
+    answer.stop_reason === "end_turn"
+      ? text
+      : `${text ? `${text}\n\n` : ""}${CANNOT_ANSWER}`;
   const judged = await client.messages
     .stream(
       {

@@ -487,7 +487,7 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 23rd Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, the 3 title-block links, the Log link, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 23rd Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, the 3 title-block links, the Log link, the 5 case studies, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");

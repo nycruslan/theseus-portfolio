@@ -10,8 +10,8 @@ import type { ReactNode } from "react";
 // scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
 // It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
 // a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
-// end after Read as page, as the approved frame draws it. Every page with a bar has a model now,
-// /crew's since B4d (.crew/sprint/36/contract.md). The control is a slot, not an import, so its
+// end after Read as page, as the approved frame draws it. The sheet, the Log and /crew have one
+// (/crew's since B4d, .crew/sprint/36/contract.md); the reading pages in components/document.tsx don't. The control is a slot, not an import, so its
 // client module ships only where a page with a model renders it.
 //
 // Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and

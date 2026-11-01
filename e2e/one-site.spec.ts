@@ -6,7 +6,8 @@ import { HISTORY_TURNS, QUESTION_MAX_CHARS, TURN_MAX_CHARS } from "../lib/chat";
 
 // What the earlier portfolio brought here: the case studies, the assistant, its evals and the agent
 // surfaces. The model is never called: /api/chat is mocked in the browser, the server is asked what
-// it refuses, and the one test that gets past validation runs only on a local build with no key.
+// it refuses, and the one test that gets past validation expects a local build with no key: run the
+// suite without AI_GATEWAY_API_KEY in .env.local, or that test makes one small paid call.
 // Facts are imported from content/, never copied.
 
 const PAGES = ["/ask", "/evals", ...caseStudies.map((s) => `/work/${s.slug}`)];
