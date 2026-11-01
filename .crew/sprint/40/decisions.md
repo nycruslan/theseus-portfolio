@@ -26,10 +26,11 @@
    Owner is his own call." (115 characters), leaves about 20 px. Drawn, Checked and Tested lose
    their glosses: with "AI agent" said, the column heads read as plain English, and Gate and Owner
    were the words a stranger couldn't read.
-9. **The key shows at 1280 and up and below 1024, not between** (Forge measured B4.22's kept 1024 ×
-   768 rider red): at 1024 the block's measure is 516.8 px, the key wraps to two lines, and the
-   resting state's contact links drop to 807.1 px against the 768 fold (main: 758.1). Even one
-   line would put them at 787.6, so nothing fits under the table there, whatever the words. From
-   1024 to 1279 the key stays in the HTML, hidden, and the caption still says a team of AI agents
-   builds the site. B4.22 stays unedited. 1280 × 800 has no check and was already at the fold's
-   edge on main (0.4 px spare).
+9. **The key shows at 1440 and up and below 1024, not between** (Forge measured two kept checks
+   red): at 1024 the block's measure is 516.8 px, the key wraps to two lines, and B4.22's resting
+   contact links drop to 807.1 px against the 768 fold (main: 758.1); at 1280 × 800, B4.49
+   (`crew-replay-home.spec.ts`) has them at 829.1 against 800 (main: 799.6), 825.1 even with
+   Iris's 4 px tuck. Nothing fits under the table between 1024 and 1439 whatever the words, so
+   there the key stays in the HTML, hidden, the same range where `/crew`'s job column now folds
+   (Iris's should 1), and the caption still says a team of AI agents builds the site. B4.22 and
+   B4.49 stay unedited. An earlier version of this line said 1280 × 800 had no check; it has.
