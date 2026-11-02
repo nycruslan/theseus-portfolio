@@ -39,11 +39,16 @@ owner answer to start, touches an owner path or edits `content/`.
   its plank on the 3D hull. **Left open:** Lens's nits (the chip rule also reaches `/crew`,
   `app/globals.css:826`; `ghost.ts`'s 690 comment; Iris's memory lines 66 and 67), and a real Mac
   or Windows Chrome and a real GPU, for which Chrome 153 and SwiftShader stood in.
-- [ ] Wb (M): the sheet fits a phone window: B1.1's items and the particulars at 390 × 664 to
-  430 × 746, and B1.1's items at 375 × 548. Iris's call first. Rider: the 3D label over the copper
-  dot (Pixel).
+- [x] Sprint 44, Wb (M): the sheet fits a phone window. (PR #107; Iris's call, the Read-as-page
+  and Motion row hangs from the bar and the narrow drawing gives way to a 224 × 149 floor,
+  `.crew/sprint/44/placement.md`.) W8 to W12 (`e2e/phone-window.spec.ts`) are green, and nothing
+  from 768 up moved; 390 × 844 moved by design (decision 5). The 3D pencil chip now lets the copper
+  dot show. **Left open:** Lens's nits (`app/globals.css:1531`'s comment, W11's resize clause),
+  `/crew`'s foot row over its canvas (LCD text, unchecked), a 24 px default font scrolling sideways
+  at phone widths (as on production), and Safari on a real phone. At 390 × 664 the drawing is at
+  its floor with 3.9 px of room in Chrome 153.
 - [ ] Wc (S): tablets and the key from 1024 to 1439 (Pa's and Pb's left-opens), and P3's, P8's,
-  P9's, W1's and W2's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
+  P9's, W1's, W2's and W8's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
 - Out of scope, and why:
   - What the facts say, and the loft, the hull's look, the live marks and the replay: the owner's
     demos judge them. The model only follows the drawing.

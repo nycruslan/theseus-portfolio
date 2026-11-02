@@ -153,18 +153,21 @@ html {
  * notes-iris.md, sections 2 to 5): Full, Calm, Off, each button in a 1 px ink frame whose shared
  * edges make the dividers, the pressed one ink with film text. It has two slots, both in the
  * server's HTML at the group's size, so the buttons' arrival moves nothing: the bar's from 768 px,
- * and below it the foot's row, since the phone bar is full: at the drawing's foot on the sheet, at
- * the header's end on the Log. Exactly one is shown.
+ * and below it the foot's row, since the phone bar is full: hanging from the bar at the drawing's
+ * head on the sheet, at the drawing's foot on /crew, at the header's end on the Log. Exactly one
+ * is shown.
  * Without scripts both are empty. Neither is printed.
  */
 nav > [data-motion] {
   display: none;
 }
 
-/* The drawing's foot below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
+/* The foot's row below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
    Read as page at the left and, on a page with a model, the control at the right, in one 44 px
-   row. It borrows 12 px of the drawing's own margin, and paints over the model's layer, which lies
-   on the drawing's box. The Log sets it at the header's end instead (`.log > .foot`). */
+   row. Here, as /crew sets it at the drawing's foot, it borrows 12 px of the drawing's own margin,
+   and paints over the model's layer, which lies on the drawing's box. The sheet hangs it from the
+   bar at the drawing's head ("The sheet on a phone window"), the Log at the header's end
+   (`.log > .foot`). */
 .foot {
   position: relative;
   display: flex;
@@ -822,17 +825,45 @@ main:has(> [data-model]) {
 
   /* A pencil number the 2D leads out (5.0's) rides in onto its plank, so from the first lofting
      frame it takes the film chip the others have (.crew/sprint/43/placement.md, "Rider"). The
-     margin pays back the right padding, so its digits stay where the 2D set them. */
-  [data-plan]:has(
-    + [data-model]:is(
-        [data-state="lofting"],
-        [data-state="settled"],
-        [data-state="still"]
-      )
-  ) .plan-pencil.plan-end {
+     margin pays back the right padding, so its digits stay where the 2D set them. Scoped to /'s
+     sheet: /crew's focus number rides its anchor's own point, led out or not, with no chip. */
+  main
+    > [data-plan]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    .plan-pencil.plan-end {
+    --anchor-x: calc(100% - 2px);
     margin-left: 2px;
     padding: 0 2px;
     background: var(--background);
+  }
+
+  /* The pen over the chip: while the crew is live the copper dot paints over the pencil number's
+     chip, as the 2D's pen does (P13), but on the hull the chip is HTML above the canvas. So it
+     lets the canvas through a hole the dot's size (PENCIL.tip.dot, 8 px, with a pixel of edge)
+     at the dot's centre, which the chunk sets from the number's anchor in every frame
+     (lib/model/ghost.ts): the anchor is the box's middle, or a led-out number's right edge less
+     its margin. With no dot the offsets are unset and var() drops the mask. A mask reads only
+     alpha, so the token is any opaque one (.crew/sprint/44/contract.md, W12). */
+  main
+    > [data-plan]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    .plan-pencil {
+    mask-image: radial-gradient(
+      circle at calc(var(--anchor-x, 50%) + var(--dot-x))
+        calc(50% + var(--dot-y)),
+      transparent 3.5px,
+      var(--foreground) 4.5px
+    );
   }
 }
 
@@ -1427,6 +1458,167 @@ main:has(> [data-model]) {
     margin-left: max(
       calc(100% * 4 / 7 + 28px),
       calc(1px + var(--plan-fit) * 0.91567 + 24px)
+    );
+  }
+}
+
+/*
+ * The sheet on a phone window (.crew/sprint/44/placement.md, Iris's call): below 768 px the name,
+ * the role, the bio's lead, the contact links and the four particulars are in the first window with
+ * Safari's toolbars showing, 390 x 664 among them. Read as page and the motion control stay one
+ * row, moved from the drawing's foot to the band's head: right-aligned and hanging from the bar's
+ * rule, as the bar holds the same pair from 768. The drawing scales with the window's height from
+ * its left edge, down to the floor, and meets the title block directly. The DOM is unchanged, so
+ * the row is still read and tabbed between the drawing and the name. `/` only: its drawing is
+ * main's, /crew's sits in .crew-drawing, and only `/`'s foot follows main's model. svh, never vh
+ * or dvh: the layout holds still as the toolbars come and go. Screen only, so print is untouched.
+ *
+ * --phone-foot is what the window keeps under the band: the title block and the particulars,
+ * tightened below, at their tallest near 390 px wide. That is 439.8 px where glyphs take fractional
+ * widths (Chrome, Safari), whose bio's lead takes five lines under 392, and 434 in a browser that
+ * rounds them to whole pixels (Playwright's Chromium), whose Leads phrase takes two lines under
+ * 402. One value at every phone width: a step at 392 would hang on the bio's four lines, which hold
+ * there by 0.5 px (.crew/sprint/44/). In rem, so a larger default font size grows it with the
+ * text. --narrow-floor is the smallest drawing Iris accepts, 224 x 149.3 px (0.574 of its 390
+ * size), where the half-breadth caption and the station figures still clear their lines. The rest
+ * come from NARROW (lib/hull-layouts.ts), a 390 x 260 box at 390 px wide, s its scale (its width /
+ * 390):
+ *   - 60 px: the bar (52) and the 8 px kept above the fold.
+ *   - 0.666667 (260 / 390): the box's height over its width.
+ *   - 0.105128 (41 / 390): the stations' tops below the box's top.
+ *   - 0.1 and 19 px: the empty foot under the half-breadth caption (39 at s 1), trimmed to 12 px
+ *     clear of its glyphs (7 px under its line).
+ *   - 0.051282 (20 / 390): the left shift that keeps station 0 and the captions at x 20.
+ *   - 57 + 180 s, 69 + 180 s: the band's height (2.166667 is 390 / 180) with the control beside
+ *     the drawing, and over it: 38 px of drop under the row less the stations' 41 s, the box's
+ *     260 s, less the trimmed foot (39 s - 19), and 12 px more drop where the drawing reaches under
+ *     the control, so its 44 px frame clears the stations by 4.
+ *   - --narrow-slot: the control's slot, 148 px at the default font size for the 142.5 px group,
+ *     whose 76 px of padding and frames hold while its labels grow with the text.
+ *   - --narrow-cap, (width - 40 - the slot) * 1.25: the widest drawing whose bow (x 20 + 312 s)
+ *     stays 4 px clear of the slot, 16 px in from the right (1.25 is 390 / 312).
+ * --narrow-w is the larger of the two fits, never under the floor or past the band.
+ */
+@media screen and (width < 48rem) {
+  main {
+    --phone-foot: 28rem;
+    --narrow-floor: 14rem;
+    --narrow-slot: calc(76px + 4.5rem);
+    --narrow-room: calc(100svh - 60px - var(--phone-foot));
+    --narrow-cap: calc((100% - 40px - var(--narrow-slot)) * 1.25);
+    --narrow-w: clamp(
+      var(--narrow-floor),
+      max(
+        calc((var(--narrow-room) - 69px) * 2.166667),
+        min(calc((var(--narrow-room) - 57px) * 2.166667), var(--narrow-cap))
+      ),
+      100%
+    );
+    --narrow-h: calc(var(--narrow-w) * 0.666667);
+    /* 12 px more once the bow reaches under the control: a step written as a clamp, since CSS has
+       no conditional. */
+    --narrow-over: calc(var(--narrow-w) - var(--narrow-cap));
+    --narrow-step: clamp(0px, var(--narrow-over) * 1000, 12px);
+    --narrow-drop: calc(38px + var(--narrow-step) - var(--narrow-w) * 0.105128);
+    --narrow-trim: min(0px, 19px - var(--narrow-w) * 0.1);
+    --narrow-band: calc(
+      var(--narrow-drop) +
+      var(--narrow-h) +
+      var(--narrow-trim)
+    );
+  }
+
+  /* The percentages read the band's width wherever these are used: margins resolve against the
+     containing block's width, never its height, which is why the row's offset is a margin and not
+     `top` (that would read the foot's 44 px). The drop is the drawing's own margin, so the row
+     lies over the space above the drawing, not inside its box, where nothing may be hit (C9). */
+  main > [data-plan] {
+    margin-top: var(--narrow-drop);
+  }
+
+  main > [data-plan] > .plan-narrow {
+    width: var(--narrow-w);
+    margin: 0 0 var(--narrow-trim)
+      clamp(0px, 20px - var(--narrow-w) * 0.051282, 100% - var(--narrow-w));
+  }
+
+  /* The row at the band's head: pulled up by the band's whole height, so its grid row is 0 tall and
+     the title block follows the drawing. */
+  main > [data-model] + .foot {
+    justify-content: flex-end;
+    column-gap: 16px;
+    margin: calc(-1 * var(--narrow-band)) 0 0;
+  }
+
+  /* A set slot, not the group's own width: sized by its content, the buttons' arrival would push
+     Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). */
+  main > [data-model] + .foot > [data-motion] {
+    flex: none;
+    width: var(--narrow-slot);
+  }
+
+  /* The row lies over the model's layer here, so once the canvas arrives Chromium composites the
+     row in a layer of its own, and keeps LCD anti-aliasing for its text only if every glyph in that
+     layer lies on an opaque fill (.crew/STATE.md; sprint 44's B3.1 on CI, where Read as page's
+     glyphs changed at the hand-off). So all of the row's text has the film behind it. Read as
+     page's fill is clipped to a 24 px band round its line and underline: its 44 px target's padding
+     stays clear, so the fill never covers the stations' tops beneath it, and its text keeps its
+     place, centred in the row. The buttons' fill lies inside their frames, at the lowest
+     specificity, so the pressed ink and the hover tint still win. */
+  main > [data-model] + .foot > a {
+    padding-block: 10px;
+    background: var(--background) content-box;
+  }
+
+  :where(main > [data-model] + .foot [data-motion]) button {
+    background: var(--background);
+  }
+
+  /* The approved frame's group, a step smaller than the links, at the phone's 44 px. The bar's rule
+     is its top edge. */
+  main > [data-model] + .foot [data-motion] button {
+    min-width: 44px;
+    padding: 0 12px;
+    border-top-width: 0;
+    font-size: var(--step-sm);
+  }
+
+  /* The title block, a step tighter: a 12 px foot, and the contact row 8 px under the bio. Its gap
+     is 18 px from 390 and narrows to 12 by 360, so GitHub stays on the first row at 375 and 360
+     (100% is the row's width, the window's less the block's 32 px of padding). */
+  main > header.sheet-row {
+    padding-bottom: 12px;
+  }
+
+  main > header .title-contact {
+    margin-top: 8px;
+    padding-top: 0;
+    column-gap: clamp(12px, calc((100% - 280px) / 4), 18px);
+  }
+
+  /* The particulars' term column fits its longest term ("Gateway", 48.7 px) rather than 60 px, so
+     the Leads phrase fits one line from 385 px wide (from 402 with whole-pixel glyphs). */
+  .particulars {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .particulars > div {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: 10px;
+  }
+}
+
+/* Below 331 px the row reaches the Profile caption's column (x 20 to 56), so the drawing drops
+   further and the caption sits under the row: 55 - 25 s sets the caption's middle (25 s down the
+   box) at y 107, its top 4.5 px under the row, and 48 - 41 s keeps the stations' tops 4 px under
+   it, whichever drops more. */
+@media screen and (width < 20.6875rem) {
+  main {
+    --narrow-drop: max(
+      calc(55px - var(--narrow-w) * 0.064103),
+      calc(48px - var(--narrow-w) * 0.105128)
     );
   }
 }

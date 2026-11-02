@@ -81,9 +81,10 @@ export default async function Home() {
           className="lg:col-[1/-1] lg:row-start-1 lg:border-x lg:border-foreground"
         />
         <Model seated={[...seats.keys()]} />
-        {/* Below 768 px Read as page and the motion control sit here, at the drawing's foot: after
-          the model, whose adjacency to the drawing app/globals.css keys the planks on, and before
-          the title block. */}
+        {/* Below 768 px Read as page and the motion control, which app/globals.css hangs from the
+          bar at the drawing's head ("The sheet on a phone window"). In the DOM here: after the
+          model, whose adjacency to the drawing app/globals.css keys the planks on, and before the
+          title block, so Tab reaches them before the name, as the eye does. */}
         <Foot control={<MotionControl />} />
         <TitleBlock className="lg:col-start-2 lg:row-start-2" />
         {/* After the title block, so it is read after the name, the role and the bio: below it

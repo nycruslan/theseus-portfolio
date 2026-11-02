@@ -1,0 +1,47 @@
+{
+  "sprint": 44,
+  "pr": 107,
+  "goal": "Fit the name, facts and contact links into a phone's first window",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 8940b46 after one fix round; on phones the first window holds the name, role, lead, contact links and the four particulars, W8 to W12 green, nothing from 768 up moved",
+  "fixRounds": 1,
+  "minutes": 205,
+  "agents": [
+    { "role": "design-director", "model": "opus", "tokens": 584353, "minutes": 70 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 238426, "minutes": 48 },
+    { "role": "engineer", "model": "opus", "tokens": 380582, "minutes": 70 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 289134, "minutes": 41 }
+  ],
+  "lens": { "runs": 2, "tokens": 11180296, "important": 0, "actedOn": 0, "nits": 7 },
+  "wentWrong": [
+    {
+      "what": "The first layout was measured in a different browser build than the tests use, and one phone size didn't fit there",
+      "evidence": "Iris's numbers came from Chromium 153; in CI's Chromium 156 the particulars ended 10.4 px past the margin at 393 x 659 (.crew/sprint/44/decisions.md 8)"
+    },
+    {
+      "what": "Text moved over the 3D model's layer lost its sharp rendering in CI only, failing a kept check after review",
+      "evidence": "B3.1's hand-off at 390 x 844: 1,459 pixels changed in CI, 0 locally; fixed by filling every glyph's background in the row (decisions.md 11, 12)"
+    },
+    {
+      "what": "A builder's own stop check rebuilt the site under his running tests four times",
+      "evidence": "Forge's first kept-spec run: seven false failures at 03:03 to 03:15, all green on a quiet build"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Let the builders' stop hook (.crew/verify-stop.mjs) build into a separate distDir, or skip the build while a next start serves the worktree's .next (sprint 43 proposed the same)",
+      "moves": "Spurious e2e failures from a mid-run rebuild: 7 in Forge's first run this sprint, 4 in sprint 43"
+    },
+    {
+      "change": "Run CI's e2e with an LCD fontconfig in the cloud session's local runs by default (FONTCONFIG_FILE with rgba rgb), so text over the canvas fails here before CI",
+      "moves": "Kept checks green locally and red in CI on text rendering: 1 in sprint 44, 2 in sprint 25"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "Lens's nits on 8940b46: the foot row's comment at app/globals.css:1531 (it overlaps the drawing box's empty head)" },
+    { "who": "Probe", "what": "Say in W11 that its resize clause can't see shifts flagged hadRecentInput, or read raw entries (Lens's nit); split W8's default-server pass out of the PLAYWRIGHT_BASE_URL guard with Wc's W15" },
+    { "who": "Forge", "what": "/crew's foot row over its canvas likely loses LCD text at the hand-off too; no check reads it" },
+    { "who": "Iris", "what": "Look at the phone sheet in Safari on a real phone; Chromium can't emulate its toolbar" }
+  ]
+}
