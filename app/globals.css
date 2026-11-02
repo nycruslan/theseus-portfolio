@@ -1524,10 +1524,15 @@ main:has(> [data-model]) {
 
   /* The percentages read the band's width wherever these are used: margins resolve against the
      containing block's width, never its height, which is why the row's offset is a margin and not
-     `top` (that would read the foot's 44 px). */
+     `top` (that would read the foot's 44 px). The drop is the drawing's own margin, so the row
+     lies over the space above the drawing, not inside its box, where nothing may be hit (C9). */
+  main > [data-plan] {
+    margin-top: var(--narrow-drop);
+  }
+
   main > [data-plan] > .plan-narrow {
     width: var(--narrow-w);
-    margin: var(--narrow-drop) 0 var(--narrow-trim)
+    margin: 0 0 var(--narrow-trim)
       clamp(0px, 20px - var(--narrow-w) * 0.051282, 100% - var(--narrow-w));
   }
 
