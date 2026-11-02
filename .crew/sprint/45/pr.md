@@ -7,8 +7,8 @@ and from 1024 to 1439 the crew key shows under the revisions.
 **Size:** M (the plan said S; `.crew/sprint/45/decisions.md` 2 says why).
 
 **Contract:** `.crew/sprint/45/contract.md`, W13 to W17, in `e2e/tablet-window.spec.ts`. All
-green on the build (Forge's full suite: 328 of 328, 40.5 min on 2 workers on a loaded 4-core
-machine; the new spec 34 s). W13 and W14 were red on the branch before the build; W16 and W17
+green on the build. CI's `check` on 9ca62e2 passed in 27 min 11 s, under its 35 (#107: 24 min 23 s
+in the suite); the new spec takes 34 s on 2 workers. W13 and W14 were red on the branch before the build; W16 and W17
 guard what main already did. Measured on the integrated build (Chromium 156, WebGL refused):
 
 | Window | Contact links end | Particulars | Key |
@@ -46,7 +46,8 @@ the key sits under the table at every width. At 1440 × 900 nothing moves (W2, u
   reads 1000 tall; `window.ts` says what moved and what was copied, and the older specs import the
   moved helpers; the tablet foot's comment says where it steps.
 
-**Iris:** ship (decisions.md 9).
+**Iris:** ship (decisions.md 9). **Lens:** ship on 9ca62e2, two nits for the next sprint that
+touches their code (the retro's follow-ups).
 
 **Left open:** at 1220 × 640 and 1247 × 640, outside the contract's windows, the floor holds and
 the links end 1.4 and 2.6 px under the fold (decisions.md 5). Wa's rule from 1280 loses LCD text
