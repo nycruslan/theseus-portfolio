@@ -52,16 +52,13 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         >
           Live Studio
         </a>
-        {/* Below 1536 the links must keep to one line for the first screen's budget, so no label:
-            with Live Studio in the row, the seven items wrap at 1440 and 1470. */}
-        <span className="hidden text-muted min-[96rem]:ml-auto min-[96rem]:inline">
-          Contact
-        </span>
-        {profile.links.map((link) => (
+        {/* Read aloud, not shown: the row has no room for it and stays on one line. */}
+        <span className="sr-only">Contact</span>
+        {profile.links.map((link, index) => (
           <a
             key={link.href}
             href={link.href}
-            className={`inline-flex min-h-11 items-center lg:min-h-0 ${LINK}`}
+            className={`inline-flex min-h-11 items-center lg:min-h-0 ${index === 0 ? "lg:ml-auto" : ""} ${LINK}`}
           >
             {link.label}
           </a>
