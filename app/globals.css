@@ -1480,7 +1480,9 @@ main:has(> [data-model]) {
  * so only a resize crosses the switch. Screen only: print keeps the strip.
  *
  * --sheet-foot is the bar (72), the title block down to its contact links (320 px at 1024 to 331
- * at 1247, a four-line bio and two link rows), and 8 px of film; it meets Wa's 25rem at 1280.
+ * at 1247, a four-line bio and two link rows), and 8 px of film: 25rem at 1024, rising to 412.75
+ * px at 1279, then stepping down 12.75 px to Wa's 25rem at 1280. The step is harmless: from 1248
+ * the contact row and the key hold one line each, so the foot over-reserves there anyway.
  * 18rem is the particulars' column at the cap, where each phrase takes at most two lines. 0.91567
  * is the drawing's rightmost line once the station numbers are off (1289.2 of its 1408 units).
  * 52px is the title block's 28 px padding and the 24 px gap, in the band's inner box, which
