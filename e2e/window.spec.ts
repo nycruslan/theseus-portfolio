@@ -161,6 +161,17 @@ async function firstWindow(page: Page) {
 /** This spec's key for the fixtures' first reads (e2e/window.ts, reachHome). */
 const SPEC = "window";
 
+// Ka's rider (.crew/sprint/46/first-contract.md): three reads hold only in the feed's down state,
+// which only this checkout's own server shows. On a deployment while the crew is live they read
+// the live pencil, by design: W5's boxes at 900 sit under the live row and its legend (7.9 px
+// lower), W7's forced-colours stroke read meets path.plank-erase's Canvas stroke, and W7's Calm
+// and Off layout differs from Full's by the pencil's lettering, which Full leads out onto the film
+// chip (.crew/sprint/46/close.md). So they stop under PLAYWRIGHT_BASE_URL, as W2 does; CI never
+// sets it, and the rest of each check keeps running there.
+const DEPLOYED = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+const DOWN_ONLY =
+  "PLAYWRIGHT_BASE_URL is set: this read holds only in the feed's down state, which a deployment doesn't serve";
+
 /** A fixture's site, asserted to show its state on `/`. */
 async function shownOn(crew: Crew, fixture: FixtureName) {
   const reached = await reachHome(crew, fixture, SPEC);
@@ -821,6 +832,8 @@ test("W5 a resize refits it: on Full, loaded at 1440 x 900, resized to 1440 x 70
         expect
           .soft(found.larger, `text as large as the h1 ${where}`)
           .toEqual([]);
+      } else if (DEPLOYED) {
+        note(test.info(), "not run", DOWN_ONLY);
       } else {
         // W2's boxes are read with WebGL refused; the model draws over them and moves none (B3.1).
         expect
@@ -1188,21 +1201,23 @@ test("W7 the sweeps at the new windows: at 1366 x 625 and 1536 x 715, light and 
         expect
           .soft(forced.strokes.length, `stroked lines ${inForced}`)
           .toBeGreaterThan(0);
-        expect
-          .soft(
-            [
-              ...new Set(
-                forced.strokes.filter(
-                  (s) =>
-                    s === forced.page ||
-                    s === "transparent" ||
-                    s === "rgba(0, 0, 0, 0)",
+        if (DEPLOYED) note(test.info(), "not run", DOWN_ONLY);
+        else
+          expect
+            .soft(
+              [
+                ...new Set(
+                  forced.strokes.filter(
+                    (s) =>
+                      s === forced.page ||
+                      s === "transparent" ||
+                      s === "rgba(0, 0, 0, 0)",
+                  ),
                 ),
-              ),
-            ],
-            `strokes that vanish into the page (${forced.page}) ${inForced}`,
-          )
-          .toEqual([]);
+              ],
+              `strokes that vanish into the page (${forced.page}) ${inForced}`,
+            )
+            .toEqual([]);
         expect
           .soft(
             lost(forced.hidden),
@@ -1214,6 +1229,10 @@ test("W7 the sweeps at the new windows: at 1366 x 625 and 1536 x 715, light and 
       }
     }
 
+    if (DEPLOYED) {
+      note(test.info(), "not run", `${DOWN_ONLY} (Calm and Off against Full)`);
+      continue;
+    }
     // The modes: one page each, read in both schemes (a scheme moves no box).
     const runs = {
       full: await inMode(browser, width, height, "full"),
