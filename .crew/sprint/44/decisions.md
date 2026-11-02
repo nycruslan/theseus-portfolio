@@ -44,3 +44,14 @@
     motion slot sized in rem so a larger default font can't overlap Read as page, the stale
     "drawing's foot" comments, and Iris's memory under its 25 KB load limit. W8's default-server
     pass under `PLAYWRIGHT_BASE_URL` joins Wc's W15 in the roadmap.
+12. **Fix round 1 (Forge): B3.1's hand-off was CI's LCD text, as supposed, with a twist.**
+    Reproduced with the LCD fontconfig at CI's exact 1,459 px, all in Read as page's glyphs.
+    Filling the link alone changed nothing: Chromium keeps LCD text in a composited layer only if
+    every glyph in it sits on an opaque fill, and the row's three buttons share the layer. Read as
+    page gets a film band behind its text (inside its target, clear of the stations), the buttons a
+    film fill under the pressed and hover states. Nothing on screen moves (W8 to W11 to 0.01 px);
+    the check is unedited. Lens's nits taken: the slot is `calc(76px + 4.5rem)` (148 at 16 px; at a
+    24 px default font the row fits from 360 wide), the comments say where the row sits. STATE's
+    LCD lesson amended. Left open: at a 24 px default font the bar already scrolls sideways at
+    phone widths, here and on production; `/crew`'s foot row likely has the same grayscale switch
+    over its canvas, which no check reads.

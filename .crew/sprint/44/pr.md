@@ -78,6 +78,23 @@ with no cheap fix inside the fit: Read as page's text sits about 7 px off the Pr
 line, and its focus ring crosses the hull's top at the floor windows (accepted). Her screenshots
 are git-ignored in the crew's worktree (`.crew/screenshots/44-iris-review/`).
 
+## Fix round 1
+
+Lens said ship on 54b88d3, and CI's `check` failed one kept check: B3.1's hand-off at 390 × 844,
+DPR 2 (1,459 pixels of the drawing changed outside the profile). The cause was CI's LCD text:
+Read as page now sits over the canvas's area, and Chromium drops a composited layer's text to
+grayscale unless every glyph in it is on an opaque fill. Forge reproduced CI's exact count with an
+LCD fontconfig, then gave Read as page a film band behind its text and the three buttons a film
+fill (b997d19). Nothing on screen moves; B3.1 is unedited and green with LCD and grayscale text.
+Riding along, Lens's nits: the motion slot grows with the text (`calc(76px + 4.5rem)`, 148 px at
+the default size), the comments say where the row sits, and Iris's memory is under the 25 KB load
+limit (topic files beside it). W8's default-server pass under `PLAYWRIGHT_BASE_URL` joins Wc's W15
+in the roadmap at the close-out.
+
+After the round, on the integrated head: `pnpm verify` green; `phone-window` and
+`model-landing` 7 of 7 (Atlas); B3.1 green under LCD and grayscale text, phone-window, sheet,
+window, plan, motion and keyboard green (Forge).
+
 ## Not verified
 
 Safari and a real phone (none installed; Chromium can't emulate Safari's toolbar), a real GPU.
