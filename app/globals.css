@@ -1557,6 +1557,23 @@ main:has(> [data-model]) {
     width: var(--narrow-slot);
   }
 
+  /* The row lies over the model's layer here, so once the canvas arrives Chromium composites the
+     row in a layer of its own, and keeps LCD anti-aliasing for its text only if every glyph in that
+     layer lies on an opaque fill (.crew/STATE.md; sprint 44's B3.1 on CI, where Read as page's
+     glyphs changed at the hand-off). So all of the row's text has the film behind it. Read as
+     page's fill is clipped to a 24 px band round its line and underline: its 44 px target's padding
+     stays clear, so the fill never covers the stations' tops beneath it, and its text keeps its
+     place, centred in the row. The buttons' fill lies inside their frames, at the lowest
+     specificity, so the pressed ink and the hover tint still win. */
+  main > [data-model] + .foot > a {
+    padding-block: 10px;
+    background: var(--background) content-box;
+  }
+
+  :where(main > [data-model] + .foot [data-motion]) button {
+    background: var(--background);
+  }
+
   /* The approved frame's group, a step smaller than the links, at the phone's 44 px. The bar's rule
      is its top edge. */
   main > [data-model] + .foot [data-motion] button {
