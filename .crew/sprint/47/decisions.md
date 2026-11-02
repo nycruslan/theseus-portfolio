@@ -33,3 +33,8 @@
 9. **The Vercel preview didn't build** (Vercel's build rate limit), so nobody saw the keel on a
    deployment before the merge. Iris compared head and main on local builds with the same live
    fixture. Production after the merge is the first deployment.
+10. **Fix round 2: K7 pinned boxes that every retro's goal moves.** CI's `check` on 77c75ee
+    failed only in K7: sprint 47's one-line goal lifted the table 25.5 px against main's
+    recording. Probe now reads the table's and the rules' tops from the retro text above them, and
+    proved it with both goals and two mutants. This is the last fix round the skill allows. If
+    this one fails, the scope gets cut.

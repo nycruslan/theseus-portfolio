@@ -68,6 +68,9 @@ makes stale.
   - An added `test.skip(` is a weakened check: Lens accepts it only with its reason in the PR
     (scope.mjs's testNotes).
   - A check added after its fix can't be red on main: prove it with the mutant that turns it red.
+  - The panel and the title block show the newest retro's goal, so a box below it moves with
+    every merge whose goal wraps differently. Pin such boxes from the foot of the retro text
+    above them, not from the page (sprint 47's K7, `.crew/sprint/47/decisions.md` 10).
   - The suite's own server is the feed's down state, and a deployment never is: only a pass that
     holds in every feed state may run under `PLAYWRIGHT_BASE_URL` (sprint 45: W2 and P9 read the
     down state, and a contract that listed them cost a fix round, `.crew/sprint/45/decisions.md` 11).

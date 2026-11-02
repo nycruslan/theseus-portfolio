@@ -4,15 +4,36 @@
   "goal": "Show the rules the crew builds under, each quoted from its own file",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "merged: Lens ship on c513950 after one fix round; six rules on the crew page, each with its enforcer, its verbatim quote and a link to its line, fixed at build; K1 to K7 green, 0 B of new script",
-  "fixRounds": 1,
-  "minutes": 95,
+  "outcome": "merged: Lens ship after two fix rounds; six rules on the crew page, each with its enforcer, its verbatim quote and a link to its line, fixed at build; K1 to K7 green, 0 B of new script",
+  "fixRounds": 2,
+  "minutes": 150,
   "agents": [
-    { "role": "design-director", "model": "opus", "tokens": 225085, "minutes": 21 },
-    { "role": "qa-engineer", "model": "opus", "tokens": 247179, "minutes": 33 },
-    { "role": "engineer", "model": "opus", "tokens": 326003, "minutes": 68 }
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 225085,
+      "minutes": 21
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 268492,
+      "minutes": 42
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 326003,
+      "minutes": 68
+    }
   ],
-  "lens": { "runs": 2, "tokens": 6690975, "important": 1, "actedOn": 1, "nits": 5 },
+  "lens": {
+    "runs": 2,
+    "tokens": 6690975,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 5
+  },
   "wentWrong": [
     {
       "what": "The plan kept a link check unchanged that the new rules' links could never pass",
@@ -23,15 +44,31 @@
       "evidence": "Lens's Important on 7b0402a: keel.spec.ts:1283's test.skip wasn't named in the PR; named in 5976e4a, no code change"
     },
     {
-      "what": "The design note claimed a browser rule that Chromium doesn't follow",
-      "evidence": "placement.md: a sticky grid item sticks only in its own row; Probe's one-row mutant stayed stuck, Iris confirmed it (decisions.md 6)"
+      "what": "A layout check pinned positions that the newest sprint's goal moves",
+      "evidence": "CI on 77c75ee: K7's table sat 25.5 px higher once sprint 47's one-line goal replaced 46's two-line one; fixed in 76c635a (decisions.md 10)"
     }
   ],
   "proposals": [],
   "followUps": [
-    { "who": "Forge", "what": "Lens's nit on c513950: move LINK out of components/crew.tsx into a module of its own, so the panel stays client-only; then correct crew.md's line" },
-    { "who": "Forge", "what": "Lens's nit on c513950: globals.css:3559 says K7 depends on the drawing's two-row span, which K7 can't see in Chromium" },
-    { "who": "Iris", "what": "WebKit's ::marker font and the keel on a real phone; the Vercel preview didn't build (rate limit), so nothing was seen on a deployment" },
-    { "who": "Probe", "what": "The keel's empty render is read only through keelRules returning []; K3 doesn't render the component" }
+    {
+      "who": "Forge",
+      "what": "Lens's nit on c513950: move LINK out of components/crew.tsx into a module of its own, so the panel stays client-only; then correct crew.md's line"
+    },
+    {
+      "who": "Forge",
+      "what": "Lens's nit on c513950: globals.css:3559 says K7 depends on the drawing's two-row span, which K7 can't see in Chromium"
+    },
+    {
+      "who": "Iris",
+      "what": "WebKit's ::marker font and the keel on a real phone; the Vercel preview didn't build (rate limit), so nothing was seen on a deployment"
+    },
+    {
+      "who": "Probe",
+      "what": "The keel's empty render is read only through keelRules returning []; K3 doesn't render the component"
+    },
+    {
+      "who": "Iris",
+      "what": "placement.md still says a sticky grid item sticks only in its grid area; decisions.md 6 records the correction"
+    }
   ]
 }

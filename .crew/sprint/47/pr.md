@@ -79,6 +79,26 @@ line on GitHub.
   - Forge's `crew.md` line now says `keel.tsx` imports `LINK` from `crew.tsx` on the server.
   - Iris's sticky-grid memory line now agrees with Probe's measurement.
 
+### Fix round 2 (CI's `check` on 77c75ee: 337 passed, 1 failed, K7)
+- **What failed:** the close-out's retro moved K7's recorded boxes. The panel shows the newest goal.
+  Sprint 47's goal fits one line at 1440, where sprint 46's wrapped, so the table and `[data-rules]`
+  sat 25.5 px higher than main's recording. The keel didn't move them.
+- **Why not re-record:** recorded as before, K7 would go red on main whenever a merged retro's goal
+  wraps differently.
+- **The fix (Probe, `e2e/keel.spec.ts`, K7 only):**
+  - The drawing and the h1 stay pinned to the page, as before.
+  - The table and the rules keep their left, width and height. Their tops are now read from the
+    foot of the retro text above them: the table from `[data-chip]`, the rules from
+    `[data-approval]`.
+  - Main's values were re-recorded on dfe9f86. No `expect(` was added or removed.
+- **Proof:**
+  - It passes with sprint 46's goal and with sprint 47's.
+  - Two mutants went red: a keel rule changing the page's grid columns, and a 40 px margin on the
+    table.
+  - Run here on the integrated head: `keel.spec.ts` passed 12 of 12.
+- **What it no longer catches:** the chip and everything under it shifting together while the h1
+  and every width stay put. Only CSS inside the panel can do that, not the keel's.
+
 **Lens: ship on c513950.** Its two nits only move code, so they ride with Kb: `LINK` gets its own
 module, and `globals.css`'s comment on the drawing's two-row span gets corrected. The close-out
 that follows touches only notes.
