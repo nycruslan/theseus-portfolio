@@ -124,7 +124,7 @@ export default async function Crew() {
               : null
           }
         />
-        <Keel />
+        <Keel retros={facts.retros} />
       </main>
     </>
   );

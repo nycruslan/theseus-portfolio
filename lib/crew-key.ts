@@ -7,11 +7,18 @@ import { profile } from "@/content/profile";
 // is (decisions.md, 3). One line at 1440, so the first screen keeps its contact links
 // (decisions.md, 8).
 
-const [first = profile.name] = profile.name.split(" ");
+/** The owner's first name, which the key and the keel's record call him by. */
+export const [FIRST_NAME = profile.name] = profile.name.split(" ");
 
 /** The key's first sentence: who the names are. /crew repeats it where its job column folds. */
-export const CREW_WHO = `Every name is an AI agent ${first} directs.`;
+export const CREW_WHO = `Every name is an AI agent ${FIRST_NAME} directs.`;
 
-/** The rest: what the two words under Approved mean. */
-export const CREW_APPROVED =
-  "Approved: Gate is CI, his rules and Lens's review; Owner is his own call.";
+/**
+ * The rest: what the two words under Approved mean. "his rules" links to the keel on /crew
+ * (.crew/sprint/48/contract.md, K9), so the words around it are strings of their own.
+ */
+export const CREW_APPROVED = {
+  before: "Approved: Gate is CI, ",
+  rules: "his rules",
+  after: " and Lens's review; Owner is his own call.",
+} as const;

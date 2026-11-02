@@ -1,5 +1,7 @@
-import { LINK } from "@/components/crew";
+import { LINK } from "@/components/crew-link";
+import { FIRST_NAME } from "@/lib/crew-key";
 import { type KeelRule, keelRules } from "@/lib/keel";
+import type { SprintEntry } from "@/lib/sprint-log";
 import gate from "../.crew/gate.mjs?raw";
 import guard from "../.crew/guard.mjs?raw";
 import scope from "../.crew/scope.mjs?raw";
@@ -43,17 +45,41 @@ function Enforcer({ label }: { label: string }) {
 const at = ({ path, start, end }: KeelRule) =>
   start === end ? `${path}, line ${start}` : `${path}, lines ${start}–${end}`;
 
+type Retros = readonly Pick<SprintEntry, "ownersCall">[];
+
+/**
+ * The record behind the rules (.crew/sprint/48/contract.md, K12): how every merged sprint was
+ * approved, counted by its retro's `ownersCall` as /log's Approved column reads it (Gate or Owner),
+ * so the two can't disagree. One string, so the HTML holds it whole; none before the first merge.
+ */
+function Approvals({ retros }: { retros: Retros }) {
+  if (retros.length === 0) return null;
+  const owner = retros.filter((retro) => retro.ownersCall).length;
+  return (
+    <p data-keel-record="" className="keel-record">
+      {`${retros.length} sprints merged: ${retros.length - owner} on the checks alone, ${owner} on ${FIRST_NAME}'s own call.`}
+    </p>
+  );
+}
+
 /**
  * The keel (.crew/sprint/46/first-contract.md; Iris's .crew/sprint/47/placement.md): server HTML
  * after the panel. Each rule keeps its number from KEEL, so a dropped rule leaves a gap; with none
- * left the page sets nothing, not an empty heading.
+ * left the page sets nothing, not an empty heading. Its h2 is where "his rules" on / and the
+ * panel's Approval land (.crew/sprint/48/contract.md, K9 to K11).
  */
-export function Keel() {
+export function Keel({
+  retros,
+}: {
+  /** Every merged sprint's retro, newest first, as /log reads them (lib/sprint-log.ts). */
+  retros: Retros;
+}) {
   if (RULES.length === 0) return null;
   return (
     <section aria-labelledby="keel" className="keel">
       <h2 id="keel">Keel</h2>
       <p className="keel-lead">{LEAD}</p>
+      <Approvals retros={retros} />
       <ol className="keel-rules">
         {RULES.map((rule) => (
           <li
