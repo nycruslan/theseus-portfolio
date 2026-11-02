@@ -79,6 +79,10 @@ line on GitHub.
   - Forge's `crew.md` line now says `keel.tsx` imports `LINK` from `crew.tsx` on the server.
   - Iris's sticky-grid memory line now agrees with Probe's measurement.
 
+**Lens: ship on c513950.** Its two nits only move code, so they ride with Kb: `LINK` gets its own
+module, and `globals.css`'s comment on the drawing's two-row span gets corrected. The close-out
+that follows touches only notes.
+
 ### Decisions
 - Iris tightened two rule sentences without changing their claims. Rule 5 now reads "don't edit"
   rather than "can't edit", since its own label says a shell command can get around it. Rule 6 is

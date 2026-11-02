@@ -43,6 +43,10 @@ makes stale.
   - A contract writer reading a design for checks finds what the designer missed (sprint 15's
     cropped plank). Keep that read before the build.
   - A rule two places implement (the page and Probe's oracle) is briefed to both word for word.
+  - A contract that adds a link, a role or any new kind of element also greps the kept checks
+    that allowlist that kind of thing (sprint 47: B4.8 allowlists every href on `/crew`, the
+    contract listed it as unedited, and the keel's six links stopped the build,
+    `.crew/sprint/47/decisions.md` 4).
   - Before placing anything near the title block, list every viewport the kept checks pin
     (`grep -n setViewportSize e2e/`): sprint 40's key was placed for 1440 × 900 and went red at
     B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.

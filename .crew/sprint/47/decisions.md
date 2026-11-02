@@ -25,3 +25,11 @@
 7. **Not verified here:** the `protect-main` ruleset's three required checks. Reading rulesets was
    refused in this session. `merge.mjs`'s wait on this PR shows the required checks, and I record
    them at the close.
+8. **Lens: changes on 7b0402a, then ship on c513950.** The one Important finding was that
+   `keel.spec.ts:1283`'s added skip wasn't named in the PR. I named it with its reason, and no code
+   changed. Three cheap nits rode along in the fix round: B4.8's title, Forge's `crew.md` line and
+   Iris's sticky-grid memory line. Lens's two nits on c513950 (`LINK` into its own module, and
+   `globals.css`'s comment on the two-row span) only move code, so they ride with Kb.
+9. **The Vercel preview didn't build** (Vercel's build rate limit), so nobody saw the keel on a
+   deployment before the merge. Iris compared head and main on local builds with the same live
+   fixture. Production after the merge is the first deployment.
