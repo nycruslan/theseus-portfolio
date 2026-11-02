@@ -60,11 +60,14 @@ export default async function Home() {
       {/* The sheet (.crew/sprint/22/contract.md): the drawing, then the title block and the revision
         block side by side from 1024 px inside a frame 16 px in, stacked below it with the title
         block first. The title block leads in the DOM at every width, so the name is read first, then
-        the particulars. The facts follow below the sheet. tabIndex -1: the skip link's landing spot, never a Tab stop. */}
+        the particulars. The facts follow below the sheet. tabIndex -1: the skip link's landing spot, never a Tab stop.
+        The title block's column is never under 27.5rem, a 384 px measure that keeps the bio's lead
+        on four lines; it binds only from 1024 to 1058, where 3/7 of the frame is narrower
+        (.crew/sprint/45/placement.md). */}
       <main
         id="main"
         tabIndex={-1}
-        className={`grid grid-cols-1 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)] lg:px-4 ${sofiaCondensed.variable}`}
+        className={`grid grid-cols-1 lg:grid-cols-[minmax(0,4fr)_minmax(27.5rem,3fr)] lg:px-4 ${sofiaCondensed.variable}`}
       >
         <script
           type="application/ld+json"
@@ -88,8 +91,10 @@ export default async function Home() {
         <Foot control={<MotionControl />} />
         <TitleBlock className="lg:col-start-2 lg:row-start-2" />
         {/* After the title block, so it is read after the name, the role and the bio: below it
-          under 1024 px, a strip row of the frame to 1279, and the drawing's empty corner from 1280
-          (app/globals.css, "The particulars"). Never between the drawing and the model. */}
+          under 1024 px; from 1024 to 1279 beside the drawing at the band's foot under 960 px tall,
+          and a strip row of the frame from 960; from 1280 the drawing's empty corner, or beside it
+          under 712 tall (app/globals.css, "The particulars"). Never between the drawing and the
+          model. */}
         <Particulars />
         <Revisions
           entries={entries}

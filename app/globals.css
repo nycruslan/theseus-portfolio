@@ -1306,10 +1306,12 @@ main:has(> [data-model]) {
 /*
  * The particulars (components/particulars.tsx; .crew/sprint/39/placement.md): the owner's scope
  * and scale in four ruled rows, lettered like the drawing and the revision table. Below 1024 px a
- * table of its own after the title block, inset like it; 1024 to 1279 a strip row of the frame
- * under the title block and the revisions; from 1280 the band's empty corner under the body plan.
- * Positioned so it paints above the model's layer where it lies on the drawing's box; it has no
- * ink fill and no box, so it never reads as a plank. Nothing in it moves (P5).
+ * table of its own after the title block, inset like it; 1024 to 1279 beside the drawing at the
+ * band's foot under 960 px tall ("The sheet on a tablet window" below), and from 960 tall a strip
+ * row of the frame under the title block and the revisions; from 1280 the band's empty corner
+ * under the body plan, or beside it under 712 tall. Positioned so it paints above the model's
+ * layer where it lies on the drawing's box; it has no ink fill and no box, so it never reads as a
+ * plank. Nothing in it moves (P5).
  */
 .particulars {
   position: relative;
@@ -1343,9 +1345,12 @@ main:has(> [data-model]) {
   text-wrap: balance;
 }
 
-/* 1024 to 1279: the corner is too shallow for the four rows, so they become a row of the frame,
-   four across, each term above its phrase; row 2's bottom borders are its top. */
-@media (64rem <= width < 80rem) {
+/* 1024 to 1279 from 960 px tall, and in print: the corner is too shallow for the four rows, so
+   they become a row of the frame, four across, each term above its phrase; row 2's bottom borders
+   are its top. Under 960 tall on a screen they stand beside the drawing instead ("The sheet on a
+   tablet window" below), as rows. */
+@media (64rem <= width < 80rem) and (height >= 60rem),
+  print and (64rem <= width < 80rem) {
   .particulars {
     grid-column: 1 / -1;
     grid-row: 3;
@@ -1463,6 +1468,119 @@ main:has(> [data-model]) {
 }
 
 /*
+ * The sheet on a tablet window (.crew/sprint/45/placement.md, Iris's call 1): from 1024 to 1279 px
+ * under 960 px tall, Wa's short regime reaches down, so the name, the role, the bio's lead, the
+ * contact links and the particulars are in the first window, 1024 x 640 among them. The drawing
+ * gives way from the frame's left and the particulars stand beside it at the band's foot, as they
+ * do from 1280 under 712 tall. The drawing is the height the window leaves above the title block,
+ * or the width that leaves the particulars an 18rem column beside its rightmost line, whichever is
+ * less, and never under Wa's 240 px floor; at 1024 the two meet the floor by construction. The
+ * contact row follows the bio. From 960 tall today's sheet holds everything, so it stays: the
+ * drawing the band's width, the particulars a strip row under it (above). A tablet holds its svh,
+ * so only a resize crosses the switch. Screen only: print keeps the strip.
+ *
+ * --sheet-foot is the bar (72), the title block down to its contact links (320 px at 1024 to 331
+ * at 1247, a four-line bio and two link rows), and 8 px of film; it meets Wa's 25rem at 1280.
+ * 18rem is the particulars' column at the cap, where each phrase takes at most two lines. 0.91567
+ * is the drawing's rightmost line once the station numbers are off (1289.2 of its 1408 units).
+ * 52px is the title block's 28 px padding and the 24 px gap, in the band's inner box, which
+ * .plan-wide's percentage reads; 54px is the same in main's box, which the particulars' margin
+ * reads and which is 2 px wider (the band's borders). 29px is the band's 1 px border and the title
+ * block's 28 px padding, so the particulars' right edge is on the title block's text.
+ * --plan-floor-w is the floor's width, rounded up to a whole pixel: layout rounds the width and
+ * then the height down to 1/64 px, so 15rem / 0.33807 (709.913 px) would set the drawing 239.984
+ * tall, under the floor, wherever the floor binds (at 1024, and under about 650 tall); 710 px sets
+ * it 240.016 (W16).
+ */
+@media screen and (64rem <= width < 80rem) and (height < 60rem) {
+  main {
+    --sheet-foot: calc(25rem + (100vw - 64rem) * 0.05);
+    --plan-floor: 15rem;
+    --plan-floor-w: round(up, var(--plan-floor) / 0.33807, 1px);
+    --plan-fit: max(
+      var(--plan-floor-w),
+      (100svh - var(--sheet-foot)) /
+      0.33807
+    );
+  }
+
+  main > [data-plan] > .plan-wide {
+    width: min(
+      100%,
+      var(--plan-fit),
+      max(var(--plan-floor-w), (100% - 52px - 18rem) / 0.91567)
+    );
+  }
+
+  main > [data-plan] > .plan-wide > .plan-plank {
+    font-size: var(--step-xs);
+  }
+
+  main > [data-plan] > .plan-wide > .plan-wide-only {
+    display: none;
+  }
+
+  .title-contact {
+    margin-top: 0;
+  }
+
+  /* Right edge on the title block's text; left edge on its text edge (column 1 is 4/7 of the
+     frame, or what the title block's 27.5rem leaves), or 24 px clear of the drawing's rightmost
+     line, whichever is further right. Filled with the film, as from 1280, since it lies on the
+     model's layer (the particulars' rule above). The fill reaches 2 px left of the rows, the
+     margin giving them back: Chromium keeps LCD text in that layer only where each glyph's rect
+     lies inside the fill, and it snaps a fill's edge to the nearest pixel but a glyph's rect
+     outward, so wherever the left edge fell half a pixel or more past a whole one (699.98 at
+     1180 x 640) the terms' first column left the fill and every glyph changed as the model landed
+     (8,745 px, with CI's LCD text). The right edge is always on a whole pixel. */
+  .particulars {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: end;
+    margin: 0 29px 16px;
+    margin-left: calc(
+      max(
+        calc(min(100% * 4 / 7, 100% - 27.5rem) + 28px),
+        calc(
+          1px +
+          min(
+            calc(100% - 2px),
+            var(--plan-fit),
+            max(var(--plan-floor-w), (100% - 54px - 18rem) / 0.91567)
+          ) *
+          0.91567 +
+          24px
+        )
+      ) -
+      2px
+    );
+    padding: 0 0 0 2px;
+    background: var(--background);
+  }
+}
+
+/* 1024 to 1247 (Iris's call 2): the contact row and the key each take two lines, split where they
+   read: the site's three links, then the three contact links (after the Contact label read aloud),
+   never one group across the break; the key's claim, then what Approved means. The break is
+   generated content and `order`, so the links keep the DOM's order, and Tab with it; the sr-only
+   label is absolutely positioned, so it isn't a flex item. From 1248 each holds one line. */
+@media (64rem <= width < 78rem) {
+  .title-contact::after {
+    content: "";
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  .title-contact > .sr-only ~ a {
+    order: 2;
+  }
+
+  .rev-key > .crew-key-who {
+    display: block;
+  }
+}
+
+/*
  * The sheet on a phone window (.crew/sprint/44/placement.md, Iris's call): below 768 px the name,
  * the role, the bio's lead, the contact links and the four particulars are in the first window with
  * Safari's toolbars showing, 390 x 664 among them. Read as page and the motion control stay one
@@ -1530,8 +1648,14 @@ main:has(> [data-model]) {
 
   /* The percentages read the band's width wherever these are used: margins resolve against the
      containing block's width, never its height, which is why the row's offset is a margin and not
-     `top` (that would read the foot's 44 px). The drop is the drawing's own margin, so the row
-     lies over the space above the drawing, not inside its box, where nothing may be hit (C9). */
+     `top` (that would read the foot's 44 px). The drop is the drawing's own margin, and shorter
+     than the 44 px row, so the row lies over the top of the drawing's box: its head above the
+     stations, 30 to 35 px of it from 360 to 430 wide (3 px at 320), where the only lettering is
+     the Profile caption at the left, clear of the row's items. The stations' ink starts 6 px under
+     the row where the drawing reaches under the control, and 6 px inside its band where it
+     doesn't, under Read as page's target padding, which has no fill (below). The drawing is
+     inert; C9's 3 x 3 grid of its box finds nothing to hit at 390 x 900 only because its top row
+     (y 101) falls 5 px under the row (y 96). */
   main > [data-plan] {
     margin-top: var(--narrow-drop);
   }
