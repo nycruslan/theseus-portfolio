@@ -153,18 +153,21 @@ html {
  * notes-iris.md, sections 2 to 5): Full, Calm, Off, each button in a 1 px ink frame whose shared
  * edges make the dividers, the pressed one ink with film text. It has two slots, both in the
  * server's HTML at the group's size, so the buttons' arrival moves nothing: the bar's from 768 px,
- * and below it the foot's row, since the phone bar is full: at the drawing's foot on the sheet, at
- * the header's end on the Log. Exactly one is shown.
+ * and below it the foot's row, since the phone bar is full: hanging from the bar at the drawing's
+ * head on the sheet, at the drawing's foot on /crew, at the header's end on the Log. Exactly one
+ * is shown.
  * Without scripts both are empty. Neither is printed.
  */
 nav > [data-motion] {
   display: none;
 }
 
-/* The drawing's foot below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
+/* The foot's row below 768 px (components/foot.tsx; .crew/sprint/31/contract.md, "The bar"):
    Read as page at the left and, on a page with a model, the control at the right, in one 44 px
-   row. It borrows 12 px of the drawing's own margin, and paints over the model's layer, which lies
-   on the drawing's box. The Log sets it at the header's end instead (`.log > .foot`). */
+   row. Here, as /crew sets it at the drawing's foot, it borrows 12 px of the drawing's own margin,
+   and paints over the model's layer, which lies on the drawing's box. The sheet hangs it from the
+   bar at the drawing's head ("The sheet on a phone window"), the Log at the header's end
+   (`.log > .foot`). */
 .foot {
   position: relative;
   display: flex;
@@ -1490,16 +1493,19 @@ main:has(> [data-model]) {
  *     the drawing, and over it: 38 px of drop under the row less the stations' 41 s, the box's
  *     260 s, less the trimmed foot (39 s - 19), and 12 px more drop where the drawing reaches under
  *     the control, so its 44 px frame clears the stations by 4.
- *   - --narrow-cap, (width - 188) * 1.25: the widest drawing whose bow (x 20 + 312 s) stays 4 px
- *     clear of the control's slot, 148 px wide and 16 px in from the right (1.25 is 390 / 312).
+ *   - --narrow-slot: the control's slot, 148 px at the default font size for the 142.5 px group,
+ *     whose 76 px of padding and frames hold while its labels grow with the text.
+ *   - --narrow-cap, (width - 40 - the slot) * 1.25: the widest drawing whose bow (x 20 + 312 s)
+ *     stays 4 px clear of the slot, 16 px in from the right (1.25 is 390 / 312).
  * --narrow-w is the larger of the two fits, never under the floor or past the band.
  */
 @media screen and (width < 48rem) {
   main {
     --phone-foot: 28rem;
     --narrow-floor: 14rem;
+    --narrow-slot: calc(76px + 4.5rem);
     --narrow-room: calc(100svh - 60px - var(--phone-foot));
-    --narrow-cap: calc((100% - 188px) * 1.25);
+    --narrow-cap: calc((100% - 40px - var(--narrow-slot)) * 1.25);
     --narrow-w: clamp(
       var(--narrow-floor),
       max(
@@ -1544,11 +1550,11 @@ main:has(> [data-model]) {
     margin: calc(-1 * var(--narrow-band)) 0 0;
   }
 
-  /* A fixed slot, 148 px for the 142.5 px group: sized by its content, the buttons' arrival would
-     push Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). */
+  /* A set slot, not the group's own width: sized by its content, the buttons' arrival would push
+     Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). */
   main > [data-model] + .foot > [data-motion] {
     flex: none;
-    width: 148px;
+    width: var(--narrow-slot);
   }
 
   /* The approved frame's group, a step smaller than the links, at the phone's 44 px. The bar's rule
