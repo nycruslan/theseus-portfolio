@@ -52,6 +52,14 @@ the rest guards.
   passes; `window`, `one-site`, `keyboard` and `first-screen` specs 45 of 45.
 - `window.spec.ts` adds about 2.5 min wall on 2 workers (#100's suite: 28.8 of 35 min).
 - No kept check edited, skipped or retired.
+- **Two new `PLAYWRIGHT_BASE_URL` skip guards** in the new spec, which CI never sets
+  (`.github/workflows/ci.yml` runs `pnpm test:e2e` with only `PLAYWRIGHT_PREBUILT`), so W1, W2 and
+  the rider all run in `check`: `e2e/window.spec.ts:291` (the "on the feed's fixtures" describe,
+  W1 and W2) and `:601` (the rider on seat 5.0). The reason, as their skip messages give it: the
+  fixture states and the 5.0 pencil need this checkout's build served from copies pointed at the
+  fixture server, which a run against a deploy can't do. The same guard as `live-layer`, `crew*`,
+  `particulars` and `plain-words`. Splitting W1's and W2's default-server passes out of it joins
+  Wc's P3, P8 and P9 line (Lens's nit).
 
 ## Decisions
 
