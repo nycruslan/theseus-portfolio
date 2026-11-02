@@ -1032,6 +1032,10 @@ for (const [width, height] of K6_SIZES) {
             const li = document.querySelectorAll(`${keel} li[data-rule]`)[i];
             const k = document.querySelector(keel)?.getBoundingClientRect();
             const r = li?.getBoundingClientRect();
+            // Overlap counts past 0.5 px on both axes. The canvas is whole-pixel: at 1024 it is 567 px
+            // wide for a 566.84 px layer, so its edge reaches 0.16 px past the column edge the keel
+            // starts on (Forge's build, c9ebb59), as it already does against the panel on main. A
+            // canvas a whole pixel wider than its layer still meets the keel.
             const meets = (a?: DOMRect, b?: DOMRect) =>
               Boolean(
                 a &&
