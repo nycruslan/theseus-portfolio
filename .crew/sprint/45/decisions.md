@@ -35,3 +35,8 @@
    after). `pnpm verify` passes on the integrated tree; Forge's full suite: 328 of 328 on 2 workers.
    Wa's rule from 1280 has the same two latent problems on unchanged code (LCD loss at 1300 × 650,
    which no check reads); a follow-up, not this sprint's.
+9. **Iris: ship, yes to both departures** (on 41552f7; her table matches Forge's to 0.1 px, 273
+   windows swept per state, only the accepted 1247 × 640). Her one edit taken before the review
+   label: the floor's width as `calc(var(--plan-floor) / 0.33807 + 0.1px)`, not `round()`, which
+   would be the site's first need for Chrome 125 (the site otherwise needs 108), and without which
+   the drawing goes full width under the particulars. Same geometry in both engines. Forge makes it.
