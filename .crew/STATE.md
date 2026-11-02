@@ -64,6 +64,9 @@ makes stale.
   - An added `test.skip(` is a weakened check: Lens accepts it only with its reason in the PR
     (scope.mjs's testNotes).
   - A check added after its fix can't be red on main: prove it with the mutant that turns it red.
+  - The suite's own server is the feed's down state, and a deployment never is: only a pass that
+    holds in every feed state may run under `PLAYWRIGHT_BASE_URL` (sprint 45: W2 and P9 read the
+    down state, and a contract that listed them cost a fix round, `.crew/sprint/45/decisions.md` 11).
   - In forced colors Chromium paints a background-only dot opaque Canvas. A check that it "shows"
     compares it with the page's background.
   - Text painted above a WebGL canvas is composited in its own transparent layer, where CI's
@@ -73,7 +76,9 @@ makes stale.
     New text over the model's layer gets the same treatment: an opaque fill in the film colour
     keeps it LCD at the hand-off (sprint 39, B3.1), but only if every glyph in that composited
     layer sits on one: filling Read as page alone kept 1,459 px changing until the buttons
-    sharing its row were filled too (`.crew/sprint/44/decisions.md` 12). To see CI's LCD text here, point
+    sharing its row were filled too (`.crew/sprint/44/decisions.md` 12). The fill must also reach past the text:
+    an edge half a pixel or more past a whole pixel leaves the first glyphs outside it, and a 2 px
+    reach fixed it (`.crew/sprint/45/decisions.md` 8). To see CI's LCD text here, point
     `FONTCONFIG_FILE` at a config that sets `rgba` to `rgb` (`.crew/sprint/39/decisions.md` 8).
   - A kept check that reads what a new state restyles races it: B1.4 read the lettering the hollow
     rule hides and lost to the idle import once. Read such things on the Off path (sprint 25).

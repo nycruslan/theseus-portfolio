@@ -361,24 +361,12 @@ function keyOverflow(page: Page) {
   }, KEY);
 }
 
-test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark, nothing in it painted copper (on the default server and the live fixture), and at 320 nothing overflows (the page, the key's box and its own scroll width)", async ({
-  page,
-  crew,
-}) => {
-  test.skip(
-    Boolean(process.env.PLAYWRIGHT_BASE_URL),
-    "PLAYWRIGHT_BASE_URL is set: the live fixture needs this checkout's build (B4.22's harness)",
-  );
-  test.setTimeout(120_000);
-  const live = await reachHome(crew, "live");
-  expect(
-    live.home.seen,
-    `the state / shows on the home-live site within ${STATE_WAIT} ms`,
-  ).toBe("live");
-  for (const [base, site] of [
-    ["", "the default server"],
-    [live.base, "the live fixture"],
-  ] as const) {
+const P8_PAINT =
+  "P8 the key reads and holds: 4.5:1 for each of its texts in light and dark, nothing in it painted copper (on the default server and the live fixture), and at 320 nothing overflows (the page, the key's box and its own scroll width)";
+
+/** P8's paint read at 1440 on each of `states`, light and dark. */
+async function p8Paint(page: Page, states: { base: string; site: string }[]) {
+  for (const { base, site } of states) {
     for (const scheme of SCHEMES) {
       await page.emulateMedia({ colorScheme: scheme });
       await openAt(page, "/", 1440, 900, base);
@@ -397,6 +385,13 @@ test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark,
       expect.soft(paint.copper, `copper paint in the key ${where}`).toEqual([]);
     }
   }
+}
+
+// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
+// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+test(`${P8_PAINT} (the default server's pass, and 320)`, async ({ page }) => {
+  test.setTimeout(60_000);
+  await p8Paint(page, [{ base: "", site: "the default server" }]);
   await page.emulateMedia({ colorScheme: "light" });
   await openAt(page, "/", 320, 800);
   const over = await keyOverflow(page);
@@ -410,6 +405,20 @@ test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark,
   expect
     .soft(over?.scroll, "the key's scrollWidth past its clientWidth at 320")
     .toBe(0);
+});
+
+test(`${P8_PAINT} (the live fixture's pass)`, async ({ page, crew }) => {
+  test.skip(
+    Boolean(process.env.PLAYWRIGHT_BASE_URL),
+    "PLAYWRIGHT_BASE_URL is set: the live fixture needs this checkout's build (B4.22's harness)",
+  );
+  test.setTimeout(120_000);
+  const live = await reachHome(crew, "live");
+  expect(
+    live.home.seen,
+    `the state / shows on the home-live site within ${STATE_WAIT} ms`,
+  ).toBe("live");
+  await p8Paint(page, [{ base: live.base, site: "the live fixture" }]);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -451,6 +460,61 @@ async function reached(crew: Crew, fixture: Fixture) {
   return r;
 }
 
+const P8_SCREEN =
+  "P8 the key in the first screen: at 1440 x 900, light and dark, on the default server and the live, open and resting fixtures, the key wholly inside the viewport with every item B1.1 lists and the five rows; at 390 x 844 it follows the rows";
+
+/** P8's first-screen read on each of `states`, light and dark. */
+async function p8Screen(page: Page, states: { base: string; where: string }[]) {
+  for (const { base, where: site } of states) {
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await openAt(page, "/", 1440, 900, base);
+      let where = `on ${site} at 1440 x 900, ${scheme}`;
+      const key = await readKey(page);
+      const found = await firstScreen(page);
+      expect.soft(key.box, `${KEY} ${where}`).not.toBeNull();
+      expect
+        .soft(
+          insideViewport(key.box, found.viewport),
+          `the key wholly inside the first viewport ${where}: ${JSON.stringify(key.box)}`,
+        )
+        .toBe(true);
+      expect
+        .soft(found.rows, `revision rows ${where}`)
+        .toHaveLength(ROWS_SHOWN);
+      expect
+        .soft(
+          [...found.items, ...found.rows]
+            .filter(({ box }) => !insideViewport(box, found.viewport))
+            .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
+          `B1.1's items and the rows not wholly inside the first viewport ${where}`,
+        )
+        .toEqual([]);
+
+      await openAt(page, "/", 390, 844, base);
+      where = `on ${site} at 390 x 844, ${scheme}`;
+      const narrow = await readKey(page);
+      expect.soft(narrow.box, `${KEY} ${where}`).not.toBeNull();
+      expect
+        .soft(
+          (narrow.box?.top ?? Number.NaN) >=
+            (narrow.tableBottom ?? Number.NaN) - 0.5,
+          `the key's top (${narrow.box?.top}) at or below the rows' table's bottom (${narrow.tableBottom}) ${where}`,
+        )
+        .toBe(true);
+    }
+  }
+}
+
+// P8's default-server pass holds in every feed state, so it runs wherever the suite does, a
+// deployment under PLAYWRIGHT_BASE_URL included (.crew/sprint/45/contract.md, W15). P9's stays in
+// the fixtures' describe: its default pass reads /crew's down state, which only this checkout's own
+// server shows, never a deployment (.crew/sprint/45/decisions.md, 11).
+test(`${P8_SCREEN} (the default server's pass)`, async ({ page }) => {
+  test.setTimeout(60_000);
+  await p8Screen(page, [{ base: "", where: "the default server" }]);
+});
+
 test.describe("on the feed's fixtures", () => {
   test.describe.configure({ mode: "default" });
   test.skip(
@@ -464,56 +528,15 @@ test.describe("on the feed's fixtures", () => {
     void replaySite(crew, "replay");
   });
 
-  test("P8 the key in the first screen: at 1440 x 900, light and dark, on the default server and the live, open and resting fixtures, the key wholly inside the viewport with every item B1.1 lists and the five rows; at 390 x 844 it follows the rows", async ({
-    page,
-    crew,
-  }) => {
+  test(`${P8_SCREEN} (the fixtures' pass)`, async ({ page, crew }) => {
     test.setTimeout(150_000);
-    const states = [{ base: "", where: "the default server" }];
+    const states: { base: string; where: string }[] = [];
     for (const fixture of FIXTURES)
       states.push({
         base: (await reached(crew, fixture)).base,
         where: `the ${fixture} fixture`,
       });
-    for (const { base, where: site } of states) {
-      for (const scheme of SCHEMES) {
-        await page.emulateMedia({ colorScheme: scheme });
-        await openAt(page, "/", 1440, 900, base);
-        let where = `on ${site} at 1440 x 900, ${scheme}`;
-        const key = await readKey(page);
-        const found = await firstScreen(page);
-        expect.soft(key.box, `${KEY} ${where}`).not.toBeNull();
-        expect
-          .soft(
-            insideViewport(key.box, found.viewport),
-            `the key wholly inside the first viewport ${where}: ${JSON.stringify(key.box)}`,
-          )
-          .toBe(true);
-        expect
-          .soft(found.rows, `revision rows ${where}`)
-          .toHaveLength(ROWS_SHOWN);
-        expect
-          .soft(
-            [...found.items, ...found.rows]
-              .filter(({ box }) => !insideViewport(box, found.viewport))
-              .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
-            `B1.1's items and the rows not wholly inside the first viewport ${where}`,
-          )
-          .toEqual([]);
-
-        await openAt(page, "/", 390, 844, base);
-        where = `on ${site} at 390 x 844, ${scheme}`;
-        const narrow = await readKey(page);
-        expect.soft(narrow.box, `${KEY} ${where}`).not.toBeNull();
-        expect
-          .soft(
-            (narrow.box?.top ?? Number.NaN) >=
-              (narrow.tableBottom ?? Number.NaN) - 0.5,
-            `the key's top (${narrow.box?.top}) at or below the rows' table's bottom (${narrow.tableBottom}) ${where}`,
-          )
-          .toBe(true);
-      }
-    }
+    await p8Screen(page, states);
   });
 
   test("P9 /crew labels each of the seven an AI agent: scripts off, on the default server (down) and the live, open and resting fixtures, every tr[data-role]'s first td reads <word>, AI agent, its AI agent in visible text (no box under 2 px from its text to the cell); at 390 the not-on-this-sprint sentence is unchanged; with scripts on at 1440 the visible text holds AI agent seven times", async ({

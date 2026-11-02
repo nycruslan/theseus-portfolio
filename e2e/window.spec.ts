@@ -27,10 +27,8 @@ import {
   capAt,
   drawingAt,
   FIRST,
-  profile as hullOf,
   modelCoverage,
   note,
-  outlineCoverage,
   pause,
   REST,
   SHOWN,
@@ -40,6 +38,16 @@ import { deltaE, edges, hausdorff, type Image, pixel } from "./pixels";
 import { PLAN } from "./plan";
 import { bioParts, MERGED } from "./retros";
 import { type ModelRun, openModel, refuseWebGl } from "./webgl";
+import {
+  at,
+  BLOCK,
+  drawingReads,
+  FIXTURES,
+  type FixtureName,
+  LETTERING,
+  reachHome,
+  registration,
+} from "./window";
 
 // Sprint 43, Wa: the sheet fits a laptop window (.crew/sprint/43/contract.md, W1 to W7), written
 // before the build. `/`'s first window holds the facts at every window in the set, the drawing
@@ -75,15 +83,12 @@ const SHORT = [
  */
 const DRAWING_FLOOR_PX = 240;
 
-const BLOCK = "dl[data-particulars]";
 const REVISIONS = 'section[aria-labelledby="revisions"]';
 /** Item 3: the p after the revision block's h2, the bio's last part (B1.2's caption). */
 const CAPTION_P = `${REVISIONS} h2 + p`;
 const [, , ...BIO_REST] = bioParts(profile.bio);
 const CAPTION = BIO_REST.join(" ");
 const KEY = "p[data-crew-key]";
-/** The drawing's lettering, HTML spans over its SVG (.crew/sprint/39/decisions.md, 5). */
-const LETTERING = "[data-plan] .plan-view > span";
 const AXE_TAGS = [
   "wcag2a",
   "wcag2aa",
@@ -96,8 +101,6 @@ const AXE_TAGS = [
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
 });
-
-const at = (width: number, height: number) => `${width} x ${height}`;
 
 /** `/` from `base` at a size, with the web fonts in. */
 async function openHome(page: Page, width: number, height: number, base = "") {
@@ -155,33 +158,12 @@ async function firstWindow(page: Page) {
 // ---------------------------------------------------------------------------------------------
 // W1 and W2 read the feed's fixtures: one worker, in order, as the feed specs run (STATE.md).
 
-const FIXTURES = ["live", "open", "resting"] as const;
-type FixtureName = (typeof FIXTURES)[number];
-
-/**
- * The fixture's site, as B4.22 reaches it: live-layer.spec.ts's kept site by name and answer, read
- * until `/crew` shows the oracle's state, then `/` until it shows the layer's hooks. Once per
- * worker; it asserts nothing.
- */
-function reachHome(crew: Crew, fixture: FixtureName) {
-  return crew.once(`window ${fixture}`, async () => {
-    const name = `home-${fixture}`;
-    const site = await crew.site(name, { fixture }, true);
-    const body = crew.feed.body(name);
-    const want = layerFor(body, crew.feed.origin).home;
-    const crewShown = await untilState(
-      site.baseURL,
-      expected(body, crew.feed.origin).state,
-      STATE_WAIT,
-    );
-    const home = await untilHome(site.baseURL, want, STATE_WAIT);
-    return { base: site.baseURL, want, crewShown, home };
-  });
-}
+/** This spec's key for the fixtures' first reads (e2e/window.ts, reachHome). */
+const SPEC = "window";
 
 /** A fixture's site, asserted to show its state on `/`. */
 async function shownOn(crew: Crew, fixture: FixtureName) {
-  const reached = await reachHome(crew, fixture);
+  const reached = await reachHome(crew, fixture, SPEC);
   test.info().annotations.push({
     type: "state-wait",
     description: `${fixture}: /crew ${reached.crewShown.seen} after ${reached.crewShown.ms} ms, then / ${reached.home.seen} after ${reached.home.ms} ms`,
@@ -286,6 +268,60 @@ function moved(now: Boxes, main: Boxes) {
   return out;
 }
 
+type State = { base: string; where: string };
+
+const W1 =
+  "W1 the first window holds the facts: at every window in the set, light and dark, on the default server and the live, open and resting fixtures, WebGL refused, the h1, the headline, the bio's lead, the three contact links, the dl and the revisions' caption are wholly inside the viewport, and the h1 is the largest text";
+
+/** W1's read on each of `states`, at every window in the set, light and dark. */
+async function w1(page: Page, states: State[]) {
+  await page.context().addInitScript(refuseWebGl);
+  const lowest = new Map<string, number>();
+  for (const { base, where: site } of states) {
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const [width, height] of WINDOWS) {
+        await openHome(page, width, height, base);
+        const where = `on ${site} at ${at(width, height)}, ${scheme}`;
+        const found = await firstWindow(page);
+        expect
+          .soft(found.captionText, `the caption's text ${where}`)
+          .toBe(CAPTION);
+        expect
+          .soft(
+            found.outside,
+            `items not wholly inside the first window ${where}`,
+          )
+          .toEqual([]);
+        expect(found.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
+        expect
+          .soft(
+            found.larger,
+            `text as large as the h1 (${found.h1} px) ${where}`,
+          )
+          .toEqual([]);
+        const k = at(width, height);
+        lowest.set(k, Math.max(lowest.get(k) ?? 0, found.lowest));
+      }
+    }
+  }
+  note(
+    test.info(),
+    "lowest item",
+    [...lowest].map(([k, bottom]) => `${k}: ${bottom.toFixed(1)}`).join("; "),
+  );
+}
+
+// W1's default-server pass holds in every feed state, so it runs wherever the suite does, a
+// deployment under PLAYWRIGHT_BASE_URL included (.crew/sprint/45/contract.md, W15). W2's stays in
+// the fixtures' describe: its default boxes are the feed's down state, which only this checkout's
+// own server shows, never a deployment (.crew/sprint/45/decisions.md, 11).
+
+test(`${W1} (the default server's pass)`, async ({ page }) => {
+  test.setTimeout(120_000);
+  await w1(page, [{ base: "", where: "the default server" }]);
+});
+
 test.describe("on the feed's fixtures", () => {
   test.describe.configure({ mode: "default" });
   test.skip(
@@ -295,51 +331,14 @@ test.describe("on the feed's fixtures", () => {
   // The three sites start together, once per worker.
   test.beforeAll(async () => {
     const crew = await crewOf();
-    for (const fixture of FIXTURES) void reachHome(crew, fixture);
+    for (const fixture of FIXTURES) void reachHome(crew, fixture, SPEC);
   });
 
-  test("W1 the first window holds the facts: at every window in the set, light and dark, on the default server and the live, open and resting fixtures, WebGL refused, the h1, the headline, the bio's lead, the three contact links, the dl and the revisions' caption are wholly inside the viewport, and the h1 is the largest text", async ({
-    page,
-    crew,
-  }) => {
+  test(`${W1} (the fixtures' pass)`, async ({ page, crew }) => {
     test.setTimeout(300_000);
-    await page.context().addInitScript(refuseWebGl);
-    const states = [{ base: "", where: "the default server" }];
+    const states: State[] = [];
     for (const fixture of FIXTURES) states.push(await shownOn(crew, fixture));
-    const lowest = new Map<string, number>();
-    for (const { base, where: site } of states) {
-      for (const scheme of SCHEMES) {
-        await page.emulateMedia({ colorScheme: scheme });
-        for (const [width, height] of WINDOWS) {
-          await openHome(page, width, height, base);
-          const where = `on ${site} at ${at(width, height)}, ${scheme}`;
-          const found = await firstWindow(page);
-          expect
-            .soft(found.captionText, `the caption's text ${where}`)
-            .toBe(CAPTION);
-          expect
-            .soft(
-              found.outside,
-              `items not wholly inside the first window ${where}`,
-            )
-            .toEqual([]);
-          expect(found.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
-          expect
-            .soft(
-              found.larger,
-              `text as large as the h1 (${found.h1} px) ${where}`,
-            )
-            .toEqual([]);
-          const k = at(width, height);
-          lowest.set(k, Math.max(lowest.get(k) ?? 0, found.lowest));
-        }
-      }
-    }
-    note(
-      test.info(),
-      "lowest item",
-      [...lowest].map(([k, bottom]) => `${k}: ${bottom.toFixed(1)}`).join("; "),
-    );
+    await w1(page, states);
   });
 
   test("W2 nothing moves at 1440 x 900: on the default server and the live fixture, WebGL refused, the boxes of the h1, the dl, the three contact links, the five rows, p[data-crew-key] and [data-plan] equal main's within 0.5 px; 1920 x 1080's are reported", async ({
@@ -379,94 +378,6 @@ test.describe("on the feed's fixtures", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-
-/** W3's reads: the drawing's planks and lettering against its box, the viewport and any clip. */
-function drawingReads(page: Page, shown: string) {
-  return page.evaluate(
-    ({ plan, lettering, block, shown }) => {
-      const visible = (el: Element) => {
-        const r = el.getBoundingClientRect();
-        return el.getClientRects().length > 0 && (r.width > 0 || r.height > 0);
-      };
-      const edgesOf = (el: Element, by = 0) => {
-        const r = el.getBoundingClientRect();
-        return {
-          left: r.left - by,
-          top: r.top - by,
-          right: r.right + by,
-          bottom: r.bottom + by,
-        };
-      };
-      type E = ReturnType<typeof edgesOf>;
-      const inside = (a: E, b: E) =>
-        a.left >= b.left - 0.5 &&
-        a.top >= b.top - 0.5 &&
-        a.right <= b.right + 0.5 &&
-        a.bottom <= b.bottom + 0.5;
-      const meets = (a: E, b: E) =>
-        a.left < b.right &&
-        b.left < a.right &&
-        a.top < b.bottom &&
-        b.top < a.bottom;
-      const host = document.querySelector(plan);
-      const drawing = document.querySelector(shown);
-      if (!host || !drawing) return null;
-      const box = edgesOf(host);
-      const view = {
-        left: 0,
-        top: 0,
-        right: document.documentElement.clientWidth,
-        bottom: innerHeight,
-      };
-      const planks = [...host.querySelectorAll("[data-plank]")].filter(visible);
-      const texts = [...document.querySelectorAll(lettering)].filter(visible);
-      const name = (el: Element) =>
-        el.hasAttribute("data-plank")
-          ? `plank ${el.getAttribute("data-plank")}`
-          : `lettering "${(el.textContent ?? "").trim()}"`;
-      const cut: string[] = [];
-      for (const el of [...planks, ...texts]) {
-        const e = edgesOf(el);
-        if (!inside(e, box)) cut.push(`${name(el)} outside [data-plan]`);
-        if (!inside(e, view)) cut.push(`${name(el)} outside the viewport`);
-        // Anything that clips (overflow other than visible) between it and the body holds it whole.
-        for (
-          let a = el.parentElement;
-          a && a !== document.body;
-          a = a.parentElement
-        ) {
-          const s = getComputedStyle(a);
-          if (s.overflowX === "visible" && s.overflowY === "visible") continue;
-          if (!inside(e, edgesOf(a)))
-            cut.push(
-              `${name(el)} clipped by <${a.tagName.toLowerCase()}> (overflow ${s.overflowX} ${s.overflowY})`,
-            );
-        }
-      }
-      const dl = document.querySelector(block);
-      const dlBox = dl ? edgesOf(dl) : null;
-      const met = dlBox
-        ? [
-            ...planks
-              .filter((p) => meets(dlBox, edgesOf(p, 24)))
-              .map((p) => `${name(p)} (+24 px)`),
-            ...texts.filter((t) => meets(dlBox, edgesOf(t))).map(name),
-          ]
-        : [];
-      const d = drawing.getBoundingClientRect();
-      return {
-        planks: planks.length,
-        texts: texts.length,
-        cut,
-        dl: dlBox,
-        met,
-        height: d.height,
-        hostHeight: box.bottom - box.top,
-      };
-    },
-    { plan: PLAN, lettering: LETTERING, block: BLOCK, shown },
-  );
-}
 
 test("W3 the drawing stays whole and clear: at every window in the set, WebGL refused, every shown [data-plan] [data-plank] and lettering span lies inside [data-plan]'s box and the viewport, clipped by no overflow; the dl meets no plank box grown by 24 px and no lettering box; [data-plan]'s box is at least Iris's floor (240 px) tall, each window's height reported", async ({
   page,
@@ -739,30 +650,6 @@ async function press(page: Page, label: "Full" | "Calm" | "Off") {
   );
   expect(centre, `the ${label} button to press`).not.toBeNull();
   if (centre) await page.mouse.click(centre.x, centre.y);
-}
-
-/**
- * B3.1's measure on a page held at `landed`: the canvas's silhouette against `.ln-outline` filled,
- * on the shown drawing, both read in the same page (B3.17's way), in CSS px.
- */
-async function registration(page: Page, width: number, dpr: number) {
-  const drawing = drawingAt(width);
-  const planBox = await box(page, drawing);
-  const geometry = await hullOf(page, drawing);
-  if (!planBox || !geometry) return null;
-  const clip = whole(planBox);
-  const svg = await outlineCoverage(page, clip, drawing);
-  const model = await modelCoverage(page, clip);
-  const [w, h] = [model.image.width, model.image.height];
-  const cut = Math.round((geometry.limit - clip.x) * dpr);
-  const d = hausdorff(
-    edges(svg.alpha, w, h),
-    edges(model.alpha, w, h),
-    w,
-    h,
-    cut,
-  );
-  return { max: d.max / dpr, p99: d.p99 / dpr, a: d.a, b: d.b, clip };
 }
 
 /** The canvas against the shown drawing's box, as B3.1 reads it: what's off, or nothing. */
@@ -1273,7 +1160,8 @@ test("W7 the sweeps at the new windows: at 1366 x 625 and 1536 x 715, light and 
       const sheet = await shown.newPage();
       try {
         // "Keeps" against the screen at the same window: what it shows, print and forced colours
-        // show too (below 1440 the screen hides p[data-crew-key], Wc's to show).
+        // show too. Since Wc the screen shows p[data-crew-key] from 1024 up, so print and forced
+        // colours must keep it at both windows (.crew/sprint/45/decisions.md, 7).
         await openHome(sheet, width, height);
         const onScreen = new Set((await keeps(sheet)).hidden);
         const lost = (hidden: string[]) =>

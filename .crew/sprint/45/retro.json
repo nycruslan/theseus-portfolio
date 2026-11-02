@@ -1,0 +1,42 @@
+{
+  "sprint": 45,
+  "pr": 108,
+  "goal": "Fit the name, facts and contact links into a tablet's first window",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 9ca62e2 after one fix round; from 1024 to 1279 the first window holds the name, role, lead, contact links and particulars, and the crew key shows from 1024 to 1439, W13 to W17 green, 1440 x 900 unchanged",
+  "fixRounds": 1,
+  "minutes": 190,
+  "agents": [
+    { "role": "design-director", "model": "opus", "tokens": 424857, "minutes": 53 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 268891, "minutes": 67 },
+    { "role": "engineer", "model": "opus", "tokens": 327273, "minutes": 96 }
+  ],
+  "lens": { "runs": 2, "tokens": 8322906, "important": 1, "actedOn": 1, "nits": 5 },
+  "wentWrong": [
+    {
+      "what": "The plan asked two checks to run against a deployed site, but they only hold without a live feed",
+      "evidence": "Lens's Important on 366dbb9: W2 and P9 read the feed's down state; the contract listed them under W15 (decisions.md 11, 12)"
+    },
+    {
+      "what": "Text beside the 3D model lost its sharp rendering when its edge fell half a pixel past its fill",
+      "evidence": "Forge, with CI's LCD fontconfig: 8,745 px changed at 1180 x 740 as the model loaded, 0 after a 2 px fill reach (decisions.md 8)"
+    },
+    {
+      "what": "A builder's stop check rebuilt the site under his running tests again",
+      "evidence": "Forge's first full run: four /crew checks failed on a half-rebuilt build, all green on the rerun (third sprint in a row)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Let the builders' stop hook (.crew/verify-stop.mjs) build into a separate distDir, or skip the build while a next start serves the worktree's .next (sprints 43 and 44 proposed the same)",
+      "moves": "Spurious e2e failures from a mid-run rebuild: 4 this sprint, 7 in 44, 4 in 43"
+    }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nit on 9ca62e2: move openHome and shownOn into e2e/window.ts (three copies now) and correct the QA memory line that says window.ts holds only assertion-free reads" },
+    { "who": "Probe", "what": "A B3.1-style hand-off read at 1024 x 640, 1180 x 740 and 1366 x 625 at DPR 1 and 2; LCD loss over the model is unchecked there, budget its CI cost first" },
+    { "who": "Forge", "what": "Wa's rule from 1280: the particulars' fill has no reach (LCD lost at 1300 x 650 on unchanged code) and its floor divides without the 0.1 px" },
+    { "who": "Iris", "what": "1220 x 640 and 1247 x 640 end the links 1.4 and 2.6 px under the fold; Safari on a real tablet" }
+  ]
+}

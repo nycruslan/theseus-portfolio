@@ -225,14 +225,14 @@ export function Revisions({
           ))}
         </tbody>
       </table>
-      {/* Right under the rows it explains, so a visitor reads who the names are in the first
-        screen: at 1440 × 900 it takes one line of the block's slack above its foot, which the
-        resting state's rest line leaves at 45 px (.crew/sprint/40/decisions.md, 8). From 1024 to
-        1439 px nothing fits under the table and keeps the resting state's contact links in view
-        at 1024 × 768 and 1280 × 800, so there it stays in the HTML, hidden, as /crew's job column
-        folds over the same range, and the caption above says who builds the site (decisions.md,
-        9). */}
-      <CrewKey className="rev-key text-step-sm text-muted lg:max-[90rem]:hidden" />
+      {/* Right under the rows it explains, at every width, so a visitor reads who the names are in
+        the first screen: at 1440 × 900 it takes one line of the block's slack above its foot, which
+        the resting state's rest line leaves at 45 px (.crew/sprint/40/decisions.md, 8). From 1024
+        to 1439 px the contact links follow the bio instead of waiting at this block's foot under
+        960 px tall to 1279, and from 1280 under 900 or wider than 13:8, so its line can't push
+        them out of view; a taller window holds both (.crew/sprint/45/placement.md, call 2). From
+        1024 to 1247 it takes two lines, split between its sentences (app/globals.css). */}
+      <CrewKey className="rev-key text-step-sm text-muted" />
       {/* At the cell's foot from 1024 px, on the title block's Contact line, when the row is
           taller than this block (the bottom row's minimum height, app/globals.css). */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">

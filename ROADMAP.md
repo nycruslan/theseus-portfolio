@@ -47,8 +47,20 @@ owner answer to start, touches an owner path or edits `content/`.
   `/crew`'s foot row over its canvas (LCD text, unchecked), a 24 px default font scrolling sideways
   at phone widths (as on production), and Safari on a real phone. At 390 × 664 the drawing is at
   its floor with 3.9 px of room in Chrome 153.
-- [ ] Wc (S): tablets and the key from 1024 to 1439 (Pa's and Pb's left-opens), and P3's, P8's,
-  P9's, W1's, W2's and W8's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
+- [x] Sprint 45, Wc (M; the plan said S, `.crew/sprint/45/decisions.md` 2): the sheet fits a
+  tablet window, and the key shows. (PR #108; Iris's call, under 960 px tall Wa's short layout
+  reaches down to 1024 with the drawing at its 240 px floor and the particulars beside it, and the
+  key under the table at every width, `.crew/sprint/45/placement.md`.) W13 to W17
+  (`e2e/tablet-window.spec.ts`) are green, and 1440 × 900 is unchanged. P3's, P8's, W1's and W8's
+  default-server passes run under `PLAYWRIGHT_BASE_URL`; W2's and P9's stay guarded, since they
+  read the feed's down state (Lens, decisions.md 11). **Left open:** Lens's nit (`openHome` and
+  `shownOn` in three copies, and Probe's memory line on `e2e/window.ts`); no check reads the
+  model's hand-off (LCD text) at tablet or Wa widths, and Wa's rule from 1280 loses it at
+  1300 × 650 on unchanged code; 1220 × 640 and 1247 × 640 end the links 1.4 and 2.6 px under the
+  fold; Safari on a real tablet.
+- **Next:** every sprint is built, so Quill closes the milestone on production (the W checks'
+  windows, and the five-second read) and plans the next. The Owner's pick below is unanswered, so
+  that is the recommended keel, which can be undone.
 - Out of scope, and why:
   - What the facts say, and the loft, the hull's look, the live marks and the replay: the owner's
     demos judge them. The model only follows the drawing.
