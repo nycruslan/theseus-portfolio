@@ -49,3 +49,7 @@
     P8, W1 and W8 (and W13, W14); W2's and P9's default passes go back inside their guards. Fix
     round 1 to Probe, with Lens's cheap nits riding (W14 reads 1000 tall, `window.ts`'s header says
     "copied") and Forge's comment nit at `app/globals.css:1483`. CI is unaffected either way.
+12. **Fix round 1 taken** (Probe 91bb85a, Forge b7ec116): W2 and P9 back to main's text inside
+    their guards, no new skip; Lens's nits taken. Touched specs 34 of 34 on a fresh build; under
+    `PLAYWRIGHT_BASE_URL` 8 passed, 10 skipped, 0 failed (a local server, no feed). `expect(` counts
+    unchanged.

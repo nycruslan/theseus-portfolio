@@ -29,8 +29,9 @@ the key sits under the table at every width. At 1440 × 900 nothing moves (W2, u
 **For Lens:**
 - No check retires. W7 grows stricter by itself (print and forced colours must now show the key
   at 1366 × 625).
-- W15 splits P3's, P8's, P9's, W1's, W2's and W8's default-server passes out of their
-  `PLAYWRIGHT_BASE_URL` skips; `scope.mjs` will flag two added `test.skip(` lines, both the same
+- W15 splits P3's, P8's, W1's and W8's default-server passes out of their
+  `PLAYWRIGHT_BASE_URL` skips (W2's and P9's stay guarded: they read the feed's down state, which
+  a deployment never shows; Lens's Important on 366dbb9, decisions.md 11); `scope.mjs` will flag two added `test.skip(` lines, both the same
   guard on fixture-only passes: P8's live-fixture test (`plain-words.spec.ts`) and the new spec's
   fixtures describe. No file has fewer `expect(` calls.
 - W11's wording now says its resize read can't see a `hadRecentInput` shift (Lens's nit on #107);
@@ -40,6 +41,10 @@ the key sits under the table at every width. At 1440 × 900 nothing moves (W2, u
   width is `calc(var(--plan-floor) / 0.33807 + 0.1px)` so Chromium's 64th-px rounding can't land
   the drawing under 240, and the particulars' film fill reaches 2 px left of their text so CI's
   LCD text holds over the model.
+
+- Fix round 1 (decisions.md 12): W2 and P9 back to main's text inside their guards; W14 also
+  reads 1000 tall; `window.ts` says what moved and what was copied, and the older specs import the
+  moved helpers; the tablet foot's comment says where it steps.
 
 **Iris:** ship (decisions.md 9).
 
