@@ -17,8 +17,8 @@ composed fallback for reduced motion, low-power devices and missing WebGL.
 Build toward the chosen direction (`design/brief.md`, and the sprint's direction file)
 within its budgets. Work with Iris while you build, not only after: show her the running moment
 early and often, since motion is judged by feel and a still can't carry it. Use current stable
-libraries and check their docs before you rely on an API; for three.js, React Three Fiber and
-shaders, load the matching `threejs-*` skill first.
+libraries and check their docs before you rely on an API; the `threejs-*` skills hold current
+three.js and shader detail.
 
 Measure what you build with the chrome-devtools tools (a performance trace, the debug-optimize-lcp
 skill) and report the numbers. In the cloud the browser renders in software, so say what only a

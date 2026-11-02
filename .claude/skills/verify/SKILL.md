@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Run the project's quality gate (pnpm verify) before a handoff or a commit that touches code, then fix or report what fails.
+description: Run the project's quality gate (pnpm verify) before a handoff, then fix or report what fails.
 ---
 
-Before you hand off, and before any commit that touches code, run `pnpm verify`. It runs lint
+Before you hand off, run `pnpm verify`. It runs lint
 (biome ci; warnings fail), typecheck, knip and build, in that order, and stops at the first failure.
 
 - On a failure, fix the root cause and run it again. `pnpm exec biome check --write` fixes
@@ -14,4 +14,3 @@ Before you hand off, and before any commit that touches code, run `pnpm verify`.
   a production build).
 - If you can't make it pass, don't call the work done: report the failing step and its output.
 
-Report the commands you ran and their results.

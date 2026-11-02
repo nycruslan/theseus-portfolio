@@ -3,7 +3,7 @@
 The lessons that still hold, so a sprint starts from what the team already knows instead of
 rediscovering it. Each sprint's outcome lives in its `retro.json` and in `ROADMAP.md`. Add a lesson
 here only when a sprint teaches one the next sprints need. Fold or delete the ones a later change
-makes stale, and keep the file under about 100 lines.
+makes stale.
 
 ## How the crew works, from 2026-10-22
 
@@ -17,9 +17,6 @@ makes stale, and keep the file under about 100 lines.
   while the redesign waited for the owner, and nothing a visitor would notice shipped. The
   roadmap's current milestone sets the work; when it can't move until the owner answers, the team
   stands down.
-- **The redesign is the milestone,** on the direction the owner approved on sprint 17's canvas. The
-  owner sees it at two demos, on the PR's Vercel preview: B1, which replaces today's page, and B3,
-  the signature moment.
 - **Models:** the whole crew runs on Opus 5.5 (the owner's call, 2026-10-31), each role at the effort
   its file states. Lens's effort in CI follows the size of the change.
 - **The pre-flight:**
@@ -31,8 +28,6 @@ makes stale, and keep the file under about 100 lines.
   `node .crew/sprint/32/merge-record.mjs` from the repository root and commit any record it writes
   with the sprint: `/log`'s dates and lines figure read them. It writes only for merged sprints
   without one, and checks its calibration first. It moves to `.crew/` once the owner takes it in.
-- **One run, one sprint.** The owner's "Merged" in a finished run's session started sprint 23 while
-  the merge's own run did the same: two PRs for one sprint (#66, #67) and one usage limit shared.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
   contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
   none to the overlap).
@@ -134,8 +129,6 @@ makes stale, and keep the file under about 100 lines.
     ended with three of Pixel's commits on `origin/pixel/26` only, and the second run lost nothing.
   - A resumed run can't force-push a role branch (the cloud refuses `--force-with-lease`): roles
     push to `<role>/<n>-r2` from the sprint head and say so; Atlas cherry-picks from either.
-  - `kill $!` on `node .../next start &` can leave its `next-server` child serving the port: check
-    the port after, and kill the child by its PID (sprint 26, Pixel).
 - **The live layer (sprints 27 and 28).**
   - A compare against the Off page goes red on anything that differs by design between the two
     states (the control's buttons): mask it, and name the mask in the contract before the build

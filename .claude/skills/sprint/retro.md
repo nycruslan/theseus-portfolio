@@ -16,10 +16,12 @@ sprint, so model and lane choices can follow the data.
 }
 ```
 
-- `goal`, `size`, `pr` and each `wentWrong.what` are public: `/sprints` prints them, and a malformed
-  retro fails the build (`lib/sprint-log.ts`). Write them as copy a visitor reads.
+- `goal`, `size`, `pr` and each `wentWrong.what` are public: `/log` and `/`'s revision rows print
+  them, and a malformed retro fails the build (`lib/sprint-log.ts`). Write them as copy a visitor
+  reads. A goal is in a visitor's words, with no milestone code or URL path and at most 78
+  characters, so it fits one row (P11 in `e2e/plain-words.spec.ts`).
 - `goalFrom`: `owner` when the owner chose the goal, otherwise `roadmap`.
-- `agents`: each agent that worked, with the model its file sets (`opus`) and the tokens
+- `agents`: each agent that worked, with the model its file sets and the tokens
   and minutes from its result.
 - `lens`: Lens's runs and findings, with the tokens from the footer of each review it posted.
 - `wentWrong`: at most three things, each with its evidence.
