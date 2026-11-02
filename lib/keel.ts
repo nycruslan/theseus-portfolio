@@ -85,16 +85,15 @@ const words = (line: string) =>
 /**
  * The contract's matching rule: the file's lines, each stripped of its indent and one leading `#`,
  * `//` or `*` with the spaces after it, joined by single spaces with every run of whitespace
- * collapsed to one. The quote is found in that text, and its first and last characters map back
- * to the lines they came from. A line with no words adds only a space, which collapses into the
- * join, so it is skipped.
+ * collapsed to one. The quote is found in that text as written, so one with a double space never
+ * matches, and its first and last characters map back to the lines they came from. A line with no
+ * words adds only a space, which collapses into the join, so it is skipped.
  */
 export function quoteLines(
   file: string,
   quote: string,
 ): { start: number; end: number } | null {
-  const wanted = quote.replace(SPACES, " ").trim();
-  if (wanted === "") return null;
+  if (quote === "") return null;
   let text = "";
   const starts: number[] = []; // each kept line's first offset in `text`
   const lines: number[] = []; // its 1-based line number
@@ -106,12 +105,12 @@ export function quoteLines(
     lines.push(index + 1);
     text += kept;
   }
-  const at = text.indexOf(wanted);
+  const at = text.indexOf(quote);
   if (at === -1) return null;
   // The kept line an offset falls in: the last to start at or before it.
   const lineAt = (offset: number) =>
     lines[starts.findLastIndex((start) => start <= offset)] ?? 1;
-  return { start: lineAt(at), end: lineAt(at + wanted.length - 1) };
+  return { start: lineAt(at), end: lineAt(at + quote.length - 1) };
 }
 
 /** The rules whose source holds its quote, in KEEL's order. A source missing from `sources` (or
