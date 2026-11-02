@@ -40,3 +40,5 @@
    label: the floor's width as `calc(var(--plan-floor) / 0.33807 + 0.1px)`, not `round()`, which
    would be the site's first need for Chrome 125 (the site otherwise needs 108), and without which
    the drawing goes full width under the particulars. Same geometry in both engines. Forge makes it.
+10. **Forge's floor fix taken** (c0bbed4, memory ef8feb6): the sum in place of `round()`; verify
+    passes, `tablet-window`, `window` and `phone-window` specs 22 of 22, the geometry Iris's.

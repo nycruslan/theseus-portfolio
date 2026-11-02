@@ -36,6 +36,12 @@ the key sits under the table at every width. At 1440 × 900 nothing moves (W2, u
 - W11's wording now says its resize read can't see a `hadRecentInput` shift (Lens's nit on #107);
   no assertion changed.
 - Riders: Lens's nit at `app/globals.css` (the phone foot row's comment) is now true.
+- Forge's two departures from Iris's CSS, both accepted by Iris (decisions.md 8, 9): the floor's
+  width is `calc(var(--plan-floor) / 0.33807 + 0.1px)` so Chromium's 64th-px rounding can't land
+  the drawing under 240, and the particulars' film fill reaches 2 px left of their text so CI's
+  LCD text holds over the model.
+
+**Iris:** ship (decisions.md 9).
 
 **Left open:** at 1220 × 640 and 1247 × 640, outside the contract's windows, the floor holds and
 the links end 1.4 and 2.6 px under the fold (decisions.md 5). Wa's rule from 1280 loses LCD text
