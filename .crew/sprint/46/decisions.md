@@ -25,3 +25,7 @@
 6. **Not verified here:** the `protect-main` ruleset's three required checks were not read from
    GitHub (the call was refused to Quill); `merge.mjs`'s wait on this PR shows them, and the Next
    line asks Atlas to confirm them before Ka's build.
+7. **B5.6's sprint 24 anchor walks with this merge.** CI's `check` failed on it: sprint 46's retro
+   is the 45th merged, so it seats 5.1 after 1 and 24 (`.crew/STATE.md`'s seat-walk lesson). Probe
+   confirmed the seat in the code, kept the anchor an exact hand-written string and added its last
+   sentence (5a0d3f2). No other anchor walks; sprint 47 seats 3.2, which nothing names.

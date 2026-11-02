@@ -26,6 +26,15 @@ Wc #108). The roadmap's next step: Quill closes it on production and plans the n
 - `decisions.md` 1 to 6, `retro.json`, sprint 45's `merge.json`, and Quill's memory (one stale line
   corrected, two added).
 
+## One check's anchor, rewritten with the same strength (for Lens)
+
+`e2e/log-record.spec.ts` B5.6 (C4.2): sprint 46's retro seats plank 5.1 a third time (holders 1,
+24, 46, from `lib/lines-plan.ts`'s `seatHolders` and the oracle's `SEAT_OF`), so sprint 24's
+hand-written example gains its last sentence, "Sprint 46 has since replaced it.", as sprint 13's
+did when 36 took its seat. Still an exact `toBe` on the full string; nothing is loosened or retired.
+CI's run 41423608010 failed on this one assertion (325 passed); Probe's local run of the spec is 12
+of 12, and `pnpm verify` exits 0. The next anchor to walk is about 11 merges away.
+
 The keel is the recommended option of the Owner's pick asked on #101, built without waiting because
 it can be undone. Nothing here touches an owner path or edits `content/`.
 
