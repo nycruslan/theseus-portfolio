@@ -60,7 +60,7 @@ line on GitHub.
   - **What stays the same:** CI never sets the variable, so CI runs them exactly as before. In
     `window.spec.ts`, no `expect(` was removed and no `test.skip(` was added. Each read is behind
     `if (DEPLOYED)` and logs a "not run" note.
-- **An added skip, in the new spec** (`e2e/keel.spec.ts:1283`): the describe "on this checkout's
+- **An added skip, in the new spec** (`e2e/keel.spec.ts`, the describe "on this checkout's build and the live fixture"): the describe "on this checkout's
   build and the live fixture" holds K1's live-fixture pass and K7. It skips both when
   `PLAYWRIGHT_BASE_URL` is set.
   - **Why:** K7 compares against main's boxes, which are this checkout's down state. The live pass

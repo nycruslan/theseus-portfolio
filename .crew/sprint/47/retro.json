@@ -28,11 +28,11 @@
     }
   ],
   "lens": {
-    "runs": 2,
-    "tokens": 6690975,
+    "runs": 3,
+    "tokens": 9713174,
     "important": 1,
     "actedOn": 1,
-    "nits": 5
+    "nits": 6
   },
   "wentWrong": [
     {
@@ -41,7 +41,7 @@
     },
     {
       "what": "A new check's skip on deployments went unnamed in the first review",
-      "evidence": "Lens's Important on 7b0402a: keel.spec.ts:1283's test.skip wasn't named in the PR; named in 5976e4a, no code change"
+      "evidence": "Lens's Important on 7b0402a: the keel spec's deployment skip wasn't named in the PR; named in 5976e4a, no code change"
     },
     {
       "what": "A layout check pinned positions that the newest sprint's goal moves",

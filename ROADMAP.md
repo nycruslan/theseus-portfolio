@@ -36,7 +36,7 @@ to K12, across Ka and Kb. No sprint needs an owner answer to start, touches an o
   its enforcer, its verbatim quote and a link to its line, fixed at build by a Turbopack `?raw`
   rule (K8 proven with the sources moved away). K1 to K7 in `e2e/keel.spec.ts`; B4.8 rewritten to
   allow the keel's six links inside the keel only; the rider guards W5's and W7's down-state
-  reads. (PR #110, one fix round.) Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
+  reads. (PR #110, two fix rounds.) Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
 - [ ] Kb (S): the ways in, and the record behind it. "His rules" in the key on `/` and `/log`, and
   the Approval line on `/crew`, link to `/crew#keel`. P8's "no a" clause and B2.3's 24 stops are
   rewritten with the same strength, for Lens. A line in the keel counts the merged sprints by how
