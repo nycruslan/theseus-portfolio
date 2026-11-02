@@ -680,7 +680,7 @@ test("W9 the narrow drawing is whole: at every window below 768 the contract nam
 
 // ---------------------------------------------------------------------------------------------
 
-test("W10 the control: on / at every window below 768 the contract names (WebGL refused), one [data-motion] slot shown, placed as Iris places it, holding one group named Motion with Full, Calm and Off in order, each a 44 px target wholly inside the viewport where it sits; the hidden slot's buttons take no focus; the foot row's targets (Read as page and the three) sit clear of the drawing's ink", async ({
+test("W10 the control: on / at every window below 768 the contract names (WebGL refused), one [data-motion] slot shown, placed as Iris places it, holding one group named Motion with Full, Calm and Off in order, each a 44 px target wholly inside the viewport where it sits; the hidden slot's buttons take no focus; the drawing's ink stays 4 px clear of the three buttons' boxes and 2 px clear of Read as page's visible ink, and no interactive element in [data-plan] meets a foot target's box", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -802,14 +802,20 @@ test("W10 the control: on / at every window below 768 the contract names (WebGL 
         `buttons in the hidden slot that take focus ${where}`,
       )
       .toEqual([]);
-    const ink = await inkUnderRow(page);
+    const row = await rowClear(page);
     expect
-      .soft(ink.targets, `the foot row's shown targets ${where}`)
+      .soft(row.targets, `the foot row's shown targets ${where}`)
       .toBeGreaterThan(0);
     expect
       .soft(
-        ink.under,
-        `the drawing's ink under the foot row's targets (pixels that change when [data-plan] is hidden) ${where}`,
+        row.inked,
+        `the drawing's ink within ${BUTTON_CLEAR} px of a button's box or ${INK_CLEAR} px of a link's visible ink in the foot row ${where}`,
+      )
+      .toEqual([]);
+    expect
+      .soft(
+        row.meets,
+        `interactive elements in [data-plan] (${row.interactive}) whose boxes meet a foot target's ${where}`,
       )
       .toEqual([]);
     note(
@@ -821,55 +827,158 @@ test("W10 the control: on / at every window below 768 the contract names (WebGL 
 });
 
 /**
- * The drawing's ink under the foot row (Iris's sweep, .crew/sprint/44/placement.md): at scroll 0,
- * each shown link and button in `main > [data-foot]` has its box shot with the row hidden, once with
- * the drawing and once with `[data-plan]` hidden too. A pixel that differs by more than 16 in a
- * channel is the drawing's ink where the row sits.
+ * How far the foot row keeps from the drawing's ink, in CSS px (W10's row clause). Iris's rule is
+ * 4 px for both (.crew/sprint/44/placement.md): a button's frame shows, so its whole box; a link's
+ * 44 px box is a hit area with no paint, so only its glyphs and underline. She measured the buttons
+ * 6 px or more clear and Read as page's underline 4.4 px, so the link's read allows 2 px for a
+ * pixel read's antialiased edges (16 levels) against her 4.4 geometric.
  */
-async function inkUnderRow(page: Page) {
+const BUTTON_CLEAR = 4;
+const INK_CLEAR = 2;
+
+/** The pixels of two shots of one clip that differ by more than 16 in a channel. */
+function changed(a: Image, b: Image) {
+  const out: boolean[] = [];
+  for (let k = 0; k < a.data.length; k += 4)
+    out.push(
+      [0, 1, 2].some(
+        (j) => Math.abs((a.data[k + j] ?? 0) - (b.data[k + j] ?? 0)) > 16,
+      ),
+    );
+  return out;
+}
+
+/**
+ * The foot row against the drawing (Iris's sweep, .crew/sprint/44/placement.md; Atlas's ruling on
+ * Forge's build). At scroll 0, for each shown link and button in `main > [data-foot]`, three shots
+ * of its box grown by 5 px: the drawing alone, neither, and the target alone. The
+ * drawing's ink is what the first changes from the second, the target's what the third does. A
+ * button's frame shows, so its whole box, grown by BUTTON_CLEAR, must hold none of the drawing's
+ * ink; a link's 44 px box is a hit area, not ink, so only its visible ink (text and underline),
+ * grown by INK_CLEAR, must. And
+ * no interactive element in `[data-plan]` has a box meeting a target's, so a tap is never in doubt.
+ */
+async function rowClear(page: Page) {
   await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-  const boxes = await page.evaluate(() =>
-    [...document.querySelectorAll("main > [data-foot] :is(a, button)")]
-      .filter((el) => el.getClientRects().length > 0)
-      .map((el) => {
-        const r = el.getBoundingClientRect();
+  const read = await page.evaluate(() => {
+    const shown = (el: Element) => el.getClientRects().length > 0;
+    const targets = [
+      ...document.querySelectorAll("main > [data-foot] :is(a, button)"),
+    ].filter(shown);
+    const edgesOf = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left, y: r.top, width: r.width, height: r.height };
+    };
+    const name = (el: Element) =>
+      `<${el.tagName.toLowerCase()}> "${(el.textContent ?? "").trim().slice(0, 20)}"`;
+    const interactive = [
+      ...document.querySelectorAll(
+        '[data-plan] :is(a[href], button, input, select, textarea, [tabindex], [role="link"], [role="button"])',
+      ),
+    ].filter(shown);
+    const meets: string[] = [];
+    for (const el of interactive)
+      for (const t of targets) {
+        const [a, b] = [edgesOf(el), edgesOf(t)];
+        if (
+          a.x < b.x + b.width &&
+          b.x < a.x + a.width &&
+          a.y < b.y + b.height &&
+          b.y < a.y + a.height
+        )
+          meets.push(`${name(el)} meets ${name(t)}`);
+      }
+    return {
+      targets: targets.map((el, i) => {
+        el.setAttribute("data-w10", String(i));
         return {
-          what: (el.textContent ?? "").trim(),
-          x: r.left,
-          y: r.top,
-          width: r.width,
-          height: r.height,
+          i,
+          what: name(el),
+          link: el.tagName === "A",
+          box: edgesOf(el),
         };
       }),
-  );
-  const shoot = async (hide: string) => {
-    const style = await page.addStyleTag({
-      content: `${hide} { visibility: hidden !important; }`,
-    });
-    const shots: Image[] = [];
-    for (const b of boxes)
-      shots.push(decodePng(await page.screenshot({ clip: whole(b) })));
+      interactive: interactive.length,
+      meets,
+    };
+  });
+  const shot = async (css: string, clip: Box4) => {
+    const style = await page.addStyleTag({ content: css });
+    const image = decodePng(await page.screenshot({ clip }));
     await style.evaluate((el) => (el as Element).remove());
-    return shots;
+    return image;
   };
-  const drawn = await shoot("main > [data-foot]");
-  const bare = await shoot("main > [data-foot], [data-plan]");
-  const under: string[] = [];
-  boxes.forEach((b, i) => {
-    const [a, c] = [drawn[i], bare[i]];
-    if (!a || !c) return;
+  const hide = (what: string) => `${what} { visibility: hidden !important; }`;
+  const inked: string[] = [];
+  for (const t of read.targets) {
+    const grow = Math.max(BUTTON_CLEAR, INK_CLEAR) + 1;
+    const clip = whole({
+      x: t.box.x - grow,
+      y: t.box.y - grow,
+      width: t.box.width + 2 * grow,
+      height: t.box.height + 2 * grow,
+    });
+    const own = `main > [data-foot] [data-w10="${t.i}"]`;
+    const drawing = await shot(hide("main > [data-foot]"), clip);
+    const neither = await shot(hide("main > [data-foot], [data-plan]"), clip);
+    const alone = await shot(
+      `${hide("main > [data-foot], [data-plan]")} ${own}, ${own} * { visibility: visible !important; }`,
+      clip,
+    );
+    const ink = changed(drawing, neither);
+    const mine = changed(alone, neither);
+    // The region the drawing must keep out of, in the clip's pixels.
+    let region: { l: number; t: number; r: number; b: number } | null;
+    if (t.link) {
+      const at = mine.flatMap((on, k) =>
+        on ? [[k % clip.width, Math.floor(k / clip.width)] as const] : [],
+      );
+      region = at.length
+        ? {
+            l: Math.min(...at.map(([x]) => x)) - INK_CLEAR,
+            t: Math.min(...at.map(([, y]) => y)) - INK_CLEAR,
+            r: Math.max(...at.map(([x]) => x)) + INK_CLEAR,
+            b: Math.max(...at.map(([, y]) => y)) + INK_CLEAR,
+          }
+        : null;
+    } else {
+      region = {
+        l: Math.floor(t.box.x) - clip.x - BUTTON_CLEAR,
+        t: Math.floor(t.box.y) - clip.y - BUTTON_CLEAR,
+        r: Math.ceil(t.box.x + t.box.width) - clip.x - 1 + BUTTON_CLEAR,
+        b: Math.ceil(t.box.y + t.box.height) - clip.y - 1 + BUTTON_CLEAR,
+      };
+    }
+    if (!region) {
+      inked.push(`${t.what}: no visible ink to measure`);
+      continue;
+    }
     let n = 0;
-    for (let k = 0; k < a.data.length; k += 4)
+    ink.forEach((on, k) => {
+      const [x, y] = [k % clip.width, Math.floor(k / clip.width)];
       if (
-        [0, 1, 2].some(
-          (j) => Math.abs((a.data[k + j] ?? 0) - (c.data[k + j] ?? 0)) > 16,
-        )
+        on &&
+        x >= region.l &&
+        x <= region.r &&
+        y >= region.t &&
+        y <= region.b
       )
         n++;
-    if (n > 0) under.push(`"${b.what}": ${n} px`);
-  });
-  return { targets: boxes.length, under };
+    });
+    if (n > 0)
+      inked.push(
+        `${t.what}: ${n} px of the drawing's ink in its ${t.link ? `visible ink grown by ${INK_CLEAR} px` : `box grown by ${BUTTON_CLEAR} px`}`,
+      );
+  }
+  return {
+    targets: read.targets.length,
+    inked,
+    interactive: read.interactive,
+    meets: read.meets,
+  };
 }
+
+type Box4 = { x: number; y: number; width: number; height: number };
 
 // ---------------------------------------------------------------------------------------------
 
