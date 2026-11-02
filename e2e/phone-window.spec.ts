@@ -85,16 +85,17 @@ const FOLD_MARGIN = 8;
 
 /**
  * Iris's floor for the narrow drawing's height, in CSS px, measured on the shown drawing
- * (`.plan-narrow`): the smallest she accepts (.crew/sprint/44/placement.md, pending). Null until
- * her number lands; W9 fails on null, since a floor nobody set is not a pass.
+ * (`.plan-narrow`): 224 x 149.3, 0.574 of its 390 size (.crew/sprint/44/placement.md,
+ * `--narrow-floor`). `[data-plan]`'s own height is reported beside it.
  */
-const NARROW_FLOOR_PX: number | null = null;
+const NARROW_FLOOR_PX = 149;
 
 /**
  * Where the shown motion slot sits below 768 px, in document order: after `after`, before `before`
- * (B3.16's place clause today: in main between [data-model] and the title block). Iris's call
- * (.crew/sprint/44/placement.md, pending); the contract keeps the DOM order, so W10 asserts it
- * here and B3.16's clause (e2e/motion.spec.ts:431) changes only if this does.
+ * (B3.16's place clause: in main between [data-model] and the title block). Iris's call keeps it
+ * (.crew/sprint/44/placement.md: `[data-model]`, then `.foot`, Read as page then the slot, then
+ * `main > header`); on screen the row moves to the drawing area's top right, so B3.16's clause
+ * (e2e/motion.spec.ts:431) needs no rewrite.
  */
 const CONTROL_PLACE = {
   after: "main [data-model]",
@@ -609,12 +610,6 @@ test("W9 the narrow drawing is whole: at every window below 768 the contract nam
   browser,
 }) => {
   test.setTimeout(240_000);
-  expect
-    .soft(
-      NARROW_FLOOR_PX,
-      "Iris's floor for the narrow drawing (.crew/sprint/44/placement.md)",
-    )
-    .not.toBeNull();
   await page.context().addInitScript(refuseWebGl);
   const heights: string[] = [];
   for (const [width, height] of PHONES) {
@@ -630,13 +625,12 @@ test("W9 the narrow drawing is whole: at every window below 768 the contract nam
     expect
       .soft(read.cut, `the drawing's parts cut or outside ${where}`)
       .toEqual([]);
-    if (NARROW_FLOOR_PX !== null)
-      expect
-        .soft(
-          read.height,
-          `${shown}'s height (px) ${where}, Iris's floor ${NARROW_FLOOR_PX}`,
-        )
-        .toBeGreaterThanOrEqual(NARROW_FLOOR_PX);
+    expect
+      .soft(
+        read.height,
+        `${shown}'s height (px) ${where}, Iris's floor ${NARROW_FLOOR_PX}`,
+      )
+      .toBeGreaterThanOrEqual(NARROW_FLOOR_PX);
     heights.push(
       `${at(width, height)}: ${shown} ${read.height.toFixed(1)} (${PLAN} ${read.hostHeight.toFixed(1)})`,
     );
@@ -686,7 +680,7 @@ test("W9 the narrow drawing is whole: at every window below 768 the contract nam
 
 // ---------------------------------------------------------------------------------------------
 
-test("W10 the control: on / at every window below 768 the contract names (WebGL refused), one [data-motion] slot shown, placed as Iris places it, holding one group named Motion with Full, Calm and Off in order, each a 44 px target wholly inside the viewport where it sits; the hidden slot's buttons take no focus", async ({
+test("W10 the control: on / at every window below 768 the contract names (WebGL refused), one [data-motion] slot shown, placed as Iris places it, holding one group named Motion with Full, Calm and Off in order, each a 44 px target wholly inside the viewport where it sits; the hidden slot's buttons take no focus; the foot row's targets (Read as page and the three) sit clear of the drawing's ink", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -808,6 +802,16 @@ test("W10 the control: on / at every window below 768 the contract names (WebGL 
         `buttons in the hidden slot that take focus ${where}`,
       )
       .toEqual([]);
+    const ink = await inkUnderRow(page);
+    expect
+      .soft(ink.targets, `the foot row's shown targets ${where}`)
+      .toBeGreaterThan(0);
+    expect
+      .soft(
+        ink.under,
+        `the drawing's ink under the foot row's targets (pixels that change when [data-plan] is hidden) ${where}`,
+      )
+      .toEqual([]);
     note(
       test.info(),
       "control",
@@ -815,6 +819,57 @@ test("W10 the control: on / at every window below 768 the contract names (WebGL 
     );
   }
 });
+
+/**
+ * The drawing's ink under the foot row (Iris's sweep, .crew/sprint/44/placement.md): at scroll 0,
+ * each shown link and button in `main > [data-foot]` has its box shot with the row hidden, once with
+ * the drawing and once with `[data-plan]` hidden too. A pixel that differs by more than 16 in a
+ * channel is the drawing's ink where the row sits.
+ */
+async function inkUnderRow(page: Page) {
+  await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  const boxes = await page.evaluate(() =>
+    [...document.querySelectorAll("main > [data-foot] :is(a, button)")]
+      .filter((el) => el.getClientRects().length > 0)
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          what: (el.textContent ?? "").trim(),
+          x: r.left,
+          y: r.top,
+          width: r.width,
+          height: r.height,
+        };
+      }),
+  );
+  const shoot = async (hide: string) => {
+    const style = await page.addStyleTag({
+      content: `${hide} { visibility: hidden !important; }`,
+    });
+    const shots: Image[] = [];
+    for (const b of boxes)
+      shots.push(decodePng(await page.screenshot({ clip: whole(b) })));
+    await style.evaluate((el) => (el as Element).remove());
+    return shots;
+  };
+  const drawn = await shoot("main > [data-foot]");
+  const bare = await shoot("main > [data-foot], [data-plan]");
+  const under: string[] = [];
+  boxes.forEach((b, i) => {
+    const [a, c] = [drawn[i], bare[i]];
+    if (!a || !c) return;
+    let n = 0;
+    for (let k = 0; k < a.data.length; k += 4)
+      if (
+        [0, 1, 2].some(
+          (j) => Math.abs((a.data[k + j] ?? 0) - (c.data[k + j] ?? 0)) > 16,
+        )
+      )
+        n++;
+    if (n > 0) under.push(`"${b.what}": ${n} px`);
+  });
+  return { targets: boxes.length, under };
+}
 
 // ---------------------------------------------------------------------------------------------
 
