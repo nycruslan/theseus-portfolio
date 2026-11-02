@@ -409,6 +409,62 @@ function blockSizes(page: Page) {
   }, BLOCK);
 }
 
+type State = { base: string; where: string };
+
+const P3 =
+  "P3 on the first screen in every state: at 1440 x 900 and 390 x 844, light and dark, on the default server and the live, open and resting fixtures, the dl wholly inside the viewport, every item B1.1 lists (and at 1440 its five rows) inside it too, and no text in the dl as large as the h1";
+
+/** P3's read on each of `states`, at 1440 x 900 and 390 x 844, light and dark. */
+async function p3(page: Page, states: State[]) {
+  await page.context().addInitScript(refuseWebGl);
+  for (const { base, where: site } of states) {
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const [width, height] of SIZES) {
+        await openHome(page, width, height, base);
+        const where = `on ${site} at ${width} x ${height}, ${scheme}`;
+        const dl = await blockBox(page);
+        const found = await firstScreen(page);
+        expect.soft(dl, `${BLOCK} ${where}`).not.toBeNull();
+        expect
+          .soft(
+            insideViewport(dl, found.viewport),
+            `the dl wholly inside the first viewport ${where}: ${JSON.stringify(dl)}`,
+          )
+          .toBe(true);
+        const withRows = width === 1440;
+        if (withRows)
+          expect
+            .soft(found.rows, `revision rows ${where}`)
+            .toHaveLength(ROWS_SHOWN);
+        expect
+          .soft(
+            [...found.items, ...(withRows ? found.rows : [])]
+              .filter(({ box }) => !insideViewport(box, found.viewport))
+              .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
+            `B1.1's items not wholly inside the first viewport ${where}`,
+          )
+          .toEqual([]);
+        const sizes = await blockSizes(page);
+        expect(sizes.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
+        expect
+          .soft(
+            sizes.texts.filter(({ size }) => size >= sizes.h1),
+            `text in the dl as large as the h1 (${sizes.h1} px) ${where}`,
+          )
+          .toEqual([]);
+      }
+    }
+  }
+}
+
+// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
+// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+test(`${P3} (the default server's pass)`, async ({ page }) => {
+  test.setTimeout(60_000);
+  await p3(page, [{ base: "", where: "the default server" }]);
+});
+
 test.describe("on the feed's fixtures", () => {
   test.skip(
     Boolean(process.env.PLAYWRIGHT_BASE_URL),
@@ -420,13 +476,9 @@ test.describe("on the feed's fixtures", () => {
     for (const fixture of FIXTURES) void reachHome(crew, fixture);
   });
 
-  test("P3 on the first screen in every state: at 1440 x 900 and 390 x 844, light and dark, on the default server and the live, open and resting fixtures, the dl wholly inside the viewport, every item B1.1 lists (and at 1440 its five rows) inside it too, and no text in the dl as large as the h1", async ({
-    page,
-    crew,
-  }) => {
+  test(`${P3} (the fixtures' pass)`, async ({ page, crew }) => {
     test.setTimeout(240_000);
-    await page.context().addInitScript(refuseWebGl);
-    const states = [{ base: "", where: "the default server" }];
+    const states: State[] = [];
     for (const fixture of FIXTURES) {
       const reached = await reachHome(crew, fixture);
       test.info().annotations.push({
@@ -439,45 +491,7 @@ test.describe("on the feed's fixtures", () => {
       ).toBe(reached.want);
       states.push({ base: reached.base, where: `the ${fixture} fixture` });
     }
-    for (const { base, where: site } of states) {
-      for (const scheme of SCHEMES) {
-        await page.emulateMedia({ colorScheme: scheme });
-        for (const [width, height] of SIZES) {
-          await openHome(page, width, height, base);
-          const where = `on ${site} at ${width} x ${height}, ${scheme}`;
-          const dl = await blockBox(page);
-          const found = await firstScreen(page);
-          expect.soft(dl, `${BLOCK} ${where}`).not.toBeNull();
-          expect
-            .soft(
-              insideViewport(dl, found.viewport),
-              `the dl wholly inside the first viewport ${where}: ${JSON.stringify(dl)}`,
-            )
-            .toBe(true);
-          const withRows = width === 1440;
-          if (withRows)
-            expect
-              .soft(found.rows, `revision rows ${where}`)
-              .toHaveLength(ROWS_SHOWN);
-          expect
-            .soft(
-              [...found.items, ...(withRows ? found.rows : [])]
-                .filter(({ box }) => !insideViewport(box, found.viewport))
-                .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
-              `B1.1's items not wholly inside the first viewport ${where}`,
-            )
-            .toEqual([]);
-          const sizes = await blockSizes(page);
-          expect(sizes.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
-          expect
-            .soft(
-              sizes.texts.filter(({ size }) => size >= sizes.h1),
-              `text in the dl as large as the h1 (${sizes.h1} px) ${where}`,
-            )
-            .toEqual([]);
-        }
-      }
-    }
+    await p3(page, states);
   });
 });
 

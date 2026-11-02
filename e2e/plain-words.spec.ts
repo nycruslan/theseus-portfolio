@@ -361,24 +361,12 @@ function keyOverflow(page: Page) {
   }, KEY);
 }
 
-test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark, nothing in it painted copper (on the default server and the live fixture), and at 320 nothing overflows (the page, the key's box and its own scroll width)", async ({
-  page,
-  crew,
-}) => {
-  test.skip(
-    Boolean(process.env.PLAYWRIGHT_BASE_URL),
-    "PLAYWRIGHT_BASE_URL is set: the live fixture needs this checkout's build (B4.22's harness)",
-  );
-  test.setTimeout(120_000);
-  const live = await reachHome(crew, "live");
-  expect(
-    live.home.seen,
-    `the state / shows on the home-live site within ${STATE_WAIT} ms`,
-  ).toBe("live");
-  for (const [base, site] of [
-    ["", "the default server"],
-    [live.base, "the live fixture"],
-  ] as const) {
+const P8_PAINT =
+  "P8 the key reads and holds: 4.5:1 for each of its texts in light and dark, nothing in it painted copper (on the default server and the live fixture), and at 320 nothing overflows (the page, the key's box and its own scroll width)";
+
+/** P8's paint read at 1440 on each of `states`, light and dark. */
+async function p8Paint(page: Page, states: { base: string; site: string }[]) {
+  for (const { base, site } of states) {
     for (const scheme of SCHEMES) {
       await page.emulateMedia({ colorScheme: scheme });
       await openAt(page, "/", 1440, 900, base);
@@ -397,6 +385,13 @@ test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark,
       expect.soft(paint.copper, `copper paint in the key ${where}`).toEqual([]);
     }
   }
+}
+
+// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
+// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+test(`${P8_PAINT} (the default server's pass, and 320)`, async ({ page }) => {
+  test.setTimeout(60_000);
+  await p8Paint(page, [{ base: "", site: "the default server" }]);
   await page.emulateMedia({ colorScheme: "light" });
   await openAt(page, "/", 320, 800);
   const over = await keyOverflow(page);
@@ -410,6 +405,20 @@ test("P8 the key reads and holds: 4.5:1 for each of its texts in light and dark,
   expect
     .soft(over?.scroll, "the key's scrollWidth past its clientWidth at 320")
     .toBe(0);
+});
+
+test(`${P8_PAINT} (the live fixture's pass)`, async ({ page, crew }) => {
+  test.skip(
+    Boolean(process.env.PLAYWRIGHT_BASE_URL),
+    "PLAYWRIGHT_BASE_URL is set: the live fixture needs this checkout's build (B4.22's harness)",
+  );
+  test.setTimeout(120_000);
+  const live = await reachHome(crew, "live");
+  expect(
+    live.home.seen,
+    `the state / shows on the home-live site within ${STATE_WAIT} ms`,
+  ).toBe("live");
+  await p8Paint(page, [{ base: live.base, site: "the live fixture" }]);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -451,6 +460,125 @@ async function reached(crew: Crew, fixture: Fixture) {
   return r;
 }
 
+const P8_SCREEN =
+  "P8 the key in the first screen: at 1440 x 900, light and dark, on the default server and the live, open and resting fixtures, the key wholly inside the viewport with every item B1.1 lists and the five rows; at 390 x 844 it follows the rows";
+
+/** P8's first-screen read on each of `states`, light and dark. */
+async function p8Screen(page: Page, states: { base: string; where: string }[]) {
+  for (const { base, where: site } of states) {
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await openAt(page, "/", 1440, 900, base);
+      let where = `on ${site} at 1440 x 900, ${scheme}`;
+      const key = await readKey(page);
+      const found = await firstScreen(page);
+      expect.soft(key.box, `${KEY} ${where}`).not.toBeNull();
+      expect
+        .soft(
+          insideViewport(key.box, found.viewport),
+          `the key wholly inside the first viewport ${where}: ${JSON.stringify(key.box)}`,
+        )
+        .toBe(true);
+      expect
+        .soft(found.rows, `revision rows ${where}`)
+        .toHaveLength(ROWS_SHOWN);
+      expect
+        .soft(
+          [...found.items, ...found.rows]
+            .filter(({ box }) => !insideViewport(box, found.viewport))
+            .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
+          `B1.1's items and the rows not wholly inside the first viewport ${where}`,
+        )
+        .toEqual([]);
+
+      await openAt(page, "/", 390, 844, base);
+      where = `on ${site} at 390 x 844, ${scheme}`;
+      const narrow = await readKey(page);
+      expect.soft(narrow.box, `${KEY} ${where}`).not.toBeNull();
+      expect
+        .soft(
+          (narrow.box?.top ?? Number.NaN) >=
+            (narrow.tableBottom ?? Number.NaN) - 0.5,
+          `the key's top (${narrow.box?.top}) at or below the rows' table's bottom (${narrow.tableBottom}) ${where}`,
+        )
+        .toBe(true);
+    }
+  }
+}
+
+type CrewState = {
+  base: string;
+  where: string;
+  body: unknown;
+  origin: string | null;
+};
+
+const P9_CREW =
+  "P9 /crew labels each of the seven an AI agent: scripts off, on the default server (down) and the live, open and resting fixtures, every tr[data-role]'s first td reads <word>, AI agent, its AI agent in visible text (no box under 2 px from its text to the cell); at 390 the not-on-this-sprint sentence is unchanged; with scripts on at 1440 the visible text holds AI agent seven times";
+
+/**
+ * P9's read: scripts off on each of `states`, and with scripts on at 1440 on `scriptsOn` (the
+ * default server and the live fixture).
+ */
+async function p9Crew(
+  browser: Browser,
+  page: Page,
+  states: CrewState[],
+  scriptsOn: CrewState[],
+) {
+  for (const { base, where, body, origin } of states) {
+    const off = await bare(browser, 1440, 900);
+    const response = await off.page.goto(`${base}/crew`);
+    expect(response?.status(), `status of /crew on ${where}, scripts off`).toBe(
+      200,
+    );
+    expectJobs(await readJobs(off.page), `on ${where}, scripts off, at 1440`);
+    // Below 768 px the absent rows fold into one sentence, which keeps its words.
+    await off.page.setViewportSize({ width: 390, height: 844 });
+    const absent = expected(body, origin)
+      .rows.filter((r) => r.state === "Not on this sprint")
+      .map((r) => r.name);
+    expect
+      .soft(
+        squash(
+          await off.page.evaluate(
+            () => document.querySelector("p[data-absent]")?.textContent ?? "",
+          ),
+        ),
+        `p[data-absent] on ${where}, scripts off, at 390`,
+      )
+      .toBe(absentSentence(absent));
+    await off.context.close();
+  }
+  for (const { base, where } of scriptsOn) {
+    await openAt(page, "/crew", 1440, 900, base);
+    expect
+      .soft(
+        await visibleAgents(page),
+        `"AI agent" in the visible text on ${where} at 1440`,
+      )
+      .toBe(7);
+  }
+}
+
+// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
+// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+test(`${P8_SCREEN} (the default server's pass)`, async ({ page }) => {
+  test.setTimeout(60_000);
+  await p8Screen(page, [{ base: "", where: "the default server" }]);
+});
+
+test(`${P9_CREW} (the default server's pass)`, async ({ browser, page }) => {
+  test.setTimeout(60_000);
+  const down: CrewState = {
+    base: "",
+    where: "the default server (down)",
+    body: null,
+    origin: null,
+  };
+  await p9Crew(browser, page, [down], [down]);
+});
+
 test.describe("on the feed's fixtures", () => {
   test.describe.configure({ mode: "default" });
   test.skip(
@@ -464,77 +592,20 @@ test.describe("on the feed's fixtures", () => {
     void replaySite(crew, "replay");
   });
 
-  test("P8 the key in the first screen: at 1440 x 900, light and dark, on the default server and the live, open and resting fixtures, the key wholly inside the viewport with every item B1.1 lists and the five rows; at 390 x 844 it follows the rows", async ({
-    page,
-    crew,
-  }) => {
+  test(`${P8_SCREEN} (the fixtures' pass)`, async ({ page, crew }) => {
     test.setTimeout(150_000);
-    const states = [{ base: "", where: "the default server" }];
+    const states: { base: string; where: string }[] = [];
     for (const fixture of FIXTURES)
       states.push({
         base: (await reached(crew, fixture)).base,
         where: `the ${fixture} fixture`,
       });
-    for (const { base, where: site } of states) {
-      for (const scheme of SCHEMES) {
-        await page.emulateMedia({ colorScheme: scheme });
-        await openAt(page, "/", 1440, 900, base);
-        let where = `on ${site} at 1440 x 900, ${scheme}`;
-        const key = await readKey(page);
-        const found = await firstScreen(page);
-        expect.soft(key.box, `${KEY} ${where}`).not.toBeNull();
-        expect
-          .soft(
-            insideViewport(key.box, found.viewport),
-            `the key wholly inside the first viewport ${where}: ${JSON.stringify(key.box)}`,
-          )
-          .toBe(true);
-        expect
-          .soft(found.rows, `revision rows ${where}`)
-          .toHaveLength(ROWS_SHOWN);
-        expect
-          .soft(
-            [...found.items, ...found.rows]
-              .filter(({ box }) => !insideViewport(box, found.viewport))
-              .map(({ what, box }) => `${what}: ${JSON.stringify(box)}`),
-            `B1.1's items and the rows not wholly inside the first viewport ${where}`,
-          )
-          .toEqual([]);
-
-        await openAt(page, "/", 390, 844, base);
-        where = `on ${site} at 390 x 844, ${scheme}`;
-        const narrow = await readKey(page);
-        expect.soft(narrow.box, `${KEY} ${where}`).not.toBeNull();
-        expect
-          .soft(
-            (narrow.box?.top ?? Number.NaN) >=
-              (narrow.tableBottom ?? Number.NaN) - 0.5,
-            `the key's top (${narrow.box?.top}) at or below the rows' table's bottom (${narrow.tableBottom}) ${where}`,
-          )
-          .toBe(true);
-      }
-    }
+    await p8Screen(page, states);
   });
 
-  test("P9 /crew labels each of the seven an AI agent: scripts off, on the default server (down) and the live, open and resting fixtures, every tr[data-role]'s first td reads <word>, AI agent, its AI agent in visible text (no box under 2 px from its text to the cell); at 390 the not-on-this-sprint sentence is unchanged; with scripts on at 1440 the visible text holds AI agent seven times", async ({
-    browser,
-    page,
-    crew,
-  }) => {
+  test(`${P9_CREW} (the fixtures' pass)`, async ({ browser, page, crew }) => {
     test.setTimeout(150_000);
-    const states: {
-      base: string;
-      where: string;
-      body: unknown;
-      origin: string | null;
-    }[] = [
-      {
-        base: "",
-        where: "the default server (down)",
-        body: null,
-        origin: null,
-      },
-    ];
+    const states: CrewState[] = [];
     for (const fixture of FIXTURES) {
       const r = await reached(crew, fixture);
       states.push({
@@ -544,40 +615,7 @@ test.describe("on the feed's fixtures", () => {
         origin: crew.feed.origin,
       });
     }
-    for (const { base, where, body, origin } of states) {
-      const off = await bare(browser, 1440, 900);
-      const response = await off.page.goto(`${base}/crew`);
-      expect(
-        response?.status(),
-        `status of /crew on ${where}, scripts off`,
-      ).toBe(200);
-      expectJobs(await readJobs(off.page), `on ${where}, scripts off, at 1440`);
-      // Below 768 px the absent rows fold into one sentence, which keeps its words.
-      await off.page.setViewportSize({ width: 390, height: 844 });
-      const absent = expected(body, origin)
-        .rows.filter((r) => r.state === "Not on this sprint")
-        .map((r) => r.name);
-      expect
-        .soft(
-          squash(
-            await off.page.evaluate(
-              () => document.querySelector("p[data-absent]")?.textContent ?? "",
-            ),
-          ),
-          `p[data-absent] on ${where}, scripts off, at 390`,
-        )
-        .toBe(absentSentence(absent));
-      await off.context.close();
-    }
-    for (const { base, where } of states.slice(0, 2)) {
-      await openAt(page, "/crew", 1440, 900, base);
-      expect
-        .soft(
-          await visibleAgents(page),
-          `"AI agent" in the visible text on ${where} at 1440`,
-        )
-        .toBe(7);
-    }
+    await p9Crew(browser, page, states, states.slice(0, 1));
   });
 });
 

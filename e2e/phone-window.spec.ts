@@ -19,28 +19,19 @@ import {
 } from "./helpers";
 import { layerFor, pencilSeat } from "./live-layer";
 import {
-  box,
   drawingAt,
   FIRST,
-  profile as hullOf,
   modelCoverage,
   note,
-  outlineCoverage,
   pause,
   REST,
   SHOWN,
   whole,
 } from "./model";
-import {
-  decodePng,
-  deltaE,
-  edges,
-  hausdorff,
-  type Image,
-  pixel,
-} from "./pixels";
+import { decodePng, deltaE, type Image, pixel } from "./pixels";
 import { PLAN } from "./plan";
 import { openModel, refuseWebGl } from "./webgl";
+import { LETTERING, registration } from "./window";
 
 // Sprint 44, Wb: the sheet fits a phone window (.crew/sprint/44/contract.md, W8 to W12), written
 // before the build. `/`'s first window on a phone with the toolbars showing holds the name, the
@@ -105,8 +96,6 @@ const CONTROL_PLACE = {
 
 const BLOCK = "dl[data-particulars]";
 const NAMED = ':is(fieldset, [role="group"])[aria-label="Motion"]';
-/** The drawing's lettering, HTML spans over its SVG (.crew/sprint/39/decisions.md, 5). */
-const LETTERING = "[data-plan] .plan-view > span";
 
 const at = (width: number, height: number) => `${width} x ${height}`;
 
@@ -238,6 +227,71 @@ function dotAndChip(page: Page) {
   });
 }
 
+type State = { base: string; where: string };
+
+const W8 =
+  "W8 the phone window holds the facts: at 390 x 664, 393 x 659, 412 x 780, 430 x 746, 375 x 548, 360 x 560 and 390 x 844, light and dark, on the default server and the live, open and resting fixtures, WebGL refused, the h1, the headline, the bio's lead and the three contact links are wholly inside the viewport less 8 px, dl[data-particulars] whole too at the first four, and the h1 is the largest text; 320 x 568 reported";
+
+/** W8's read on each of `states`, at every phone window, light and dark. */
+async function w8(page: Page, states: State[]) {
+  await page.context().addInitScript(refuseWebGl);
+  const windows = [
+    ...PARTICULARS_HELD.map((w) => ({ w, particulars: true })),
+    ...[...FACTS_HELD, ...UNCHANGED].map((w) => ({ w, particulars: false })),
+  ];
+  const lowest = new Map<string, { items: number; dl: number }>();
+  for (const { base, where: site } of states) {
+    for (const scheme of SCHEMES) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const {
+        w: [width, height],
+        particulars,
+      } of windows) {
+        await openHome(page, width, height, base);
+        const k = at(width, height);
+        const where = `on ${site} at ${k}, ${scheme}`;
+        const found = await phoneWindow(page, particulars);
+        const seen = lowest.get(k) ?? { items: 0, dl: 0 };
+        lowest.set(k, {
+          items: Math.max(seen.items, found.lowest),
+          dl: Math.max(seen.dl, found.dlBottom),
+        });
+        if (REPORTED_ONLY.has(k)) continue;
+        expect
+          .soft(
+            found.outside,
+            `items not wholly inside the first window less ${FOLD_MARGIN} px ${where}`,
+          )
+          .toEqual([]);
+        expect(found.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
+        expect
+          .soft(
+            found.larger,
+            `text as large as the h1 (${found.h1} px) ${where}`,
+          )
+          .toEqual([]);
+      }
+    }
+  }
+  note(
+    test.info(),
+    "lowest",
+    [...lowest]
+      .map(
+        ([k, v]) =>
+          `${k}${REPORTED_ONLY.has(k) ? " (reported)" : ""}: item 1 ${v.items.toFixed(1)}, dl ${v.dl.toFixed(1)}`,
+      )
+      .join("; "),
+  );
+}
+
+// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
+// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+test(`${W8} (the default server's pass)`, async ({ page }) => {
+  test.setTimeout(120_000);
+  await w8(page, [{ base: "", where: "the default server" }]);
+});
+
 test.describe("on the feed's fixtures", () => {
   test.describe.configure({ mode: "default" });
   test.skip(
@@ -250,62 +304,11 @@ test.describe("on the feed's fixtures", () => {
     for (const fixture of FIXTURES) void reachHome(crew, fixture);
   });
 
-  test("W8 the phone window holds the facts: at 390 x 664, 393 x 659, 412 x 780, 430 x 746, 375 x 548, 360 x 560 and 390 x 844, light and dark, on the default server and the live, open and resting fixtures, WebGL refused, the h1, the headline, the bio's lead and the three contact links are wholly inside the viewport less 8 px, dl[data-particulars] whole too at the first four, and the h1 is the largest text; 320 x 568 reported", async ({
-    page,
-    crew,
-  }) => {
+  test(`${W8} (the fixtures' pass)`, async ({ page, crew }) => {
     test.setTimeout(300_000);
-    await page.context().addInitScript(refuseWebGl);
-    const states = [{ base: "", where: "the default server" }];
+    const states: State[] = [];
     for (const fixture of FIXTURES) states.push(await shownOn(crew, fixture));
-    const windows = [
-      ...PARTICULARS_HELD.map((w) => ({ w, particulars: true })),
-      ...[...FACTS_HELD, ...UNCHANGED].map((w) => ({ w, particulars: false })),
-    ];
-    const lowest = new Map<string, { items: number; dl: number }>();
-    for (const { base, where: site } of states) {
-      for (const scheme of SCHEMES) {
-        await page.emulateMedia({ colorScheme: scheme });
-        for (const {
-          w: [width, height],
-          particulars,
-        } of windows) {
-          await openHome(page, width, height, base);
-          const k = at(width, height);
-          const where = `on ${site} at ${k}, ${scheme}`;
-          const found = await phoneWindow(page, particulars);
-          const seen = lowest.get(k) ?? { items: 0, dl: 0 };
-          lowest.set(k, {
-            items: Math.max(seen.items, found.lowest),
-            dl: Math.max(seen.dl, found.dlBottom),
-          });
-          if (REPORTED_ONLY.has(k)) continue;
-          expect
-            .soft(
-              found.outside,
-              `items not wholly inside the first window less ${FOLD_MARGIN} px ${where}`,
-            )
-            .toEqual([]);
-          expect(found.h1, `the h1's font size ${where}`).toBeGreaterThan(0);
-          expect
-            .soft(
-              found.larger,
-              `text as large as the h1 (${found.h1} px) ${where}`,
-            )
-            .toEqual([]);
-        }
-      }
-    }
-    note(
-      test.info(),
-      "lowest",
-      [...lowest]
-        .map(
-          ([k, v]) =>
-            `${k}${REPORTED_ONLY.has(k) ? " (reported)" : ""}: item 1 ${v.items.toFixed(1)}, dl ${v.dl.toFixed(1)}`,
-        )
-        .join("; "),
-    );
+    await w8(page, states);
   });
 
   test("W12 the 3D label leaves the copper dot showing: on the live fixture, at 1024 and every width below it where P13's read finds the chip meeting the dot (1024 must be one), on Full at rest, the centre of the copper dot the canvas draws, and each point within its radius less 1.5 px in the label's box, paints as it does with the lettering hidden, which shows the dot (P13's 16-level tolerance)", async ({
@@ -582,27 +585,6 @@ function drawingReads(page: Page, shown: string) {
     },
     { plan: PLAN, lettering: LETTERING, shown },
   );
-}
-
-/** B3.1's measure on a page held at `landed`, as W4 reads it, in CSS px. */
-async function registration(page: Page, width: number, dpr: number) {
-  const drawing = drawingAt(width);
-  const planBox = await box(page, drawing);
-  const geometry = await hullOf(page, drawing);
-  if (!planBox || !geometry) return null;
-  const clip = whole(planBox);
-  const svg = await outlineCoverage(page, clip, drawing);
-  const model = await modelCoverage(page, clip);
-  const [w, h] = [model.image.width, model.image.height];
-  const cut = Math.round((geometry.limit - clip.x) * dpr);
-  const d = hausdorff(
-    edges(svg.alpha, w, h),
-    edges(model.alpha, w, h),
-    w,
-    h,
-    cut,
-  );
-  return { max: d.max / dpr, p99: d.p99 / dpr, a: d.a, b: d.b, clip };
 }
 
 test("W9 the narrow drawing is whole: at every window below 768 the contract names, WebGL refused, every shown [data-plan] [data-plank] and lettering span lies inside [data-plan]'s box and the viewport, clipped by no overflow, and the shown drawing is at least Iris's floor tall (reported per window); on Full at 390 x 664, DPR 1 and 3, frame 1 registers on .plan-narrow within B3.1's bounds (1.5 CSS px at DPR 1, 1.0 with the canvas at its 1.5 cap)", async ({
@@ -1143,7 +1125,7 @@ function recordShifts() {
   }).observe({ type: "layout-shift", buffered: true });
 }
 
-test("W11 still: by B1.8's read, CLS 0 over load plus 2 s at 390 x 664 and 375 x 548 with the model loading, and through a resize from 390 x 664 to 390 x 844 and back with no input; the rules that place the narrow sheet size from svh, never vh, dvh or lvh (a source read of the applying CSS at both windows)", async ({
+test("W11 still: by B1.8's read, CLS 0 over load plus 2 s at 390 x 664 and 375 x 548 with the model loading, and through a resize from 390 x 664 to 390 x 844 and back with no input (a read that can't see a shift flagged hadRecentInput, as Chromium flags a resize's); the rules that place the narrow sheet size from svh, never vh, dvh or lvh (a source read of the applying CSS at both windows)", async ({
   browser,
 }) => {
   test.setTimeout(120_000);
@@ -1195,7 +1177,11 @@ test("W11 still: by B1.8's read, CLS 0 over load plus 2 s at 390 x 664 and 375 x
         .toEqual([]);
 
       if (height === 664) {
-        // The toolbars going and coming back: the window grows to 844 and returns, no input.
+        // The toolbars going and coming back: the window grows to 844 and returns, no input. B1.8's
+        // read, like recordShifts, skips every entry flagged hadRecentInput, and Chromium flags the
+        // shifts a viewport resize causes (Iris measured 0.34 in raw entries here on sprint 44's
+        // build, .crew/sprint/44/placement.md): this clause sees a shift from the page's own work
+        // after the resize, a late script or image, not the relayout the resize itself makes.
         for (const h of [844, 664]) {
           await page.setViewportSize({ width, height: h });
           await pause(1000);
@@ -1213,7 +1199,7 @@ test("W11 still: by B1.8's read, CLS 0 over load plus 2 s at 390 x 664 and 375 x
         expect
           .soft(
             resized.cls,
-            `layout shift through the resize to 390 x 844 and back: ${resized.shifts.join("; ")}`,
+            `layout shift not flagged hadRecentInput through the resize to 390 x 844 and back: ${resized.shifts.join("; ")}`,
           )
           .toBe(0);
       }
