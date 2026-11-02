@@ -83,3 +83,6 @@
 - Before moving an element, grep e2e for every clause that names it, not only the one the contract lists: B2.3's "in its row, left of the group" ruled out my first Wb prototype (sprint 44).
 - Chromium marks layout shifts during a viewport resize `hadRecentInput: true`, so CLS reads that skip them (`e2e/helpers.ts`) stay 0 through a resize; a raw sum of entries doesn't (sprint 44).
 - A memory file over 25 KB stops loading at its tail: keep each lesson one line and put numbers in the topic files (Lens's nit on 54b88d3).
+- A sticky grid item sticks only inside its grid area: a section after `/crew`'s panel goes in column 2 with the drawing pinned `grid-area: 1 / 1 / span 2 / 2` from 1024, or the drawing scrolls away as it arrives; a full-width band can't keep the drawing stuck (`.crew/sprint/47/placement.md`).
+- Binds against guidance is ink against pencil: a bold ink verdict and a solid 1 px ink quote rule bind, while a graphite label and a dashed graphite rule only guide. Never box a number that isn't a sprint, since a boxed number on this site is a plank (`.crew/sprint/47/placement.md`).
+- No code face: quotes from files are set in the text face at `--step-sm` under a 1 px rule, since a system mono stack would be the one face outside the Sofia family and differ by OS (`.crew/sprint/47/placement.md`).
