@@ -11,6 +11,7 @@ export const LINK =
  * and K10): LINK's ink and underline without `.crew-link`'s box, whose inline-flex would make it
  * unbreakable and its 44 px line-tall. 4 px of padding above and below, which an inline box paints
  * and hit-tests but doesn't lay out, make it a 24 px target (B2.9), as the pencil row's goal link is.
+ * It never splits across lines (Iris), so it stays one target with one ring at every width.
  */
 export const INLINE_LINK =
-  "py-1 text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
+  "whitespace-nowrap py-1 text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
