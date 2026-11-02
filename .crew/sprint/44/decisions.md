@@ -36,3 +36,11 @@
     (`e2e/plan.spec.ts:688`) hit-tests `[data-plan]`'s box at 390 × 900, whose top 44 px held the
     foot row. Moving the drop from `.plan-narrow`'s margin to `[data-plan]`'s puts the box where
     the drawing starts; nothing on screen moves.
+11. **Lens: ship on 54b88d3, but CI's `check` failed one kept check,** B3.1's hand-off at
+    390 × 844 DPR 2 (1,459 pixels of the drawing change outside the profile), green locally for
+    Forge and Pixel. Read as page now sits over the canvas's area; the hypothesis is STATE's LCD
+    lesson (CI drops LCD text over the WebGL layer). Fix round 1 to Forge, root cause first,
+    the check unedited. Lens's cheap nits ride in the same push, since it re-reviews anyway: the
+    motion slot sized in rem so a larger default font can't overlap Read as page, the stale
+    "drawing's foot" comments, and Iris's memory under its 25 KB load limit. W8's default-server
+    pass under `PLAYWRIGHT_BASE_URL` joins Wc's W15 in the roadmap.
