@@ -928,7 +928,7 @@ test("B4.7 UTC: with the server at UTC+14 and the browser in Los Angeles, every 
     .toBe(resting.exp.status);
 });
 
-test("B4.8 the feed's text is only text: the markup moment shows its 22 characters and no b, unknown kinds, roles and states are dropped, an unknown who keeps its moment, another repository's PR and another origin's run aren't linked, and no href but the site's, this repository's PRs and the feed's run pages", async ({
+test("B4.8 the feed's text is only text: the markup moment shows its 22 characters and no b, unknown kinds, roles and states are dropped, an unknown who keeps its moment, another repository's PR and another origin's run aren't linked, and no href but the site's, this repository's PRs, the feed's run pages and, inside the keel only, its six links to a line of their source", async ({
   page,
   crew,
 }) => {
