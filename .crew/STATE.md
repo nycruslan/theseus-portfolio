@@ -46,7 +46,11 @@ makes stale.
   - A contract that adds a link, a role or any new kind of element also greps the kept checks
     that allowlist that kind of thing (sprint 47: B4.8 allowlists every href on `/crew`, the
     contract listed it as unedited, and the keel's six links stopped the build,
-    `.crew/sprint/47/decisions.md` 4).
+    `.crew/sprint/47/decisions.md` 4). A grep isn't enough: sprint 48's contract grepped and named
+    three, and a full run found seven more pinning link lists or Tab stops on `/`, `/crew` and
+    `/log`, plus B2.9's 24 px targets. Before the build, Probe runs the unedited suite on a scratch
+    build with a bare version of the change (a contract mutant), and the contract names every red
+    (`.crew/sprint/48/decisions.md` 4).
   - Before placing anything near the title block, list every viewport the kept checks pin
     (`grep -n setViewportSize e2e/`): sprint 40's key was placed for 1440 × 900 and went red at
     B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.
