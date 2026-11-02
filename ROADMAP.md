@@ -13,12 +13,83 @@ evals (`/evals`, `/api/cron/evals`), the agent surfaces (`/llms.txt`, `/api/me.j
 security headers, Web Analytics, and redirects from the old addresses. So the Owner's pick below no
 longer needs its `/work/…` case study option: those are done.
 
-## Now: the proof in the first window
+## Now: the keel
 
-Whatever window a visitor opens `/` in, the first screen shows Ruslan's name, his role, his own
-lead, the four particulars and a way to reach him: a laptop browser 1280 to 1920 wide and 620 to
-950 tall, a tablet, or a phone browser with its toolbars showing. When the window is short, the
-drawing gives up height; the facts don't. At 1440 × 900 nothing moves.
+A hiring executive who wonders whether the AI crew is real and governed finds the answer on
+`/crew`. It lists the rules the crew builds under, in plain words. Each rule says what enforces it
+(GitHub, the gate check, Lens's review, or only guidance), quotes its file word for word, and links
+to that line on GitHub. He reaches it in one click from "his rules" on `/`, and beside the rules
+the record shows them at work. Today that's 44 merged sprints: 31 on the checks alone, and 13 on
+his own call.
+
+Quill's plan is `.crew/sprint/46/plan.md`, with the six rules, their sources and the build
+constraint, and Ka's contract is `first-contract.md`. It serves belief 2: a site that says "a team
+of AI agents" invites "and who stops them?", and no page showed the rules yet. The checks are K1
+to K12, across Ka and Kb. No sprint needs an owner answer to start, touches an owner path or edits
+`content/`. The build reads the crew's rails and changes none.
+
+- [x] Sprint 46 (notes only): Quill closed "the proof in the first window" on production
+  (`.crew/sprint/46/close.md`), planned this milestone (`plan.md`) and wrote Ka's contract
+  (`first-contract.md`, K1 to K8 and a rider). (PR #109, built in one run on 2026-11-02.)
+  Ka starts with Iris's placement call.
+- [ ] Ka (M): the keel on `/crew`. Six rules, server-rendered after the panel, each with its
+  enforcer, its verbatim quote and a link to its line. A rule drops if its file loses the quote.
+  The quotes are fixed at build, since `/crew` regenerates on the server where `.crew/**/*.mjs`
+  isn't traced. Nothing in the panel or the drawing moves. Rider (Probe): W5's and W7's reads of
+  the feed's down state stop running under `PLAYWRIGHT_BASE_URL`.
+- [ ] Kb (S): the ways in, and the record behind it. "His rules" in the key on `/` and `/log`, and
+  the Approval line on `/crew`, link to `/crew#keel`. P8's "no a" clause and B2.3's 24 stops are
+  rewritten with the same strength, for Lens. A line in the keel counts the merged sprints by how
+  each was approved, matching `/log`'s Approved column.
+- **Next:** Ka. Iris's placement call comes first (`.crew/sprint/46/plan.md`, Ka), with Probe's K1
+  to K8 written red in parallel. Before the build, Atlas confirms the `protect-main` ruleset's three
+  required checks from `merge.mjs`'s output, since Quill couldn't read the ruleset from the sandbox.
+- Out of scope, and why:
+  - Changing any rule: the keel quotes the owner's paths and never edits them.
+  - The keel in `/`'s first window: belief 1 comes first there, and Kb's link is the way in.
+  - The keel in `/llms.txt` and `/api/me.json`, and `/crew`'s card: follow-ups once it settles.
+- **Owner's pick, asked in sprint 42's PR (#101), still unanswered:** which proof comes after the
+  first window. The options:
+  - a published keel quoted from the files that enforce it (recommended, and now being built
+    because it can be undone);
+  - a JPMorgan case study from facts he writes;
+  - standing down.
+
+  The keel is a section of `/crew` that can be taken down, and the repository it quotes is already
+  public. He may take it down, or only its rule 6 (the setup's known gap: sessions reach GitHub as
+  him), after any merge. If he picks the case study, it comes next.
+- **For the owner, optional:** Wa has merged, so his B3, B4 and B5 demos can now be judged on his
+  own laptop window. The five-second test still stands: show `/` to a stranger for five seconds, on
+  a laptop window and on a phone, and ask what he does, at what scale, and how to reach him.
+
+## Finished: the proof in the first window
+
+Wa, Wb and Wc merged by 2026-11-02 (Wc, #108, last). Quill closed it on production in sprint 46
+(`.crew/sprint/46/close.md`). At every laptop, tablet and phone window the W checks name, the first
+window holds the name, role, bio, contact links and four particulars, and 1440 × 900 is unchanged.
+At 1536 × 715 the links end at 700, where they were at 907; at 1366 × 625 the name sits at 341–428,
+where it was cut. Of the W passes that run against a deployment, 12 passed. W5 and W7 went red only
+on reads of the feed's down state, which the live pencil changes by design. **Left open:**
+- Waiting for a sprint that touches their code:
+  - W5's and W7's deployed passes (Probe, Ka's rider).
+  - Lens's nit on #108: `openHome` and `shownOn` are still copied in two W specs, and Probe's memory
+    line on `e2e/window.ts` goes with it.
+  - No check reads the model's hand-off (LCD text) at Wa's and Wc's widths. Wa's rule loses it at
+    1300 × 650 (Forge and Probe).
+  - `/crew`'s foot row over its canvas: Ka, if Iris's placement touches the foot.
+  - A 24 px default font scrolls the phone sheet sideways.
+  - Iris's memory lines 66 and 67.
+- Taken, found in the code: Wa's chip-rule and `ghost.ts` nits; Wb's comment and W11 wording were
+  Wc's riders.
+- Accepted: at 1220 × 640 and 1247 × 640 the links end 1 and 3 px under the fold.
+- Waiting for a real device: Safari on a phone and a tablet, and Mac and Windows Chrome with a GPU.
+- For the owner, optional: his B3 to B5 demos on his own window, and the five-second test.
+
+The outcome as planned: whatever window a visitor opens `/` in, the first screen shows Ruslan's
+name, his role, his own lead, the four particulars and a way to reach him. That covers a laptop
+browser 1280 to 1920 wide and 620 to 950 tall, a tablet, or a phone browser with its toolbars
+showing. When the window is short, the drawing gives up height; the facts don't. At 1440 × 900
+nothing moves.
 
 Quill's plan is `.crew/sprint/42/plan.md`, and the measurements are in `.crew/sprint/42/close.md`.
 On production on 2026-11-01 the last milestone held at the sizes its checks pin (1440 × 900 and
@@ -58,23 +129,11 @@ owner answer to start, touches an owner path or edits `content/`.
   model's hand-off (LCD text) at tablet or Wa widths, and Wa's rule from 1280 loses it at
   1300 × 650 on unchanged code; 1220 × 640 and 1247 × 640 end the links 1.4 and 2.6 px under the
   fold; Safari on a real tablet.
-- **Next:** every sprint is built, so Quill closes the milestone on production (the W checks'
-  windows, and the five-second read) and plans the next. The Owner's pick below is unanswered, so
-  that is the recommended keel, which can be undone.
-- Out of scope, and why:
+- Out of scope then:
   - What the facts say, and the loft, the hull's look, the live marks and the replay: the owner's
     demos judge them. The model only follows the drawing.
   - A line about the crew in a phone's first window: belief 1 comes first there, and the bar's
     Crew link is in view.
-- **Owner's pick, asked in sprint 42's PR so it doesn't hold the next milestone:** which proof
-  comes after this one. The options are a published keel quoted from the files that enforce it
-  (recommended; it can be undone), a JPMorgan case study from facts he writes, or standing down.
-  Both earlier candidates sit below a first window that is still losing belief 1, so they follow
-  this milestone.
-- **For the owner, optional:** his B3, B4 and B5 demos will be judged on his own laptop window,
-  which Wa changes, so they're best run after Wa merges. The five-second test still stands: show
-  `/` to a stranger for five seconds, on a laptop window and on a phone, and ask what he does, at
-  what scale, and how to reach him.
 
 ## Finished: the proof in five seconds
 
@@ -91,8 +150,9 @@ row (sprint 37's) ages out when sprint 42 merges. **Left open:**
   the fallback face; the card drawn as a sheet (Iris); and `/` and `/crew`'s dev-only
   instant-navigation message.
 - Waiting for a real phone: Detail A's dark-scheme boxes.
-- Waiting for a PR the owner reviews anyway: the legend's "Original", the commit-hash link (C5.3),
-  and the unknown record's scripts-off 404.
+- Waiting for a sprint that touches their code, since #84 left a loosened check to Lens rather than
+  the owner (`.crew/sprint/46/close.md`): the legend's "Original", the commit-hash link (C5.3), and
+  the unknown record's scripts-off 404.
 - For Iris to weigh: on slow first visits the display face never paints (`display: optional`; 8
   of 8 cold visits on Slow 4G painted the fallback).
 

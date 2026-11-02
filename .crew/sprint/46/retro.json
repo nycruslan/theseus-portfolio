@@ -1,0 +1,65 @@
+{
+  "sprint": 46,
+  "pr": 109,
+  "goal": "Check every window on the live site, then plan how to show the crew's rules",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on 5abd75c after one fix round (a walked plank anchor); the first-window milestone closed as held on production at 28 windows, and the keel planned as Ka and Kb with K1 to K12",
+  "fixRounds": 1,
+  "minutes": 95,
+  "agents": [
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 217457,
+      "minutes": 16
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 45694,
+      "minutes": 3
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 688922,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "Two first-window checks fail when pointed at the live site, though nothing a visitor sees is wrong",
+      "evidence": "W5 and W7 under PLAYWRIGHT_BASE_URL read the feed's down state; 12 passed, 2 failed, 7 skipped (close.md)"
+    },
+    {
+      "what": "Three rows in a row began with the same words, so the narrow table read as one row repeated",
+      "evidence": "At 1024 the revision table showed three 'Fit the name, facts and contact l\u2026' rows (close.md)"
+    },
+    {
+      "what": "A notes-only sprint still moved a plank on the hull, and one check's example had to follow it",
+      "evidence": "B5.6's sprint 24 anchor failed in CI run 41423608010 (325 passed, 1 failed); fixed in 5a0d3f2"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have the pre-flight or merge-record script name the seat a new retro takes and any e2e anchor naming that seat's holders",
+      "moves": "CI runs lost to a walked anchor: 1 this sprint, 1 in sprint 41"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Iris",
+      "what": "Place the keel on /crew before Ka's build (plan.md, Ka)"
+    },
+    {
+      "who": "Probe",
+      "what": "Write K1 to K8 red in e2e/keel.spec.ts, and guard W5's and W7's down-state reads under PLAYWRIGHT_BASE_URL"
+    },
+    {
+      "who": "Atlas",
+      "what": "Confirm the protect-main ruleset's three required checks before Ka's build"
+    }
+  ]
+}
