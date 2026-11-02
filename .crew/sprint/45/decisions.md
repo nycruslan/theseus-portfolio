@@ -26,3 +26,12 @@
    passes green under `PLAYWRIGHT_BASE_URL`. No kept check pins the key hidden, so nothing retires;
    W7 grows stricter by itself (print and forced colours must now show the key at 1366 × 625), and
    only its comment at `e2e/window.spec.ts:1186` goes stale, for Probe after the build.
+8. **Forge's build taken** (b09ec3b, memory 2ed80a8): Iris's CSS with two departures, both sent
+   to Iris for a yes or no. The floor's width rounds up to a whole pixel, since Chromium's
+   64th-of-a-pixel rounding left the drawing at 239.984 under W16's 240 floor. The particulars' film
+   fill reaches 2 px left of their text (margin less 2 px, nothing visible moves), since a fill
+   edge half a pixel past a whole pixel leaves the first glyphs outside it and CI's LCD text turns
+   grayscale over the model (reproduced with sprint 39's fontconfig: 8,745 px at 1180 × 740, 0
+   after). `pnpm verify` passes on the integrated tree; Forge's full suite: 328 of 328 on 2 workers.
+   Wa's rule from 1280 has the same two latent problems on unchanged code (LCD loss at 1300 × 650,
+   which no check reads); a follow-up, not this sprint's.
