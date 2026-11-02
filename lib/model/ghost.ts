@@ -31,7 +31,11 @@ type Label = {
   out: [number, number];
   /** Its leader's inner end, on the plank, in hull units; an "in" number's place on its plank. */
   into: [number, number];
-  /** The copper dot an "in" number keeps clear of, in the model's frame, while the crew is live. */
+  /**
+   * The pencil plank's copper dot in the model's frame, while the crew is live: an "in" number
+   * keeps clear of it, and every pencil number's chip lets it through, so the pen paints over the
+   * chip as the 2D's does (.crew/sprint/44/contract.md, W12; P13).
+   */
   dot?: Vec3 | null;
 };
 
@@ -75,19 +79,16 @@ export function pencilLabel(
     spans.find((candidate) => candidate.classList.contains("plan-pencil")) ??
     spans.find((candidate) => candidate.textContent === pencil.sprint);
   if (!span) return null;
-  const label = riderLabel(span, pencil.seat, layout);
   const plank = PLANKS[pencil.slot];
+  const label = {
+    ...riderLabel(span, pencil.seat, layout),
+    dot: pencil.live && plank ? dotOf(plank, layout) : null,
+  };
   const body = plank && plankBody(plank);
   if (!span.classList.contains("plan-end") || !plank || !body) return label;
   const x = (body[0] + body[1]) / 2;
   const [top, bottom] = bandAt(plank, x) ?? [label.anchor[1], label.anchor[1]];
-  return {
-    ...label,
-    end: true,
-    lead: "in",
-    into: [x, (top + bottom) / 2],
-    dot: pencil.live ? dotOf(plank, layout) : null,
-  };
+  return { ...label, end: true, lead: "in", into: [x, (top + bottom) / 2] };
 }
 
 /**
@@ -385,7 +386,7 @@ export function riders(
    * where its chip there would come within DOT_CLEAR of the copper dot's centre (the chip is HTML
    * over the canvas and would hide it), the first place toward the plank's stern end that clears
    * it, a quarter unit apart (.crew/sprint/43/placement.md, "Rider"). Its digits' width is read
-   * with it, since the number ends centred on that place: 11 px below 690 px tall, 13 above.
+   * with it, since the number ends centred on that place: 11 px below 712 px tall, 13 above.
    */
   const seatIn = (i: number, loft: Loft) => {
     const label = labels[i];
@@ -636,7 +637,7 @@ export function riders(
       // its digits between pixels by (Iris's review of sprint 34). The places' clearances allow
       // the device pixel this can move a box (settle's `round`).
       const step = 1 / devicePixelRatio;
-      const snap = (n: number) => `${Math.round(n / step) * step}px`;
+      const snap = (n: number) => Math.round(n / step) * step;
       labels.forEach((label, i) => {
         const [ax] = label.anchor;
         const [px, py] =
@@ -645,8 +646,17 @@ export function riders(
             : pointAt(i, loft, ax + ((now[i] ?? ax) - ax) * e, e).at;
         // The span's own place on the canvas, which lies on the drawing's box: frame 1's point.
         const [x0, y0] = [label.share[0] * BW * k, label.share[1] * BH * k];
-        label.span.style.setProperty("--ghost-x", snap(px - x0));
-        label.span.style.setProperty("--ghost-y", snap(py - y0));
+        const [gx, gy] = [snap(px - x0), snap(py - y0)];
+        const { style } = label.span;
+        style.setProperty("--ghost-x", `${gx}px`);
+        style.setProperty("--ghost-y", `${gy}px`);
+        // The copper dot from the number's anchor where it now stands: the chip's hole for the pen
+        // (app/globals.css, "The pen over the chip"), at the dot's exact place in every frame.
+        const dot = label.dot && loft.screen([label.dot], e)[0];
+        if (dot) {
+          style.setProperty("--dot-x", `${dot[0] - x0 - gx}px`);
+          style.setProperty("--dot-y", `${dot[1] - y0 - gy}px`);
+        }
       });
     },
     /**
@@ -665,8 +675,9 @@ export function riders(
     /** Every number back at its place in the drawing. */
     clear() {
       for (const { span } of labels) {
-        span.style.removeProperty("--ghost-x");
-        span.style.removeProperty("--ghost-y");
+        for (const name of ["--ghost-x", "--ghost-y", "--dot-x", "--dot-y"]) {
+          span.style.removeProperty(name);
+        }
       }
     },
   };
