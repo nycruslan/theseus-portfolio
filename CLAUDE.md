@@ -25,7 +25,8 @@ remember is.
   and `retro.json`), and `.crew/STATE.md` (lessons that still hold). `PRODUCT.md`,
   `design/brief.md`, `design/rubric.md` and `design/calibration/` are the owner's record of what to
   build and how it's judged.
-- Production is https://theseus-portfolio.vercel.app, and every PR gets a Vercel preview.
+- Production is https://ruslanshulga.com, also served at https://theseus-portfolio.vercel.app; cloud
+  sessions use the second unless their network allowlist has the first. Every PR gets a Vercel preview.
 - The Studio (nycruslan/theseus-studio) streams the crew's work to visitors live from its hooks.
   The crew doesn't work on it.
 
@@ -39,7 +40,9 @@ remember is.
 - Visitors watch every command in the Studio, which shows it by its Bash `description`: give each
   Bash call a short line saying what it does, never the command itself.
 - Memory holds lasting lessons about the product, the code and the design, one line each with the
-  reason. Correct or delete a line that proved wrong or was superseded. Problems with the
+  reason. Only the first 200 lines or 25 KB of your MEMORY.md load: when it nears that, merge lines
+  or move detail to a topic file beside it and point to it. Correct or delete a line that proved
+  wrong or was superseded. Problems with the
   environment go in your report, not your memory. A role in its own worktree commits its memory
   lines there and names the commit for Atlas to bring over.
 
