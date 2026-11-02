@@ -1020,20 +1020,34 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
         ) ||
         (href.startsWith(`${crew.feed.origin}/studio/runs/`) &&
           !href.includes(".."));
+  // Sprint 47 (Ka, Atlas's call): the keel's links go to a line of a file in this repository, as
+  // its contract requires, and only from inside the keel; everything else is allowed as before.
+  const keelSource =
+    /^https:\/\/github\.com\/nycruslan\/theseus-portfolio\/blob\/(main|[0-9a-f]{40})\/[^?#]+#L\d+(-L\d+)?$/;
   for (const shown of [live, open, DEFAULT]) {
     await openCrew(page, shown);
     // Every href, the head's links included: the canonical names the site's own production URL.
-    const hrefs = await page.evaluate(() =>
-      [...document.querySelectorAll("[href]")].map(
-        (a) => a.getAttribute("href") ?? "",
-      ),
+    const read = await page.evaluate(() =>
+      [...document.querySelectorAll("[href]")].map((a) => ({
+        href: a.getAttribute("href") ?? "",
+        inKeel: a.closest('section[aria-labelledby="keel"]') !== null,
+      })),
     );
+    const inKeel = (h: { href: string; inKeel: boolean }) =>
+      h.inKeel && keelSource.test(h.href);
+    const hrefs = read.filter((h) => !inKeel(h)).map((h) => h.href);
     expect
       .soft(
         hrefs.filter((h) => !allowed(h)),
         `hrefs on /crew on ${shown.where}`,
       )
       .toEqual([]);
+    expect
+      .soft(
+        read.filter(inKeel).length,
+        `the keel's links to a line of its source on ${shown.where}`,
+      )
+      .toBe(6);
     if (shown === open) {
       const panel = await readPanel(page);
       expect
