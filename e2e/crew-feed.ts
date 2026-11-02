@@ -283,7 +283,7 @@ async function startSiteOnce(
   if (feedUrl !== null) env.CREW_FEED_URL = feedUrl;
   if (ca) env.NODE_EXTRA_CA_CERTS = ca;
   let output = "";
-  // Its own process group, so stopping it stops the next-server child too (.crew/STATE.md).
+  // Its own process group, so stopping it stops the next-server child too (AGENTS.md).
   const child: ChildProcess = spawn(
     process.execPath,
     [
