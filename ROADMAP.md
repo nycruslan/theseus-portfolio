@@ -32,18 +32,20 @@ to K12, across Ka and Kb. No sprint needs an owner answer to start, touches an o
   (`.crew/sprint/46/close.md`), planned this milestone (`plan.md`) and wrote Ka's contract
   (`first-contract.md`, K1 to K8 and a rider). (PR #109, built in one run on 2026-11-02.)
   Ka starts with Iris's placement call.
-- [ ] Ka (M): the keel on `/crew`. Six rules, server-rendered after the panel, each with its
-  enforcer, its verbatim quote and a link to its line. A rule drops if its file loses the quote.
-  The quotes are fixed at build, since `/crew` regenerates on the server where `.crew/**/*.mjs`
-  isn't traced. Nothing in the panel or the drawing moves. Rider (Probe): W5's and W7's reads of
-  the feed's down state stop running under `PLAYWRIGHT_BASE_URL`.
+- [x] Ka (M), sprint 47: the keel on `/crew`. Six rules, server HTML after the panel, each with
+  its enforcer, its verbatim quote and a link to its line, fixed at build by a Turbopack `?raw`
+  rule (K8 proven with the sources moved away). K1 to K7 in `e2e/keel.spec.ts`; B4.8 rewritten to
+  allow the keel's six links inside the keel only; the rider guards W5's and W7's down-state
+  reads. (PR #110, two fix rounds.) Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
 - [ ] Kb (S): the ways in, and the record behind it. "His rules" in the key on `/` and `/log`, and
   the Approval line on `/crew`, link to `/crew#keel`. P8's "no a" clause and B2.3's 24 stops are
   rewritten with the same strength, for Lens. A line in the keel counts the merged sprints by how
   each was approved, matching `/log`'s Approved column.
-- **Next:** Ka. Iris's placement call comes first (`.crew/sprint/46/plan.md`, Ka), with Probe's K1
-  to K8 written red in parallel. Before the build, Atlas confirms the `protect-main` ruleset's three
-  required checks from `merge.mjs`'s output, since Quill couldn't read the ruleset from the sandbox.
+- **Next:** Kb. The anchor is `#keel` (`h2#keel` in `section[aria-labelledby="keel"]`), in
+  `/crew`'s right column from 1024 and after the panel below. Riding with it, since it touches
+  the same code: Lens's two nits on #110 (`LINK` into its own module so `components/crew.tsx`
+  stays client-only, and `globals.css`'s comment on the drawing's two-row span), with Forge's
+  `crew.md` line.
 - Out of scope, and why:
   - Changing any rule: the keel quotes the owner's paths and never edits them.
   - The keel in `/`'s first window: belief 1 comes first there, and Kb's link is the way in.
@@ -71,7 +73,7 @@ At 1536 × 715 the links end at 700, where they were at 907; at 1366 × 625 the 
 where it was cut. Of the W passes that run against a deployment, 12 passed. W5 and W7 went red only
 on reads of the feed's down state, which the live pencil changes by design. **Left open:**
 - Waiting for a sprint that touches their code:
-  - W5's and W7's deployed passes (Probe, Ka's rider).
+  - W5's and W7's deployed passes: done in Ka (#110).
   - Lens's nit on #108: `openHome` and `shownOn` are still copied in two W specs, and Probe's memory
     line on `e2e/window.ts` goes with it.
   - No check reads the model's hand-off (LCD text) at Wa's and Wc's widths. Wa's rule loses it at

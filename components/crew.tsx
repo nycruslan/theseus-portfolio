@@ -265,7 +265,7 @@ function Activity({
 }
 
 // Ink, underlined, a target 44 px tall below 1024 and 24 from it (app/globals.css, ".crew-link").
-const LINK =
+export const LINK =
   "crew-link text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
 
 function Evidence({ crew, record }: { crew: Crew; record: Facts["record"] }) {

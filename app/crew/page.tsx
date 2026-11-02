@@ -3,6 +3,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { CrewLive } from "@/components/crew-live";
 import { Foot } from "@/components/foot";
+import { Keel } from "@/components/keel";
 import { CrewPlan, ReplayStamp } from "@/components/lines-plan";
 import { Model, MotionControl } from "@/components/model";
 import { SkipLink } from "@/components/skip-link";
@@ -123,6 +124,7 @@ export default async function Crew() {
               : null
           }
         />
+        <Keel />
       </main>
     </>
   );

@@ -43,6 +43,10 @@ makes stale.
   - A contract writer reading a design for checks finds what the designer missed (sprint 15's
     cropped plank). Keep that read before the build.
   - A rule two places implement (the page and Probe's oracle) is briefed to both word for word.
+  - A contract that adds a link, a role or any new kind of element also greps the kept checks
+    that allowlist that kind of thing (sprint 47: B4.8 allowlists every href on `/crew`, the
+    contract listed it as unedited, and the keel's six links stopped the build,
+    `.crew/sprint/47/decisions.md` 4).
   - Before placing anything near the title block, list every viewport the kept checks pin
     (`grep -n setViewportSize e2e/`): sprint 40's key was placed for 1440 × 900 and went red at
     B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.
@@ -64,6 +68,9 @@ makes stale.
   - An added `test.skip(` is a weakened check: Lens accepts it only with its reason in the PR
     (scope.mjs's testNotes).
   - A check added after its fix can't be red on main: prove it with the mutant that turns it red.
+  - The panel and the title block show the newest retro's goal, so a box below it moves with
+    every merge whose goal wraps differently. Pin such boxes from the foot of the retro text
+    above them, not from the page (sprint 47's K7, `.crew/sprint/47/decisions.md` 10).
   - The suite's own server is the feed's down state, and a deployment never is: only a pass that
     holds in every feed state may run under `PLAYWRIGHT_BASE_URL` (sprint 45: W2 and P9 read the
     down state, and a contract that listed them cost a fix round, `.crew/sprint/45/decisions.md` 11).

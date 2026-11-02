@@ -1,0 +1,121 @@
+## Sprint 47: the keel on the crew page (Ka, M)
+
+**Goal (from the roadmap):** a hiring executive who wonders whether the AI crew is governed finds,
+on `/crew`, the six rules it builds under. Each is in plain words, says what enforces it (GitHub,
+the gate check, Lens's review, or only guidance), quotes its file word for word and links to that
+line on GitHub.
+
+**Contract:** `.crew/sprint/46/first-contract.md` (K1 to K8 and a rider). Briefs:
+`.crew/sprint/47/briefs.md`. Iris's placement: `.crew/sprint/47/placement.md`. Decisions:
+`.crew/sprint/47/decisions.md`.
+
+### What's built
+- `lib/keel.ts`: the six rules (`KEEL`), the contract's matching rule (`quoteLines`) and
+  `keelRules`. A rule whose file loses its quote drops, and a dropped rule leaves its number's gap.
+- `components/keel.tsx`: server HTML after the panel. It renders nothing when no rule is left.
+- **The quotes are fixed at build.** `next.config.ts` adds a Turbopack `?raw` rule, so the five
+  source files are text in the server bundle. `raw.d.ts` types the import. The link's commit is
+  also fixed at build (`KEEL_REF`, from `VERCEL_GIT_COMMIT_SHA`, else `main`).
+- Placement (a), Iris's call: from 1024 the keel sits under the panel in its column, and the drawing
+  spans both rows so it stays stuck beside the keel. Binding rules are drawn in ink; guidance rules
+  have a graphite label and a dashed rule. Nothing is copper.
+
+### Results
+- `pnpm verify` passes on the integrated tree: lint, typecheck, knip and build.
+- `e2e/keel.spec.ts` (K1 to K7) and `e2e/crew.spec.ts` pass 35 of 35 on the integrated build
+  (2.0 min). All 12 keel tests were red on main (Probe). K7's box comparison and CLS read pass on
+  main by design: they guard what the keel must not move.
+- **K8, fixed at build (Forge).** `next start` ran on the build with CLAUDE.md,
+  .github/CODEOWNERS and .crew/{scope,guard,gate}.mjs moved out of the checkout. The live fixture
+  regenerated `/crew` ("live" after 18.5 s). Before and after, the page had 6 rules and the keel's
+  HTML was identical to the build's, with the links still at the build's commit. The server logged
+  0 errors or ENOENT. No `.nft.json` trace names a source.
+- **Budgets:**
+  - Script bytes (decoded, WebGL refused): `/crew` 481,318 B before and after, `/` 464,751 B
+    before and after. `/crew`'s HTML went from 60,366 B to 72,064 B, all of it server HTML.
+  - LCP element unchanged: the Rules `dd` at 1440 × 900, `span.crew-goal` at 390 × 664.
+  - CLS 0 at load at both sizes.
+  - K7: the drawing, h1, table and `[data-rules]` match main's boxes with a max delta of 0.
+- **Iris's measurements:**
+  - The drawing stays at top 72 with the keel's h2 mid-viewport and at the page end, at
+    1024 × 768, 1440 × 900 and 1536 × 715.
+  - A live poll while reading the keel: 0 layout-shift entries. Scroll anchoring held it within
+    0.5 px.
+- Full suite: CI's `check` on this head. Forge's earlier full run (334 of 338) failed only on B4.8
+  and on the spec's old sentences, both fixed since.
+
+### Kept checks rewritten (for Lens)
+- **B4.8** (`e2e/crew.spec.ts:931`) allowed only the site's, this repository's PRs' and the
+  feed's run pages' hrefs on `/crew`. The contract's six links go to `blob/<ref>/<path>#L<a>[-L<b>]`.
+  - The rewrite accepts that one pattern only inside `section[aria-labelledby="keel"]`. It requires
+    exactly six such links there.
+  - Every other href, a blob link outside the keel included, goes through the unchanged
+    `allowed()`.
+  - No expect was removed.
+- **Ka's rider, W5 and W7** (`e2e/window.spec.ts`): three reads stop under `PLAYWRIGHT_BASE_URL`.
+  They are W5's boxes at 900, W7's forced-colours stroke read, and W7's Calm and Off layout
+  comparison.
+  - **Why:** they hold only in the feed's down state, which only this checkout's server shows. On
+    production on 2026-11-02 they read the live pencil by design (`.crew/sprint/46/close.md`).
+  - **What stays the same:** CI never sets the variable, so CI runs them exactly as before. In
+    `window.spec.ts`, no `expect(` was removed and no `test.skip(` was added. Each read is behind
+    `if (DEPLOYED)` and logs a "not run" note.
+- **An added skip, in the new spec** (`e2e/keel.spec.ts`, the describe "on this checkout's build and the live fixture"): the describe "on this checkout's
+  build and the live fixture" holds K1's live-fixture pass and K7. It skips both when
+  `PLAYWRIGHT_BASE_URL` is set.
+  - **Why:** K7 compares against main's boxes, which are this checkout's down state. The live pass
+    needs this checkout's build served from a copy pointed at the fixture server (B4.22's harness).
+    A deployment has neither.
+  - **The precedent:** it's the guard `crew.spec.ts:64` and `crew-live.spec.ts:47` already use.
+  - **What stays the same:** CI never sets the variable (`ci.yml` sets only
+    `PLAYWRIGHT_PREBUILT`), so CI runs both tests in full. K1's default-server pass runs
+    everywhere.
+
+### Fix round 1 (Lens's `changes` on 7b0402a)
+- **Important:** keel.spec.ts's added skip is now named above, with its reason. No code changed
+  for it.
+- **Nits, taken because they're cheap:**
+  - B4.8's title now names the keel's six links (Probe).
+  - Forge's `crew.md` line now says `keel.tsx` imports `LINK` from `crew.tsx` on the server.
+  - Iris's sticky-grid memory line now agrees with Probe's measurement.
+
+### Fix round 2 (CI's `check` on 77c75ee: 337 passed, 1 failed, K7)
+- **What failed:** the close-out's retro moved K7's recorded boxes. The panel shows the newest goal.
+  Sprint 47's goal fits one line at 1440, where sprint 46's wrapped, so the table and `[data-rules]`
+  sat 25.5 px higher than main's recording. The keel didn't move them.
+- **Why not re-record:** recorded as before, K7 would go red on main whenever a merged retro's goal
+  wraps differently.
+- **The fix (Probe, `e2e/keel.spec.ts`, K7 only):**
+  - The drawing and the h1 stay pinned to the page, as before.
+  - The table and the rules keep their left, width and height. Their tops are now read from the
+    foot of the retro text above them: the table from `[data-chip]`, the rules from
+    `[data-approval]`.
+  - Main's values were re-recorded on dfe9f86. No `expect(` was added or removed.
+- **Proof:**
+  - It passes with sprint 46's goal and with sprint 47's.
+  - Two mutants went red: a keel rule changing the page's grid columns, and a 40 px margin on the
+    table.
+  - Run here on the integrated head: `keel.spec.ts` passed 12 of 12.
+- **What it no longer catches:** the chip and everything under it shifting together while the h1
+  and every width stay put. Only CSS inside the panel can do that, not the keel's.
+
+**Lens: ship on c513950.** Its two nits only move code, so they ride with Kb: `LINK` gets its own
+module, and `globals.css`'s comment on the drawing's two-row span gets corrected. The close-out
+that follows touches only notes.
+
+### Decisions
+- Iris tightened two rule sentences without changing their claims. Rule 5 now reads "don't edit"
+  rather than "can't edit", since its own label says a shell command can get around it. Rule 6 is
+  in plainer words. Atlas accepted both.
+- Nothing touches an owner path or `content/`. `next.config.ts` and `raw.d.ts` are the team's.
+- The Owner's pick asked on #101 is still open, and the keel is its recommended option, built
+  because it can be undone. The owner may take the keel down, or rule 6 alone, after the merge.
+
+### Not verified
+- The empty-keel render is checked only through `keelRules` returning `[]`. Lens reads
+  `components/keel.tsx` for the null return.
+- Nothing has been checked on the Vercel preview yet.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+https://claude.ai/code/session_01QrjXvbnuF8bSdbt7cLq4hF
