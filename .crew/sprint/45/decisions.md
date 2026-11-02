@@ -42,3 +42,10 @@
    the drawing goes full width under the particulars. Same geometry in both engines. Forge makes it.
 10. **Forge's floor fix taken** (c0bbed4, memory ef8feb6): the sum in place of `round()`; verify
     passes, `tablet-window`, `window` and `phone-window` specs 22 of 22, the geometry Iris's.
+11. **Lens: changes on 366dbb9, one Important: the contract's W15 was wrong to list W2 and P9.**
+    Their default-server passes assert the feed's down state, which a deployed site under
+    `PLAYWRIGHT_BASE_URL` never shows (sprint 34 decision 7 guarded them for that); Probe's proof
+    ran on a local `next start` with no feed, still the down state. Contract change: W15 covers P3,
+    P8, W1 and W8 (and W13, W14); W2's and P9's default passes go back inside their guards. Fix
+    round 1 to Probe, with Lens's cheap nits riding (W14 reads 1000 tall, `window.ts`'s header says
+    "copied") and Forge's comment nit at `app/globals.css:1483`. CI is unaffected either way.
