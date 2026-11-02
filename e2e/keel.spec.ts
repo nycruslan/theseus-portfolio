@@ -1093,62 +1093,86 @@ const STICKY_ONLY = [
   [1024, 768],
   [1536, 715],
 ] as const;
+/**
+ * What K7 pins, each [selector, anchor]. The drawing and the panel's h1 are pinned where they sit
+ * on the page. The table and [data-rules] sit under text the newest retro writes (the chip's goal;
+ * Evidence's PR and Approval's words), which rewraps at every merge, so each is pinned by its left,
+ * width and height and by its top's distance from the foot of the element just above it that holds
+ * that text: [data-chip] for the table, [data-approval] for the rules (fix round 2 on #110, after
+ * sprint 47's goal fitted one line where sprint 46's wrapped and moved both up 25.5 px). A layout
+ * change, the keel's included, still moves the drawing, the h1, a width or a gap.
+ */
 const ABOVE = {
-  drawing: ".crew-drawing",
-  h1: `${PANEL} h1`,
-  table: `${PANEL} table`,
-  rules: "[data-rules]",
+  drawing: [".crew-drawing", null],
+  h1: [`${PANEL} h1`, null],
+  table: [`${PANEL} table`, `${PANEL} [data-chip]`],
+  rules: ["[data-rules]", "[data-approval]"],
 } as const;
 
-/** The boxes K7 pins, in page coordinates (left, top + scrollY, width, height). */
+/**
+ * The boxes K7 pins: left, top (page coordinates, or from the anchor's foot), width and height.
+ */
 function aboveBoxes(page: Page): Promise<Boxes> {
   return page.evaluate((above) => {
-    const out: Record<string, [number, number, number, number] | null> = {};
-    for (const [name, selector] of Object.entries(above)) {
+    const one = (selector: string) => {
       const found = document.querySelectorAll(selector);
-      const r = found.length === 1 ? found[0]?.getBoundingClientRect() : null;
-      out[name] = r
-        ? ([r.left, r.top + scrollY, r.width, r.height].map(
-            (v) => Math.round(v * 100) / 100,
-          ) as [number, number, number, number])
+      return found.length === 1
+        ? (found[0]?.getBoundingClientRect() ?? null)
         : null;
+    };
+    const out: Record<string, [number, number, number, number] | null> = {};
+    for (const [name, [selector, anchor]] of Object.entries(above)) {
+      const r = one(selector);
+      const a = anchor === null ? null : one(anchor);
+      const top =
+        anchor === null
+          ? (r?.top ?? 0) + scrollY
+          : a
+            ? (r?.top ?? 0) - a.bottom
+            : null;
+      out[name] =
+        r && top !== null
+          ? ([r.left, top, r.width, r.height].map(
+              (v) => Math.round(v * 100) / 100,
+            ) as [number, number, number, number])
+          : null;
     }
     return out;
   }, ABOVE);
 }
 
 /**
- * Main's boxes, WebGL refused, light, recorded by this spec's K7 on main's product (dfe9f86: the
- * sprint branch at d714428 adds only sprint 46's merge record and sprint 47's briefs, which /crew
- * doesn't read). Owner copy or retros that rewrap the panel move them: re-record and say so.
+ * Main's boxes, WebGL refused, light, recorded by this spec's K7 on main's product (dfe9f86, with
+ * sprint 46's retro the newest): the table's and the rules' tops are from their anchors' feet.
+ * Owner copy that rewraps the panel's fixed text moves them: re-record and say so.
  */
 const MAIN: Record<"default" | "live", Record<string, Boxes>> = {
   default: {
     "1440 x 900": {
       drawing: [16, 72, 808, 478.5],
       h1: [849, 96, 79.92, 49.39],
-      table: [849, 286.66, 551, 328.56],
-      rules: [941, 745.72, 459, 58.5],
+      table: [849, 78.27, 551, 328.56],
+      rules: [941, 8, 459, 58.5],
     },
     "390 x 844": {
       drawing: [16, 52, 358, 223.75],
       h1: [16, 353.7, 55.48, 36.09],
-      table: [16, 555.75, 358, 312.16],
-      rules: [100, 1057.91, 274, 97.5],
+      table: [16, 104, 358, 312.16],
+      rules: [100, 8, 274, 97.5],
     },
   },
   live: {
     "1440 x 900": {
       drawing: [16, 72, 808, 478.5],
       h1: [849, 96, 79.92, 49.39],
-      table: [849, 238.89, 551, 328.56],
-      rules: [941, 1138.89, 459, 58.5],
+      table: [849, 56, 551, 328.56],
+      rules: [941, 8, 459, 58.5],
     },
     "390 x 844": {
       drawing: [16, 52, 358, 223.75],
       h1: [16, 353.7, 55.48, 36.09],
-      table: [16, 493.75, 358, 222.97],
-      rules: [100, 1472.31, 274, 97.5],
+      table: [16, 66, 358, 222.97],
+      rules: [100, 8, 274, 97.5],
     },
   },
 };
@@ -1297,7 +1321,7 @@ test.describe("on this checkout's build and the live fixture", () => {
     await k1On(browser, live.base, "the live fixture");
   });
 
-  test("K7 nothing above it moves: at 1440 x 900 and 390 x 844, WebGL refused, on the default server and the live fixture, .crew-drawing, the panel's h1, its table and [data-rules] have main's boxes within 0.5 px; at 1024 x 768, 1440 x 900 and 1536 x 715 with the keel's h2 at the viewport's middle .crew-drawing's top is the bar's 72 px; B1.8's CLS read is 0 at load at 1440 x 900 and 390 x 664", async ({
+  test("K7 nothing above it moves: at 1440 x 900 and 390 x 844, WebGL refused, on the default server and the live fixture, .crew-drawing, the panel's h1, its table and [data-rules] have main's boxes within 0.5 px (the table's and the rules' tops from the foot of the retro text above them, [data-chip] and [data-approval]); at 1024 x 768, 1440 x 900 and 1536 x 715 with the keel's h2 at the viewport's middle .crew-drawing's top is the bar's 72 px; B1.8's CLS read is 0 at load at 1440 x 900 and 390 x 664", async ({
     browser,
     crew,
   }) => {
