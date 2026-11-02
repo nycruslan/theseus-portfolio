@@ -27,8 +27,12 @@ export function TitleBlock({ className = "" }: { className?: string }) {
       <p className="mt-2 max-w-[548px] text-step-base leading-[1.45] lg:mt-2.5 lg:mb-3">
         {splitBio(profile.bio).lead}
       </p>
-      {/* Pushed to the block's foot beside the revisions. No id: #contact is the Contact section. */}
-      <p className="mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:gap-x-[22px] lg:pt-2">
+      {/* Pushed to the block's foot beside the revisions, except on a window too short for the
+          whole sheet, where it follows the bio (app/globals.css, "The sheet on a laptop window").
+          No id: #contact is the Contact section. The gap opens to 22 px from 1366: at 1280 the
+          six links fill the column's 478 px with 22 px gaps, and 18 px gaps leave them 21 px of
+          slack (.crew/sprint/43/decisions.md, 10). */}
+      <p className="title-contact mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:pt-2 min-[85.375rem]:gap-x-[22px]">
         <a
           href="#case-studies"
           className={`inline-flex min-h-11 items-center lg:min-h-0 ${LINK}`}

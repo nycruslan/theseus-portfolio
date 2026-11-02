@@ -64,26 +64,43 @@ const local = (x: number, y: number): [number, number] => [
 /** How far past the run's end the dot's segment reaches, in hull units: under a tenth of a px. */
 const DOT_STEP = 0.05;
 
+type Plank = (typeof PLANKS)[number];
+
+/** The tip's run along a plank's body, stern end and bow end, in hull units; the dot is at the bow. */
+function tipRun(plank: Plank): [number, number] | null {
+  const body = plankBody(plank);
+  if (!body) return null;
+  const { from, to } = PENCIL.tip;
+  const length = body[1] - body[0];
+  return [body[0] + length * from, body[0] + length * to];
+}
+
+/** A point of the tip at station x: on the plank's lower edge, `inset` inside it, near side. */
+function tipAt(plank: Plank, s: number, x: number): Vec3 | null {
+  const band = bandAt(plank, x);
+  return band ? nearSide(x, band[1] - PENCIL.tip.inset / s) : null;
+}
+
+/**
+ * The copper dot's centre on a plank of `layout`'s drawing, in the model's frame: the run's bow
+ * end, where the stage draws it. The pencil's number keeps clear of it (lib/model/ghost.ts).
+ */
+export function dotOf(plank: Plank, layout: Layout): Vec3 | null {
+  const run = tipRun(plank);
+  return run ? tipAt(plank, layout.s, run[1]) : null;
+}
+
 /**
  * The copper tip's run as the 2D draws it (`tipOf` in lib/lines-plan.ts): on the plank's lower
  * edge (the seam, or the keel's outline), `inset` of the drawing's units inside it, from `from` to
  * `to` of its body. On the hull it bends through the level's own stations between its ends, where
  * the card's facets and the seams turn, so no span cuts inside the card and loses the depth test.
  */
-function tipOf(
-  plank: (typeof PLANKS)[number],
-  s: number,
-  level: Level,
-): PencilMarks["tip"] {
-  const body = plankBody(plank);
-  if (!body) return null;
-  const { from, to, inset } = PENCIL.tip;
-  const length = body[1] - body[0];
-  const [a, b] = [body[0] + length * from, body[0] + length * to];
-  const on = (x: number): Vec3 | null => {
-    const band = bandAt(plank, x);
-    return band ? nearSide(x, band[1] - inset / s) : null;
-  };
+function tipOf(plank: Plank, s: number, level: Level): PencilMarks["tip"] {
+  const ends = tipRun(plank);
+  if (!ends) return null;
+  const [a, b] = ends;
+  const on = (x: number) => tipAt(plank, s, x);
   const xs = [
     a,
     ...stationsAt(level.stations).filter((x) => x > a && x < b),

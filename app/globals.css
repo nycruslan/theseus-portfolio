@@ -819,6 +819,21 @@ main:has(> [data-model]) {
   [data-plan]:has(+ [data-model][data-state]) .plan-pencil {
     transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
   }
+
+  /* A pencil number the 2D leads out (5.0's) rides in onto its plank, so from the first lofting
+     frame it takes the film chip the others have (.crew/sprint/43/placement.md, "Rider"). The
+     margin pays back the right padding, so its digits stay where the 2D set them. */
+  [data-plan]:has(
+    + [data-model]:is(
+        [data-state="lofting"],
+        [data-state="settled"],
+        [data-state="still"]
+      )
+  ) .plan-pencil.plan-end {
+    margin-left: 2px;
+    padding: 0 2px;
+    background: var(--background);
+  }
 }
 
 /* Under reduced motion the model opens settled with a 240 ms linear fade, the canvas in and the
@@ -1322,20 +1337,97 @@ main:has(> [data-model]) {
 
 /* From 1280: in the drawing's row, at its foot, 16 px above the frame's line (the frame's bottom
    padding). Its left edge is on the DWL and Base lettering, 931.4 of the drawing's 1408 units
-   across the 1 px frame; its right edge is on the title block's text, 28 px in from the frame's
-   1 px border. Here it lies on the model's layer, so the canvas's arrival gives it a layer of its
-   own, and Chromium paints text in a transparent layer without LCD anti-aliasing: every glyph
-   pixel would change as the model lands (B3.1, sprint 39's fix round 1). Filled with the film,
-   which the corner holds anyway (0 px of drawing or model under it), its layer is opaque and keeps
-   the page's text rendering before and after the hand-off. */
+   across the 1 px frame: the band's width less the frame (100% - 2px), or the narrower width the
+   drawing takes on a short window (--plan-fit, "The sheet on a laptop window" below). Its right
+   edge is on the title block's text, 28 px in from the frame's 1 px border. Here it lies on the
+   model's layer, so the canvas's arrival gives it a layer of its own, and Chromium paints text in
+   a transparent layer without LCD anti-aliasing: every glyph pixel would change as the model lands
+   (B3.1, sprint 39's fix round 1). Filled with the film, which the corner holds anyway (0 px of
+   drawing or model under it), its layer is opaque and keeps the page's text rendering before and
+   after the hand-off. */
 @media (width >= 80rem) {
   .particulars {
     grid-column: 1 / -1;
     grid-row: 1;
     align-self: end;
-    margin: 0 29px 16px calc(1px + (100% - 2px) * 0.66151);
+    margin: 0 29px 16px calc(1px + min(100% - 2px, var(--plan-fit)) * 0.66151);
     padding: 0;
     background: var(--background);
+  }
+}
+
+/*
+ * The sheet on a laptop window (.crew/sprint/43/placement.md, Iris's call (a)): from 1280 px the
+ * drawing gives up the height, so the name, the role, the bio's lead, the particulars, the contact
+ * links and the revisions' caption are in the first window at any height from 620 to 950. The
+ * drawing is the band's width, or the width whose height leaves the window room for the title
+ * block, whichever is less, and never under the floor. Its left edge stays on the frame, so the
+ * room it frees opens at the right, over the title block. Only the scale changes, continuously
+ * with the window's height; type keeps its size. At 1440 x 900 every rule here resolves to the
+ * values above (W2).
+ *
+ * --sheet-foot is what the window keeps under the drawing: the bar (72 px), the title block down to
+ * its contact row's foot (282 to 289 px from 1280 to 1920), and about 15 px of film: 376 px from
+ * 1366. Narrower, the bio's measure comes near its wrap (three lines hold by 0.86 px at 1280 in a
+ * browser that sets glyphs at whole-pixel widths, and take four in Chrome, which sets them at
+ * fractional ones), so the foot ramps up to 400 px at 1280, room for a fourth line, with no step
+ * (placement.md, the amendment). In rem, so a larger default font size grows it with the text.
+ * --plan-floor is the smallest drawing Iris accepts, 240 px tall, where an 11 px plank number
+ * still fits its lift. 0.33807 is the wide drawing's height over its width (lib/hull-layouts.ts,
+ * WIDE.box: 476 / 1408). The two heights the queries below name follow from --sheet-foot: change
+ * it and they move with it.
+ */
+@media (width >= 80rem) {
+  main {
+    --sheet-foot: clamp(23.5rem, calc(25rem - (100vw - 80rem) * 0.279), 25rem);
+    --plan-floor: 15rem;
+    --plan-fit: calc(
+      max(var(--plan-floor), 100svh - var(--sheet-foot)) /
+      0.33807
+    );
+  }
+
+  /* Scoped to /'s sheet: /crew's detail drawing is .plan-wide too. The model lays its canvas on
+     this box (lib/model/), so it follows. */
+  main > [data-plan] > .plan-wide {
+    width: min(100%, var(--plan-fit));
+  }
+}
+
+/* Wherever the sheet can be taller than the window, under 900 px tall or wider than 13:8, the
+   contact row follows the bio by the bio's 12 px margin instead of waiting at the foot beside the
+   revisions, whose height would decide where the links land (37 px more for the drawing). Not at
+   1440 x 900 (16:10), which W2 pins: there it stays at the foot. */
+@media (width >= 80rem) and (height < 56.25rem),
+  (width >= 80rem) and (aspect-ratio >= 13 / 8) {
+  .title-contact {
+    margin-top: 0;
+  }
+}
+
+/* Under 712 px tall the drawing is under about 0.66 of its 1440 size: 0.655 at 1280, where the foot
+   is 400 px and 712 - 400 is 0.655 of the drawing's 476, and up to 0.71 from 1366, where the table
+   beside it still has 365 px or more. Its lettering takes the rules it has from 768 to 1023: 11 px
+   plank numbers for the shallower lifts, and no station numbers on the body plan, which would
+   touch. The corner under the body plan is then too shallow for four rows clear of "Base", so the
+   particulars stand beside the drawing at the band's foot: their left edge on the title block's
+   text (column 2 at 4/7 of the band, then its 28 px padding), or 24 px clear of the body plan's
+   centreline, the drawing's rightmost line (1289.2 of its 1408 units), whichever is further
+   right. */
+@media (width >= 80rem) and (height < 44.5rem) {
+  main > [data-plan] > .plan-wide > .plan-plank {
+    font-size: var(--step-xs);
+  }
+
+  main > [data-plan] > .plan-wide > .plan-wide-only {
+    display: none;
+  }
+
+  .particulars {
+    margin-left: max(
+      calc(100% * 4 / 7 + 28px),
+      calc(1px + var(--plan-fit) * 0.91567 + 24px)
+    );
   }
 }
 
