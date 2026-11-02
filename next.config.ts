@@ -73,12 +73,18 @@ const nextConfig: NextConfig = {
     // seconds. `next dev` keeps its own cache (turbopackFileSystemCacheForDev).
     turbopackFileSystemCacheForBuild: false,
   },
+  // The commit /crew's keel links its quotes at (lib/keel.ts), fixed at build as its quotes are, so a
+  // regeneration on a server without the variable can't point them elsewhere.
+  env: { KEEL_REF: process.env.VERCEL_GIT_COMMIT_SHA || "main" },
   turbopack: {
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
+      // A file imported with `?raw` is its text, in the bundle: the keel's sources
+      // (components/keel.tsx), which the functions' file tracing above leaves out.
+      "*": { condition: { query: "?raw" }, type: "text" },
     },
   },
 };
