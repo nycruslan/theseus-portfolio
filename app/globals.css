@@ -822,17 +822,45 @@ main:has(> [data-model]) {
 
   /* A pencil number the 2D leads out (5.0's) rides in onto its plank, so from the first lofting
      frame it takes the film chip the others have (.crew/sprint/43/placement.md, "Rider"). The
-     margin pays back the right padding, so its digits stay where the 2D set them. */
-  [data-plan]:has(
-    + [data-model]:is(
-        [data-state="lofting"],
-        [data-state="settled"],
-        [data-state="still"]
-      )
-  ) .plan-pencil.plan-end {
+     margin pays back the right padding, so its digits stay where the 2D set them. Scoped to /'s
+     sheet: /crew's focus number rides its anchor's own point, led out or not, with no chip. */
+  main
+    > [data-plan]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    .plan-pencil.plan-end {
+    --anchor-x: calc(100% - 2px);
     margin-left: 2px;
     padding: 0 2px;
     background: var(--background);
+  }
+
+  /* The pen over the chip: while the crew is live the copper dot paints over the pencil number's
+     chip, as the 2D's pen does (P13), but on the hull the chip is HTML above the canvas. So it
+     lets the canvas through a hole the dot's size (PENCIL.tip.dot, 8 px, with a pixel of edge)
+     at the dot's centre, which the chunk sets from the number's anchor in every frame
+     (lib/model/ghost.ts): the anchor is the box's middle, or a led-out number's right edge less
+     its margin. With no dot the offsets are unset and var() drops the mask. A mask reads only
+     alpha, so the token is any opaque one (.crew/sprint/44/contract.md, W12). */
+  main
+    > [data-plan]:has(
+      + [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    .plan-pencil {
+    mask-image: radial-gradient(
+      circle at calc(var(--anchor-x, 50%) + var(--dot-x))
+        calc(50% + var(--dot-y)),
+      transparent 3.5px,
+      var(--foreground) 4.5px
+    );
   }
 }
 
