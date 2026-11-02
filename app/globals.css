@@ -1487,16 +1487,18 @@ main:has(> [data-model]) {
  * .plan-wide's percentage reads; 54px is the same in main's box, which the particulars' margin
  * reads and which is 2 px wider (the band's borders). 29px is the band's 1 px border and the title
  * block's 28 px padding, so the particulars' right edge is on the title block's text.
- * --plan-floor-w is the floor's width, rounded up to a whole pixel: layout rounds the width and
- * then the height down to 1/64 px, so 15rem / 0.33807 (709.913 px) would set the drawing 239.984
- * tall, under the floor, wherever the floor binds (at 1024, and under about 650 tall); 710 px sets
- * it 240.016 (W16).
+ * --plan-floor-w is the floor's width with 0.1 px to spare: layout rounds the width and then the
+ * height down to 1/64 px, so 15rem / 0.33807 (709.913 px) would set the drawing 239.984 tall, under
+ * the floor, wherever the floor binds (at 1024, and under about 650 tall); 710.013 snaps to 710 and
+ * sets it 240.016 (W16). A sum, not CSS round(), which would be the site's only use of it and needs
+ * Chrome 125: where it isn't supported the declaration is dropped, the drawing takes the band's
+ * width and the particulars land over it.
  */
 @media screen and (64rem <= width < 80rem) and (height < 60rem) {
   main {
     --sheet-foot: calc(25rem + (100vw - 64rem) * 0.05);
     --plan-floor: 15rem;
-    --plan-floor-w: round(up, var(--plan-floor) / 0.33807, 1px);
+    --plan-floor-w: calc(var(--plan-floor) / 0.33807 + 0.1px);
     --plan-fit: max(
       var(--plan-floor-w),
       (100svh - var(--sheet-foot)) /
