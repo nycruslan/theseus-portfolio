@@ -30,18 +30,18 @@ link joins. Each rewrite keeps the exact text or the exact list, with `/crew#kee
 its one place, and nothing else relaxed (Probe, 5e36bf6):
 - P8 (`plain-words.spec.ts`): "no a" became "exactly one a, to `/crew#keel`, reading `his rules`".
 - B2.3 (`keyboard.spec.ts`): 24 stops became 25, with `tabUntil`'s bound set to 25.
-- B4.24 (`live-layer.spec.ts`), B4.49 (`sheet.spec.ts`), B1.5 (`crew-replay-home.spec.ts`): the
+- B4.24 (`live-layer.spec.ts`), B4.49 (`crew-replay-home.spec.ts`), B1.5 (`sheet.spec.ts`): the
   block's link order, plus the key's one link.
 - B4.8 (`crew.spec.ts`): the panel's link list, plus Approval's `#keel`.
 - B5.6/C5.3 (`log-record.spec.ts`): the allowlist, plus exactly one `/crew#keel` inside the key.
 - B5.9/C10 (`log.spec.ts`), B5.25 (`log-control.spec.ts`): the `/log` and `/log/13` Tab walks, plus
   `/crew#keel` where the key sits.
 
-Nothing is retired or skipped. B2.9 (24 px targets), B2.10, P10 and W1–W17 run unedited.
+Nothing is retired. **One added skip:** `e2e/keel-ways.spec.ts`'s describe "on this checkout's build and the feed's fixtures" is skipped under `PLAYWRIGHT_BASE_URL` (`test.skip(DEPLOYED, …)`). Its one test serves copies of this checkout's build pointed at the fixture server, which can't be done against a deployment. CI never sets `PLAYWRIGHT_BASE_URL`, so the test runs on every CI pass, and K9–K12's default-server passes still run against deployments. `crew.spec.ts` and `keel.spec.ts` use the same guard. B2.9 (24 px targets), B2.10, P10 and W1–W17 run unedited.
 
 ### Results
 - `pnpm verify` passes on the integrated tree (Atlas, 263da1b): lint, typecheck, knip and build.
-- **Full e2e on 263da1b, fresh build:** 343 passed, 0 failed, 0 skipped, in 32.5 min on 2
+- **Full e2e on 263da1b, fresh build:** 343 passed, 0 failed, 0 skipped (CI's conditions), in 32.5 min on 2
   workers (Probe). `e2e/keel-ways.spec.ts` (K9–K12) is red on the sprint base.
 - **Script bytes** (Forge): `/` 464,751 B before and after (0 B new). `/crew` beyond the 404,
   18,604 → 18,838 B (budget 20,480); beyond `/log`, 16,567 → 16,801 B (budget 18,432).

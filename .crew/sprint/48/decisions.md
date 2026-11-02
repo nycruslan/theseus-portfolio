@@ -18,3 +18,7 @@
    link, so "his rules" never splits into sub-24 px fragments. Her follow-up (the 2 px ring around
    an inline link touches neighbouring lines; fixing it needs Probe's ring checks rewritten) and her
    idea (the record line linking to `/log`) go to the roadmap.
+6. **Lens: changes on cb9211f.** The one Important: keel-ways' describe-level skip under
+   `PLAYWRIGHT_BASE_URL` wasn't named, and the notes said "nothing skipped". Named with its reason;
+   no code change for it. Two nits rode the round: K12's record compared with the checkout's retros
+   under a deployment (Probe), and Forge's memory byte figure (18,838 B on the final head).
