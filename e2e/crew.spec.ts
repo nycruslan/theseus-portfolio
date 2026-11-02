@@ -962,12 +962,13 @@ test("B4.8 the feed's text is only text: the markup moment shows its 22 characte
   expect
     .soft(made.tags, "elements the feed's strings could have made")
     .toEqual([]);
+  // Sprint 48 (K10): on a live run Approval says "<owner>'s rules", which links to the keel.
   expect
     .soft(
       made.links,
-      "links in the panel outside Close and Evidence: the fixed one to the Studio",
+      "links in the panel outside Close and Evidence: the fixed one to the Studio, then Approval's to the keel",
     )
-    .toEqual([STUDIO_URL]);
+    .toEqual([STUDIO_URL, "#keel"]);
   expect
     .soft(found.moments.length, "moments shown: the valid ones")
     .toBe(live.exp.moments.length);

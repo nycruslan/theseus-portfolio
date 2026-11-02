@@ -383,7 +383,7 @@ test.describe("B5.6 A record per revision", () => {
     }
   });
 
-  test("B5.6 (C5.3) no outcome, no evidence and no backtick on /log or a record, and no link but the bar's, the record's and the table's", async ({
+  test("B5.6 (C5.3) no outcome, no evidence and no backtick on /log or a record, and no link but the bar's, the record's, the table's and the key's one to /crew#keel, inside p[data-crew-key]", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -392,12 +392,31 @@ test.describe("B5.6 A record per revision", () => {
     for (const entry of [undefined, ...VALID]) {
       const url = entry ? recordOf(entry.sprint) : LOG;
       await open(page, url, 1440);
-      const found = await page.evaluate(() => ({
-        text: document.querySelector("main")?.textContent ?? "",
-        hrefs: [...document.querySelectorAll("a")].map((a) =>
-          a.getAttribute("href"),
-        ),
-      }));
+      // Sprint 48 (K9): the table's key holds one link, "his rules" to the keel, on /log and every
+      // record. It is allowed only there, exactly once; every other link keeps the rule below.
+      const found = await page.evaluate(() => {
+        const links = [...document.querySelectorAll("a")].map((a) => ({
+          href: a.getAttribute("href"),
+          text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+          inKey: a.closest("p[data-crew-key]") !== null,
+        }));
+        const key = (l: {
+          href: string | null;
+          text: string;
+          inKey: boolean;
+        }) => l.inKey && l.href === "/crew#keel" && l.text === "his rules";
+        return {
+          text: document.querySelector("main")?.textContent ?? "",
+          hrefs: links.filter((l) => !key(l)).map((l) => l.href),
+          keyLinks: links.filter(key).length,
+        };
+      });
+      expect
+        .soft(
+          found.keyLinks,
+          `the key's links to /crew#keel reading his rules on ${url}`,
+        )
+        .toBe(1);
       const text = squash(found.text);
       const own = [...VALID.map((e) => e.goal), ...(entry ? shown(entry) : [])];
       // Only more than two words: a one-word outcome ("merged") would match any goal that has it.

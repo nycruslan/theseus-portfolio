@@ -766,7 +766,7 @@ test("B2.3 the bar stays above the facts (B1.3, sprints 27 and 31): at 1024, wit
   }
 });
 
-test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros and one link to the Log, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
+test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros, the key's his rules to /crew#keel and one link to the Log, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
   page,
 }) => {
   const rows = async () => {
@@ -907,9 +907,11 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
         )
         .toEqual([]);
     }
-    expect
-      .soft(found.links, `its links at ${where}`)
-      .toEqual([{ text: `All ${N} revisions in the Log`, href: "/log" }]);
+    // Sprint 48 (K9): the key under the rows links "his rules" to the keel, before the Log link.
+    expect.soft(found.links, `its links at ${where}`).toEqual([
+      { text: "his rules", href: "/crew#keel" },
+      { text: `All ${N} revisions in the Log`, href: "/log" },
+    ]);
     if (width === 320) {
       expect
         .soft(await horizontalOverflow(page), "page overflow at 320")
