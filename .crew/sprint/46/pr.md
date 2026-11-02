@@ -23,7 +23,7 @@ Wc #108). The roadmap's next step: Quill closes it on production and plans the n
   - **Kb (S):** the links to it from "his rules" on `/` and `/log`, and the record behind it.
 - `.crew/sprint/46/first-contract.md`: Ka's contract, K1 to K8 and a rider.
 - `ROADMAP.md`: the new "Now" milestone; "the proof in the first window" moves under Finished.
-- `decisions.md` 1 to 6, `retro.json`, sprint 45's `merge.json`, and Quill's memory (one stale line
+- `decisions.md` 1 to 7, `retro.json`, sprint 45's `merge.json`, and Quill's memory (one stale line
   corrected, two added).
 
 ## One check's anchor, rewritten with the same strength (for Lens)
