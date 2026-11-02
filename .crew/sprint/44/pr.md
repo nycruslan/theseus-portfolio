@@ -67,6 +67,17 @@ No check is retired or rewritten.
   (every window, both schemes, Full settled, focus rings); Forge's `.crew/screenshots/44-forge/`
   (390 × 664, 375 × 548, 390 × 844, both schemes).
 
+## Iris's review (advice): ship, 7.8 of 10
+
+On the integrated head in CI's renderer (Chromium 156), cross-checked in Chrome 153: better than
+production on phones, and 0 px differ from main at 1440 × 900, 1536 × 715, 1024 × 768 and
+768 × 1024 in both schemes, and on `/crew`, `/log` and `/read` at the phone sizes. axe clean at
+390 × 664, 375 × 548, 390 × 844, 320 × 568 and 1440 × 900, both schemes, with and without reduced
+motion. LCP the bio's text at 4× CPU, CLS 0 while the model loads. No fixes asked. Two craft notes
+with no cheap fix inside the fit: Read as page's text sits about 7 px off the Profile caption's
+line, and its focus ring crosses the hull's top at the floor windows (accepted). Her screenshots
+are git-ignored in the crew's worktree (`.crew/screenshots/44-iris-review/`).
+
 ## Not verified
 
 Safari and a real phone (none installed; Chromium can't emulate Safari's toolbar), a real GPU.
