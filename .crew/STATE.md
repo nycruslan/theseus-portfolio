@@ -90,6 +90,10 @@ makes stale, and keep the file under about 100 lines.
   - Parallel builders run in their own worktrees on disjoint files, integrated by cherry-pick and
     run together once before the review label.
   - A recipe from an old review is a diff against an old baseline: apply only its named change.
+  - Main moves under a sprint: the owner's own sessions merged three title-block changes during
+    sprint 43 (#98, #104, #105), and #104 put the links back under the fold. Merge main and re-run
+    the first-screen checks before every review label, and take main's answer where it settles the
+    same question (`.crew/sprint/43/decisions.md` 10, 11).
 - **Review.**
   - Lens's turns scale with what a change adds (#63: 40, 60 or 100). A page replacement (sprint
     22: 53 files, about 10.6k lines) took 49 at the top lane, so split work that would outgrow it.

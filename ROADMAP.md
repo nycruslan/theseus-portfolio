@@ -33,16 +33,17 @@ owner answer to start, touches an owner path or edits `content/`.
   (`.crew/sprint/42/close.md`), planned this milestone (`plan.md`) and wrote Wa's contract
   (`first-contract.md`, W1 to W7). (PR #101, built in one run on 2026-11-01; `decisions.md` 1 to
   4.) Wa starts with Iris's placement call.
-- [ ] Wa (M): the sheet fits a laptop window, from 1280 wide. The title block, the particulars and
-  the revisions' caption are in the first window at 1280 × 680 to 1920 × 950, and 1440 × 900 is
-  unchanged. Iris picks how first: the band gives way, the title block rises beside the drawing,
-  or the drawing drops its half-breadth plan. Pixel joins, since the model registers to the
-  drawing. Rider: the led-out "42" on the Base line.
+- [x] Sprint 43, Wa (M): the sheet fits a laptop window, from 1280 wide. (PR #102; Iris's (a),
+  the drawing gives way to a 240 px floor, `.crew/sprint/43/placement.md`.) W1 to W7 and the rider
+  check (`e2e/window.spec.ts`) are green, and 1440 × 900 is unchanged. The led-out "42" rides onto
+  its plank on the 3D hull. **Left open:** Lens's nits (the chip rule also reaches `/crew`,
+  `app/globals.css:826`; `ghost.ts`'s 690 comment; Iris's memory lines 66 and 67), and a real Mac
+  or Windows Chrome and a real GPU, for which Chrome 153 and SwiftShader stood in.
 - [ ] Wb (M): the sheet fits a phone window: B1.1's items and the particulars at 390 × 664 to
   430 × 746, and B1.1's items at 375 × 548. Iris's call first. Rider: the 3D label over the copper
   dot (Pixel).
-- [ ] Wc (S): tablets and the key from 1024 to 1439 (Pa's and Pb's left-opens), and P3's, P8's
-  and P9's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
+- [ ] Wc (S): tablets and the key from 1024 to 1439 (Pa's and Pb's left-opens), and P3's, P8's,
+  P9's, W1's and W2's default-server passes under `PLAYWRIGHT_BASE_URL` (Probe).
 - Out of scope, and why:
   - What the facts say, and the loft, the hull's look, the live marks and the replay: the owner's
     demos judge them. The model only follows the drawing.

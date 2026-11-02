@@ -1,0 +1,47 @@
+{
+  "sprint": 43,
+  "pr": 102,
+  "goal": "Fit the name, facts and contact links into a short laptop window",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship on d0807bd after one fix round; the drawing gives way on windows from 1280 wide, W1 to W7 and the rider check green, 1440 x 900 unchanged",
+  "fixRounds": 1,
+  "minutes": 260,
+  "agents": [
+    { "role": "design-director", "model": "opus", "tokens": 456225, "minutes": 55 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 267830, "minutes": 29 },
+    { "role": "engineer", "model": "opus", "tokens": 329896, "minutes": 175 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 316041, "minutes": 71 }
+  ],
+  "lens": { "runs": 2, "tokens": 9970815, "important": 1, "actedOn": 1, "nits": 4 },
+  "wentWrong": [
+    {
+      "what": "Three changes to the same title block landed on main while this sprint built, and one put the contact links back under the fold",
+      "evidence": "#98, #104 and #105 merged mid-sprint; with #104 the links ended at 801.5 at 1440 x 790 (Iris's review, .crew/sprint/43/decisions.md 10 and 11)"
+    },
+    {
+      "what": "The first fit held at 1280 wide by less than a pixel, and a real browser's text widths would have broken it",
+      "evidence": "The bio's widest line was 477.00 of 477.86 px in the test browser and wrapped to four lines in Chrome 153 (decisions.md 7)"
+    },
+    {
+      "what": "The PR description didn't name the new spec's two skip guards, which cost a second review",
+      "evidence": "Lens's changes on bf3e286, then ship on d0807bd with the guards named"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Have the pre-review step fetch main and re-measure the first screen when a commit touching components/title-block.tsx or app/globals.css merged since the build began",
+      "moves": "Fix rounds caused by main moving under a sprint: 1 in sprint 43"
+    },
+    {
+      "change": "Let the stop hook's pnpm verify build into a separate distDir, so it never rebuilds the .next an e2e run is serving",
+      "moves": "Spurious e2e failures from a mid-run rebuild: 4 in one of Forge's runs this sprint"
+    }
+  ],
+  "followUps": [
+    { "who": "Pixel", "what": "Scope the led-out pencil's chip rule to the home page (app/globals.css:826) and fix seatIn's 690 px comment to 712 (Lens's nits)" },
+    { "who": "Iris", "what": "Correct memory lines 66 and 67 to 712 px and the ramped foot (Lens's nit)" },
+    { "who": "Probe", "what": "Split W1's and W2's default-server passes out of the PLAYWRIGHT_BASE_URL guard, with P3, P8 and P9 in Wc" },
+    { "who": "Iris", "what": "Look at the build on a real Mac or Windows Chrome and a real GPU; Chrome 153 and SwiftShader stood in" }
+  ]
+}
