@@ -7,14 +7,19 @@ from 768. The drawing scales with the window's height (`svh`) from its left edge
 224 × 149 px. Three small tightenings of the facts pay for the rest: the particulars' term column
 fits its longest term, the contact row sits closer under the bio, and the title block's foot is
 12 px. At 390 × 664 the name, role, lead, contact links and all four particulars are in the first
-window, 3.9 px inside the margin. Nothing from 768 up changes, and the DOM order doesn't change.
+window: 9.5 px inside the margin in CI's Chromium 156, 3.9 px in Chrome 153. Nothing from 768 up
+changes, and the DOM order doesn't change.
+
+**Amended after Forge's build (see "Amendment" at the end):** the phone foot is one value, `28rem`,
+at every phone width. The tables before the amendment are Chromium 153 with the first draft's
+two-step foot; the amendment has CI's numbers.
 
 ## What I measured first (the room is bigger than the plan says)
 
 The plan's numbers are stale. Since they were taken, #98, #104 and #105 changed the title block.
-This is the current branch (= main + notes), `next start` on port 3471, Chromium at DPR 1 with
+This is the current branch (= main + notes), `next start` on port 3471, Chromium 153 at DPR 1 with
 WebGL refused, the fonts warm. Real Chrome 153 (fractional glyph widths) gave the same geometry to
-0.1 px.
+0.1 px. Neither is CI's renderer, Chromium 156 (see the amendment).
 
 | Window | Drawing | Foot row | h1 | Links end | Particulars | Fold − 8 | To find |
 |---|---|---|---|---|---|---|---|
@@ -78,7 +83,7 @@ The constants:
 
 | Name | Value | What it is |
 |---|---|---|
-| `--phone-foot` | `28rem` (448) below 392 px, `26.375rem` (422) from `24.5rem` | What the window keeps under the band: the title block and the particulars, tightened. Measured at 439.8 from 385 to 391 px (five-line bio, Leads on one line) and 416.6 to 418.5 from 392 to 435. The first step is 8 px over, so 390 × 664 sits on the floor, not on a 2 px fit. In rem, so a larger default font grows it with the text. |
+| `--phone-foot` | `28rem` (448) at every phone width (amended: no step) | What the window keeps under the band: the title block and the particulars, tightened, at their tallest from 381 px wide in both engines: 439.8 in Chrome 153 (five-line bio, one-line Leads, 385–391) and 434.2 in Chromium 156 (four-line bio, two-line Leads, 381–401). In rem, so a larger default font grows it with the text. |
 | `--narrow-floor` | `14rem` (224 px wide) | The floor: 224 × 149.3 px, 0.574 of the 390 drawing. |
 | 60px | the bar (52) and W8's margin (8) | |
 | 38px, +12px | the drawing's drop under the row | Read as page's underline ends 34 px below the bar, so the stations' tops (41 of 260 down the box) stay 4 px clear of it. Where the drawing reaches under the control, 12 px more, so the control's frame (44) clears them by 4. |
@@ -122,12 +127,6 @@ The constants:
         calc(55px - var(--narrow-w) * 0.064103),
         calc(48px - var(--narrow-w) * 0.105128)
       );
-    }
-  }
-
-  @media (width >= 24.5rem) {
-    main {
-      --phone-foot: 26.375rem;
     }
   }
 
@@ -247,7 +246,8 @@ The constants:
 ## Each window under the prototype
 
 The prototype is `proto-final.css`, injected into the branch's build (DPR 1, WebGL refused).
-Light and dark gave the same boxes. "Room left" is fold − 8 less the item's bottom.
+Light and dark gave the same boxes. "Room left" is fold − 8 less the item's bottom. This table is
+Chromium 153 with the first draft's step at 392 px; the amendment below has the call as built.
 
 | Window | Drawing (.plan-narrow): x, y, w × h, scale | [data-plan] y | The row: Read as page x; group x (y 52–96) | h1 y | Contact links end (today) | Particulars y (today) | Fold − 8 | Room left |
 |---|---|---|---|---|---|---|---|---|
@@ -333,6 +333,68 @@ raw entries would see 0.34.
 - **The fallback face** (B3.23 at 390 × 844, B1.1 in view): not measured. There are 248 px of room
   for the links there.
 - **Real devices and GPUs.** The hull is SwiftShader's.
+
+## Amendment (Forge's build): one foot, 28rem, no step
+
+**What Forge found.** Forge built the rule and measured it in CI's renderer: the headless shell
+that Playwright 1.64.0 pins (revision 1248, Chromium 156) and that CI installs with `--only-shell`.
+My tables above are Chromium 153 twice over. My scratch script loaded a separate `playwright`
+package, which launched shell 1243, and I compared it with Chrome 153, so the two agreed. In
+Chromium 156 the facts set differently (`factsweep.mjs` across 320 to 440 px):
+
+- **The bio's lead** takes four lines from 381 px wide (from 392 in Chromium 153).
+- **Leads** fits one line only from 402 px wide (from 385 in 153). "Gateway" sets at 51 px, not
+  48.7, and the phrase at 309 px, not 293.9.
+
+So at 393 × 659 the 26.375rem step reserved a one-line Leads that CI doesn't set. The particulars
+ended at 661.4, 10.4 px past W8's margin. The step also rested on Chrome's four-line bio at 392
+with 0.5 px to spare, the kind of 1 px wrap sprint 43 ruled out.
+
+**The call: `--phone-foot: 28rem` at every phone width, and no 24.5rem query.** 448 px covers the
+tallest the facts get from 381 px wide in either engine:
+
+- 439.8 in Chrome 153, with a five-line bio and a one-line Leads;
+- 434.2 in Chromium 156, with a four-line bio and a two-line Leads.
+
+Below 381 both wrap (457.3), but only the links-only windows (375, 360) are there. The floor stays
+at 14rem. It binds at 390 × 664 and now at 393 × 659 too.
+
+**Measured.** My scratch build with the CSS injected, WebGL refused, DPR 1. Forge's own build
+matched these to 0.1 px. Each cell is where the item ends, then the room left inside W8's 8 px.
+
+| Window | Chromium 156 (CI) | Chrome 153 | Drawing (.plan-narrow) |
+|---|---|---|---|
+| 390 × 664 | dl 646.5 (9.5) | dl 652.1 (3.9) | 224 × 149.3, the floor |
+| 393 × 659 | dl 646.6 (4.4) | dl 629.0 (22.0) | 224 × 149.3, the floor (the draft: 256 × 171) |
+| 412 × 780 | dl 728.6 (43.4) | the same | 412 × 274.7, full |
+| 430 × 746 | dl 708.2 (29.8) | the same | 366.2 × 244.1 (the draft: 422.5 × 281.7) |
+| 375 × 548 | links 498.8 (41.2) | the same | the floor |
+| 360 × 560 | links 510.8 (41.2) | the same | the floor |
+| 390 × 844 | dl 735.1 (100.9) | dl 740.7 (95.3) | 390 × 260, full |
+| 320 × 568 | links 587.6 (−27.6, not held, as today) | | the floor |
+
+- **The row** is at y 52 to 96 at every window. The slot is 148 px, 16 px in from the right, and
+  Read as page's right edge is at width − 180.
+- **The sweep in Chromium 156:** the same 315 windows (7 widths, 500 to 940 tall, every 10 px).
+  310 pass; the same 5 fail, at 320 × 548 to 590, which nothing requires.
+
+**W10's clearance reads ink (agreed with Forge, sent to Probe).**
+- Read as page's visible ink, its glyphs and underline, stays at least 4 px clear of the drawing's
+  ink. It measures 4.4 px at the floor windows.
+- Its 44 px hit area has no paint and may overlap the drawing's film and the stations' tops. At the
+  floor the stations start at about y 89 to 90, and the box ends at 96.
+- The buttons have frames, so their whole boxes stay at least 4 px clear (6 px measured).
+- Clearing Read as page's whole box would cost about 7 px of drop and turn W8 red.
+
+**The focus ring is accepted.** At the floor windows, the site's ring around Read as page reaches
+y 100, so its lower edge crosses the stations' tops and the bow (`final/focus-read-390x664-light.png`).
+It paints above the drawing and stays whole and visible, and it shows only on keyboard focus. An
+inset ring was the alternative, and it cut through the text.
+
+**Known residual.** A renderer that set both a five-line bio and a two-line Leads at 390 (457.3,
+as both engines do below 381) would end the particulars about 14 px past W8's margin at 390 × 664.
+The floor binds there, so no foot value helps. I accept that rather than going under the floor or
+tightening the particulars' rows. Safari remains unmeasured.
 
 ## Evidence (git-ignored, `.crew/screenshots/44-iris/`)
 
