@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { PENCIL } from "../lib/hull-layouts";
 import { expected } from "./crew";
 import {
   type Crew,
@@ -67,8 +68,9 @@ const FACTS_HELD = [
 /**
  * The contract's "unchanged where kept checks pin them" windows below 768. W8 asserts 390 x 844
  * (it holds items 1 to 3 on main, and a phone window must keep doing so), and reports 320 x 568,
- * whose contact links sit at 592 to 680 on main: "unchanged" and "holds the facts" can't both hold
- * there, so it is reported until Atlas says which (the report's "Needs decision").
+ * whose contact links sit at 592 to 680 on main: it is outside Wb's set, and "unchanged" there
+ * means only what kept checks pin (B3.1's whole-pixel canvas), so it is reported, not asserted
+ * (Atlas's ruling, sprint 44).
  */
 const UNCHANGED = [
   [390, 844],
@@ -305,7 +307,7 @@ test.describe("on the feed's fixtures", () => {
     );
   });
 
-  test("W12 the 3D label leaves the copper dot showing: on the live fixture, at 1024 and every width below it where P13's read finds the chip meeting the dot (1024 must be one), on Full at rest, the pixel at the centre of the copper dot the canvas draws paints as it does with the lettering hidden, which shows the dot (P13's 16-level tolerance)", async ({
+  test("W12 the 3D label leaves the copper dot showing: on the live fixture, at 1024 and every width below it where P13's read finds the chip meeting the dot (1024 must be one), on Full at rest, the centre of the copper dot the canvas draws, and each point within its radius less 1.5 px in the label's box, paints as it does with the lettering hidden, which shows the dot (P13's 16-level tolerance)", async ({
     browser,
     page,
     crew,
@@ -361,13 +363,19 @@ test.describe("on the feed's fixtures", () => {
             accent: token("--accent"),
           };
           probe.remove();
+          // Where the 3D label paints: the span, translated over the canvas, its film chip included.
           const label = document
             .querySelector("[data-plan] .plan-wide > .plan-pencil")
             ?.getBoundingClientRect();
           return {
             ...out,
             label: label
-              ? [label.left, label.top, label.right, label.bottom]
+              ? {
+                  left: label.left,
+                  top: label.top,
+                  right: label.right,
+                  bottom: label.bottom,
+                }
               : null,
           };
         });
@@ -388,30 +396,54 @@ test.describe("on the feed's fixtures", () => {
           `the copper dot in the canvas ${where}`,
         ).not.toBeNull();
         if (!dot.centre) continue;
-        const [dx = 0, dy = 0] = dot.centre;
-        const shown = await pixelAt(run.page, dx, dy);
+        const [cx, cy] = dot.centre;
+        const points = dotPoints(cx, cy, tokens.label);
+        const clip = {
+          x: Math.floor(cx) - 8,
+          y: Math.floor(cy) - 8,
+          width: 17,
+          height: 17,
+        };
+        const shot = decodePng(await run.page.screenshot({ clip }));
         await run.page.addStyleTag({
           content: `${LETTERING} { visibility: hidden !important; }`,
         });
-        const bare = await pixelAt(run.page, dx, dy);
-        const [l = 0, t = 0, r = 0, b = 0] = tokens.label ?? [];
-        const covers =
-          tokens.label !== null && dx >= l && dx <= r && dy >= t && dy <= b;
+        const bareShot = decodePng(await run.page.screenshot({ clip }));
+        const rgbAt = (image: Image, [x, y]: [number, number]) =>
+          pixel(image, Math.floor(x) - clip.x, Math.floor(y) - clip.y).slice(
+            0,
+            3,
+          );
+        const differ = points.filter((p) => {
+          const [a, b] = [rgbAt(shot, p), rgbAt(bareShot, p)];
+          return a.some((v, i) => Math.abs(v - (b[i] ?? 0)) > 16);
+        });
+        const centreBare = rgbAt(bareShot, [cx, cy]);
+        const k = tokens.label;
+        const meets =
+          k !== null &&
+          cx - DOT_R < k.right &&
+          k.left < cx + DOT_R &&
+          cy - DOT_R < k.bottom &&
+          k.top < cy + DOT_R;
         rows.push(
-          `${width}: dot centre (${dx.toFixed(1)}, ${dy.toFixed(1)}) from ${dot.count} copper px; label ${tokens.label ? tokens.label.map((v) => v.toFixed(1)).join(", ") : "none"}${covers ? " (holds the centre)" : ""}; paints ${JSON.stringify(shown)}, bare ${JSON.stringify(bare)}`,
+          `${width}: dot centre (${cx.toFixed(1)}, ${cy.toFixed(1)}) from ${dot.columns} columns; label ${k ? [k.left, k.top, k.right, k.bottom].map((v) => v.toFixed(1)).join(", ") : "none"}${meets ? " (meets the dot)" : ""}; ${differ.length} of ${points.length} points differ, centre ${JSON.stringify(rgbAt(shot, [cx, cy]))}, bare ${JSON.stringify(centreBare)}`,
         );
         // The control: with the lettering hidden the dot's centre shows copper, so a miss below is
         // the label.
         expect(
-          deltaE(bare, tokens.accent ?? []),
-          `the control: the dot's centre paints copper (${JSON.stringify(bare)} against ${JSON.stringify(tokens.accent)}) with the lettering hidden ${where}`,
-        ).toBeLessThan(15);
+          deltaE(centreBare, tokens.accent ?? []),
+          `the control: the dot's centre paints copper (${JSON.stringify(centreBare)} against ${JSON.stringify(tokens.accent)}) with the lettering hidden ${where}`,
+        ).toBeLessThan(10);
         expect
           .soft(
-            shown.every((v, i) => Math.abs(v - (bare[i] ?? 0)) <= 16),
-            `the copper dot's centre paints ${JSON.stringify(shown)}, as with the lettering hidden ${JSON.stringify(bare)}, ${where}`,
+            differ.map(
+              ([x, y]) =>
+                `(${(x - cx).toFixed(0)}, ${(y - cy).toFixed(0)}) ${JSON.stringify(rgbAt(shot, [x, y]))} against ${JSON.stringify(rgbAt(bareShot, [x, y]))}`,
+            ),
+            `points of the copper dot (its centre and ${points.length - 1} within ${DOT_R - 1.5} px in the label's box) that paint otherwise than with the lettering hidden, ${where}`,
           )
-          .toBe(true);
+          .toEqual([]);
         expect.soft(run.errors, `console errors ${where}`).toEqual([]);
       } finally {
         await run.close();
@@ -421,9 +453,17 @@ test.describe("on the feed's fixtures", () => {
   });
 });
 
-/** The copper pixels a canvas-only image paints, composited over the film, and their centre. */
+/** The copper dot's radius in CSS px: PENCIL.tip.dot across at every width (lib/hull-layouts.ts). */
+const DOT_R = PENCIL.tip.dot / 2;
+
+/**
+ * The copper dot in a canvas-only image at DPR 1, composited over the film: its columns whose
+ * copper stands at least 5 px tall (the copper run along the seam is 2 to 3 px tall and would pull
+ * a centroid sternward; the dot is 8), the centre the middle of their x extent and of their
+ * copper's y extent (Pixel's read, sprint 44).
+ */
 function copperDot(image: Image, accent: number[], ground: number[]) {
-  const found: [number, number][] = [];
+  const columns = new Map<number, number[]>();
   for (let y = 0; y < image.height; y++)
     for (let x = 0; x < image.width; x++) {
       const p = pixel(image, x, y);
@@ -432,26 +472,47 @@ function copperDot(image: Image, accent: number[], ground: number[]) {
       const rgb = [0, 1, 2].map(
         (c) => (p[c] ?? 0) * a + (ground[c] ?? 0) * (1 - a),
       );
-      if (deltaE(rgb, accent) < 10) found.push([x, y]);
+      if (deltaE(rgb, accent) >= 10) continue;
+      const ys = columns.get(x) ?? [];
+      ys.push(y);
+      columns.set(x, ys);
     }
-  const centre = found.length
-    ? found.reduce(
-        (s, [x, y]) => [s[0] + x / found.length, s[1] + y / found.length],
-        [0, 0],
-      )
-    : null;
-  return { count: found.length, centre };
+  const tall = [...columns].filter(([, ys]) => ys.length >= 5);
+  if (tall.length === 0) return { columns: 0, centre: null };
+  const xs = tall.map(([x]) => x);
+  const ys = tall.flatMap(([, list]) => list);
+  const centre: [number, number] = [
+    (Math.min(...xs) + Math.max(...xs) + 1) / 2,
+    (Math.min(...ys) + Math.max(...ys) + 1) / 2,
+  ];
+  return { columns: tall.length, centre };
 }
 
-/** The painted pixel at (x, y), as [r, g, b] (P13's read). */
-async function pixelAt(page: Page, x: number, y: number) {
-  const image = decodePng(
-    await page.screenshot({
-      clip: { x: Math.round(x) - 1, y: Math.round(y) - 1, width: 3, height: 3 },
-    }),
-  );
-  const i = (1 * image.width + 1) * 4;
-  return [image.data[i] ?? 0, image.data[i + 1] ?? 0, image.data[i + 2] ?? 0];
+/**
+ * P13's points: the dot's centre, and each whole-px point within its radius less 1.5 px (off its
+ * antialiased edge) that lies in the label's box.
+ */
+function dotPoints(
+  cx: number,
+  cy: number,
+  label: Box | null,
+): [number, number][] {
+  const out: [number, number][] = [[cx, cy]];
+  if (!label) return out;
+  const inner = DOT_R - 1.5;
+  for (let dx = -Math.floor(inner); dx <= inner; dx++)
+    for (let dy = -Math.floor(inner); dy <= inner; dy++) {
+      if ((dx === 0 && dy === 0) || dx * dx + dy * dy > inner * inner) continue;
+      const [x, y] = [cx + dx, cy + dy];
+      if (
+        x >= label.left &&
+        x <= label.right &&
+        y >= label.top &&
+        y <= label.bottom
+      )
+        out.push([x, y]);
+    }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------
