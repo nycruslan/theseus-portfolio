@@ -29,8 +29,10 @@ export function TitleBlock({ className = "" }: { className?: string }) {
       </p>
       {/* Pushed to the block's foot beside the revisions, except on a window too short for the
           whole sheet, where it follows the bio (app/globals.css, "The sheet on a laptop window").
-          No id: #contact is the Contact section. */}
-      <p className="title-contact mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:gap-x-[22px] lg:pt-2">
+          No id: #contact is the Contact section. The gap opens to 22 px from 1366: at 1280 the
+          six links fill the column's 478 px with 22 px gaps, and 18 px gaps leave them 21 px of
+          slack (.crew/sprint/43/decisions.md, 10). */}
+      <p className="title-contact mt-3.5 flex flex-wrap items-center gap-x-[18px] border-t border-rule pt-1 text-step-base lg:mt-auto lg:pt-2 min-[85.375rem]:gap-x-[22px]">
         <a
           href="#case-studies"
           className={`inline-flex min-h-11 items-center lg:min-h-0 ${LINK}`}
@@ -50,8 +52,9 @@ export function TitleBlock({ className = "" }: { className?: string }) {
         >
           Live Studio
         </a>
-        {/* Below 1440 the links must keep to one line for the first screen's budget, so no label. */}
-        <span className="hidden text-muted min-[90rem]:ml-auto min-[90rem]:inline">
+        {/* Below 1536 the links must keep to one line for the first screen's budget, so no label:
+            with Live Studio in the row, the seven items wrap at 1440 and 1470. */}
+        <span className="hidden text-muted min-[96rem]:ml-auto min-[96rem]:inline">
           Contact
         </span>
         {profile.links.map((link) => (

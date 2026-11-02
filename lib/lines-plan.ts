@@ -449,7 +449,10 @@ function drawProfile(
 function drawHalfBreadth({ ox, s, hbY }: Layout, lines: Lines, letter: Letter) {
   const H = (x: number, z: number): Point => [ox + x * s, hbY - z * s];
   const X = (x: number) => num(ox + x * s);
-  lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 30)}`;
+  // Shorter than the profile's lines, which run on to their DWL and Base lettering: past the
+  // transom it would point into the particulars' column on / and read as labelling a row
+  // (.crew/sprint/43/decisions.md, 10).
+  lines.centrelines += `M${pt(H(-30, 0))}H${X(LENGTH + 12)}`;
   for (const y of SEAMS) {
     const [a, b] = ends(y);
     lines.construction += curve(
