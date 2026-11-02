@@ -20,3 +20,9 @@
    the floor) and no common window sits there.
 6. **Forge builds as soon as Probe's checks land** (12ad866), before Probe's report, as STATE's
    lesson on overlapping notes, checks and build says.
+7. **Probe's checks taken** (12ad866): W13 and W14 red on the branch as the contract predicts; W16
+   and W17 are guards main already meets (the drawing whole, the model landing, nothing shifting),
+   so they can't be red before the build and need no mutant. W15's split ran the 7 default-server
+   passes green under `PLAYWRIGHT_BASE_URL`. No kept check pins the key hidden, so nothing retires;
+   W7 grows stricter by itself (print and forced colours must now show the key at 1366 × 625), and
+   only its comment at `e2e/window.spec.ts:1186` goes stale, for Probe after the build.
