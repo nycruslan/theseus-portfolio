@@ -37,3 +37,10 @@
     spec; every other box W2 pins stays main's. Her centreline should (the half-breadth line stops
     short of the particulars' lettering column) rides along, one number. Pixel's 3 px keel margin:
     accepted.
+11. **Main's #105 superseded half of decision 10.** It landed during Forge's fix round and solved
+    #104's wrap its own way: the "Contact" label is read aloud but never shown, and the links are
+    pushed right by the first one's auto margin. Atlas merged it, took main's label and margin, and
+    kept the sprint's `title-contact` class and its 18 px gap below 1366 (21 px of slack at 1280).
+    The links sit where #98's main had them, so W2 passes unedited and Probe re-records nothing.
+    After the merge: `pnpm verify` passes; window, one-site, keyboard and first-screen specs 45 of
+    45.

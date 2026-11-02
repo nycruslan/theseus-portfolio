@@ -35,7 +35,7 @@ the rest guards.
 | Check | Result on the build |
 |---|---|
 | W1 facts in the first window | green; lowest item at 1366 × 625: 606.5, 1536 × 715: 700.2, 1280 × 680: 633.7 |
-| W2 1440 × 900 unchanged | green, against the baseline recorded on #98's product code |
+| W2 1440 × 900 unchanged | green, against the baseline recorded on #98's product code, unedited since |
 | W3 drawing whole, ≥ 240 px | green; smallest 249 px at 1366 × 625 |
 | W4 model registers | green; 1.00 px at DPR 1, 0.71 at DPR 2 |
 | W5 resize refits | green |
@@ -44,8 +44,12 @@ the rest guards.
 | Wa rider | green at 1440 × 900, 1536 × 715, 1366 × 625 |
 
 - Forge: full suite 308 of 308 on 6c4e41f (33.7 min, 2 workers), `pnpm verify` exit 0.
-- Atlas, after merging main's #103: `pnpm verify` passes; `window`, `sheet` and `first-screen`
-  specs 28 of 28.
+- Fix round 1 (Iris's review: changes): main's #104 and #105 changed the contact row mid-sprint.
+  The branch takes #105's hidden label and right-aligned links and keeps an 18 px gap below 1366,
+  so the row keeps to one line from 1280 (21 px of slack); the half-breadth centreline stops short
+  of the particulars (`lib/lines-plan.ts`). Forge's full suite on the fix round: 308 passed, the
+  2 failures being W2's link boxes that #105 then restored. After merging #105: `pnpm verify`
+  passes; `window`, `one-site`, `keyboard` and `first-screen` specs 45 of 45.
 - `window.spec.ts` adds about 2.5 min wall on 2 workers (#100's suite: 28.8 of 35 min).
 - No kept check edited, skipped or retired.
 
