@@ -25,9 +25,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Start your own dev or production server on a free port (not 3000, the owner's), with node
   itself, as in `node node_modules/next/dist/bin/next start --port <n> &`: a `pnpm exec` wrapper
   can die and leave it running. `$!` may not be the serving process (`next dev` and `next start`
-  can leave a `next-server` child), so when you're done, `kill <pid>`, even where a skill says to
-  leave it up, then check the port and stop anything of yours still on it by its PID. Never stop processes by name or port: other
-  people's servers run on this machine.
+  can leave a `next-server` child), so note `$!` and, when you're done, `kill` it, even where a
+  skill says to leave it up, then check the port and stop any child of yours still on it by its PID.
+  Never stop processes by name or port: other people's servers run on this machine.
 - Write a scratch script with the Write tool before you run it: cloud sessions refuse a shell line
   that both writes and runs one. Scratch files go in your scratchpad, not the repository.
 - Never weaken or delete a test to get green. Report the failure instead.
