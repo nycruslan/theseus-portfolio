@@ -6,11 +6,11 @@
   "size": "M",
   "outcome": "notes only: the first-window milestone closed as held on production at 28 windows; the keel planned as Ka and Kb with K1 to K12, and Ka's contract ready for Iris's placement call",
   "fixRounds": 0,
-  "minutes": 40,
+  "minutes": 55,
   "agents": [
     { "role": "product-owner", "model": "opus", "tokens": 217457, "minutes": 16 }
   ],
-  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": { "runs": 1, "tokens": 324511, "important": 0, "actedOn": 0, "nits": 2 },
   "wentWrong": [
     {
       "what": "Two first-window checks fail when pointed at the live site, though nothing a visitor sees is wrong",

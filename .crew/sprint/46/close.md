@@ -134,7 +134,7 @@ Compared with sprint 42's close, at the same windows:
 Each was checked against the code on 2026-11-02.
 
 - **Taken already, found in the code:**
-  - Wa's Lens nits: the chip rule is now scoped to `/`'s sheet (`app/globals.css:826`), and
+  - Wa's Lens nits: the chip rule is now scoped to `/`'s sheet (`app/globals.css:827`), and
     `e2e/ghost.ts` no longer says 690.
   - Wb's comment nit and W11's resize wording were Wc's riders.
 - **Waiting for a sprint that touches their code:**
@@ -164,8 +164,8 @@ Each was checked against the code on 2026-11-02.
 ## Also seen
 
 - In forced colours, the legend's "Original" swatch paints maroon at 1366 × 625. That's another
-  reason to settle "Original" while no original plank is left. Screenshot:
-  `/tmp/claude-0/-home-user-theseus-portfolio/a70430de-cdbc-5824-8de7-26d964427dad/scratchpad/shots/forced-1366x625-light.png`.
+  reason to settle "Original" while no original plank is left (Quill's screenshot in forced
+  colours, light scheme, 1366 × 625, kept outside the repository).
 
 ## Not verified
 
