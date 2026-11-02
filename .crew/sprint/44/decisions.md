@@ -27,3 +27,12 @@
    step hinges on the bio's 0.5 px wrap at 392. A flat 28rem foot puts 393 × 659 on the floor and
    gives 430 × 746 a smaller drawing (366 wide) with about 30 px of room. Atlas took it, with Iris
    asked; one constant, easy to undo.
+9. **Iris amended her call to the flat foot** (7394c85, `placement.md`, "Amendment"), measured in
+   the renderer `@playwright/test` pins (Chromium 156), and ruled W10's clearance reads Read as
+   page's visible ink (4 px from the drawing), not its 44 px hit area; Probe revised W10 to match,
+   adding that no target in the drawing meets a foot target. The focus ring crossing the hull's top
+   at the floor windows is accepted (Iris).
+10. **C9 kept unedited; the drop moves out of the drawing's box** (Forge's option 1). C9
+    (`e2e/plan.spec.ts:688`) hit-tests `[data-plan]`'s box at 390 × 900, whose top 44 px held the
+    foot row. Moving the drop from `.plan-narrow`'s margin to `[data-plan]`'s puts the box where
+    the drawing starts; nothing on screen moves.
