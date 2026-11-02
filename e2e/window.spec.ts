@@ -1183,7 +1183,8 @@ test("W7 the sweeps at the new windows: at 1366 x 625 and 1536 x 715, light and 
       const sheet = await shown.newPage();
       try {
         // "Keeps" against the screen at the same window: what it shows, print and forced colours
-        // show too (below 1440 the screen hides p[data-crew-key], Wc's to show).
+        // show too. Since Wc the screen shows p[data-crew-key] from 1024 up, so print and forced
+        // colours must keep it at both windows (.crew/sprint/45/decisions.md, 7).
         await openHome(sheet, width, height);
         const onScreen = new Set((await keeps(sheet)).hidden);
         const lost = (hidden: string[]) =>

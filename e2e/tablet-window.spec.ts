@@ -55,8 +55,8 @@ const MARGIN = 0;
 
 /**
  * Iris's floor for the drawing's height at 1024 to 1279, in CSS px, measured on `[data-plan]`'s box
- * as W3 does. Wa's 240 px (.crew/sprint/43/placement.md, "The floor") until Iris states Wc's
- * (.crew/sprint/45/contract.md, "Placement is Iris's call"); W16 reports the shown drawing's beside it.
+ * as W3 does: Wa's 240 px, which Iris kept for Wc (.crew/sprint/45/placement.md, `--plan-floor`,
+ * 15rem). W16 reports the shown drawing's height beside it.
  */
 const DRAWING_FLOOR_PX = 240;
 
