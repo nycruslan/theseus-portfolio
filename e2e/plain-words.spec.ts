@@ -506,77 +506,13 @@ async function p8Screen(page: Page, states: { base: string; where: string }[]) {
   }
 }
 
-type CrewState = {
-  base: string;
-  where: string;
-  body: unknown;
-  origin: string | null;
-};
-
-const P9_CREW =
-  "P9 /crew labels each of the seven an AI agent: scripts off, on the default server (down) and the live, open and resting fixtures, every tr[data-role]'s first td reads <word>, AI agent, its AI agent in visible text (no box under 2 px from its text to the cell); at 390 the not-on-this-sprint sentence is unchanged; with scripts on at 1440 the visible text holds AI agent seven times";
-
-/**
- * P9's read: scripts off on each of `states`, and with scripts on at 1440 on `scriptsOn` (the
- * default server and the live fixture).
- */
-async function p9Crew(
-  browser: Browser,
-  page: Page,
-  states: CrewState[],
-  scriptsOn: CrewState[],
-) {
-  for (const { base, where, body, origin } of states) {
-    const off = await bare(browser, 1440, 900);
-    const response = await off.page.goto(`${base}/crew`);
-    expect(response?.status(), `status of /crew on ${where}, scripts off`).toBe(
-      200,
-    );
-    expectJobs(await readJobs(off.page), `on ${where}, scripts off, at 1440`);
-    // Below 768 px the absent rows fold into one sentence, which keeps its words.
-    await off.page.setViewportSize({ width: 390, height: 844 });
-    const absent = expected(body, origin)
-      .rows.filter((r) => r.state === "Not on this sprint")
-      .map((r) => r.name);
-    expect
-      .soft(
-        squash(
-          await off.page.evaluate(
-            () => document.querySelector("p[data-absent]")?.textContent ?? "",
-          ),
-        ),
-        `p[data-absent] on ${where}, scripts off, at 390`,
-      )
-      .toBe(absentSentence(absent));
-    await off.context.close();
-  }
-  for (const { base, where } of scriptsOn) {
-    await openAt(page, "/crew", 1440, 900, base);
-    expect
-      .soft(
-        await visibleAgents(page),
-        `"AI agent" in the visible text on ${where} at 1440`,
-      )
-      .toBe(7);
-  }
-}
-
-// The default server's pass runs wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
-// included; only the fixtures' pass needs this checkout's build (.crew/sprint/45/contract.md, W15).
+// P8's default-server pass holds in every feed state, so it runs wherever the suite does, a
+// deployment under PLAYWRIGHT_BASE_URL included (.crew/sprint/45/contract.md, W15). P9's stays in
+// the fixtures' describe: its default pass reads /crew's down state, which only this checkout's own
+// server shows, never a deployment (.crew/sprint/45/decisions.md, 11).
 test(`${P8_SCREEN} (the default server's pass)`, async ({ page }) => {
   test.setTimeout(60_000);
   await p8Screen(page, [{ base: "", where: "the default server" }]);
-});
-
-test(`${P9_CREW} (the default server's pass)`, async ({ browser, page }) => {
-  test.setTimeout(60_000);
-  const down: CrewState = {
-    base: "",
-    where: "the default server (down)",
-    body: null,
-    origin: null,
-  };
-  await p9Crew(browser, page, [down], [down]);
 });
 
 test.describe("on the feed's fixtures", () => {
@@ -603,9 +539,25 @@ test.describe("on the feed's fixtures", () => {
     await p8Screen(page, states);
   });
 
-  test(`${P9_CREW} (the fixtures' pass)`, async ({ browser, page, crew }) => {
+  test("P9 /crew labels each of the seven an AI agent: scripts off, on the default server (down) and the live, open and resting fixtures, every tr[data-role]'s first td reads <word>, AI agent, its AI agent in visible text (no box under 2 px from its text to the cell); at 390 the not-on-this-sprint sentence is unchanged; with scripts on at 1440 the visible text holds AI agent seven times", async ({
+    browser,
+    page,
+    crew,
+  }) => {
     test.setTimeout(150_000);
-    const states: CrewState[] = [];
+    const states: {
+      base: string;
+      where: string;
+      body: unknown;
+      origin: string | null;
+    }[] = [
+      {
+        base: "",
+        where: "the default server (down)",
+        body: null,
+        origin: null,
+      },
+    ];
     for (const fixture of FIXTURES) {
       const r = await reached(crew, fixture);
       states.push({
@@ -615,7 +567,40 @@ test.describe("on the feed's fixtures", () => {
         origin: crew.feed.origin,
       });
     }
-    await p9Crew(browser, page, states, states.slice(0, 1));
+    for (const { base, where, body, origin } of states) {
+      const off = await bare(browser, 1440, 900);
+      const response = await off.page.goto(`${base}/crew`);
+      expect(
+        response?.status(),
+        `status of /crew on ${where}, scripts off`,
+      ).toBe(200);
+      expectJobs(await readJobs(off.page), `on ${where}, scripts off, at 1440`);
+      // Below 768 px the absent rows fold into one sentence, which keeps its words.
+      await off.page.setViewportSize({ width: 390, height: 844 });
+      const absent = expected(body, origin)
+        .rows.filter((r) => r.state === "Not on this sprint")
+        .map((r) => r.name);
+      expect
+        .soft(
+          squash(
+            await off.page.evaluate(
+              () => document.querySelector("p[data-absent]")?.textContent ?? "",
+            ),
+          ),
+          `p[data-absent] on ${where}, scripts off, at 390`,
+        )
+        .toBe(absentSentence(absent));
+      await off.context.close();
+    }
+    for (const { base, where } of states.slice(0, 2)) {
+      await openAt(page, "/crew", 1440, 900, base);
+      expect
+        .soft(
+          await visibleAgents(page),
+          `"AI agent" in the visible text on ${where} at 1440`,
+        )
+        .toBe(7);
+    }
   });
 });
 

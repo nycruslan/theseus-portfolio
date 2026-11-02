@@ -19,9 +19,12 @@ import {
 import { edges, hausdorff } from "./pixels";
 import { PLAN } from "./plan";
 
-// The window checks' shared reads, moved here unchanged from window.spec.ts (Wa) and
-// phone-window.spec.ts (Wb) so tablet-window.spec.ts (Wc, .crew/sprint/45/contract.md) reads the
-// first window, the feed's states, the drawing and the model's registration as W1 to W12 do.
+// The window checks' shared reads, for window.spec.ts (Wa), phone-window.spec.ts (Wb) and
+// tablet-window.spec.ts (Wc, .crew/sprint/45/contract.md). Moved here from the two older specs,
+// which import them: BLOCK, LETTERING, at, FIXTURES, reachHome (keyed by spec, as each keyed its
+// own), drawingReads and registration. Copied, with each spec keeping its own: openHome and
+// shownOn, which hold an expect( each, so moving them would read as fewer assertions in those
+// specs (.crew/scope.mjs).
 
 export const BLOCK = "dl[data-particulars]";
 /** The drawing's lettering, HTML spans over its SVG (.crew/sprint/39/decisions.md, 5). */

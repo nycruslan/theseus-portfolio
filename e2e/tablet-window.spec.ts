@@ -41,9 +41,12 @@ const KEY_WINDOWS = [
   [1366, 625],
   [1024, 768],
 ] as const;
-/** W14's widths where the key must show, each read at a short and a tall height ("any height"). */
+/**
+ * W14's widths where the key must show, each read short, tall, and from 960 tall, where the sheet
+ * keeps its pre-Wc layout from 1024 to 1279 (Iris's placement.md; Lens on 366dbb9): "any height".
+ */
 const KEY_WIDTHS = [1024, 1180, 1280, 1366, 1439] as const;
-const KEY_HEIGHTS = [640, 900] as const;
+const KEY_HEIGHTS = [640, 900, 1000] as const;
 /** And every width between, by this step, resized in one page (the contract's "1024 to 1439"). */
 const KEY_SWEEP = { from: 1024, to: 1439, step: 8, height: 900 } as const;
 
@@ -316,7 +319,7 @@ async function w13(page: Page, states: State[]) {
 }
 
 const W14 =
-  "W14 the key shows: at 1024, 1180, 1280, 1366 and 1439 wide (640 and 900 tall, and every 8 px from 1024 to 1439 resized), p[data-crew-key] is rendered, its text on one or two lines, clipped by no overflow, and meeting no other text box; at 1280 x 680, 1366 x 625 and 1024 x 768, on the default server and the live, open and resting fixtures, WebGL refused, it is wholly inside the viewport with the h1, the headline, the bio's lead, the three contact links and dl[data-particulars]";
+  "W14 the key shows: at 1024, 1180, 1280, 1366 and 1439 wide (640, 900 and 1000 tall, and every 8 px from 1024 to 1439 resized), p[data-crew-key] is rendered, its text on one or two lines, clipped by no overflow, and meeting no other text box; at 1280 x 680, 1366 x 625 and 1024 x 768, on the default server and the live, open and resting fixtures, WebGL refused, it is wholly inside the viewport with the h1, the headline, the bio's lead, the three contact links and dl[data-particulars]";
 
 /** W14's first-window clause, and the render clause, at its windows on each of `states`. */
 async function w14Windows(page: Page, states: State[]) {

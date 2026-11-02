@@ -38,7 +38,16 @@ import { deltaE, edges, hausdorff, type Image, pixel } from "./pixels";
 import { PLAN } from "./plan";
 import { bioParts, MERGED } from "./retros";
 import { type ModelRun, openModel, refuseWebGl } from "./webgl";
-import { drawingReads, LETTERING, registration } from "./window";
+import {
+  at,
+  BLOCK,
+  drawingReads,
+  FIXTURES,
+  type FixtureName,
+  LETTERING,
+  reachHome,
+  registration,
+} from "./window";
 
 // Sprint 43, Wa: the sheet fits a laptop window (.crew/sprint/43/contract.md, W1 to W7), written
 // before the build. `/`'s first window holds the facts at every window in the set, the drawing
@@ -74,7 +83,6 @@ const SHORT = [
  */
 const DRAWING_FLOOR_PX = 240;
 
-const BLOCK = "dl[data-particulars]";
 const REVISIONS = 'section[aria-labelledby="revisions"]';
 /** Item 3: the p after the revision block's h2, the bio's last part (B1.2's caption). */
 const CAPTION_P = `${REVISIONS} h2 + p`;
@@ -93,8 +101,6 @@ const AXE_TAGS = [
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(installRgba);
 });
-
-const at = (width: number, height: number) => `${width} x ${height}`;
 
 /** `/` from `base` at a size, with the web fonts in. */
 async function openHome(page: Page, width: number, height: number, base = "") {
@@ -152,33 +158,12 @@ async function firstWindow(page: Page) {
 // ---------------------------------------------------------------------------------------------
 // W1 and W2 read the feed's fixtures: one worker, in order, as the feed specs run (STATE.md).
 
-const FIXTURES = ["live", "open", "resting"] as const;
-type FixtureName = (typeof FIXTURES)[number];
-
-/**
- * The fixture's site, as B4.22 reaches it: live-layer.spec.ts's kept site by name and answer, read
- * until `/crew` shows the oracle's state, then `/` until it shows the layer's hooks. Once per
- * worker; it asserts nothing.
- */
-function reachHome(crew: Crew, fixture: FixtureName) {
-  return crew.once(`window ${fixture}`, async () => {
-    const name = `home-${fixture}`;
-    const site = await crew.site(name, { fixture }, true);
-    const body = crew.feed.body(name);
-    const want = layerFor(body, crew.feed.origin).home;
-    const crewShown = await untilState(
-      site.baseURL,
-      expected(body, crew.feed.origin).state,
-      STATE_WAIT,
-    );
-    const home = await untilHome(site.baseURL, want, STATE_WAIT);
-    return { base: site.baseURL, want, crewShown, home };
-  });
-}
+/** This spec's key for the fixtures' first reads (e2e/window.ts, reachHome). */
+const SPEC = "window";
 
 /** A fixture's site, asserted to show its state on `/`. */
 async function shownOn(crew: Crew, fixture: FixtureName) {
-  const reached = await reachHome(crew, fixture);
+  const reached = await reachHome(crew, fixture, SPEC);
   test.info().annotations.push({
     type: "state-wait",
     description: `${fixture}: /crew ${reached.crewShown.seen} after ${reached.crewShown.ms} ms, then / ${reached.home.seen} after ${reached.home.ms} ms`,
@@ -327,51 +312,14 @@ async function w1(page: Page, states: State[]) {
   );
 }
 
-const W2 =
-  "W2 nothing moves at 1440 x 900: on the default server and the live fixture, WebGL refused, the boxes of the h1, the dl, the three contact links, the five rows, p[data-crew-key] and [data-plan] equal main's within 0.5 px; 1920 x 1080's are reported";
-
-/** W2's read on each of `states`, against main's boxes recorded for it. */
-async function w2(
-  page: Page,
-  states: { name: keyof typeof MAIN_1440_900; base: string }[],
-) {
-  await page.context().addInitScript(refuseWebGl);
-  for (const { name, base } of states) {
-    await openHome(page, 1440, 900, base);
-    const now = await w2Boxes(page);
-    note(test.info(), `boxes ${name} 1440 x 900`, JSON.stringify(now));
-    expect
-      .soft(
-        Object.keys(MAIN_1440_900[name]).length,
-        `main's boxes recorded for ${name}`,
-      )
-      .toBeGreaterThan(0);
-    expect
-      .soft(
-        moved(now, MAIN_1440_900[name]),
-        `boxes that moved from main's at 1440 x 900 on ${name === "default" ? "the default server" : "the live fixture"}`,
-      )
-      .toEqual([]);
-    await openHome(page, 1920, 1080, base);
-    note(
-      test.info(),
-      `boxes ${name} 1920 x 1080 (reported)`,
-      JSON.stringify(await w2Boxes(page)),
-    );
-  }
-}
-
-// The default server's passes run wherever the suite does, a deployment under PLAYWRIGHT_BASE_URL
-// included; only the fixtures' passes need this checkout's build (.crew/sprint/45/contract.md, W15).
+// W1's default-server pass holds in every feed state, so it runs wherever the suite does, a
+// deployment under PLAYWRIGHT_BASE_URL included (.crew/sprint/45/contract.md, W15). W2's stays in
+// the fixtures' describe: its default boxes are the feed's down state, which only this checkout's
+// own server shows, never a deployment (.crew/sprint/45/decisions.md, 11).
 
 test(`${W1} (the default server's pass)`, async ({ page }) => {
   test.setTimeout(120_000);
   await w1(page, [{ base: "", where: "the default server" }]);
-});
-
-test(`${W2} (the default server's pass)`, async ({ page }) => {
-  test.setTimeout(60_000);
-  await w2(page, [{ name: "default", base: "" }]);
 });
 
 test.describe("on the feed's fixtures", () => {
@@ -383,7 +331,7 @@ test.describe("on the feed's fixtures", () => {
   // The three sites start together, once per worker.
   test.beforeAll(async () => {
     const crew = await crewOf();
-    for (const fixture of FIXTURES) void reachHome(crew, fixture);
+    for (const fixture of FIXTURES) void reachHome(crew, fixture, SPEC);
   });
 
   test(`${W1} (the fixtures' pass)`, async ({ page, crew }) => {
@@ -393,10 +341,39 @@ test.describe("on the feed's fixtures", () => {
     await w1(page, states);
   });
 
-  test(`${W2} (the live fixture's pass)`, async ({ page, crew }) => {
+  test("W2 nothing moves at 1440 x 900: on the default server and the live fixture, WebGL refused, the boxes of the h1, the dl, the three contact links, the five rows, p[data-crew-key] and [data-plan] equal main's within 0.5 px; 1920 x 1080's are reported", async ({
+    page,
+    crew,
+  }) => {
     test.setTimeout(180_000);
+    await page.context().addInitScript(refuseWebGl);
     const live = await shownOn(crew, "live");
-    await w2(page, [{ name: "live", base: live.base }]);
+    for (const [name, base] of [
+      ["default", ""],
+      ["live", live.base],
+    ] as const) {
+      await openHome(page, 1440, 900, base);
+      const now = await w2Boxes(page);
+      note(test.info(), `boxes ${name} 1440 x 900`, JSON.stringify(now));
+      expect
+        .soft(
+          Object.keys(MAIN_1440_900[name]).length,
+          `main's boxes recorded for ${name}`,
+        )
+        .toBeGreaterThan(0);
+      expect
+        .soft(
+          moved(now, MAIN_1440_900[name]),
+          `boxes that moved from main's at 1440 x 900 on ${name === "default" ? "the default server" : "the live fixture"}`,
+        )
+        .toEqual([]);
+      await openHome(page, 1920, 1080, base);
+      note(
+        test.info(),
+        `boxes ${name} 1920 x 1080 (reported)`,
+        JSON.stringify(await w2Boxes(page)),
+      );
+    }
   });
 });
 

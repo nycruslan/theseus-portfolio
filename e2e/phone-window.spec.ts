@@ -1,14 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { PENCIL } from "../lib/hull-layouts";
-import { expected } from "./crew";
-import {
-  type Crew,
-  crewOf,
-  STATE_WAIT,
-  crewTest as test,
-  untilHome,
-  untilState,
-} from "./crew-feed";
+import { type Crew, crewOf, STATE_WAIT, crewTest as test } from "./crew-feed";
 import { type Box, firstScreen, textSizes } from "./first-screen";
 import {
   installRgba,
@@ -17,7 +9,7 @@ import {
   SCHEMES,
   watchLayoutShift,
 } from "./helpers";
-import { layerFor, pencilSeat } from "./live-layer";
+import { pencilSeat } from "./live-layer";
 import {
   drawingAt,
   FIRST,
@@ -31,7 +23,15 @@ import {
 import { decodePng, deltaE, type Image, pixel } from "./pixels";
 import { PLAN } from "./plan";
 import { openModel, refuseWebGl } from "./webgl";
-import { LETTERING, registration } from "./window";
+import {
+  at,
+  BLOCK,
+  FIXTURES,
+  type FixtureName,
+  LETTERING,
+  reachHome,
+  registration,
+} from "./window";
 
 // Sprint 44, Wb: the sheet fits a phone window (.crew/sprint/44/contract.md, W8 to W12), written
 // before the build. `/`'s first window on a phone with the toolbars showing holds the name, the
@@ -94,10 +94,7 @@ const CONTROL_PLACE = {
   words: "in main between [data-model] and the title block",
 } as const;
 
-const BLOCK = "dl[data-particulars]";
 const NAMED = ':is(fieldset, [role="group"])[aria-label="Motion"]';
-
-const at = (width: number, height: number) => `${width} x ${height}`;
 
 /** `/` from `base` at a size, with the web fonts in. */
 async function openHome(page: Page, width: number, height: number, base = "") {
@@ -150,33 +147,12 @@ async function phoneWindow(page: Page, particulars: boolean) {
 // ---------------------------------------------------------------------------------------------
 // W8 and W12 read the feed's fixtures: one worker, in order, as the feed specs run (STATE.md).
 
-const FIXTURES = ["live", "open", "resting"] as const;
-type FixtureName = (typeof FIXTURES)[number];
-
-/**
- * The fixture's site, as B4.22 reaches it: live-layer.spec.ts's kept site by name and answer, read
- * until `/crew` shows the oracle's state, then `/` until it shows the layer's hooks. Once per
- * worker; it asserts nothing.
- */
-function reachHome(crew: Crew, fixture: FixtureName) {
-  return crew.once(`phone-window ${fixture}`, async () => {
-    const name = `home-${fixture}`;
-    const site = await crew.site(name, { fixture }, true);
-    const body = crew.feed.body(name);
-    const want = layerFor(body, crew.feed.origin).home;
-    const crewShown = await untilState(
-      site.baseURL,
-      expected(body, crew.feed.origin).state,
-      STATE_WAIT,
-    );
-    const home = await untilHome(site.baseURL, want, STATE_WAIT);
-    return { base: site.baseURL, body, want, crewShown, home };
-  });
-}
+/** This spec's key for the fixtures' first reads (e2e/window.ts, reachHome). */
+const SPEC = "phone-window";
 
 /** A fixture's site, asserted to show its state on `/`. */
 async function shownOn(crew: Crew, fixture: FixtureName) {
-  const reached = await reachHome(crew, fixture);
+  const reached = await reachHome(crew, fixture, SPEC);
   test.info().annotations.push({
     type: "state-wait",
     description: `${fixture}: /crew ${reached.crewShown.seen} after ${reached.crewShown.ms} ms, then / ${reached.home.seen} after ${reached.home.ms} ms`,
@@ -301,7 +277,7 @@ test.describe("on the feed's fixtures", () => {
   // The three sites start together, once per worker.
   test.beforeAll(async () => {
     const crew = await crewOf();
-    for (const fixture of FIXTURES) void reachHome(crew, fixture);
+    for (const fixture of FIXTURES) void reachHome(crew, fixture, SPEC);
   });
 
   test(`${W8} (the fixtures' pass)`, async ({ page, crew }) => {
