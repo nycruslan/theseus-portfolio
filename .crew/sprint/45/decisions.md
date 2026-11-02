@@ -11,3 +11,12 @@
    (still), the budgets every sprint in the milestone carries.
 4. **Iris's placement call and Probe's red checks run in parallel,** as in sprints 43 and 44:
    W13 to W17 hold whatever the option; the floor waits on Iris, so Probe keeps it in one constant.
+5. **Iris's call taken** (`placement.md`, aeed248): Wa's short layout reaches down to 1024 under
+   960 px tall, the particulars beside the drawing, the floor 240 px as Wa's; the key under the
+   table at every width from 1024, two lines below 1248. Built on her call without waiting; it can
+   be undone. Her sweep finds two windows outside the contract's set, 1220 × 640 and 1247 × 640,
+   where the floor holds and the links end 1.4 and 2.6 px under the fold: accepted and reported,
+   since the drawing's floor is the milestone's rule ("the drawing gives up height", never below
+   the floor) and no common window sits there.
+6. **Forge builds as soon as Probe's checks land** (12ad866), before Probe's report, as STATE's
+   lesson on overlapping notes, checks and build says.
