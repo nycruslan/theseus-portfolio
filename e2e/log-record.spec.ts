@@ -107,8 +107,9 @@ test.describe("B5.6 A record per revision", () => {
     expect(plankWords(13), "sprint 13's plank").toBe(
       "Lift 7 of 7 from the deck, plank 2 of 2 from the stern. It replaced an original plank, now in the ghost hull. Sprint 36 has since replaced it.",
     );
+    // Sprint 46's retro seats 5.1 a third time (1, 24, 46), so 24's example gains its last sentence.
     expect(plankWords(24), "sprint 24's plank").toBe(
-      "Lift 6 of 7 from the deck, plank 2 of 3 from the stern. It replaced sprint 1's plank. The original is in the ghost hull, numbered 1.",
+      "Lift 6 of 7 from the deck, plank 2 of 3 from the stern. It replaced sprint 1's plank. The original is in the ghost hull, numbered 1. Sprint 46 has since replaced it.",
     );
     const approved: Record<number, string | undefined> = {};
     const sized: Record<number, string | undefined> = {};
