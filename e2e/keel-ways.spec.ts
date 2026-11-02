@@ -606,14 +606,20 @@ function readRecord(page: Page) {
   );
 }
 
+/**
+ * K12's assertions on one read. `words` is the line the page must read: this checkout's RECORD on
+ * its own build, and on a deployment (PLAYWRIGHT_BASE_URL) the same server's /log counts, since its
+ * retros may differ from the checkout's.
+ */
 function expectRecord(
   read: Awaited<ReturnType<typeof readRecord>>,
   where: string,
   painted: boolean,
+  words: string,
 ) {
   expect(read.lines, `p[data-keel-record] on /crew ${where}`).toBe(1);
   expect.soft(read.inKeel, `the record in the keel ${where}`).toBe(true);
-  expect.soft(read.text, `the record's words ${where}`).toBe(RECORD);
+  expect.soft(read.text, `the record's words ${where}`).toBe(words);
   expect
     .soft(read.found, `.keel-lead and ol.keel-rules ${where}`)
     .toEqual({ lead: true, rules: true });
@@ -675,9 +681,10 @@ test("K12 the record behind the rules, on the default server: one p[data-keel-re
       )
       .toEqual({ rows: MERGED.length, gate: GATES, owner: OWNERS });
   const fromLog = `${approved.rows} sprints merged: ${approved.gate} on the checks alone, ${approved.owner} on Ruslan's own call.`;
+  const words = DEPLOYED ? fromLog : RECORD;
 
   const html = await withServerHtml(browser, "", "/crew", readRecord);
-  expectRecord(html, "in GET /crew's HTML", false);
+  expectRecord(html, "in GET /crew's HTML", false, words);
   expect
     .soft(html.text, "the record's words against /log's counts")
     .toBe(fromLog);
@@ -695,6 +702,7 @@ test("K12 the record behind the rules, on the default server: one p[data-keel-re
           await readRecord(shown),
           `with scripts ${scripts ? "on" : "off"} at ${width} x ${height}`,
           true,
+          words,
         );
       } finally {
         await context.close();
@@ -743,6 +751,7 @@ test.describe("on this checkout's build and the feed's fixtures", () => {
         await withServerHtml(browser, site.base, "/crew", readRecord),
         `in GET /crew's HTML on the ${fixture} fixture`,
         false,
+        RECORD,
       );
       const html = await withServerHtml(
         browser,
