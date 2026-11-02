@@ -27,14 +27,14 @@ const LEAD =
 const kindOf = ({ enforcer }: KeelRule) =>
   enforcer.startsWith("Guidance only") ? "guidance" : "binds";
 
-/** The label's verdict, up to and including its first colon, or the whole label without one. */
-function Enforcer({ enforcer }: KeelRule) {
-  const colon = enforcer.indexOf(":") + 1;
-  const verdict = colon === 0 ? enforcer : enforcer.slice(0, colon);
+/** The label, its verdict apart: up to and including its first colon, or all of it without one. */
+function Enforcer({ label }: { label: string }) {
+  const colon = label.indexOf(":") + 1;
+  const verdict = colon === 0 ? label : label.slice(0, colon);
   return (
     <p data-enforcer="" className="keel-enforcer">
       <span className="keel-verdict">{verdict}</span>
-      {enforcer.slice(verdict.length)}
+      {label.slice(verdict.length)}
     </p>
   );
 }
@@ -63,7 +63,7 @@ export function Keel() {
             data-kind={kindOf(rule)}
           >
             <p className="keel-sentence">{rule.sentence}</p>
-            <Enforcer {...rule} />
+            <Enforcer label={rule.enforcer} />
             <blockquote cite={rule.href} className="keel-quote">
               {rule.text}
             </blockquote>
