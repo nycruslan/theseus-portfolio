@@ -3552,6 +3552,116 @@ a[data-replay]:not([data-ready]) {
 }
 
 /*
+ * The keel (components/keel.tsx; .crew/sprint/46/first-contract.md, Iris's
+ * .crew/sprint/47/placement.md): the six rules the crew builds under, its own section after the
+ * panel. Below 1024 px it follows the panel at full width under a 2 px ink rule, as the panel
+ * opens; from 1024 it sits under the panel in the panel's column, its 1 px ink rule running on to
+ * the page's end, and the drawing spans both rows, since a sticky box sticks only inside its grid
+ * area (K7). Ink is fixed and pencil can be rubbed out: a rule that binds has its verdict in bold
+ * ink and its quote on a solid ink line, one that only guides is graphite throughout, on a dashed
+ * line. The quotes are in the text face; the site has no code face. Nothing here is copper.
+ */
+.keel {
+  padding: 16px 16px 40px;
+  border-top: 2px solid var(--foreground);
+  overflow-wrap: break-word;
+}
+
+.keel h2 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.keel-lead {
+  max-width: 66ch;
+  margin-top: 12px;
+  line-height: 1.55;
+}
+
+/* Preflight takes the numbers away; each rule's own (li's value) comes back as the marker. */
+.keel-rules {
+  margin-top: 24px;
+  padding-left: 24px;
+  list-style: decimal;
+}
+
+.keel-rules > li {
+  max-width: 66ch;
+  margin-top: 24px;
+  padding-left: 8px;
+}
+
+.keel-rules > li:first-child {
+  margin-top: 0;
+}
+
+.keel-rules > li::marker {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.keel-sentence {
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.keel-enforcer {
+  margin-top: 4px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+[data-kind="binds"] .keel-verdict {
+  font-weight: 600;
+}
+
+[data-kind="guidance"] .keel-enforcer {
+  color: var(--muted);
+}
+
+.keel-quote {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--foreground);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+[data-kind="guidance"] .keel-quote {
+  border-left: 1px dashed var(--muted);
+}
+
+/* On the quote's text edge: its rule and padding. The link is the panel's (.crew-link). */
+.keel-source {
+  padding-left: 13px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+@media (width >= 64rem) {
+  .crew-drawing {
+    grid-area: 1 / 1 / span 2 / 2;
+  }
+
+  .keel {
+    grid-column: 2;
+    padding: 24px 24px 40px;
+    border-left: 1px solid var(--foreground);
+  }
+}
+
+@media print {
+  .keel-rules > li {
+    break-inside: avoid;
+  }
+}
+
+/*
  * The detail drawing (components/lines-plan.tsx's CrewPlan; .crew/sprint/36/contract.md, "The
  * detail drawing" and "A tick", with Iris's final numbers): the sheet's lines plan close on one
  * plank, clipped by its box, its lettering too. The tally's ticks are graphite strokes, never

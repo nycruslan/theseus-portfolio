@@ -24,6 +24,8 @@ export type KeelRule = KeelSpec & {
 // Spelled out rather than taken from lib/site.ts's REPO_URL: a spec loads this file without `@/`.
 const BLOB = "https://github.com/nycruslan/theseus-portfolio/blob";
 
+// The sentences are Iris's (.crew/sprint/47/placement.md): 5 and 6 tightened from the plan's
+// drafts, claiming the same.
 export const KEEL: readonly KeelSpec[] = [
   {
     sentence:
@@ -57,7 +59,7 @@ export const KEEL: readonly KeelSpec[] = [
       "Lens accepts each one only when the PR names it and why the behaviour it checked is gone.",
   },
   {
-    sentence: "The agents who build can't edit the tests they're judged by.",
+    sentence: "The agents who build don't edit the tests they're judged by.",
     enforcer:
       "Guidance only: a hook in each session, which a shell command can get around",
     path: ".crew/guard.mjs",
@@ -65,7 +67,7 @@ export const KEEL: readonly KeelSpec[] = [
   },
   {
     sentence:
-      "Every session reaches GitHub as Ruslan, so a pull request his approval let through is left for him to merge.",
+      "Every session acts on GitHub as Ruslan, so a pull request that passed on his approval is left for him to merge by hand.",
     enforcer: "Guidance only: the crew's own merge script",
     path: ".crew/gate.mjs",
     quote:
