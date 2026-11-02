@@ -21,3 +21,9 @@
    153 too, and the bio's line count at 390 is reported.
 7. **Pixel's chip hole for W12 accepted** (Iris agreed): the dot paints through the 3D chip as the
    2D pen does on Off; sliding the number would push it off the short seat's wedge.
+8. **One phone foot, 28rem, instead of a step at 392.** Forge measured Iris's step in CI's
+   Chromium (Playwright 1.64's headless shell): at 393 × 659 the Leads phrase takes two lines
+   (309 px in a 300 px column) and the particulars end 10 px under W8's margin; in Chrome 153 the
+   step hinges on the bio's 0.5 px wrap at 392. A flat 28rem foot puts 393 × 659 on the floor and
+   gives 430 × 746 a smaller drawing (366 wide) with about 30 px of room. Atlas took it, with Iris
+   asked; one constant, easy to undo.
