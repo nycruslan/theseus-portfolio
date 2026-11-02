@@ -57,9 +57,27 @@ line on GitHub.
   comparison.
   - **Why:** they hold only in the feed's down state, which only this checkout's server shows. On
     production on 2026-11-02 they read the live pencil by design (`.crew/sprint/46/close.md`).
-  - **What stays the same:** CI never sets the variable, so CI runs them exactly as before. No
-    `expect(` was removed and no `test.skip(` was added. Each read is behind `if (DEPLOYED)` and
-    logs a "not run" note.
+  - **What stays the same:** CI never sets the variable, so CI runs them exactly as before. In
+    `window.spec.ts`, no `expect(` was removed and no `test.skip(` was added. Each read is behind
+    `if (DEPLOYED)` and logs a "not run" note.
+- **An added skip, in the new spec** (`e2e/keel.spec.ts:1283`): the describe "on this checkout's
+  build and the live fixture" holds K1's live-fixture pass and K7. It skips both when
+  `PLAYWRIGHT_BASE_URL` is set.
+  - **Why:** K7 compares against main's boxes, which are this checkout's down state. The live pass
+    needs this checkout's build served from a copy pointed at the fixture server (B4.22's harness).
+    A deployment has neither.
+  - **The precedent:** it's the guard `crew.spec.ts:64` and `crew-live.spec.ts:47` already use.
+  - **What stays the same:** CI never sets the variable (`ci.yml` sets only
+    `PLAYWRIGHT_PREBUILT`), so CI runs both tests in full. K1's default-server pass runs
+    everywhere.
+
+### Fix round 1 (Lens's `changes` on 7b0402a)
+- **Important:** keel.spec.ts's added skip is now named above, with its reason. No code changed
+  for it.
+- **Nits, taken because they're cheap:**
+  - B4.8's title now names the keel's six links (Probe).
+  - Forge's `crew.md` line now says `keel.tsx` imports `LINK` from `crew.tsx` on the server.
+  - Iris's sticky-grid memory line now agrees with Probe's measurement.
 
 ### Decisions
 - Iris tightened two rule sentences without changing their claims. Rule 5 now reads "don't edit"
