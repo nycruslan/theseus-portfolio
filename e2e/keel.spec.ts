@@ -55,8 +55,8 @@ type Rule = {
 
 /**
  * The contract's six rules, plan.md's table rows 1 to 6: enforcer labels, paths and quotes exact.
- * The sentences are plan.md's drafts, which Iris may tighten without changing their claims
- * (first-contract.md, "The copy"); placement.md's words replace these if she does.
+ * The sentences are .crew/sprint/47/placement.md's ("The six sentences"): plan.md's drafts, with 5
+ * and 6 tightened by Iris and accepted by Atlas.
  */
 const RULES: readonly Rule[] = [
   {
@@ -96,7 +96,7 @@ const RULES: readonly Rule[] = [
   },
   {
     n: 5,
-    sentence: "The agents who build can't edit the tests they're judged by.",
+    sentence: "The agents who build don't edit the tests they're judged by.",
     enforcer:
       "Guidance only: a hook in each session, which a shell command can get around",
     path: ".crew/guard.mjs",
@@ -105,7 +105,7 @@ const RULES: readonly Rule[] = [
   {
     n: 6,
     sentence:
-      "Every session reaches GitHub as Ruslan, so a pull request his approval let through is left for him to merge.",
+      "Every session acts on GitHub as Ruslan, so a pull request that passed on his approval is left for him to merge by hand.",
     enforcer: "Guidance only: the crew's own merge script",
     path: ".crew/gate.mjs",
     quote:
@@ -183,6 +183,8 @@ type Read = {
   forbidden: string[];
   rules: {
     n: string | null;
+    value: string | null;
+    kind: string | null;
     text: string;
     enforcers: string[];
     quotes: string[];
@@ -216,6 +218,8 @@ function readKeel(page: Page): Promise<Read> {
         forbidden: [] as string[],
         rules: [] as {
           n: string | null;
+          value: string | null;
+          kind: string | null;
           text: string;
           enforcers: string[];
           quotes: string[];
@@ -245,6 +249,8 @@ function readKeel(page: Page): Promise<Read> {
       for (const li of list?.querySelectorAll(":scope > li[data-rule]") ?? [])
         out.rules.push({
           n: li.getAttribute("data-rule"),
+          value: li.getAttribute("value"),
+          kind: li.getAttribute("data-kind"),
           text: squash(li.textContent),
           enforcers: [...li.querySelectorAll("[data-enforcer]")].map((e) =>
             squash(e.textContent),
@@ -285,6 +291,13 @@ function k1(read: Read, where: string) {
     .soft(
       read.rules.map((r) => r.n),
       `the rules' data-rule, in the contract's order, ${where}`,
+    )
+    .toEqual(RULES.map((r) => String(r.n)));
+  // placement.md: each li's value is its own number, so a dropped rule leaves a gap in the markers.
+  expect
+    .soft(
+      read.rules.map((r) => r.value),
+      `the rules' li value, ${where}`,
     )
     .toEqual(RULES.map((r) => String(r.n)));
   for (const rule of RULES) {
@@ -410,7 +423,7 @@ async function pageRules(browser: Browser) {
   }
 }
 
-test("K2 the file's own words, at its line: each rule's link is https://github.com/nycruslan/theseus-portfolio/blob/<ref>/<path>#L<a>[-L<b>], ref main (or the build's commit), and the checkout's file at <path>, read by the contract's matching rule, holds the contract's quote from line a to line b", async ({
+test("K2 the file's own words, at its line: each rule's link is https://github.com/nycruslan/theseus-portfolio/blob/<ref>/<path>#L<a>[-L<b>], ref main (or the build's commit), and the checkout's file at <path>, read by the contract's matching rule, holds the contract's quote from line a to line b; the link reads <path>, line a (or lines a–b) (placement.md)", async ({
   browser,
 }) => {
   const rules = await pageRules(browser);
@@ -444,6 +457,15 @@ test("K2 the file's own words, at its line: each rule's link is https://github.c
     expect
       .soft(href, `${what}'s whole link`)
       .toBe(hrefOf(link.ref, rule.path, found?.start ?? -1, found?.end ?? -1));
+    // placement.md: the link names the file and its lines, so the six names differ.
+    const lines = found
+      ? found.end === found.start
+        ? `line ${found.start}`
+        : `lines ${found.start}\u2013${found.end}`
+      : "";
+    expect
+      .soft(li?.links[0]?.text, `${what}'s link text`)
+      .toBe(`${rule.path}, ${lines}`);
   }
 });
 
@@ -475,7 +497,7 @@ test("K4 every source is Ruslan's: each keel link's path is an owner path by .gi
     .toEqual([]);
 });
 
-test("K5 honest about what binds: rules 5 and 6 carry labels beginning Guidance only, and no other rule does", async ({
+test("K5 honest about what binds: rules 5 and 6 carry labels beginning Guidance only, and no other rule does; data-kind is guidance on them and binds on the rest (placement.md)", async ({
   browser,
 }) => {
   const rules = await pageRules(browser);
@@ -484,6 +506,19 @@ test("K5 honest about what binds: rules 5 and 6 carry labels beginning Guidance 
     .filter((r) => r.enforcers.some((e) => e.startsWith("Guidance only")))
     .map((r) => r.n);
   expect(guidance, "rules labelled Guidance only").toEqual(["5", "6"]);
+  // placement.md's hook for the pencil treatment follows the label: guidance on 5 and 6, binds on
+  // the rest, so the eye's difference can't disagree with the words.
+  expect
+    .soft(
+      rules.map((r) => [r.n, r.kind]),
+      "each rule's data-kind",
+    )
+    .toEqual(
+      RULES.map((r) => [
+        String(r.n),
+        r.enforcer.startsWith("Guidance only") ? "guidance" : "binds",
+      ]),
+    );
   expect
     .soft(
       rules.filter((r) => r.enforcers.length !== 1).map((r) => r.n),
@@ -592,7 +627,9 @@ test("K3 a rule drops when its file loses its words: lib/keel.ts's KEEL is the c
     ["delta epsilon # zeta", { start: 3, end: 4 }],
     ["epsilon zeta", null],
     ["- eta theta", { start: 5, end: 7 }],
-    ["eta", { start: 5, end: 5 }],
+    // The first place it sits: "eta" is in "beta" on line 1 before its own line 5.
+    ["eta", { start: 1, end: 1 }],
+    ["- eta", { start: 5, end: 5 }],
     ["delta  epsilon", null],
     ["omega", null],
   ];
@@ -714,20 +751,26 @@ function sideways(page: Page) {
   }, KEEL);
 }
 
-/** Keel links smaller than 24 x 24 px (B2.9's measure). */
-function smallLinks(page: Page) {
-  return page.evaluate((keel) => {
-    const links = [...document.querySelectorAll(`${keel} a`)];
-    return {
-      count: links.length,
-      small: links.flatMap((a) => {
-        const r = a.getBoundingClientRect();
-        return r.width >= 24 && r.height >= 24
-          ? []
-          : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
-      }),
-    };
-  }, KEEL);
+/**
+ * Keel links under their target (B2.9's measure, the box): 24 x 24 px, and, as placement.md gives
+ * them the panel's `.crew-link`, 44 px tall below 1024.
+ */
+function smallLinks(page: Page, tall: number) {
+  return page.evaluate(
+    ({ keel, tall }) => {
+      const links = [...document.querySelectorAll(`${keel} a`)];
+      return {
+        count: links.length,
+        small: links.flatMap((a) => {
+          const r = a.getBoundingClientRect();
+          return r.width >= 24 && r.height >= tall
+            ? []
+            : [`${a.getAttribute("href")}: ${r.width} x ${r.height}`];
+        }),
+      };
+    },
+    { keel: KEEL, tall },
+  );
 }
 
 /** Anything in the keel painted in `accent` (B1.6's properties), pseudo-elements included. */
@@ -872,7 +915,7 @@ function keelShows(page: Page) {
 
 for (const [width, height] of K6_SIZES) {
   const size = `${width} x ${height}`;
-  test(`K6 it reads at every width and in every mode, ${size}: light and dark, axe with B4.24's strict tags is clean on /crew, nothing scrolls sideways on the page or inside a quote, every keel link is a 24 px target, nothing in it is copper at rest, hovered or focused, and in forced colours and in print every rule, label, quote and link shows; on Full at rest, each rule scrolled into view, the keel meets no [data-model] box`, async ({
+  test(`K6 it reads at every width and in every mode, ${size}: light and dark, axe with B4.24's strict tags is clean on /crew, nothing scrolls sideways on the page or inside a quote, every keel link is a 24 px target, nothing in it is copper at rest, hovered or focused, and in forced colours and in print every rule, label, quote and link shows; on Full at rest, each rule scrolled into view, the keel meets no [data-model] box nor its canvas's`, async ({
     browser,
   }) => {
     test.setTimeout(180_000);
@@ -904,10 +947,11 @@ for (const [width, height] of K6_SIZES) {
         expect
           .soft(await sideways(page), `the keel sideways ${where}`)
           .toEqual([]);
-        const targets = await smallLinks(page);
+        const tall = width >= 1024 ? 24 : 44;
+        const targets = await smallLinks(page, tall);
         expect.soft(targets.count, `keel links ${where}`).toBe(RULES.length);
         expect
-          .soft(targets.small, `keel links under 24 x 24 px ${where}`)
+          .soft(targets.small, `keel links under 24 x ${tall} px ${where}`)
           .toEqual([]);
 
         const accent = (await resolveColors(page))["--accent"]?.rgba ?? [];
@@ -981,6 +1025,10 @@ for (const [width, height] of K6_SIZES) {
         const read = await run.page.evaluate(
           ({ keel, model, i }) => {
             const m = document.querySelector(model)?.getBoundingClientRect();
+            // The canvas too: placement.md has them abut, so a canvas wider than its layer shows here.
+            const c = document
+              .querySelector(`${model} canvas`)
+              ?.getBoundingClientRect();
             const li = document.querySelectorAll(`${keel} li[data-rule]`)[i];
             const k = document.querySelector(keel)?.getBoundingClientRect();
             const r = li?.getBoundingClientRect();
@@ -998,9 +1046,14 @@ for (const [width, height] of K6_SIZES) {
             return {
               n: li?.getAttribute("data-rule"),
               inView: Boolean(r && r.top < innerHeight && r.bottom > 0),
-              keel: meets(k, m),
-              rule: meets(r, m),
-              boxes: { model: box(m), keel: box(k), rule: box(r) },
+              keel: meets(k, m) || meets(k, c),
+              rule: meets(r, m) || meets(r, c),
+              boxes: {
+                model: box(m),
+                canvas: box(c),
+                keel: box(k),
+                rule: box(r),
+              },
             };
           },
           { keel: KEEL, model: MODEL, i },
@@ -1030,6 +1083,11 @@ type Boxes = Record<string, Box | null>;
 const K7_SIZES = [
   [1440, 900],
   [390, 844],
+] as const;
+/** The sticky read's other windows from 1024 (placement.md, "What Forge must measure", 1). */
+const STICKY_ONLY = [
+  [1024, 768],
+  [1536, 715],
 ] as const;
 const ABOVE = {
   drawing: ".crew-drawing",
@@ -1104,7 +1162,7 @@ function moved(now: Boxes, main: Boxes | undefined) {
   });
 }
 
-/** K7 on one server: the boxes at both sizes, the sticky drawing at 1440, and CLS at load. */
+/** K7 on one server: the boxes at both sizes, the sticky drawing from 1024, and CLS at load. */
 async function k7On(
   browser: Browser,
   base: string,
@@ -1112,19 +1170,21 @@ async function k7On(
 ) {
   const where =
     server === "default" ? "the default server" : "the live fixture";
-  for (const [width, height] of K7_SIZES) {
+  for (const [width, height] of [...K7_SIZES, ...STICKY_ONLY]) {
     const size = `${width} x ${height}`;
     const { context, page } = await contextOf(browser, width, height, true);
     try {
       await openCrew(page, width, height, base);
-      const now = await aboveBoxes(page);
-      note(test.info(), `boxes ${server} ${size}`, JSON.stringify(now));
-      expect
-        .soft(
-          moved(now, MAIN[server][size]),
-          `boxes that moved from main's at ${size} on ${where}`,
-        )
-        .toEqual([]);
+      if (K7_SIZES.some(([w, h]) => w === width && h === height)) {
+        const now = await aboveBoxes(page);
+        note(test.info(), `boxes ${server} ${size}`, JSON.stringify(now));
+        expect
+          .soft(
+            moved(now, MAIN[server][size]),
+            `boxes that moved from main's at ${size} on ${where}`,
+          )
+          .toEqual([]);
+      }
 
       if (width >= 1024) {
         // The keel's h2 at the viewport's middle. A spacer after main lets the page scroll that far
@@ -1233,7 +1293,7 @@ test.describe("on this checkout's build and the live fixture", () => {
     await k1On(browser, live.base, "the live fixture");
   });
 
-  test("K7 nothing above it moves: at 1440 x 900 and 390 x 844, WebGL refused, on the default server and the live fixture, .crew-drawing, the panel's h1, its table and [data-rules] have main's boxes within 0.5 px; at 1440 with the keel's h2 at the viewport's middle .crew-drawing's top is the bar's 72 px; B1.8's CLS read is 0 at load at 1440 x 900 and 390 x 664", async ({
+  test("K7 nothing above it moves: at 1440 x 900 and 390 x 844, WebGL refused, on the default server and the live fixture, .crew-drawing, the panel's h1, its table and [data-rules] have main's boxes within 0.5 px; at 1024 x 768, 1440 x 900 and 1536 x 715 with the keel's h2 at the viewport's middle .crew-drawing's top is the bar's 72 px; B1.8's CLS read is 0 at load at 1440 x 900 and 390 x 664", async ({
     browser,
     crew,
   }) => {
