@@ -3599,6 +3599,18 @@ a[data-replay]:not([data-ready]) {
   text-wrap: pretty;
 }
 
+/* The whole line links to the Log (R3; Iris's .crew/sprint/50/link.md). An inline-block, so its
+   target and the site's ring are one rectangle around exactly its words, wrapped or not; padding
+   makes it 44 px tall below 1024 and 24 from it, and the matching negative margin takes the
+   padding back out of layout, so nothing around it moves (K7, K12). Below 1024 the padding sits
+   low, as the gap under the line (24 px) is twice the one above it (12 px). */
+.keel-record-link {
+  display: inline-block;
+  vertical-align: top;
+  padding: 8px 0 17px;
+  margin: -8px 0 -17px;
+}
+
 /* Preflight takes the numbers away; each rule's own (li's value) comes back as the marker. */
 .keel-rules {
   margin-top: 24px;
@@ -3674,6 +3686,11 @@ a[data-replay]:not([data-ready]) {
 
   .keel h2 {
     scroll-margin-top: calc(16px + 2px + 24px);
+  }
+
+  .keel-record-link {
+    padding-block: 4px;
+    margin-block: -4px;
   }
 }
 
