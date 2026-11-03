@@ -2947,11 +2947,16 @@ main:has(> [data-model]) {
   align-content: start;
 }
 
-/* The feed's words are never cut: a long token (a path, a URL) breaks rather than widen the page. */
+/* The feed's words are never cut: a long token (a path, a URL) breaks rather than widen the page.
+   Never the scroll anchor (.crew/sprint/50/decisions.md, R5): with the panel a candidate, Chrome
+   holds nothing when a moment grows it, so a reader at /crew#keel saw the keel slide down by the
+   new row (33 px, CLS 0.049 at 390 × 664). Excluded, the keel anchors and stays put; a reader
+   between the panel's table and the new row sees the page scroll by it instead of a shift. */
 .crew {
   padding: 16px 16px 40px;
   border-top: 2px solid var(--foreground);
   overflow-wrap: anywhere;
+  overflow-anchor: none;
 }
 
 .crew-head {
