@@ -13,60 +13,129 @@ evals (`/evals`, `/api/cron/evals`), the agent surfaces (`/llms.txt`, `/api/me.j
 security headers, Web Analytics, and redirects from the old addresses. So the Owner's pick below no
 longer needs its `/work/…` case study option: those are done.
 
-## Now: the keel
+## Now: the record you can check, then stand down
 
-A hiring executive who wonders whether the AI crew is real and governed finds the answer on
-`/crew`. It lists the rules the crew builds under, in plain words. Each rule says what enforces it
-(GitHub, the gate check, Lens's review, or only guidance), quotes its file word for word, and links
-to that line on GitHub. He reaches it in one click from "his rules" on `/`, and beside the rules
-the record shows them at work: 46 merged sprints at sprint 48, 33 on the checks alone and 13 on
-his own call.
+A hiring executive who reads the keel's "N sprints merged: G on the checks alone, O on Ruslan's own
+call" can trust the numbers and check them. The line links to the Log, and every revision's
+Approved there says what GitHub's gate really did. On production on 2026-11-03 the line read 47: 34
+/ 13, matching `/log`. But sprint 36 (#91) changed `.github/workflows/ci.yml` and waited for
+Ruslan, so the truth is 33 / 14 (`.crew/sprint/49/close.md`).
+
+Quill's plan is `.crew/sprint/49/plan.md`, and Ra's contract is `first-contract.md`. It serves
+principle 3 ("who approved it") on the one section that argues the crew is governed. The checks are
+R1 to R5, all in Ra. No sprint needs an owner answer to start, touches an owner path or edits
+`content/`.
+
+- [x] Sprint 49 (notes only): Quill closed "the keel" on production (`.crew/sprint/49/close.md`),
+  planned this milestone and the stand-down after it (`plan.md`), and wrote Ra's contract
+  (`first-contract.md`, R1 to R5). (PR #113.) Ra starts with Iris's small call: which words carry
+  the link.
+- [ ] Ra (M), sprint 50: the record you can check.
+  - Sprint 36 reads Owner on `/log` and `/log/36` (R1), and the keel's line stays equal to `/log`
+    (R2).
+  - The line links to `/log#every-revision` (R3; Iris's idea from #112).
+  - The merge-record step refuses a Gate retro whose PR touched an owner path (R4).
+  - Rider: K11's deployed landing read, root cause first (R5).
+  - Probe rewrites K6's link count with its strength.
+- **Then the crew stands down.** After Ra, nothing left serves `PRODUCT.md`'s beliefs enough to earn
+  a milestone without the owner (`plan.md`, "Why this, and why only this"). No sprint opens until
+  one of these happens:
+  - the owner answers the pick below;
+  - he sets a goal;
+  - a defect on production makes something the site says false, or hides a fact.
+
+  Riders wait under "Finished" for whichever sprint touches their code.
+- Out of scope, and why:
+  - Changing the rule the Approved column reads: the record is wrong, not the rule.
+  - A sentence per Owner revision saying what he decided: crew-written text about his decisions is
+    his to want.
+  - The keel in `/llms.txt` and `/api/me.json`, and a crew-first card for `/crew`: the first reader
+    is a person, and `/crew` sharing `/`'s card carries belief 1 in the most common share.
+  - `/ask` answering about the crew: `PRODUCT.md` says it answers from the owner's facts.
+- **Owner's pick, asked in sprint 42's PR (#101), still unanswered:** which proof comes after the
+  first window. The options:
+  - a published keel quoted from the files that enforce it (recommended, and now built because it
+    can be undone);
+  - a JPMorgan case study from facts he writes;
+  - standing down.
+
+  He may take the keel down, or only its rule 6 (the setup's known gap: sessions reach GitHub as
+  him), after any merge. If he picks the case study, it comes next.
+- **For the owner, optional:**
+  - his B3, B4 and B5 demos on his own laptop window;
+  - the five-second test: show `/` to a stranger for five seconds, on a laptop window and on a
+    phone, and ask what he does, at what scale, and how to reach him;
+  - whether `/ask` may answer from the crew's record (a `PRODUCT.md` change);
+  - whether `/crew`'s shared card should lead with the crew.
+
+## Finished: the keel
+
+Ka and Kb merged by 2026-11-03 (Kb, #112, last). Quill closed it on production in sprint 49
+(`.crew/sprint/49/close.md`):
+
+- `/crew` shows the six rules, each with its enforcer, its quote word for word and a link to its
+  lines at the deployed commit. All six quotes match main's lines, and all five files answer on
+  GitHub.
+- "His rules" on `/`, the key on `/log` and `/log/47`, and Approval's link each land on the keel
+  with its heading under the bar at 1440 × 900, 1366 × 625 and 390 × 844.
+- The record line matches `/log`, 47: 34 / 13, but both count sprint 36 on the checks alone. The
+  truth is 33 / 14, and that is Ra's to fix.
+- Against production the K specs gave 14 passed and 3 skipped. The skips are the fixture passes,
+  named for Lens in #110 and #112. K11's scripts-on landing went red once (CLS 0.006 to 0.022, likely
+  a live moment arriving) and passed on a re-run; that is Ra's rider.
+
+**Left open:**
+
+- Taken by Ra: sprint 36's Approved, the drift guard, the record line's link to `/log`, and K11's
+  deployed read.
+- Waiting for a sprint that touches their code:
+  - Iris: the site's focus ring, 2 px at a 2 px offset, touches the lines around an inline link (the
+    key's "his rules", Approval's link, the pencil row's goal). A ring that stays inside the line
+    means Probe rewriting the ring checks (`crew.spec.ts:1256` and three others).
+  - The keel in `/llms.txt` and `/api/me.json`, and `/crew`'s own card (it re-exports `/`'s).
+- Accepted: in the live state the keel starts below `/crew`'s first window at 1440 × 900 (y 1125;
+  844 on the default server), under the panel, by Iris's placement (a).
+- Not verified: the `protect-main` ruleset's three required checks (rule 1's enforcer), Safari and
+  Firefox, a real phone, and the Approval landing with scripts off.
+
+The outcome as planned: a hiring executive who wonders whether the AI crew is real and governed
+finds the answer on `/crew`. It lists the rules the crew builds under, in plain words. Each rule
+says what enforces it (GitHub, the gate check, Lens's review, or only guidance), quotes its file word
+for word, and links to that line on GitHub. He reaches it in one click from "his rules" on `/`, and
+beside the rules the record shows them at work.
 
 Quill's plan is `.crew/sprint/46/plan.md`, with the six rules, their sources and the build
-constraint, and Ka's contract is `first-contract.md`. It serves belief 2: a site that says "a team
-of AI agents" invites "and who stops them?", and no page showed the rules yet. The checks are K1
-to K12, across Ka and Kb. No sprint needs an owner answer to start, touches an owner path or edits
-`content/`. The build reads the crew's rails and changes none.
+constraint. Ka's contract is `first-contract.md`. It serves belief 2: a site that says "a team of AI
+agents" invites "and who stops them?", and no page showed the rules yet. The checks are K1 to K12,
+across Ka and Kb. No sprint needed an owner answer to start, touched an owner path or edited
+`content/`.
 
 - [x] Sprint 46 (notes only): Quill closed "the proof in the first window" on production
   (`.crew/sprint/46/close.md`), planned this milestone (`plan.md`) and wrote Ka's contract
   (`first-contract.md`, K1 to K8 and a rider). (PR #109, built in one run on 2026-11-02.)
   Ka starts with Iris's placement call.
-- [x] Ka (M), sprint 47: the keel on `/crew`. Six rules, server HTML after the panel, each with
-  its enforcer, its verbatim quote and a link to its line, fixed at build by a Turbopack `?raw`
-  rule (K8 proven with the sources moved away). K1 to K7 in `e2e/keel.spec.ts`; B4.8 rewritten to
-  allow the keel's six links inside the keel only; the rider guards W5's and W7's down-state
-  reads. (PR #110, two fix rounds.) Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
-- [x] Kb (M; the plan said S, `.crew/sprint/48/decisions.md` 2), sprint 48: the ways in. "His
-  rules" in the key on `/`, `/log` and every record links to `/crew#keel`, and Approval's "Ruslan
-  Shulga's rules" to `#keel`; the heading lands under the bar. A line in the keel reads "46 sprints
-  merged: 33 on the checks alone, 13 on Ruslan's own call.", counted as `/log` counts them. K9 to
-  K12 in `e2e/keel-ways.spec.ts`; ten kept checks that pinned the key's links or Tab stops were
-  rewritten with their strength; Lens's two nits on #110 rode along. (PR #112, one fix round.)
-- **Next:** the keel is built. Quill closes it on production, as sprint 46 closed the first
-  window, and plans what comes next, starting from the Owner's pick below. Open from Kb, each
-  riding with the sprint that touches its code:
-  - Iris: the site's focus ring, 2 px at a 2 px offset, touches the lines around an inline link
-    (the key's "his rules", Approval's link, the pencil row's goal). A ring that stays inside the
-    line means Probe rewriting the ring checks (`crew.spec.ts:1256` and three others).
-  - Iris's idea: "46 sprints merged" could link to `/log`.
-- Out of scope, and why:
-  - Changing any rule: the keel quotes the owner's paths and never edits them.
-  - The keel in `/`'s first window: belief 1 comes first there, and Kb's link is the way in.
-  - The keel in `/llms.txt` and `/api/me.json`, and `/crew`'s card: follow-ups once it settles.
-- **Owner's pick, asked in sprint 42's PR (#101), still unanswered:** which proof comes after the
-  first window. The options:
-  - a published keel quoted from the files that enforce it (recommended, and now being built
-    because it can be undone);
-  - a JPMorgan case study from facts he writes;
-  - standing down.
-
-  The keel is a section of `/crew` that can be taken down, and the repository it quotes is already
-  public. He may take it down, or only its rule 6 (the setup's known gap: sessions reach GitHub as
-  him), after any merge. If he picks the case study, it comes next.
-- **For the owner, optional:** Wa has merged, so his B3, B4 and B5 demos can now be judged on his
-  own laptop window. The five-second test still stands: show `/` to a stranger for five seconds, on
-  a laptop window and on a phone, and ask what he does, at what scale, and how to reach him.
+- [x] Ka (M), sprint 47: the keel on `/crew`. (PR #110, two fix rounds.)
+  - Six rules, server HTML after the panel, each with its enforcer, its verbatim quote and a link
+    to its line.
+  - The quotes are fixed at build by a Turbopack `?raw` rule. K8 was proven with the sources moved
+    away.
+  - K1 to K7 are in `e2e/keel.spec.ts`.
+  - B4.8 was rewritten to allow the keel's six links inside the keel only.
+  - The rider guards W5's and W7's down-state reads.
+  - Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
+- [x] Kb (M; the plan said S, `.crew/sprint/48/decisions.md` 2), sprint 48: the ways in. (PR #112,
+  one fix round.)
+  - "His rules" in the key on `/`, `/log` and every record links to `/crew#keel`, and Approval's
+    "Ruslan Shulga's rules" to `#keel`. The heading lands under the bar.
+  - A line in the keel reads "46 sprints merged: 33 on the checks alone, 13 on Ruslan's own call.",
+    counted as `/log` counts them.
+  - K9 to K12 are in `e2e/keel-ways.spec.ts`.
+  - Ten kept checks that pinned the key's links or Tab stops were rewritten with their strength.
+  - Lens's two nits on #110 rode along.
+- Out of scope then:
+  - changing any rule;
+  - the keel in `/`'s first window, since belief 1 comes first there;
+  - the keel in `/llms.txt`, `/api/me.json` and `/crew`'s card.
 
 ## Finished: the proof in the first window
 
@@ -83,7 +152,10 @@ on reads of the feed's down state, which the live pencil changes by design. **Le
   - No check reads the model's hand-off (LCD text) at Wa's and Wc's widths. Wa's rule loses it at
     1300 × 650 (Forge and Probe).
   - `/crew`'s foot row over its canvas: Ka, if Iris's placement touches the foot.
-  - A 24 px default font scrolls the phone sheet sideways.
+  - A 24 px default font scrolls the phone sheet sideways. Measured in sprint 49
+    (`.crew/sprint/49/close.md`): at 390 × 844, seven of eight routes scroll 24 px, because the
+    bar's nav reaches 405 px and "Contact" is cut. At 20 px and at 200% zoom everything fits
+    (Forge and Iris, with the next sprint on the bar).
   - Iris's memory lines 66 and 67.
 - Taken, found in the code: Wa's chip-rule and `ghost.ts` nits; Wb's comment and W11 wording were
   Wc's riders.
