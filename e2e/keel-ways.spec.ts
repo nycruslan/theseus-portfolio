@@ -920,4 +920,106 @@ test.describe("on this checkout's build and the feed's fixtures", () => {
       }
     }
   });
+
+  // R5 (sprint 50, Ra; .crew/sprint/49/first-contract.md, the rider): K11's deployed reads went red
+  // once when the feed changed while the reader sat at #keel. Measured on production (Probe's report
+  // on #114): a poll whose answer grows or shrinks the panel moves the keel by the panel's change
+  // (an Activity row: 34.5 px, CLS 0.009 to 0.010): Chrome picks its scroll anchor in the panel,
+  // whose foot shows under the bar, so anchoring doesn't hold the keel; with the panel excluded
+  // (overflow-anchor: none) it anchors on the keel and nothing shifts. This holds the first answer
+  // back until the reader has landed, then answers the live fixture with one moment more, as the
+  // Studio does when a moment lands.
+  test("R5 a moment arriving while the reader sits at /crew#keel moves nothing: on the live fixture, at 1440 x 900, 1536 x 715 and 390 x 664 with scripts on, a poll answering one more moment adds its Activity row and the panel grows, while h2#keel keeps its place within 1 px (a scroll offset is whole pixels) and no layout shift is recorded", async ({
+    browser,
+    crew,
+  }) => {
+    test.setTimeout(150_000);
+    const site = await reach(crew, "live");
+    expect(site.shown.seen, `/crew shows live within ${STATE_WAIT} ms`).toBe(
+      "live",
+    );
+    const MOMENT = "New ticket: R5's arriving moment";
+    for (const [width, height] of LANDING_SIZES) {
+      const where = `on the live fixture at ${width} x ${height}`;
+      const { context, page } = await contextOf(browser, width, height, true);
+      let release = () => {};
+      const landed = new Promise<void>((done) => {
+        release = done;
+      });
+      await context.route(`${site.base}/api/crew`, async (route) => {
+        await landed;
+        const response = await route.fetch();
+        const answer = (await response.json()) as {
+          run?: { moments?: unknown[] };
+        };
+        answer.run?.moments?.unshift({
+          kind: "ticket",
+          at: new Date(Date.now() - 1000).toISOString(),
+          text: MOMENT,
+        });
+        await route.fulfill({ response, json: answer });
+      });
+      try {
+        await open(page, "/crew#keel", site.base);
+        await pause(1000);
+        const read = () =>
+          page.evaluate(
+            ({ panel, moment }) => {
+              const observer = new PerformanceObserver(() => undefined);
+              observer.observe({ type: "layout-shift", buffered: true });
+              const shifts = observer
+                .takeRecords()
+                .map(
+                  (entry) =>
+                    entry as PerformanceEntry & {
+                      value: number;
+                      hadRecentInput: boolean;
+                    },
+                )
+                .filter((shift) => !shift.hadRecentInput)
+                .map((shift) => shift.value);
+              observer.disconnect();
+              return {
+                shown: [
+                  ...document.querySelectorAll(`${panel} [data-moments] li`),
+                ].some((li) => (li.textContent ?? "").includes(moment)),
+                panel:
+                  document.querySelector(panel)?.getBoundingClientRect()
+                    .height ?? 0,
+                h2: document.getElementById("keel")?.getBoundingClientRect()
+                  .top,
+                shifts,
+              };
+            },
+            { panel: PANEL, moment: MOMENT },
+          );
+        const before = await read();
+        expect(before.shown, `the moment before its poll ${where}`).toBe(false);
+        release();
+        await expect
+          .poll(async () => (await read()).shown, {
+            message: `the moment's Activity row ${where}`,
+            timeout: 15_000,
+          })
+          .toBe(true);
+        await pause(1000);
+        const after = await read();
+        expect(
+          after.panel,
+          `the panel's height after the moment ${where} (from ${before.panel})`,
+        ).toBeGreaterThan(before.panel + 0.5);
+        expect
+          .soft(
+            Math.abs((after.h2 ?? Number.NaN) - (before.h2 ?? Number.NaN)),
+            `h2#keel's move ${where}: ${before.h2} to ${after.h2}`,
+          )
+          .toBeLessThanOrEqual(1);
+        expect
+          .soft(after.shifts, `layout shifts ${where}, from landing on`)
+          .toEqual([]);
+      } finally {
+        await context.close();
+      }
+    }
+  });
 });
