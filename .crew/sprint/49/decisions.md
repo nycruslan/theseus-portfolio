@@ -31,3 +31,4 @@
    - The `protect-main` ruleset's required checks.
    - That the live "Opened PR #113" moment caused K11's one red.
    - Safari, Firefox and a real phone.
+8. **Lens shipped 998d514 on its first run** with one nit: Ra's contract cited `e2e/retros.ts:187` for the oracle's token test, which is on line 188. Fixed in the close-out.
