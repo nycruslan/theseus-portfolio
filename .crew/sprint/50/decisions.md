@@ -8,3 +8,13 @@
    which don't wait on Iris, and takes R3's words when she calls them.
 3. **R4 edits `.crew/sprint/32/merge-record.mjs`**, which is the team's (`/.crew/sprint/` gives it
    back in CODEOWNERS), so the sprint touches no owner path.
+4. **Iris's call (R3): the whole line carries the link** (`link.md`): "N sprints merged" alone, wrapped
+   at 390, gave a ring that boxed words the link doesn't carry.
+5. **R5 is a product defect, fixed in CSS.** Probe measured on production: a poll that grows the
+   panel while a reader sits at `/crew#keel` moved the keel 33 to 34.5 px (CLS 0.0488 at 390 × 664,
+   over the phone budget), and K11's red on 2026-11-03 was the first poll rewrapping a stale page.
+   Chrome anchored inside the panel. `overflow-anchor: none` on `.crew` makes it anchor on the keel.
+   The trade (Forge's measure): a reader scrolled to the crew table, above a new row, now sees the
+   page scroll up 35 px instead of the content below move down 34.5 px (CLS 0.0055). Accepted: the
+   movement is the same size, it's no longer a layout shift, and the keel, where every "his rules"
+   link lands, holds at every size.
