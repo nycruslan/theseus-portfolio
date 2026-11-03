@@ -36,6 +36,9 @@ on production and plans the next milestone.
   and the stand-down.
 - `decisions.md` 1 to 7, `retro.json`, sprint 48's `merge.json`, and three lines in Quill's memory.
 
+**Evidence on this head:** `pnpm verify` exits 0, and `PLAYWRIGHT_PORT=3317 pnpm test:e2e` passes
+343 of 343 in 35.3 min, so sprint 49's retro walks no anchor.
+
 The one-token fix to sprint 36's retro waits for Ra, not this sprint (`decisions.md` 3). It moves
 cells that kept checks read, so it ships together with Probe's checks and the guard. Nothing here
 touches an owner path or edits `content/`. The pick on #101 stays open as written.
