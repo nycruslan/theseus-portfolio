@@ -30,7 +30,12 @@ R1 to R5, all in Ra. No sprint needs an owner answer to start, touches an owner 
   planned this milestone and the stand-down after it (`plan.md`), and wrote Ra's contract
   (`first-contract.md`, R1 to R5). (PR #113.) Ra starts with Iris's small call: which words carry
   the link.
-- [ ] Ra (M), sprint 50: the record you can check.
+- [x] Ra (M), sprint 50: the record you can check. (PR #114.) Sprint 36 reads Owner, the line
+  reads 48: 34 / 14 on the branch and links to `/log#every-revision`, the merge-record step refuses
+  the next miscount, and R5 found a real defect (a moment moved the keel up to 57 px on a phone),
+  fixed by moving the panel's foot padding (`.crew/sprint/50/decisions.md` 5 to 7). Left open, as
+  riders: the guard's `--retros` comment and package.json-scripts hold, CI at 33.8 of 35 minutes,
+  and a scroll margin on `/log#every-revision` (Iris's call).
   - Sprint 36 reads Owner on `/log` and `/log/36` (R1), and the keel's line stays equal to `/log`
     (R2).
   - The line links to `/log#every-revision` (R3; Iris's idea from #112).

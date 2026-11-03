@@ -28,6 +28,9 @@ makes stale.
   `node .crew/sprint/32/merge-record.mjs` from the repository root and commit any record it writes
   with the sprint: `/log`'s dates and lines figure read them. It writes only for merged sprints
   without one, and checks its calibration first. It moves to `.crew/` once the owner takes it in.
+  From sprint 50 it also exits 1, after writing the records, naming any merged sprint whose squash
+  touched an owner path while its retro's `outcome` lacks `needs-owner` (so `/log` reads Gate):
+  commit the records anyway and put the token in that retro; `--retros HEAD` re-checks the edit.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
   contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
   none to the overlap).
@@ -102,6 +105,10 @@ makes stale.
     finding named.
   - Parallel builders run in their own worktrees on disjoint files, integrated by cherry-pick and
     run together once before the review label.
+  - A CSS change to a shared box runs every spec on that page before the label, not only the
+    contract's: sprint 50's scroll fix on `.crew` passed the keel and crew specs and broke four
+    replay checks only CI ran (`.crew/sprint/50/decisions.md` 6). Scroll anchoring is read with the
+    CSS served before landing; Chrome keeps the anchor it chose (decision 7).
   - A recipe from an old review is a diff against an old baseline: apply only its named change.
   - Main moves under a sprint: the owner's own sessions merged three title-block changes during
     sprint 43 (#98, #104, #105), and #104 put the links back under the fold. Merge main and re-run
@@ -164,8 +171,8 @@ makes stale.
     to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
-- **CI's `check` job has a 35-minute cap (`ci.yml`), and the job took 28.8 of it on #100**, the e2e
-  step 27.3 (sprint 40's: 25.0 and 23.6). A spec that starts its own servers (the feed specs)
+- **CI's `check` job has a 35-minute cap (`ci.yml`), and the job took 33.8 of it on #114** (#100:
+  28.8). A spec that starts its own servers (the feed specs)
   starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
   full suite at CI's worker count before the label.
 - **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`
