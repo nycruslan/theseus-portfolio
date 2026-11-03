@@ -773,6 +773,31 @@ function smallLinks(page: Page, tall: number) {
   );
 }
 
+/**
+ * Every keel link by where it sits: a rule's (by its number) or the record line's (by its href),
+ * sorted. Sprint 50 (Ra, R3) links the record line to the Log's Every revision, so K6's count of
+ * six became this list: six source links, one per rule, and exactly one /log#every-revision in
+ * p[data-keel-record] (.crew/sprint/49/first-contract.md, "Kept checks").
+ */
+function keelLinks(page: Page) {
+  return page.evaluate((keel) => {
+    const out = [...document.querySelectorAll(`${keel} a`)].map((a) => {
+      const rule = a.closest("li[data-rule]");
+      if (rule) return `rule ${rule.getAttribute("data-rule")}`;
+      const where = a.closest("p[data-keel-record]")
+        ? "the record line"
+        : "elsewhere";
+      return `${where}: ${a.getAttribute("href")}`;
+    });
+    return out.sort();
+  }, KEEL);
+}
+
+const KEEL_LINKS = [
+  ...RULES.map((rule) => `rule ${rule.n}`),
+  "the record line: /log#every-revision",
+].sort();
+
 /** Anything in the keel painted in `accent` (B1.6's properties), pseudo-elements included. */
 function keelCopper(page: Page, accent: number[]) {
   return page.evaluate(
@@ -949,7 +974,12 @@ for (const [width, height] of K6_SIZES) {
           .toEqual([]);
         const tall = width >= 1024 ? 24 : 44;
         const targets = await smallLinks(page, tall);
-        expect.soft(targets.count, `keel links ${where}`).toBe(RULES.length);
+        expect
+          .soft(
+            await keelLinks(page),
+            `keel links ${where}: one source link per rule, and the record line's one (${targets.count} in all)`,
+          )
+          .toEqual(KEEL_LINKS);
         expect
           .soft(targets.small, `keel links under 24 x ${tall} px ${where}`)
           .toEqual([]);
