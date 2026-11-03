@@ -12,8 +12,18 @@
 // `mergedAt`. With no such commit, or more than one, it writes nothing for that sprint and says so.
 // It never rewrites a record (it skips one that exists and creates each file exclusively), so a
 // second run writes nothing.
-// Only Node's built-ins and git; it deepens a shallow clone first, since blame needs the whole
-// history. Nothing reads git when the site is built: the page reads these files (decision 4).
+// Only Node's built-ins, git and the crew's scope.mjs; it deepens a shallow clone first, since
+// blame needs the whole history. Nothing reads git when the site is built: the page reads these
+// files (decision 4).
+//
+// It also guards /log's Approved column (.crew/sprint/49/first-contract.md, R4; owners-call.mjs):
+// when a merged sprint's squash changed a path the CODEOWNERS of its parent gives the owner, `gate`
+// held it for him, so a retro that reads as Gate (no `needs-owner` in its `outcome`) is wrong. It
+// still writes every record, then exits 1 naming each such sprint, its PR and the paths.
+//
+// `--retros <ref>` reads the retros (and the sprint folders) from another commit than origin/main,
+// so a branch checks its own before they merge: `node .crew/sprint/32/merge-record.mjs --retros
+// HEAD`. The merges are always origin/main's.
 //
 // The lines figure at a commit (decision 8): every file `git ls-tree -r` lists under app/,
 // components/ and lib/ at that commit, and every line `git blame <commit> -- <file>` prints for it,
@@ -27,6 +37,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { codeowners } from "../../scope.mjs";
+import { ownerPathsUnderGate, refusal } from "./owners-call.mjs";
 
 const BASE = "origin/main";
 const SPRINT_DIR = ".crew/sprint";
@@ -78,22 +90,56 @@ function linesAt(commit, cut) {
   return { original, total };
 }
 
-/** A retro the site's reader accepts, with the pull request it merged by. */
+/** A retro the site's reader accepts, with the pull request it merged by and its outcome. */
 function mergedSprintOf(folder) {
   let retro;
   try {
-    retro = JSON.parse(git("show", `${BASE}:${SPRINT_DIR}/${folder}/retro.json`));
+    retro = JSON.parse(git("show", `${RETROS}:${SPRINT_DIR}/${folder}/retro.json`));
   } catch {
-    // No retro on main (a sprint in progress), or one the build would reject.
+    // No retro at that ref (a sprint in progress), or one the build would reject.
     return undefined;
   }
   if (typeof retro !== "object" || retro === null || Array.isArray(retro)) return undefined;
-  const { sprint, goal, pr } = retro;
+  const { sprint, goal, pr, outcome } = retro;
   const positive = (n) => typeof n === "number" && Number.isInteger(n) && n > 0;
   if (!positive(sprint) || sprint !== Number(folder)) return undefined;
   if (typeof goal !== "string" || goal.trim() === "") return undefined;
-  return positive(pr) ? { sprint, pr } : undefined;
+  return positive(pr) ? { sprint, pr, outcome } : undefined;
 }
+
+/** Every path a squash changed against its one parent, both sides of a rename (no -M). */
+function changedBy(commit) {
+  return git("diff-tree", "--no-commit-id", "-r", "--name-only", "-z", commit)
+    .split("\0")
+    .filter(Boolean);
+}
+
+/** The owner-path test from a commit's .github/CODEOWNERS, as gate read it; none without one. */
+function ownersAt(commit) {
+  let text = "";
+  try {
+    text = git("show", `${commit}:.github/CODEOWNERS`);
+  } catch {
+    // No CODEOWNERS at that commit: nothing was the owner's to approve.
+  }
+  return codeowners(text);
+}
+
+/** The ref after `--retros`, or origin/main. */
+function retrosRef(args) {
+  const at = args.indexOf("--retros");
+  if (at === -1) return BASE;
+  const ref = args[at + 1];
+  if (!ref || ref.startsWith("-")) fail("--retros needs a ref, such as HEAD");
+  try {
+    git("rev-parse", "--verify", "--quiet", `${ref}^{commit}`);
+  } catch {
+    fail(`--retros ${ref}: no such commit`);
+  }
+  return ref;
+}
+
+const RETROS = retrosRef(process.argv.slice(2));
 
 const root = realpathSync(git("rev-parse", "--show-toplevel").trim());
 if (realpathSync(process.cwd()) !== root) {
@@ -129,24 +175,36 @@ const commits = git("log", "--first-parent", "--format=%H%x00%ct%x00%s", BASE)
     return { hash, time: Number(time), subject };
   });
 
-const folders = git("ls-tree", "--name-only", `${BASE}:${SPRINT_DIR}`)
+const folders = git("ls-tree", "--name-only", `${RETROS}:${SPRINT_DIR}`)
   .split("\n")
   .filter((name) => /^[1-9]\d*$/.test(name))
   .sort((a, b) => Number(a) - Number(b));
 
 let written = 0;
 let kept = 0;
+const refused = [];
 for (const folder of folders) {
   const merged = mergedSprintOf(folder);
   if (!merged) continue;
-  const { sprint, pr } = merged;
+  const { sprint, pr, outcome } = merged;
+  const matches = commits.filter(({ subject }) => subject.trimEnd().endsWith(`(#${pr})`));
+  // The guard reads every merged sprint, recorded or not; one without its merge has nothing to read.
+  if (matches.length === 1) {
+    const [{ hash }] = matches;
+    const paths = ownerPathsUnderGate({
+      outcome,
+      files: changedBy(hash),
+      isOwned: ownersAt(`${hash}^`),
+    });
+    if (paths.length) refused.push(refusal({ sprint, pr, paths }));
+  }
+
   const file = join(root, SPRINT_DIR, folder, "merge.json");
   if (existsSync(file)) {
     kept += 1;
     continue;
   }
 
-  const matches = commits.filter(({ subject }) => subject.trimEnd().endsWith(`(#${pr})`));
   if (matches.length !== 1) {
     const found = matches.map(({ hash }) => short(hash)).join(", ");
     console.log(
@@ -174,3 +232,16 @@ for (const folder of folders) {
   );
 }
 console.log(`merge-record: ${written} written, ${kept} already recorded and left as they are`);
+
+// After the records, so a wrong retro never holds back the dates and lines /log reads.
+const retros = RETROS === BASE ? BASE : `${RETROS} (--retros)`;
+if (refused.length) {
+  for (const line of refused) console.error(`merge-record: ${line}`);
+  const one = refused.length === 1;
+  fail(
+    `${refused.length} retro${one ? "" : "s"} on ${retros} read${one ? "s" : ""} as Gate though gate held the PR for the owner`,
+  );
+}
+console.log(
+  `merge-record: approvals: every retro on ${retros} whose merge touched an owner path reads as the owner's call`,
+);
