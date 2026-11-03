@@ -1,0 +1,75 @@
+{
+  "sprint": 48,
+  "pr": 112,
+  "goal": "Link the crew's rules from the home page and the Log, with their record",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: Lens ship after one fix round; his rules link to the keel from the key and the crew page, the keel counts 46 merged sprints by approval, 343 of 343 e2e green, 0 B of new script on the home page",
+  "fixRounds": 1,
+  "minutes": 190,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 280176,
+      "minutes": 118
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 306029,
+      "minutes": 74
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 193173,
+      "minutes": 42
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 8075918,
+    "important": 1,
+    "actedOn": 1,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The plan sized the work small, but ten existing checks pinned the key's links",
+      "evidence": "P8, B2.3, B4.24, B4.49, B1.5, B4.8, B5.6, B5.9 and B5.25 pinned exact link lists or Tab stops, and tabUntil's bound was 24; the contract named three (decisions.md 2 and 4)"
+    },
+    {
+      "what": "The notes said nothing was skipped while a new check skipped on deployments",
+      "evidence": "Lens's Important on cb9211f: keel-ways.spec.ts's describe-level skip under PLAYWRIGHT_BASE_URL was unnamed; named in aaa4ba8, no code change"
+    },
+    {
+      "what": "Two full test runs at once made each other's results unreadable",
+      "evidence": "Forge's run on 2c8477c: 35 failures, most from CSS chunks answering 500 under load while Probe's run ran; 343 of 343 passed alone on 263da1b"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "The sprint skill's M lane: Probe runs the unedited suite on a contract mutant before the contract is final, and the contract names every red",
+      "moves": "kept checks found red after the build starts: 7 this sprint, 1 in sprint 47"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Iris",
+      "what": "The 2 px focus ring at a 2 px offset touches the lines around an inline link; a treatment inside the line needs Probe to rewrite the ring checks (crew.spec.ts:1256 and three others)"
+    },
+    {
+      "who": "Quill",
+      "what": "Close the keel milestone on production and plan the next, from the Owner's pick on #101"
+    },
+    {
+      "who": "Iris",
+      "what": "Idea: the keel's record line could link to the Log"
+    },
+    {
+      "who": "Iris",
+      "what": "Safari and Firefox, and the Approval landing with scripts off, weren't checked"
+    }
+  ]
+}
