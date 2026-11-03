@@ -18,3 +18,10 @@
    page scroll up 35 px instead of the content below move down 34.5 px (CLS 0.0055). Accepted: the
    movement is the same size, it's no longer a layout shift, and the keel, where every "his rules"
    link lands, holds at every size.
+6. **Fix round 1: R5's rule was too wide.** On 1918b80, Lens said changes (Important: with the whole
+   panel out of Chrome's anchor walk, a reader in the Activity feed sees its rows slide when a moment
+   lands), and CI went red in four kept replay checks (B4.44, B4.45, B4.46, B4.48): during a replay
+   the scroll climbed one row per step. Neither Forge's nor Probe's runs had included
+   `crew-replay*`, and decision 5 had measured only the table position. Forge narrows the rule to
+   the one box Chrome wrongly anchors on at `#keel`; Probe adds the mid-feed reader to R5. If no
+   narrowing holds every position, R5's rule is reverted and R5 goes to the roadmap.
