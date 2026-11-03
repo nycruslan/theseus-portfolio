@@ -29,17 +29,25 @@
     path reads as the owner's call`, exit 0 (re-run by Atlas on the integrated head).
   - R1 reverted (the mutant): `sprint 36, #91, changed .github/workflows/ci.yml, … its retro's
     outcome has no "needs-owner"`, exit 1.
-- **R5, a moment no longer moves the keel.** Root cause (Probe, on production): while a reader sits
-  at `/crew#keel`, Chrome anchored scrolling inside the panel, so a poll that grew it moved the keel
-  33 to 34.5 px (CLS 0.0488 at 390 × 664, over the phone budget); a stale cached page's first poll
-  did the same, which was K11's red on 2026-11-03. Fix: `overflow-anchor: none` on `.crew`. The
-  trade is in `decisions.md` 5.
+- **R5, a moment no longer moves the keel.** Root cause (Probe, then Forge, on production): Chrome
+  picks its scroll anchor below the bar and stops at the first box only partly in view. At
+  `/crew#keel` that was the panel's own 40 px foot padding, so the panel was the anchor, and a poll
+  that grew it moved the keel 33 to 57 px (CLS up to 0.0851 at 390 × 664, over the phone budget); a
+  stale cached page's first poll did the same, which was K11's red on 2026-11-03. Fix: the foot
+  padding moves from `.crew` to `.crew-facts`, its last child, so the facts list is the anchor and
+  Chrome scrolls with it. Nothing the panel draws moves (K7).
+  - **Fix round 1:** the first fix, `overflow-anchor: none` on `.crew`, held the keel but took every
+    Activity row out of the anchor walk: CI's B4.44, B4.45, B4.46 and B4.48 went red (the replay
+    scrolled the page one row per step) and Lens flagged the mid-feed reader. The narrowed fix
+    leaves the rows as anchors, as on main (`decisions.md` 6 and 7).
 
 ### Checks
 
 - New: R1 (`e2e/log-record.spec.ts`), R3 and R5 (`e2e/keel-ways.spec.ts`), each red on the branch
   before the build (R1: "Expected Owner, Received Gate" ×10; R3: no `a` in the line ×5; R5: h2#keel
-  moved 34.5 / 34.5 / 33 px) and green on the head.
+  moved 34.5 / 34.5 / 33 px) and green on the head. R5 reads two places at K11's three sizes: the
+  keel at `#keel`, and a reader with Activity's second row at the bar's foot. Main fails the first;
+  the first fix failed the second at 390 (33 px).
 - **Rewritten for Lens: K6's keel link count** (`e2e/keel.spec.ts`). It pinned `${KEEL} a` to
   `RULES.length`; R3 adds a seventh link by design. It now lists every keel link by where it sits
   (`rule 1` … `rule 6` and `the record line: /log#every-revision`) and pins that list, so the total
@@ -48,9 +56,8 @@
 - **The contract mutant** (bare R1 and bare link, unedited suite, 345 tests): the only reds were K6,
   as expected, plus K6's 24 px target read on the bare unpadded link, which Iris's padding meets on
   the head. No other kept check went red.
-- On the head: `keel`, `keel-ways` and `log-record` specs 32 passed (Probe); `keel-ways`, `keel`,
-  `crew`, `crew-live`, `log-pick`, `log-record` 69 of 69 (Forge). `pnpm verify` exit 0 on the
-  integrated head (Atlas).
+- On the narrowed fix: every `crew-*` spec, `keel`, `keel-ways` and `log-record`, 85 of 85, B4.44
+  to B4.48, R5, K7 and K11 included (Forge). `pnpm verify` exit 0 on the integrated head (Atlas).
 
 ### Budgets
 
@@ -60,9 +67,17 @@
 - The full suite took 33.1 min at 2 workers locally, under load from other runs; CI's time is read
   on this PR against the 35-minute cap.
 
+### Lens's nits on 1918b80
+
+- The guard's unit tests (`.crew/sprint/32/owners-call.test.mjs`) aren't run by CI, and the guard
+  reads CODEOWNERS paths, not `gate`'s package.json-scripts hold (the contract's scope). Both go to
+  the retro as proposals: `test:harness` and the guard are the owner's to widen.
+- `scope.mjs`'s `expect(` count misses Biome-wrapped `expect\n.soft(`: pre-existing, an owner path,
+  already proposed in sprint 27's retro.
+
 ### Not verified
 
-Safari and Firefox; https://ruslanshulga.com (production was read at theseus-portfolio.vercel.app);
+Safari and Firefox; the Log specs and the full suite on the narrowed fix (CI runs them); https://ruslanshulga.com (production was read at theseus-portfolio.vercel.app);
 a reader sitting mid-panel when a moment lands (no check reads that).
 
 Nothing here touches an owner path or `content/`, and nothing waits for the owner.
