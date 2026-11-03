@@ -19,7 +19,7 @@ A hiring executive who wonders whether the AI crew is real and governed finds th
 `/crew`. It lists the rules the crew builds under, in plain words. Each rule says what enforces it
 (GitHub, the gate check, Lens's review, or only guidance), quotes its file word for word, and links
 to that line on GitHub. He reaches it in one click from "his rules" on `/`, and beside the rules
-the record shows them at work. Today that's 44 merged sprints: 31 on the checks alone, and 13 on
+the record shows them at work: 46 merged sprints at sprint 48, 33 on the checks alone and 13 on
 his own call.
 
 Quill's plan is `.crew/sprint/46/plan.md`, with the six rules, their sources and the build
@@ -37,15 +37,19 @@ to K12, across Ka and Kb. No sprint needs an owner answer to start, touches an o
   rule (K8 proven with the sources moved away). K1 to K7 in `e2e/keel.spec.ts`; B4.8 rewritten to
   allow the keel's six links inside the keel only; the rider guards W5's and W7's down-state
   reads. (PR #110, two fix rounds.) Placement (a), Iris's call (`.crew/sprint/47/placement.md`).
-- [ ] Kb (S): the ways in, and the record behind it. "His rules" in the key on `/` and `/log`, and
-  the Approval line on `/crew`, link to `/crew#keel`. P8's "no a" clause and B2.3's 24 stops are
-  rewritten with the same strength, for Lens. A line in the keel counts the merged sprints by how
-  each was approved, matching `/log`'s Approved column.
-- **Next:** Kb. The anchor is `#keel` (`h2#keel` in `section[aria-labelledby="keel"]`), in
-  `/crew`'s right column from 1024 and after the panel below. Riding with it, since it touches
-  the same code: Lens's two nits on #110 (`LINK` into its own module so `components/crew.tsx`
-  stays client-only, and `globals.css`'s comment on the drawing's two-row span), with Forge's
-  `crew.md` line.
+- [x] Kb (M; the plan said S, `.crew/sprint/48/decisions.md` 2), sprint 48: the ways in. "His
+  rules" in the key on `/`, `/log` and every record links to `/crew#keel`, and Approval's "Ruslan
+  Shulga's rules" to `#keel`; the heading lands under the bar. A line in the keel reads "46 sprints
+  merged: 33 on the checks alone, 13 on Ruslan's own call.", counted as `/log` counts them. K9 to
+  K12 in `e2e/keel-ways.spec.ts`; ten kept checks that pinned the key's links or Tab stops were
+  rewritten with their strength; Lens's two nits on #110 rode along. (PR #112, one fix round.)
+- **Next:** the keel is built. Quill closes it on production, as sprint 46 closed the first
+  window, and plans what comes next, starting from the Owner's pick below. Open from Kb, each
+  riding with the sprint that touches its code:
+  - Iris: the site's focus ring, 2 px at a 2 px offset, touches the lines around an inline link
+    (the key's "his rules", Approval's link, the pencil row's goal). A ring that stays inside the
+    line means Probe rewriting the ring checks (`crew.spec.ts:1256` and three others).
+  - Iris's idea: "46 sprints merged" could link to `/log`.
 - Out of scope, and why:
   - Changing any rule: the keel quotes the owner's paths and never edits them.
   - The keel in `/`'s first window: belief 1 comes first there, and Kb's link is the way in.

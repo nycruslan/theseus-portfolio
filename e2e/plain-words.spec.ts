@@ -143,11 +143,17 @@ function readKey(page: Page) {
           count: Boolean(count),
           legend: Boolean(legend),
         },
+        // Sprint 48 (K9): the key's one link, "his rules" to the keel; nothing else in it takes
+        // focus.
+        links: [...(p?.querySelectorAll("a") ?? [])].map((a) => ({
+          href: a.getAttribute("href"),
+          text: squashed(a),
+        })),
         focusable: p
           ? [
               p,
               ...p.querySelectorAll(
-                "a, button, input, select, textarea, [tabindex]",
+                "button, input, select, textarea, [tabindex]",
               ),
             ]
               .filter((el) => el !== p || p.matches("[tabindex]"))
@@ -190,7 +196,10 @@ function expectKey(read: Awaited<ReturnType<typeof readKey>>, where: string) {
     .soft(squash(read.text ?? ""), `the key's text ${where}`)
     .toBe(KEY_TEXT);
   expect
-    .soft(read.focusable, `a, button or [tabindex] in the key ${where}`)
+    .soft(read.links, `the a elements in the key ${where}`)
+    .toEqual([{ href: "/crew#keel", text: "his rules" }]);
+  expect
+    .soft(read.focusable, `buttons, fields or [tabindex] in the key ${where}`)
     .toEqual([]);
 }
 
@@ -209,7 +218,7 @@ function keyInHtml(html: string) {
     .replace(/&amp;/g, "&");
 }
 
-test("P8 the key on /, server-rendered: with scripts on and off at 1440 and 390, exactly one p[data-crew-key] in the revisions section, after its table and before the plank count and legend in DOM order, reading the contract's sentence with Ruslan's first name, with no a, button or [tabindex] in it; its words in GET /'s HTML", async ({
+test("P8 the key on /, server-rendered: with scripts on and off at 1440 and 390, exactly one p[data-crew-key] in the revisions section, after its table and before the plank count and legend in DOM order, reading the contract's sentence with Ruslan's first name, with exactly one a, to /crew#keel, reading his rules, and no button or [tabindex] in it; its words in GET /'s HTML", async ({
   page,
   browser,
   request,

@@ -1493,7 +1493,7 @@ test("B4.23 server-rendered, no new client code: on the live fixture with script
   }
 });
 
-test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both schemes, axe with the strict tags at 1440 and 390, every text in a token, text contrast, no overflow at 320 or 390, the /crew link at least 24 x 24 and reached by Tab after the title block's Contact links and before the Log link with one 2 px ink ring 2 px out, and nothing animating at load, 2 s later or after a scroll to the bottom and back", async ({
+test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both schemes, axe with the strict tags at 1440 and 390, every text in a token, text contrast, no overflow at 320 or 390, the /crew link at least 24 x 24 and reached by Tab right after the title block's Contact links and before the key's /crew#keel, then the Log link, with one 2 px ink ring 2 px out, and nothing animating at load, 2 s later or after a scroll to the bottom and back", async ({
   page,
   crew,
 }) => {
@@ -1630,14 +1630,23 @@ test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both s
       const lastContact = Math.max(...contact.map((h) => hrefs.indexOf(h)));
       // The revision block's Log link: the first /log after the title block's links (the bar has one).
       const log = hrefs.indexOf("/log", lastContact);
+      // Sprint 48 (K9): the key's "his rules", after the table and so after the pencil row's /crew
+      // link, and right before the Log link; on / it is the one stop to /crew#keel.
+      const keelAt = hrefs.indexOf("/crew#keel", lastContact);
+      expect
+        .soft(
+          hrefs.filter((h) => h === "/crew#keel").length,
+          `Tab stops to /crew#keel on ${shown.where}, ${scheme}: ${hrefs.join(" ")}`,
+        )
+        .toBe(1);
       if (isLive) {
         const crewAt = hrefs.indexOf("/crew", lastContact);
         expect
           .soft(
-            [crewAt - lastContact, log - crewAt],
+            [crewAt - lastContact, keelAt - crewAt, log - keelAt],
             `the /crew link's place in the Tab order on ${shown.where}, ${scheme}: ${hrefs.join(" ")}`,
           )
-          .toEqual([1, 1]);
+          .toEqual([1, 1, 1]);
         const stop = stops[crewAt];
         expect
           .soft(
@@ -1648,10 +1657,10 @@ test("B4.24 the sweeps, on the layer: on the live and resting fixtures in both s
       } else {
         expect
           .soft(
-            log - lastContact,
-            `the Log link right after the Contact links on ${shown.where}, ${scheme}: ${hrefs.join(" ")}`,
+            [keelAt - lastContact, log - keelAt],
+            `the key's link, then the Log link, right after the Contact links on ${shown.where}, ${scheme}: ${hrefs.join(" ")}`,
           )
-          .toBe(1);
+          .toEqual([1, 1]);
       }
 
       // Nothing animates: at load, 2 s later, and after a scroll to the bottom and back.

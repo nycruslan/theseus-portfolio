@@ -3556,10 +3556,13 @@ a[data-replay]:not([data-ready]) {
  * .crew/sprint/47/placement.md): the six rules the crew builds under, its own section after the
  * panel. Below 1024 px it follows the panel at full width under a 2 px ink rule, as the panel
  * opens; from 1024 it sits under the panel in the panel's column, its 1 px ink rule running on to
- * the page's end, and the drawing spans both rows, since a sticky box sticks only inside its grid
- * area (K7). Ink is fixed and pencil can be rubbed out: a rule that binds has its verdict in bold
- * ink and its quote on a solid ink line, one that only guides is graphite throughout, on a dashed
- * line. The quotes are in the text face; the site has no code face. Nothing here is copper.
+ * the page's end, and the drawing spans both rows: by spec a sticky grid item sticks only inside
+ * its grid area, so in row 1 alone it would scroll away as the keel arrives. Chromium sticks it
+ * inside the whole grid container instead, so K7 can't tell the two-row span from one row; the span
+ * is for the browsers that follow the spec. Ink is fixed and pencil can be rubbed out: a rule that
+ * binds has its verdict in bold ink and its quote on a solid ink line, one that only guides is
+ * graphite throughout, on a dashed line. The quotes are in the text face; the site has no code
+ * face. Nothing here is copper.
  */
 .keel {
   padding: 16px 16px 40px;
@@ -3567,7 +3570,12 @@ a[data-replay]:not([data-ready]) {
   overflow-wrap: break-word;
 }
 
+/* "his rules" on / and the panel's Approval land here (.crew/sprint/48/contract.md, K11). The
+   page's scroll padding clears the bar; this margin adds the section's own 2 px rule and padding
+   and 16 px more, so the keel lands with its rule 16 px under the bar, where the drawing's box
+   sticks from 1024 (72 px), and its h2 where the panel's h1 sits at load. */
 .keel h2 {
+  scroll-margin-top: calc(16px + 2px + 16px);
   font-family: var(--font-sofia-cond), sans-serif;
   font-size: var(--step-entry);
   font-weight: 700;
@@ -3579,6 +3587,16 @@ a[data-replay]:not([data-ready]) {
   max-width: 66ch;
   margin-top: 12px;
   line-height: 1.55;
+}
+
+/* The record behind the rules (K12): a fact under the lead, in the enforcer label's size and in
+   ink, at full strength; nothing copper. Pretty, so a phone's second line isn't one word. */
+.keel-record {
+  max-width: 66ch;
+  margin-top: 12px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 /* Preflight takes the numbers away; each rule's own (li's value) comes back as the marker. */
@@ -3652,6 +3670,10 @@ a[data-replay]:not([data-ready]) {
     grid-column: 2;
     padding: 24px 24px 40px;
     border-left: 1px solid var(--foreground);
+  }
+
+  .keel h2 {
+    scroll-margin-top: calc(16px + 2px + 24px);
   }
 }
 

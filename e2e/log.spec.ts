@@ -1892,7 +1892,7 @@ test.describe("B5.9 Accessibility", () => {
 
 test.describe("B5.9 Keyboard", () => {
   for (const scheme of SCHEMES) {
-    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's wordmark and five links, the motion control's enabled buttons (Off alone with WebGL refused), the record's links, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
+    test(`B5.9 (C10) on /log/13: the skip link first, Enter lands on main; Tab visits the bar's wordmark and five links, the motion control's enabled buttons (Off alone with WebGL refused), the record's links, the key's /crew#keel, then each Rev link, each with one ring of 2 px ink, 2 px out (${scheme})`, async ({
       page,
     }) => {
       test.setTimeout(120_000);
@@ -1937,6 +1937,8 @@ test.describe("B5.9 Keyboard", () => {
         ...BAR.map((link) => link.href),
         "<button> Off",
         ...order.record,
+        // Sprint 48 (K9): the table's key, above the table, holds "his rules" to the keel.
+        "/crew#keel",
         ...order.revs,
       ];
       expect(

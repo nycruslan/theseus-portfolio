@@ -1,5 +1,7 @@
 "use no memo";
 
+import type { ReactNode } from "react";
+import { INLINE_LINK, LINK } from "@/components/crew-link";
 import { CrewTable } from "@/components/crew-table";
 import { type Crew, type Moment, pullHref, type Run } from "@/lib/crew-run";
 import { REPO_URL, STUDIO_URL } from "@/lib/site";
@@ -86,14 +88,28 @@ function status(crew: Crew): string {
   }
 }
 
-/** The owner's word: still to come on an open run; at rest, how the merge was approved. */
-function approval(crew: Crew, { owner, retros }: Facts): string {
+/**
+ * The owner's word: still to come on an open run; at rest, how the merge was approved. Wherever it
+ * names his rules, they link to the keel under the panel (.crew/sprint/48/contract.md, K10).
+ */
+function approval(crew: Crew, { owner, retros }: Facts): ReactNode {
+  // One string child, so the HTML holds the name whole.
+  const rules = (
+    <a href="#keel" className={INLINE_LINK}>
+      {`${owner}'s rules`}
+    </a>
+  );
   const merged = (retro: Facts["retros"][number] | undefined) =>
-    !retro
-      ? "Merged."
-      : retro.ownersCall
-        ? `${owner}, on the pull request.`
-        : `Merged behind the checks, Lens's review and ${owner}'s rules.`;
+    !retro ? (
+      "Merged."
+    ) : retro.ownersCall ? (
+      `${owner}, on the pull request.`
+    ) : (
+      <>
+        {"Merged behind the checks, Lens's review and "}
+        {rules}.
+      </>
+    );
   switch (crew.state) {
     case "open":
       if (crew.run.health.state === "waiting") {
@@ -105,7 +121,15 @@ function approval(crew: Crew, { owner, retros }: Facts): string {
     case "down":
       return merged(retros[0]);
   }
-  return `Not given yet. The pull request merges only after the checks, Lens's review and ${owner}'s rules pass; what his rules leave to him waits for him.`;
+  return (
+    <>
+      {
+        "Not given yet. The pull request merges only after the checks, Lens's review and "
+      }
+      {rules}
+      {" pass; what his rules leave to him waits for him."}
+    </>
+  );
 }
 
 function Chip({
@@ -263,10 +287,6 @@ function Activity({
     </div>
   );
 }
-
-// Ink, underlined, a target 44 px tall below 1024 and 24 from it (app/globals.css, ".crew-link").
-export const LINK =
-  "crew-link text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
 
 function Evidence({ crew, record }: { crew: Crew; record: Facts["record"] }) {
   if (crew.state === "down") {

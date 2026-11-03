@@ -153,7 +153,7 @@ async function offScripts(browser: Browser, url: string) {
 }
 
 for (const url of PAGES) {
-  test(`B5.25 The control on the Log, the same choice as on /, on ${url}: the group Motion holds Full, Calm and Off in order, exactly one slot shown; from 768 in the bar's nav right of Read as page, below 768 in main right after .log-head and before the record and [data-ghost]; targets 44 x 44 below 1024 and 24 x 24 from it, inside the viewport at 320, 390, 768, 1024 and 1440, the bar one line; at 390 x 844 the row ends above Every revision's h2, in the first screen; with scripts off the slot is empty at the group's size, CLS 0; Tab goes the bar, Full, Calm, Off, then the record`, async ({
+  test(`B5.25 The control on the Log, the same choice as on /, on ${url}: the group Motion holds Full, Calm and Off in order, exactly one slot shown; from 768 in the bar's nav right of Read as page, below 768 in main right after .log-head and before the record and [data-ghost]; targets 44 x 44 below 1024 and 24 x 24 from it, inside the viewport at 320, 390, 768, 1024 and 1440, the bar one line; at 390 x 844 the row ends above Every revision's h2, in the first screen; with scripts off the slot is empty at the group's size, CLS 0; Tab goes the bar, Full, Calm, Off, then the record (on /log, the key's /crew#keel, then the first Rev link)`, async ({
     browser,
   }) => {
     test.setTimeout(300_000);
@@ -305,16 +305,21 @@ for (const url of PAGES) {
     }
 
     // The Tab order with WebGL: the skip link, the wordmark, the bar's links, Full, Calm, Off, then
-    // main's first link (the record's on a record, the first Rev link on /log).
+    // main's first link (the record's on a record; on /log the table key's /crew#keel, sprint 48's
+    // K9, then the first Rev link).
     const run = await openModel(browser, {});
     await run.goto(url);
     await motionReady(run.page);
     const first = await run.page.evaluate(
-      (record) =>
-        (
-          document.querySelector(`${record} a[href]`) ??
-          document.querySelector('main th[scope="row"] a[href]')
-        )?.getAttribute("href") ?? "",
+      (record) => ({
+        record:
+          document.querySelector(`${record} a[href]`)?.getAttribute("href") ??
+          null,
+        rev:
+          document
+            .querySelector('main th[scope="row"] a[href]')
+            ?.getAttribute("href") ?? "",
+      }),
       RECORD,
     );
     const expected = [
@@ -322,7 +327,7 @@ for (const url of PAGES) {
       "/",
       ...BAR.map((l) => l.href),
       ...MODES.map((m) => `<button> ${m}`),
-      first,
+      ...(first.record === null ? ["/crew#keel", first.rev] : [first.record]),
     ];
     const stops: string[] = [];
     for (let i = 0; i < expected.length; i++) {

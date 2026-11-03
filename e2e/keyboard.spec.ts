@@ -56,8 +56,12 @@ async function settled(page: Page) {
   });
 }
 
-/** Presses Tab until the focused element matches `selector`, at most `max` times. */
-async function tabUntil(page: Page, selector: string, max = 24) {
+/**
+ * Presses Tab until the focused element matches `selector`, at most `max` times: B2.3's count of
+ * stops up to Contact's first link (25 since sprint 48's key link), so every stop on / before it
+ * is in reach.
+ */
+async function tabUntil(page: Page, selector: string, max = 25) {
   for (let presses = 0; presses < max; presses++) {
     await page.keyboard.press("Tab");
     const found = await page.evaluate(
@@ -488,7 +492,7 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 24th Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, Live Studio, the 3 title-block links, the Log link, the 5 case studies, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 25th Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, Live Studio, the 3 title-block links, the key's his rules (/crew#keel), the Log link, the 5 case studies, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");
@@ -505,13 +509,15 @@ test("B2.3 on /, Contact's first link is the 24th Tab stop: skip, the 5 bar link
     "/ask",
     STUDIO_URL,
     ...profile.links.map((link) => link.href),
+    // Sprint 48 (K9): the revision key's "his rules", after the table and before the Log link.
+    "/crew#keel",
     "/log",
     ...caseStudies.map((study) => `/work/${study.slug}`),
     ...withLink.map((project) => project.href ?? ""),
     profile.links[0]?.href ?? "",
   ];
   // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
-  expect(expected, "the stops up to Contact's first link").toHaveLength(24);
+  expect(expected, "the stops up to Contact's first link").toHaveLength(25);
   const stops: string[] = [];
   for (let press = 0; press < expected.length; press++) {
     await page.keyboard.press("Tab");
@@ -525,13 +531,13 @@ test("B2.3 on /, Contact's first link is the 24th Tab stop: skip, the 5 bar link
       }, MOTION),
     );
   }
-  expect(stops, "the first 23 Tab stops on /").toEqual(expected);
+  expect(stops, "the first 25 Tab stops on /").toEqual(expected);
   expect(
     await page.evaluate(
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 23rd stop is Contact's first link",
+    "the 25th stop is Contact's first link",
   ).toBe(true);
 });
 

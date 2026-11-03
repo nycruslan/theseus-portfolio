@@ -1,3 +1,4 @@
+import { INLINE_LINK } from "@/components/crew-link";
 import { PlankCount, PlankLegend } from "@/components/plank-key";
 import { CREW_APPROVED, CREW_WHO } from "@/lib/crew-key";
 import type { Run } from "@/lib/crew-run";
@@ -25,14 +26,20 @@ export const signatures = (
 /**
  * The table's key (.crew/sprint/40/contract.md, "Data rules"): the names are AI agents, and what
  * Gate and Owner mean under Approved. / and the Log set it under the same hook. Its first sentence
- * is a span of its own, which / sets in ink (Iris, .crew/sprint/40/review-iris.md, must 1); the
- * rest is one string, so each part's words stand whole in the server's HTML.
+ * is a span of its own, which / sets in ink (Iris, .crew/sprint/40/review-iris.md, must 1). In the
+ * rest, "his rules" is a link to the keel, in ink and underlined as the block's other links, and
+ * inline, so the line keeps its length and its wrap (.crew/sprint/48/contract.md, K9). Each part is
+ * one string, so its words stand whole in the server's HTML.
  */
 export function CrewKey({ className }: { className: string }) {
   return (
     <p data-crew-key="" className={className}>
       <span className="crew-key-who">{CREW_WHO}</span>
-      {` ${CREW_APPROVED}`}
+      {` ${CREW_APPROVED.before}`}
+      <a href="/crew#keel" className={INLINE_LINK}>
+        {CREW_APPROVED.rules}
+      </a>
+      {CREW_APPROVED.after}
     </p>
   );
 }

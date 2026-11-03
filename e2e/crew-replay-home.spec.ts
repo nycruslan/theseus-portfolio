@@ -127,7 +127,7 @@ async function scriptsOf(browser: Browser, base: string) {
   return list;
 }
 
-test("B4.49 the way in from /: on the replay fixture p[data-rest] holds the oracle's line in one element then exactly one a[href=\"/crew#replay\"] reading exactly Replay sprint 29, its right edge the block's at 1440 and on a line of its own at the left at 390 and 320; never copper hovered or focused, at least 24 x 24, one 2 px ink ring 2 px out; Tab reaches it after the Contact links and before the Log link; B4.22's first screen holds; from 1024 the rest line no taller than without the link (1024 x 768, 1280 x 800, 1440 x 900), Contact in view at 1280 x 800; /'s scripts the default server's; following it lands on /crew with the Activity head under the bar, Pause replay shown and unpressed, k = 1, no hash, and a reload plays nothing; no link on the resting fixture", async ({
+test("B4.49 the way in from /: on the replay fixture p[data-rest] holds the oracle's line in one element then exactly one a[href=\"/crew#replay\"] reading exactly Replay sprint 29, its right edge the block's at 1440 and on a line of its own at the left at 390 and 320; never copper hovered or focused, at least 24 x 24, one 2 px ink ring 2 px out; Tab reaches it right after the Contact links, then the key's /crew#keel, then the Log link; B4.22's first screen holds; from 1024 the rest line no taller than without the link (1024 x 768, 1280 x 800, 1440 x 900), Contact in view at 1280 x 800; /'s scripts the default server's; following it lands on /crew with the Activity head under the bar, Pause replay shown and unpressed, k = 1, no hash, and a reload plays nothing; no link on the resting fixture", async ({
   page,
   browser,
   crew,
@@ -240,13 +240,16 @@ test("B4.49 the way in from /: on the replay fixture p[data-rest] holds the orac
     const lastContact = Math.max(...contact.map((h) => stops.indexOf(h)));
     const linkAt = stops.indexOf("/crew#replay");
     const logAt = stops.indexOf("/log", lastContact);
+    // Sprint 48 (K9): the key's "his rules" sits after the table, so between the rest line's link
+    // (above the table) and the Log link.
+    const keelAt = stops.indexOf("/crew#keel", lastContact);
     expect
       .soft(
         {
           copper: hovered.map((h) => `${h.where} ${h.property}`),
           target: Boolean(box && box.width >= 24 && box.height >= 24),
           ring,
-          order: [linkAt - lastContact, logAt - linkAt],
+          order: [linkAt - lastContact, keelAt - linkAt, logAt - keelAt],
         },
         `the link on the replay site, ${scheme}: copper hovered or focused, its box ${JSON.stringify(box)}, its ring, and its Tab place in ${stops.join(" ")}`,
       )
@@ -254,7 +257,7 @@ test("B4.49 the way in from /: on the replay fixture p[data-rest] holds the orac
         copper: [],
         target: true,
         ring: `1 solid 2px ${ink} 2px`,
-        order: [1, 1],
+        order: [1, 1, 1],
       });
 
     // B4.22's first screen, the rest line included.
