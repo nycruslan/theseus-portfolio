@@ -2948,15 +2948,11 @@ main:has(> [data-model]) {
 }
 
 /* The feed's words are never cut: a long token (a path, a URL) breaks rather than widen the page.
-   Never the scroll anchor (.crew/sprint/50/decisions.md, R5): with the panel a candidate, Chrome
-   holds nothing when a moment grows it, so a reader at /crew#keel saw the keel slide down by the
-   new row (33 px, CLS 0.049 at 390 × 664). Excluded, the keel anchors and stays put; a reader
-   between the panel's table and the new row sees the page scroll by it instead of a shift. */
+   The panel's 40 px foot is the facts' padding (.crew-facts), not its own. */
 .crew {
-  padding: 16px 16px 40px;
+  padding: 16px 16px 0;
   border-top: 2px solid var(--foreground);
   overflow-wrap: anywhere;
-  overflow-anchor: none;
 }
 
 .crew-head {
@@ -3437,7 +3433,14 @@ a[data-replay]:not([data-ready]) {
 }
 
 /* Evidence, Approval and Rules: the facts a reader checks, at the panel's foot, under ink. Each
-   term sits on its fact's first baseline, Evidence on its link's. */
+   term sits on its fact's first baseline, Evidence on its link's.
+   The panel's 40 px foot is this padding, so the panel's last box reaches its foot (R5,
+   .crew/sprint/50/decisions.md). Chrome picks its scroll anchor below the bar (the scroll padding)
+   and stops at the first box partly in view: at /crew#keel only the foot shows there, so with the
+   foot the panel's own padding the anchor was the panel, whose top a new moment doesn't move, and
+   the keel slid down by the new row (33 px, CLS 0.049 at 390 × 664). Now it's this list, which
+   the new row moves, so Chrome scrolls with it and the keel holds; mid-feed the rows stay
+   candidates and hold as before. */
 .crew-facts {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
@@ -3445,6 +3448,7 @@ a[data-replay]:not([data-ready]) {
   gap: 8px 12px;
   margin-top: 24px;
   padding-top: 14px;
+  padding-bottom: 40px;
   border-top: 1px solid var(--foreground);
   font-size: var(--step-sm);
   line-height: 1.5;
@@ -3512,7 +3516,7 @@ a[data-replay]:not([data-ready]) {
 
   .crew {
     align-self: stretch;
-    padding: 24px 24px 40px;
+    padding: 24px 24px 0;
     border-top: 0;
     border-left: 1px solid var(--foreground);
   }
