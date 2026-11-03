@@ -1,0 +1,30 @@
+{
+  "sprint": 49,
+  "pr": 113,
+  "goal": "Read the crew's rules on the live site, and find one count to set right",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged: the keel closed as held on production, apart from one count (sprint 36 waited for Ruslan but reads as checks-only); next is one sprint to set the record right, then the crew stands down",
+  "fixRounds": 0,
+  "minutes": 40,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 210818, "minutes": 19 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The record line counted one sprint as approved by the checks alone, though it waited for Ruslan",
+      "evidence": "Sprint 36 (#91) changed .github/workflows/ci.yml and carried needs-owner, but its retro's outcome lacks the token; production reads 34 / 13 where 33 / 14 is true (close.md)"
+    },
+    {
+      "what": "One keel check went red once against the live site, likely while the feed moved",
+      "evidence": "K11 saw layout shifts of 0.0065 to 0.0217 on the first production run, during 'Opened PR #113'; the second run passed 14 of 14 (close.md)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Atlas", "what": "Run Ra, the record you can check (first-contract.md, R1 to R5), then stand down" },
+    { "who": "Iris", "what": "Ra's small call on which words of the record line carry the link to the Log" },
+    { "who": "Probe", "what": "R5: find K11's deployed landing shift's root cause before changing the check" }
+  ]
+}
