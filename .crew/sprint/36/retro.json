@@ -4,7 +4,7 @@
   "goal": "B4d: the hull on /crew, one mark per moment, under Full/Calm/Off",
   "goalFrom": "roadmap",
   "size": "M",
-  "outcome": "waits for the owner: CI's 25-minute cap, raised to 35 in this PR as an Owner's pick; Lens ship on f9fbbc6, then changes on c040055 fixed in dc25324; Iris ship at 8.3/10; B4.33 to B4.42 red first, then 240 of 240 locally",
+  "outcome": "needs-owner: waits for the owner: CI's 25-minute cap, raised to 35 in this PR as an Owner's pick; Lens ship on f9fbbc6, then changes on c040055 fixed in dc25324; Iris ship at 8.3/10; B4.33 to B4.42 red first, then 240 of 240 locally",
   "fixRounds": 2,
   "minutes": 400,
   "agents": [

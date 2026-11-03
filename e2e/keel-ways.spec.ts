@@ -712,6 +712,147 @@ test("K12 the record behind the rules, on the default server: one p[data-keel-re
 });
 
 // ---------------------------------------------------------------------------------------------
+// R3 (sprint 50, Ra; .crew/sprint/49/first-contract.md): the record line links to its evidence,
+// the Log's Every revision. Which words carry the link is Iris's call (.crew/sprint/50/link.md),
+// so this reads exactly one `a` in the line and its href, never its words; the line's words are
+// K12's, unedited, and its paint and target K6's and K12's.
+
+const RECORD_HREF = "/log#every-revision";
+
+/** The record line's links (href and text) and its squashed words. */
+function readRecordLinks(page: Page) {
+  return page.evaluate(() => {
+    const squashed = (s: string | null | undefined) =>
+      (s ?? "").replace(/\s+/g, " ").replace(/[‘’]/g, "'").trim();
+    const lines = [...document.querySelectorAll("p[data-keel-record]")];
+    const p = lines[0];
+    return {
+      lines: lines.length,
+      text: squashed(p?.textContent),
+      links: [...(p?.querySelectorAll("a") ?? [])].map((a) => ({
+        href: a.getAttribute("href"),
+        words: squashed(a.textContent) !== "",
+      })),
+    };
+  });
+}
+
+/**
+ * Where h2#every-revision sits against the bar and the viewport after landing, and the document's
+ * layout shifts: K11's measure (a buffered observer's takeRecords(), with scripts off too), on the
+ * Log's heading.
+ */
+function readLogLanding(page: Page) {
+  return page.evaluate(() => {
+    const h2 = document.getElementById("every-revision");
+    const bar = [...document.querySelectorAll("header")].find(
+      (el) => getComputedStyle(el).position === "sticky",
+    );
+    const observer = new PerformanceObserver(() => undefined);
+    observer.observe({ type: "layout-shift", buffered: true });
+    const shifts = observer.takeRecords().map((entry) => {
+      const shift = entry as PerformanceEntry & {
+        value: number;
+        hadRecentInput: boolean;
+      };
+      return { value: shift.value, input: shift.hadRecentInput };
+    });
+    observer.disconnect();
+    const r = h2?.getBoundingClientRect();
+    return {
+      url: location.pathname + location.hash,
+      h2: r
+        ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+        : null,
+      bar: bar ? bar.getBoundingClientRect().bottom : null,
+      viewport: {
+        width: document.documentElement.clientWidth,
+        height: window.innerHeight,
+      },
+      scrollY: window.scrollY,
+      cls: shifts.filter((s) => !s.input).reduce((sum, s) => sum + s.value, 0),
+      shifts,
+    };
+  });
+}
+
+test(`R3 the line links to its evidence: p[data-keel-record] holds exactly one a, href ${RECORD_HREF}, with its words unchanged, in GET /crew's HTML and with scripts off and on at 1440 x 900 and 390 x 844; following it from /crew#keel there lands with h2#every-revision wholly in view below the bar and no layout shift`, async ({
+  browser,
+}) => {
+  test.setTimeout(120_000);
+  const one = [{ href: RECORD_HREF, words: true }];
+  const html = await withServerHtml(browser, "", "/crew", readRecordLinks);
+  expect(html.lines, "p[data-keel-record] in GET /crew's HTML").toBe(1);
+  expect
+    .soft(html.links, `the record's links in GET /crew's HTML: "${html.text}"`)
+    .toEqual(one);
+  if (!DEPLOYED)
+    expect
+      .soft(html.text, "the record's words in GET /crew's HTML")
+      .toBe(RECORD);
+  for (const [width, height] of SIZES) {
+    for (const scripts of [false, true]) {
+      const where = `with scripts ${scripts ? "on" : "off"} at ${width} x ${height}`;
+      const { context, page } = await contextOf(
+        browser,
+        width,
+        height,
+        scripts,
+      );
+      try {
+        await open(page, "/crew#keel");
+        const read = await readRecordLinks(page);
+        expect(read.lines, `p[data-keel-record] ${where}`).toBe(1);
+        expect
+          .soft(read.links, `the record's links ${where}: "${read.text}"`)
+          .toEqual(one);
+        if (!DEPLOYED)
+          expect.soft(read.text, `the record's words ${where}`).toBe(RECORD);
+        if (read.links.length !== 1) continue;
+        await follow(
+          page,
+          `p[data-keel-record] a[href="${RECORD_HREF}"]`,
+          /\/log#every-revision$/,
+        );
+        const landed = await readLogLanding(page);
+        const at = `from /crew#keel ${where}`;
+        expect
+          .soft(landed.url, `the page after the click ${at}`)
+          .toBe(RECORD_HREF);
+        const { h2, bar, viewport } = landed;
+        expect(h2, `h2#every-revision ${at}`).not.toBeNull();
+        if (!h2) continue;
+        expect.soft(bar, `the bar ${at}`).not.toBeNull();
+        // 0.5 px, K11's tolerance: scroll offsets are whole pixels, layout is in 1/64 px.
+        const misses = [
+          h2.top < (bar ?? 0) - 0.5 &&
+            `its top ${h2.top} above the bar's foot ${bar}`,
+          h2.bottom > viewport.height + 0.5 &&
+            `its bottom ${h2.bottom} below the viewport's ${viewport.height}`,
+          h2.left < -0.5 && `its left ${h2.left} past the viewport`,
+          h2.right > viewport.width + 0.5 &&
+            `its right ${h2.right} past the viewport's ${viewport.width}`,
+        ].filter(Boolean);
+        expect
+          .soft(
+            misses,
+            `h2#every-revision wholly in view below the bar ${at} (scrollY ${landed.scrollY})`,
+          )
+          .toEqual([]);
+        expect
+          .soft(
+            landed.cls,
+            `layout shift after landing ${at}: ${JSON.stringify(landed.shifts)}`,
+          )
+          .toBe(0);
+      } finally {
+        await context.close();
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
 // The feed states: K10 and K12 on the live, open and resting fixtures
 
 const FIXTURES = ["live", "open", "resting"] as const;
@@ -776,6 +917,168 @@ test.describe("on this checkout's build and the feed's fixtures", () => {
         );
       } finally {
         await context.close();
+      }
+    }
+  });
+
+  // R5 (sprint 50, Ra; .crew/sprint/49/first-contract.md, the rider): K11's deployed reads went red
+  // once when the feed changed while the reader sat at #keel. Measured on production (Probe's report
+  // on #114): a poll whose answer grows or shrinks the panel moves the keel by the panel's change
+  // (an Activity row: 34.5 px, CLS 0.009 to 0.010): Chrome picks its scroll anchor in the panel,
+  // whose foot shows under the bar, so anchoring doesn't hold the keel. A rule that takes the whole
+  // panel out of the anchor walk holds the keel but lets the feed's rows slide under a reader
+  // scrolled into Activity (Lens on 1918b80; crew-replay's B4.44 to B4.48 in CI), so both places
+  // are read: h2#keel at #keel, and Activity's second row set at the bar's foot. This holds the
+  // first answer back until the reader is in place, then answers the live fixture with one moment
+  // more, as the Studio does when a moment lands.
+  test("R5 a moment arriving moves nothing the reader is looking at: on the live fixture, at 1440 x 900, 1536 x 715 and 390 x 664 with scripts on, a poll answering one more moment adds its Activity row and the panel grows, while the reader's place keeps within 1 px (a scroll offset is whole pixels) and no layout shift is recorded: h2#keel for a reader at /crew#keel, and Activity's second row for a reader with it at the bar's foot", async ({
+    browser,
+    crew,
+  }) => {
+    test.setTimeout(240_000);
+    const site = await reach(crew, "live");
+    expect(site.shown.seen, `/crew shows live within ${STATE_WAIT} ms`).toBe(
+      "live",
+    );
+    const MOMENT = "New ticket: R5's arriving moment";
+    const ROW = `${PANEL} [data-moments] li`;
+    const places = [
+      { name: "at /crew#keel", path: "/crew#keel", feed: false },
+      { name: "mid-feed", path: "/crew", feed: true },
+    ] as const;
+    for (const [width, height] of LANDING_SIZES) {
+      for (const place of places) {
+        const where = `${place.name} on the live fixture at ${width} x ${height}`;
+        const { context, page } = await contextOf(browser, width, height, true);
+        let release = () => {};
+        const ready = new Promise<void>((done) => {
+          release = done;
+        });
+        await context.route(`${site.base}/api/crew`, async (route) => {
+          await ready;
+          const response = await route.fetch();
+          const answer = (await response.json()) as {
+            run?: { moments?: Record<string, unknown>[] };
+          };
+          // A second after the newest, so it lands on the newest's day: Activity labels its rows
+          // by the newest's UTC day, and a new day would relabel every row, not add one.
+          const newest = Date.parse(String(answer.run?.moments?.[0]?.at));
+          answer.run?.moments?.unshift({
+            kind: "ticket",
+            at: new Date(
+              Number.isNaN(newest) ? Date.now() - 1000 : newest + 1000,
+            ).toISOString(),
+            text: MOMENT,
+          });
+          await route.fulfill({ response, json: answer });
+        });
+        try {
+          await open(page, place.path, site.base);
+          await pause(1000);
+          // The reader's row, Activity's second as the page first tells it, known by its instant and words.
+          let watched: string | null = null;
+          if (place.feed) {
+            watched = await page.evaluate((row) => {
+              const second = document.querySelectorAll(row)[1];
+              const bar = [...document.querySelectorAll("header")].find(
+                (el) => getComputedStyle(el).position === "sticky",
+              );
+              if (!second || !bar) return null;
+              // Twice: the bar sits 16 px lower until it sticks (lg:mt-4), so the first scroll
+              // aims at where it was, the second at where it stuck.
+              for (let i = 0; i < 2; i++)
+                window.scrollBy({
+                  top:
+                    second.getBoundingClientRect().top -
+                    bar.getBoundingClientRect().bottom,
+                  behavior: "instant",
+                });
+              return `${second.querySelector("time")?.dateTime} ${second.querySelector(".crew-text")?.textContent}`;
+            }, ROW);
+            expect(watched, `Activity's second row ${where}`).not.toBeNull();
+            await pause(500);
+          }
+          const read = () =>
+            page.evaluate(
+              ({ panel, row, moment, watched }) => {
+                const observer = new PerformanceObserver(() => undefined);
+                observer.observe({ type: "layout-shift", buffered: true });
+                const shifts = observer
+                  .takeRecords()
+                  .map(
+                    (entry) =>
+                      entry as PerformanceEntry & {
+                        value: number;
+                        hadRecentInput: boolean;
+                      },
+                  )
+                  .filter((shift) => !shift.hadRecentInput)
+                  .map((shift) => shift.value);
+                observer.disconnect();
+                const rows = [...document.querySelectorAll(row)];
+                const squashed = (el: Element) =>
+                  (el.textContent ?? "").replace(/\s+/g, " ").trim();
+                const target =
+                  watched === null
+                    ? document.getElementById("keel")
+                    : rows.find(
+                        (li) =>
+                          `${li.querySelector("time")?.dateTime} ${li.querySelector(".crew-text")?.textContent}` ===
+                          watched,
+                      );
+                const bar = [...document.querySelectorAll("header")].find(
+                  (el) => getComputedStyle(el).position === "sticky",
+                );
+                return {
+                  shown: rows.some((li) => squashed(li).includes(moment)),
+                  panel:
+                    document.querySelector(panel)?.getBoundingClientRect()
+                      .height ?? 0,
+                  top: target?.getBoundingClientRect().top ?? null,
+                  bar: bar?.getBoundingClientRect().bottom ?? null,
+                  shifts,
+                };
+              },
+              { panel: PANEL, row: ROW, moment: MOMENT, watched },
+            );
+          const before = await read();
+          expect(before.shown, `the moment before its poll ${where}`).toBe(
+            false,
+          );
+          if (place.feed)
+            expect(
+              Math.abs((before.top ?? Number.NaN) - (before.bar ?? 0)),
+              `Activity's second row at the bar's foot ${where}: ${before.top} against ${before.bar}`,
+            ).toBeLessThanOrEqual(1);
+          release();
+          await expect
+            .poll(async () => (await read()).shown, {
+              message: `the moment's Activity row ${where}`,
+              timeout: 15_000,
+            })
+            .toBe(true);
+          await pause(1000);
+          const after = await read();
+          expect(
+            after.panel,
+            `the panel's height after the moment ${where} (from ${before.panel})`,
+          ).toBeGreaterThan(before.panel + 0.5);
+          const what = place.feed ? `"${watched}"` : "h2#keel";
+          expect
+            .soft(
+              Math.abs((after.top ?? Number.NaN) - (before.top ?? Number.NaN)),
+              `${what}'s move ${where}: ${before.top} to ${after.top}`,
+            )
+            .toBeLessThanOrEqual(1);
+          expect
+            .soft(
+              after.shifts.slice(before.shifts.length),
+              `layout shifts when the moment lands ${where}`,
+            )
+            .toEqual([]);
+        } finally {
+          await context.close();
+        }
       }
     }
   });

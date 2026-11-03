@@ -585,3 +585,91 @@ for (const [width, height] of [
     await expect(page.locator("h1"), "the page after Close").toHaveText("Log");
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// R1 (sprint 50, Ra; .crew/sprint/49/first-contract.md): sprint 36 (#91) changed
+// .github/workflows/ci.yml, an owner path, and waited for the owner (.crew/sprint/36/decisions.md
+// 11), so its Approved is Owner. A check of that fix, pinned by number: the rule the column reads
+// (needs-owner in the retro's outcome) is C4.2's and the oracle's, unedited.
+
+const R1_SPRINT = 36;
+
+/** Sprint 36's Approved on /log (its row's cell under the Approved head) and on its record. */
+function readApprovedOf(page: Page, n: number) {
+  return page.evaluate(
+    ({ every, rows, record, href }) => {
+      const squashed = (el: Element | null | undefined) =>
+        (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const heads = [
+        ...(document.querySelector(every)?.querySelectorAll("thead th") ?? []),
+      ].map((th) => squashed(th));
+      const at = heads.indexOf("Approved");
+      const row = [...document.querySelectorAll(rows)].filter((tr) =>
+        tr.querySelector(`:scope > th[scope="row"] a[href="${href}"]`),
+      );
+      let approved: string | null = null;
+      for (const dt of document.querySelectorAll(`${record} dl dt`))
+        if (squashed(dt) === "Approved")
+          approved = squashed(dt.nextElementSibling);
+      return {
+        rows: row.length,
+        cell: at < 0 ? null : squashed(row[0]?.children[at]),
+        record: approved,
+      };
+    },
+    { every: EVERY, rows: ROWS, record: RECORD, href: recordOf(n) },
+  );
+}
+
+test(`R1 sprint ${R1_SPRINT} reads Owner: its /log row's Approved cell and /log/${R1_SPRINT}'s record's Approved read Owner, in the server HTML and with scripts off and on at 1440 x 900 and 390 x 844`, async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const base = String(test.info().project.use.baseURL);
+  const reads: [string, string, "cell" | "record"][] = [
+    [LOG, `/log's row ${R1_SPRINT}`, "cell"],
+    [recordOf(R1_SPRINT), `/log/${R1_SPRINT}'s record`, "record"],
+  ];
+  for (const [path, what, field] of reads) {
+    const response = await fetch(new URL(path, base));
+    expect(response.status, `status of GET ${path}`).toBe(200);
+    const html = await response.text();
+    const raw = await browser.newContext({ javaScriptEnabled: false });
+    try {
+      const page = await raw.newPage();
+      await page.setContent(html, { waitUntil: "domcontentloaded" });
+      const read = await readApprovedOf(page, R1_SPRINT);
+      if (field === "cell")
+        expect.soft(read.rows, `${what} in GET ${path}'s HTML`).toBe(1);
+      expect
+        .soft(read[field], `${what}'s Approved in GET ${path}'s HTML`)
+        .toBe("Owner");
+    } finally {
+      await raw.close();
+    }
+    for (const [width, height] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      for (const scripts of [false, true]) {
+        const where = `with scripts ${scripts ? "on" : "off"} at ${width} x ${height}`;
+        const context = await browser.newContext({
+          javaScriptEnabled: scripts,
+          viewport: { width, height },
+        });
+        await context.addInitScript(refuseWebGl);
+        try {
+          const page = await context.newPage();
+          const response = await page.goto(path);
+          expect(response?.status(), `status of ${path} ${where}`).toBe(200);
+          const read = await readApprovedOf(page, R1_SPRINT);
+          if (field === "cell")
+            expect.soft(read.rows, `${what} on ${path} ${where}`).toBe(1);
+          expect.soft(read[field], `${what}'s Approved ${where}`).toBe("Owner");
+        } finally {
+          await context.close();
+        }
+      }
+    }
+  }
+});

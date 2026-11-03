@@ -47,17 +47,26 @@ const at = ({ path, start, end }: KeelRule) =>
 
 type Retros = readonly Pick<SprintEntry, "ownersCall">[];
 
+/** LINK's ink and underline (components/crew-link.ts), with the line's own box for `.crew-link`'s. */
+const RECORD_LINK =
+  "keel-record-link text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
+
 /**
  * The record behind the rules (.crew/sprint/48/contract.md, K12): how every merged sprint was
  * approved, counted by its retro's `ownersCall` as /log's Approved column reads it (Gate or Owner),
  * so the two can't disagree. One string, so the HTML holds it whole; none before the first merge.
+ * The whole line links to the Log's revisions that back it, as each rule's source line does
+ * (.crew/sprint/50/link.md): LINK's ink without `.crew-link`'s box, which would stop it wrapping;
+ * `.keel-record-link` (app/globals.css) gives it its target.
  */
 function Approvals({ retros }: { retros: Retros }) {
   if (retros.length === 0) return null;
   const owner = retros.filter((retro) => retro.ownersCall).length;
   return (
     <p data-keel-record="" className="keel-record">
-      {`${retros.length} sprints merged: ${retros.length - owner} on the checks alone, ${owner} on ${FIRST_NAME}'s own call.`}
+      <a href="/log#every-revision" className={RECORD_LINK}>
+        {`${retros.length} sprints merged: ${retros.length - owner} on the checks alone, ${owner} on ${FIRST_NAME}'s own call.`}
+      </a>
     </p>
   );
 }
