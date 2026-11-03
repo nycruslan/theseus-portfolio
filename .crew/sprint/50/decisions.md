@@ -25,3 +25,13 @@
    `crew-replay*`, and decision 5 had measured only the table position. Forge narrows the rule to
    the one box Chrome wrongly anchors on at `#keel`; Probe adds the mid-feed reader to R5. If no
    narrowing holds every position, R5's rule is reverted and R5 goes to the roadmap.
+7. **The narrowed fix (Forge, e40bcd6): no `overflow-anchor` rule.** Chrome picks its anchor below
+   the bar and stops at the first box only partly in view. At `#keel` that was `.crew`'s own 40 px
+   foot padding, so the panel itself was the anchor and its top doesn't move when it grows. The
+   padding moves to `.crew-facts`, its last child, so the facts list is the anchor at `#keel` and
+   Chrome scrolls with it, while the Activity rows stay anchors mid-feed as on main. Forge's
+   measure, production with the CSS served: the keel holds within 0.9 px at 1440, 1536, 1024, 390
+   and 320 (main moves it 33 to 57 px, CLS up to 0.0851); mid-feed rows hold at every size, as on
+   main. With the table in view, the page behaves exactly as main, so decision 5's trade no longer
+   applies. Forge's first R5 numbers injected the CSS after landing, when Chrome had already chosen
+   its anchor, which is why they missed this.
