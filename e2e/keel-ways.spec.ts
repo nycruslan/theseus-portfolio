@@ -712,6 +712,147 @@ test("K12 the record behind the rules, on the default server: one p[data-keel-re
 });
 
 // ---------------------------------------------------------------------------------------------
+// R3 (sprint 50, Ra; .crew/sprint/49/first-contract.md): the record line links to its evidence,
+// the Log's Every revision. Which words carry the link is Iris's call (.crew/sprint/50/link.md),
+// so this reads exactly one `a` in the line and its href, never its words; the line's words are
+// K12's, unedited, and its paint and target K6's and K12's.
+
+const RECORD_HREF = "/log#every-revision";
+
+/** The record line's links (href and text) and its squashed words. */
+function readRecordLinks(page: Page) {
+  return page.evaluate(() => {
+    const squashed = (s: string | null | undefined) =>
+      (s ?? "").replace(/\s+/g, " ").replace(/[‘’]/g, "'").trim();
+    const lines = [...document.querySelectorAll("p[data-keel-record]")];
+    const p = lines[0];
+    return {
+      lines: lines.length,
+      text: squashed(p?.textContent),
+      links: [...(p?.querySelectorAll("a") ?? [])].map((a) => ({
+        href: a.getAttribute("href"),
+        words: squashed(a.textContent) !== "",
+      })),
+    };
+  });
+}
+
+/**
+ * Where h2#every-revision sits against the bar and the viewport after landing, and the document's
+ * layout shifts: K11's measure (a buffered observer's takeRecords(), with scripts off too), on the
+ * Log's heading.
+ */
+function readLogLanding(page: Page) {
+  return page.evaluate(() => {
+    const h2 = document.getElementById("every-revision");
+    const bar = [...document.querySelectorAll("header")].find(
+      (el) => getComputedStyle(el).position === "sticky",
+    );
+    const observer = new PerformanceObserver(() => undefined);
+    observer.observe({ type: "layout-shift", buffered: true });
+    const shifts = observer.takeRecords().map((entry) => {
+      const shift = entry as PerformanceEntry & {
+        value: number;
+        hadRecentInput: boolean;
+      };
+      return { value: shift.value, input: shift.hadRecentInput };
+    });
+    observer.disconnect();
+    const r = h2?.getBoundingClientRect();
+    return {
+      url: location.pathname + location.hash,
+      h2: r
+        ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+        : null,
+      bar: bar ? bar.getBoundingClientRect().bottom : null,
+      viewport: {
+        width: document.documentElement.clientWidth,
+        height: window.innerHeight,
+      },
+      scrollY: window.scrollY,
+      cls: shifts.filter((s) => !s.input).reduce((sum, s) => sum + s.value, 0),
+      shifts,
+    };
+  });
+}
+
+test(`R3 the line links to its evidence: p[data-keel-record] holds exactly one a, href ${RECORD_HREF}, with its words unchanged, in GET /crew's HTML and with scripts off and on at 1440 x 900 and 390 x 844; following it from /crew#keel there lands with h2#every-revision wholly in view below the bar and no layout shift`, async ({
+  browser,
+}) => {
+  test.setTimeout(120_000);
+  const one = [{ href: RECORD_HREF, words: true }];
+  const html = await withServerHtml(browser, "", "/crew", readRecordLinks);
+  expect(html.lines, "p[data-keel-record] in GET /crew's HTML").toBe(1);
+  expect
+    .soft(html.links, `the record's links in GET /crew's HTML: "${html.text}"`)
+    .toEqual(one);
+  if (!DEPLOYED)
+    expect
+      .soft(html.text, "the record's words in GET /crew's HTML")
+      .toBe(RECORD);
+  for (const [width, height] of SIZES) {
+    for (const scripts of [false, true]) {
+      const where = `with scripts ${scripts ? "on" : "off"} at ${width} x ${height}`;
+      const { context, page } = await contextOf(
+        browser,
+        width,
+        height,
+        scripts,
+      );
+      try {
+        await open(page, "/crew#keel");
+        const read = await readRecordLinks(page);
+        expect(read.lines, `p[data-keel-record] ${where}`).toBe(1);
+        expect
+          .soft(read.links, `the record's links ${where}: "${read.text}"`)
+          .toEqual(one);
+        if (!DEPLOYED)
+          expect.soft(read.text, `the record's words ${where}`).toBe(RECORD);
+        if (read.links.length !== 1) continue;
+        await follow(
+          page,
+          `p[data-keel-record] a[href="${RECORD_HREF}"]`,
+          /\/log#every-revision$/,
+        );
+        const landed = await readLogLanding(page);
+        const at = `from /crew#keel ${where}`;
+        expect
+          .soft(landed.url, `the page after the click ${at}`)
+          .toBe(RECORD_HREF);
+        const { h2, bar, viewport } = landed;
+        expect(h2, `h2#every-revision ${at}`).not.toBeNull();
+        if (!h2) continue;
+        expect.soft(bar, `the bar ${at}`).not.toBeNull();
+        // 0.5 px, K11's tolerance: scroll offsets are whole pixels, layout is in 1/64 px.
+        const misses = [
+          h2.top < (bar ?? 0) - 0.5 &&
+            `its top ${h2.top} above the bar's foot ${bar}`,
+          h2.bottom > viewport.height + 0.5 &&
+            `its bottom ${h2.bottom} below the viewport's ${viewport.height}`,
+          h2.left < -0.5 && `its left ${h2.left} past the viewport`,
+          h2.right > viewport.width + 0.5 &&
+            `its right ${h2.right} past the viewport's ${viewport.width}`,
+        ].filter(Boolean);
+        expect
+          .soft(
+            misses,
+            `h2#every-revision wholly in view below the bar ${at} (scrollY ${landed.scrollY})`,
+          )
+          .toEqual([]);
+        expect
+          .soft(
+            landed.cls,
+            `layout shift after landing ${at}: ${JSON.stringify(landed.shifts)}`,
+          )
+          .toBe(0);
+      } finally {
+        await context.close();
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
 // The feed states: K10 and K12 on the live, open and resting fixtures
 
 const FIXTURES = ["live", "open", "resting"] as const;
