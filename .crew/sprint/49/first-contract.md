@@ -8,7 +8,7 @@ Ruslan's approval and was merged by him (`.crew/sprint/36/decisions.md` 11), yet
 `/log/36` say "Gate" (`close.md`, "Is the record line right?").
 
 **The cause.** `/log`'s Approved column, the keel's line and Probe's oracle all read one rule:
-`needs-owner` in the retro's `outcome` (`lib/sprint-log.ts:225`, `e2e/retros.ts:187`). Sprint 36's
+`needs-owner` in the retro's `outcome` (`lib/sprint-log.ts:225`, `e2e/retros.ts:188`). Sprint 36's
 outcome says "waits for the owner: …" without the token. The rule is right, and the record is
 wrong. So the fix corrects the record and guards it. Neither rule changes, and K12 runs unedited.
 
