@@ -88,8 +88,13 @@ export default function AskPage() {
                 )}
               </strong>
               <span className="entry-text">
-                {item.note}: {SITE_URL}
-                {item.href}
+                {item.note}:{" "}
+                {/* An address has no spaces to break at, and at 320 px the MCP server's is wider
+                  than the column, so it may break anywhere rather than push the page sideways. */}
+                <span className="[overflow-wrap:anywhere]">
+                  {SITE_URL}
+                  {item.href}
+                </span>
               </span>
             </li>
           ))}
