@@ -25,10 +25,11 @@ remember is.
   and `retro.json`), and `.crew/STATE.md` (lessons that still hold). `PRODUCT.md`,
   `design/brief.md`, `design/rubric.md` and `design/calibration/` are the owner's record of what to
   build and how it's judged.
-- Production is https://ruslanshulga.com, also served at https://theseus-portfolio.vercel.app; cloud
-  sessions use the second unless their network allowlist has the first. Every PR gets a Vercel preview.
-- The Studio (nycruslan/theseus-studio) streams the crew's work to visitors live from its hooks.
-  The crew doesn't work on it.
+- Production is https://portfolio.ruslanshulga.com, also served at
+  https://theseus-portfolio.vercel.app; cloud sessions use the second unless their network allowlist
+  has the first. Every PR gets a Vercel preview.
+- The Studio (nycruslan/theseus-studio), at https://ruslanshulga.com, streams the crew's work to
+  visitors live from its hooks. The crew doesn't work on it.
 
 ## Working
 

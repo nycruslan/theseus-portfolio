@@ -1,11 +1,15 @@
 // Facts about the site itself, not the owner: where it lives, and the token colors for the places
 // CSS can't reach (meta tags, the generated social card and icons).
 
-/** The production URL. Social cards, the sitemap and canonical links point here. */
-export const SITE_URL = "https://ruslanshulga.com";
+/**
+ * The production URL. Social cards, the sitemap and canonical links point here. Since 2026-11-07
+ * the Studio has ruslanshulga.com, which hiring managers see first, and redirects this site's old
+ * addresses there to the same paths here.
+ */
+export const SITE_URL = "https://portfolio.ruslanshulga.com";
 
 /** The Studio: the separate app where anyone can watch the crew build this site, live. */
-export const STUDIO_URL = "https://studio.ruslanshulga.com";
+export const STUDIO_URL = "https://ruslanshulga.com";
 
 /** The team's repository, where every sprint's pull request lives. Not the owner's content. */
 export const REPO_URL = "https://github.com/nycruslan/theseus-portfolio";

@@ -13,6 +13,10 @@ evals (`/evals`, `/api/cron/evals`), the agent surfaces (`/llms.txt`, `/api/me.j
 security headers, Web Analytics, and redirects from the old addresses. So the Owner's pick below no
 longer needs its `/work/…` case study option: those are done.
 
+On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants hiring managers to
+see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
+its old addresses on the apex to the same paths here.
+
 ## Now: the record you can check, then stand down
 
 A hiring executive who reads the keel's "N sprints merged: G on the checks alone, O on Ruslan's own
