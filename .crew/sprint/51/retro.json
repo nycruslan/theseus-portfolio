@@ -1,0 +1,31 @@
+{
+  "sprint": 51,
+  "pr": 116,
+  "goal": "Show the first screen to six fresh readers; all six answered all three",
+  "goalFrom": "owner",
+  "size": "S",
+  "outcome": "merged: notes only; six fresh agents, each shown one screenshot of the home page's first screen at a laptop and a phone window, named Ruslan's role, his scale and how to reach him, 18 of 18, so nothing was changed",
+  "fixRounds": 0,
+  "minutes": 45,
+  "agents": [
+    { "role": "general-purpose", "model": "opus", "tokens": 253729, "minutes": 2 }
+  ],
+  "lens": { "runs": 1, "tokens": 148998, "important": 0, "actedOn": 1, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "Every reader found the drawing before the name, though none missed an answer",
+      "evidence": "All six said the hull, the Theseus wordmark or Revisions took their eye first, and two read the particulars before they knew whose they were (five-second.md)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    {
+      "who": "Iris",
+      "what": "Decide whether a stranger should meet the name before the drawing on the first screen; every reader found it second (five-second.md, decisions.md 3)"
+    },
+    {
+      "who": "Ruslan",
+      "what": "Optional: the five-second test with a person, who can miss a line an agent reading a still image won't"
+    }
+  ]
+}
