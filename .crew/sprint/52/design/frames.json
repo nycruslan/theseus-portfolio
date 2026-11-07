@@ -1,0 +1,16 @@
+{
+  "title": "Something to play with: three directions, the yard recommended",
+  "frames": [
+    { "file": "yard-1440.webp", "title": "A. The yard (recommended): the Log at 1440, sprint 23 of 51", "width": 1440, "height": 900 },
+    { "file": "yard-390.webp", "title": "A. The yard at 390", "width": 390, "height": 844 },
+    { "file": "yard-prototype.webp", "title": "A. The playable prototype in the Off drawing, at sprint 23", "width": 1440, "height": 680 },
+    { "file": "yard-storyboard.webp", "title": "A. One press, then the whole record: the storyboard", "width": 1440, "height": 1280 },
+    { "file": "yard-states.webp", "title": "A. Full, Calm, Off, no script, the share card and the door from /", "width": 1440, "height": 860 },
+    { "file": "pull-1440.webp", "title": "B. Pull a plank: the home at 1440, seat 5.1 pulled", "width": 1440, "height": 900 },
+    { "file": "pull-390.webp", "title": "B. Pull a plank at 390", "width": 390, "height": 844 },
+    { "file": "pull-storyboard.webp", "title": "B. The pull, storyboarded, with its cost and stretch", "width": 1440, "height": 700 },
+    { "file": "draw-1440.webp", "title": "C. Draw your own: /draw at 1440", "width": 1440, "height": 680 },
+    { "file": "draw-390.webp", "title": "C. Draw your own at 390", "width": 390, "height": 844 },
+    { "file": "draw-storyboard.webp", "title": "C. Fair a line, loft a hull, keep the sheet", "width": 1440, "height": 640 }
+  ]
+}
