@@ -171,10 +171,11 @@ makes stale.
     to a session read-only (`add_repo`; the crew never edits it), the cloud's proxy reaches only
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
-- **CI's `check` job has a 35-minute cap (`ci.yml`), and the job took 33.8 of it on #114** (#100:
-  28.8). A spec that starts its own servers (the feed specs)
-  starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs measures the
-  full suite at CI's worker count before the label.
+- **CI's `check` passes when `verify` and four e2e shards pass (`ci.yml`, since 2026-11-07), and
+  a shard has a 20-minute cap.** One job ran the whole suite in 33.8 of its 35 minutes on #114
+  (#100: 28.8), so Playwright now splits it by test count. A spec that starts its own servers (the
+  feed specs) starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs
+  reads its slowest shard's time before the label.
 - **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`
   event too, so a body edit cancels a running check and starts it over (sprint 36: a 9-minute run
   lost). Edit the body with the close-out push, which re-runs CI anyway.

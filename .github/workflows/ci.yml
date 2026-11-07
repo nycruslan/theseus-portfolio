@@ -24,12 +24,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  check:
+  verify:
     runs-on: ubuntu-latest
-    # A run takes about 22 to 26 minutes since sprint 36's 3D checks on /crew, most of it the
-    # browser suite. 35 leaves room for a slow runner (25 cancelled sprint 36's head twice at
-    # about 95% of the suite), and still stops a hung run long before GitHub's six-hour default.
-    timeout-minutes: 35
+    # About a minute and a half; 10 stops a hung run long before GitHub's six-hour default.
+    timeout-minutes: 10
     steps:
       # Name git's default branch before checkout runs `git init`, which otherwise prints a hint.
       - run: git config --global init.defaultBranch main
@@ -47,6 +45,30 @@ jobs:
       - run: pnpm verify
       # The team's harness: the gate and lens checks, merge.mjs, the hooks and the broadcast.
       - run: pnpm test:harness
+
+  # The end-to-end checks with axe, split by Playwright into four shards that run side by side. In
+  # one job they took 32 of its 35 minutes by sprint 50 (#114), and every spec a sprint adds made
+  # the crew wait longer for `check`. Each shard builds the site itself, in seconds, rather than
+  # downloading a build from another job.
+  e2e:
+    name: e2e (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    # A shard takes about a quarter of the suite, 8 to 10 minutes; 20 leaves room for a slow runner.
+    timeout-minutes: 20
+    strategy:
+      # Every shard finishes, so one run reports every failing spec, not only the first shard's.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - run: git config --global init.defaultBranch main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+        with:
+          runtime: node@24
+          cache: true
+          require-lockfile: true
+      - run: pnpm build
       # Browsers are cached per Playwright version; their system libraries are installed each run.
       - id: playwright
         run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
@@ -59,15 +81,40 @@ jobs:
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
-      # The end-to-end checks with axe, served by `next start` from the build `pnpm verify` just
-      # made in this job, so the site is built once per run.
-      - run: pnpm test:e2e
+      # Served by `next start` from the build this job just made.
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/4
         env:
           PLAYWRIGHT_PREBUILT: "1"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
           if-no-files-found: ignore
+
+  # The check the `protect-main` ruleset requires, by this name. It passes only when every other
+  # job in this run succeeded. It starts with the run rather than after the jobs (`needs:`), so a
+  # head shows `check` pending from the first second and a cancelled run leaves it cancelled, as
+  # the single job did. Under `needs:` it would start only once the shards finished: until then
+  # the newest `check` on a re-run head (a PR body edit starts one) is the cancelled run's, which
+  # merge.mjs reads as a failure, or a skipped one, which GitHub counts as passing.
+  check:
+    runs-on: ubuntu-latest
+    # Waits for the slowest shard, whose own cap is 20 minutes.
+    timeout-minutes: 25
+    permissions:
+      actions: read
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          JOBS: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100
+        run: |
+          # A failed API call waits and asks again; the job's cap ends a wait that never settles.
+          until others=$(gh api "$JOBS" --jq '[.jobs[] | select(.name != "check")]') &&
+            jq -e 'all(.status == "completed")' <<<"$others" >/dev/null; do
+            sleep 15
+          done
+          jq -r '.[] | "\(.name): \(.conclusion)"' <<<"$others"
+          jq -e 'any(.name == "verify") and any(.name | startswith("e2e (")) and
+            all(.conclusion == "success")' <<<"$others" >/dev/null
