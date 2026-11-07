@@ -331,9 +331,10 @@ function readBarTargets(page: Page) {
 
 /**
  * Below 768 px, the row at the Log header's end (the owner on #78, 2026-10-25: sprint 31's foot
- * holding sprint 33's control): exactly one shown, `.log-head`'s next element and set under all of
- * it; Read as page, then Full, Calm and Off, the eye's order the DOM's, in one band, apart, each
- * 44 x 44 px and wholly inside the viewport; and Tab from the bar's Contact goes Read as page, the
+ * holding sprint 33's control): exactly one shown, `.log-head`'s next element, set under the h1 and
+ * above the Theseus since Ya (Iris's addendum, sprint 53); Read as page, then Full, Calm and Off,
+ * the eye's order the DOM's, in one band, apart, each 44 x 44 px and wholly inside the viewport;
+ * and Tab from the bar's Contact goes Read as page, the
  * control's one enabled button (Off, with WebGL refused), then on out of the row.
  */
 async function expectHeaderEndRow(page: Page, where: string) {
@@ -370,11 +371,13 @@ async function expectHeaderEndRow(page: Page, where: string) {
             r.bottom <= ch + 0.5,
         };
       });
-    const headBottom = Math.max(
-      ...[...(head?.children ?? [])]
-        .filter(shown)
-        .map((el) => el.getBoundingClientRect().bottom),
-    );
+    // Ya (sprint 53, Iris's addendum): the row sits at the drawing band's head, under the h1 and
+    // above the Theseus, as on / since Wb.
+    const h1Bottom =
+      head?.querySelector("h1")?.getBoundingClientRect().bottom ?? Number.NaN;
+    const theseusTop =
+      document.querySelector("main [data-theseus]")?.getBoundingClientRect()
+        .top ?? Number.NaN;
     return {
       feet: feet.length,
       afterHead: Boolean(foot && head?.nextElementSibling === foot),
@@ -386,7 +389,9 @@ async function expectHeaderEndRow(page: Page, where: string) {
           ?.getAttribute("aria-label") ?? null,
       items,
       top: Math.min(...items.map((i) => i.top)),
-      headBottom,
+      bottom: Math.max(...items.map((i) => i.bottom)),
+      h1Bottom,
+      theseusTop,
     };
   });
   expect.soft(row.feet, `rows at the header's end shown ${where}`).toBe(1);
@@ -395,8 +400,14 @@ async function expectHeaderEndRow(page: Page, where: string) {
     .toBe(true);
   expect
     .soft(
-      row.top >= row.headBottom - 0.5,
-      `the row (top ${row.top}) under the header's last line (bottom ${row.headBottom}) ${where}`,
+      row.top >= row.h1Bottom - 0.5,
+      `the row (top ${row.top}) under the h1 (bottom ${row.h1Bottom}) ${where}`,
+    )
+    .toBe(true);
+  expect
+    .soft(
+      row.bottom <= row.theseusTop + 0.5,
+      `the row (bottom ${row.bottom}) above [data-theseus]'s top (${row.theseusTop}) ${where}`,
     )
     .toBe(true);
   expect.soft(row.group, `the row's group name ${where}`).toBe("Motion");
@@ -540,7 +551,7 @@ test.describe("B5.1 The route and the bar", () => {
     }
   });
 
-  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), Full, Calm and Off among them from 768; below 768 Read as page, Full, Calm and Off are one row at the Log header's end, in the eye's order, 44 x 44 px, apart and inside the viewport, on /log and a record; exactly one Read as page shown on both; and the wordmark, Work, Contact and Read as page land", async ({
+  test("B5.1 at 320, 390, 768, 1024 and 1440 the bar is one line of targets inside the viewport (44 px tall below 1024, 24 from it), Full, Calm and Off among them from 768; below 768 Read as page, Full, Calm and Off are one row, .log-head's next element, set under the h1 and above the Theseus, in the eye's order, 44 x 44 px, apart and inside the viewport, on /log and a record; exactly one Read as page shown on both; and the wordmark, Work, Contact and Read as page land", async ({
     page,
   }) => {
     test.setTimeout(150_000);
@@ -715,7 +726,7 @@ test("B5.2 (C2.2) /sprints answers 308 to /log; no page links to /sprints; the s
 // ---------------------------------------------------------------------------------------------
 // B5.3 The first screen
 
-test("B5.3 at 1440 x 900 and 390 x 844, both schemes: on /log the h1, the count line and the first row start in the viewport; on /log/13 and the newest record, the record's h2", async ({
+test("B5.3 at 1440 x 900 and 390 x 844, both schemes: on /log the h1, the count line and Every revision's h2 start in the viewport; on /log/13 and the newest record, the record's h2", async ({
   page,
 }) => {
   const starts = (selectors: string[]) =>
@@ -738,7 +749,9 @@ test("B5.3 at 1440 x 900 and 390 x 844, both schemes: on /log the h1, the count 
       for (const found of await starts([
         "main h1",
         "p[data-ghost-count]",
-        ROWS,
+        // Ya (sprint 53) sets the Theseus above the ghost: at 390 the first row falls below the
+        // fold, and the contract accepts Every revision's h2 in its place (first-contract.md).
+        "#every-revision",
       ])) {
         expect
           .soft(
