@@ -50,6 +50,12 @@ R1 to R5, all in Ra. No sprint needs an owner answer to start, touches an owner 
   - a defect on production makes something the site says false, or hides a fact.
 
   Riders wait under "Finished" for whichever sprint touches their code.
+- [x] Sprint 51 (S, notes only; the owner's goal): the five-second test with fresh agents. (PR
+  #116.) Six agents each saw one screenshot of `/`'s first screen: 1366 × 768 and 390 × 844,
+  local and production, plus a phone at 1× and a laptop at half size. All six named his role, his
+  scale and how to reach him, so nothing changed (`.crew/sprint/51/five-second.md`). Every reader
+  met the drawing before the name. That is Iris's call to reopen (`decisions.md` 3), and the stand-down
+  holds.
 - Out of scope, and why:
   - Changing the rule the Approved column reads: the record is wrong, not the rule.
   - A sentence per Owner revision saying what he decided: crew-written text about his decisions is
@@ -69,7 +75,8 @@ R1 to R5, all in Ra. No sprint needs an owner answer to start, touches an owner 
 - **For the owner, optional:**
   - his B3, B4 and B5 demos on his own laptop window;
   - the five-second test: show `/` to a stranger for five seconds, on a laptop window and on a
-    phone, and ask what he does, at what scale, and how to reach him;
+    phone, and ask what he does, at what scale, and how to reach him (six fresh agents passed it
+    in sprint 51; a person can still miss what an agent reading a still image won't);
   - whether `/ask` may answer from the crew's record (a `PRODUCT.md` change);
   - whether `/crew`'s shared card should lead with the crew.
 
