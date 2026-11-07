@@ -934,7 +934,7 @@ main:has(> [data-model]) {
 /* The layer takes the ghost's flex and grid order: items paint in order-modified document order,
    so at order 0 it would paint under the drawing (spike-pixel.md, section 5). */
 .log-ghost + [data-model] {
-  order: 2;
+  order: 3;
 }
 
 [data-ghost]:has(+ [data-model]) .plan-plank {
@@ -1815,11 +1815,15 @@ main:has(> [data-model]) {
   letter-spacing: -0.01em;
 }
 
-/* The Theseus over the ghost, two drawings at one size, the Theseus's caption under it in the
-   header's type, one line at every width (.crew/sprint/53/placement.md). Both follow the record in
-   the DOM and take the h1's next place: 6 px from the caption to its drawing, 14 to the ghost. */
+/* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
+   phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
+   the count line and the question, Start again, the lines figure, the record, Every revision. The
+   DOM keeps the reading order, header first; only the drawings, hidden from assistive tech, and
+   the row move up. The Theseus over the ghost: two drawings at one size, the Theseus's caption
+   under it in the header's type, one line at every width, 6 px from its drawing and 14 from the
+   ghost. */
 .log-theseus {
-  order: 2;
+  order: 3;
   margin-top: 16px;
 }
 
@@ -1829,7 +1833,7 @@ main:has(> [data-model]) {
 }
 
 .log-ghost {
-  order: 2;
+  order: 3;
   margin-top: 14px;
 }
 
@@ -1840,12 +1844,12 @@ main:has(> [data-model]) {
 }
 
 [data-ghost-caption] {
-  order: 3;
+  order: 4;
   margin-top: 14px;
 }
 
 [data-ghost-count] {
-  order: 4;
+  order: 5;
   margin-top: 8px;
   color: var(--muted);
 }
@@ -1854,7 +1858,7 @@ main:has(> [data-model]) {
    doesn't stack a third condensed block against the h1 and the lines figure. It out-ranks
    `.log-head p`. */
 .log-head .log-question {
-  order: 4;
+  order: 5;
   margin-top: 12px;
   font-size: var(--step-lg);
   font-weight: 600;
@@ -1862,11 +1866,11 @@ main:has(> [data-model]) {
   text-wrap: balance;
 }
 
-/* Start again, on /log in the same slot, looks like Read as page (components/foot.tsx): ink, a
-   1 px underline 6 px off, 2 px hovered, a 44 px target, 24 from 1024. Never copper, the site's
+/* Start again, on /log under the count line, looks like Read as page (components/foot.tsx): ink,
+   a 1 px underline 6 px off, 2 px hovered, a 44 px target, 24 from 1024. Never copper, the site's
    ring (Y4). */
 .log-start {
-  order: 4;
+  order: 6;
   margin-top: 2px;
 }
 
@@ -1889,10 +1893,6 @@ main:has(> [data-model]) {
 }
 
 @media (width >= 64rem) {
-  .log-start {
-    margin-top: 8px;
-  }
-
   .log-start a {
     min-height: 24px;
   }
@@ -1902,7 +1902,7 @@ main:has(> [data-model]) {
    after the count line, the figure in the display face as the frame sets it, the header's second
    voice after "Log", and the rest of the sentence under it in graphite. */
 .log-lines {
-  order: 4;
+  order: 7;
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--foreground);
@@ -1932,23 +1932,22 @@ main:has(> [data-model]) {
 }
 
 /* Read as page and the motion control below 768 px (components/log.tsx says why here): the foot's
-   44 px row, 12 px under the lines figure's last line, Read as page at the left and the group at
-   the right, on the Log's own 16 px text edge. It takes the count line's and the figure's order,
-   so the DOM sets the three in reading order. The drawing's-foot margins and 16 px of padding
-   (`.foot`) would pull it into the figure and double the Log's gutter. */
+   44 px row, 12 px under the h1, at the drawings' head as on /, Read as page at the left and the
+   group at the right, on the Log's own 16 px text edge. The drawing's-foot margins and 16 px of
+   padding (`.foot`) would double the Log's gutter. */
 .log-side > .foot {
-  order: 4;
+  order: 2;
   margin: 12px 0 0;
   padding: 0;
 }
 
 .record {
-  order: 5;
+  order: 8;
   margin-top: 24px;
 }
 
 .log-revs {
-  order: 6;
+  order: 9;
   margin: 24px -16px 0;
   padding: 14px 16px 32px;
   border-top: 2px solid var(--foreground);
@@ -2230,15 +2229,24 @@ main:has(> [data-model]) {
     margin-top: 40px;
   }
 
+  /* On /log, Start again under the ghost, and Every revision under it. */
+  .log-start {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 16px 0 0 24px;
+  }
+
   .log-revs {
     grid-column: 1 / -1;
-    grid-row: 3;
+    grid-row: 4;
     margin: 40px 0 0;
     padding: 18px 24px 40px;
   }
 
+  /* On a record, Every revision beside the record, in the row under the drawings. */
   .log-open .log-revs {
     grid-column: 1;
+    grid-row: 3;
     padding-right: 0;
   }
 }

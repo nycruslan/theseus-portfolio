@@ -180,22 +180,14 @@ export function Log({ entries, open }: LogProps) {
                 {"The ghost hull is whole again. Which one is the Theseus?"}
               </p>
             ) : null}
-            {record ? null : (
-              <p className="log-start">
-                <a href={`/log/${merged[0]}`} data-step="start">
-                  {`Start again from sprint ${merged[0]}`}
-                </a>
-              </p>
-            )}
             {newest ? <LinesFigure {...newest} /> : null}
           </div>
 
           {/* Below 768 px the bar is full (components/bar.tsx), so Read as page and the motion
-          control close the header here, in one row under the lines figure, as at the drawing's
-          foot on / (.crew/sprint/31/review-iris.md; .crew/sprint/33/notes-iris.md, section 5).
-          Under the drawing the row would part the ghost hull from its caption, and on a record it
-          would sit above the record's links yet follow them in Tab order, since the record
-          precedes the drawings in the DOM. Here Tab meets it where the eye does. */}
+            control take one row here, which CSS sets under the h1 at the drawings' head, as /
+            hangs it from the bar (.crew/sprint/53/placement.md, the addendum): at the header's
+            end it would leave the control below a 320 x 568 phone's first screen. It follows
+            the header in the DOM, and the Tab order is the DOM's. */}
           <Foot control={<MotionControl />} />
 
           {record && seat ? (
@@ -208,6 +200,16 @@ export function Log({ entries, open }: LogProps) {
             />
           ) : null}
         </div>
+
+        {/* On /log, the first step: after the row in the DOM, so Tab reaches Read as page and the
+          control first, and under the ghost from 1024. */}
+        {record ? null : (
+          <p className="log-start">
+            <a href={`/log/${merged[0]}`} data-step="start">
+              {`Start again from sprint ${merged[0]}`}
+            </a>
+          </p>
+        )}
 
         {/* The Theseus right before the ghost, so the ghost stays the drawing [data-model]
           follows. */}
