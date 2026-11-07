@@ -1,0 +1,34 @@
+{
+  "sprint": 52,
+  "pr": 118,
+  "goal": "Find something visitors want to play with, and plan the crew's next build",
+  "goalFrom": "owner",
+  "size": "L",
+  "outcome": "merged: notes only; Iris's research and three directions on a canvas, the yard recommended, Pixel's measured headroom, and Quill's five-sprint plan with Ya's contract",
+  "fixRounds": 0,
+  "minutes": 120,
+  "agents": [
+    { "role": "design-director", "model": "opus", "tokens": 541717, "minutes": 47 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 206752, "minutes": 20 },
+    { "role": "product-owner", "model": "opus", "tokens": 229941, "minutes": 15 }
+  ],
+  "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The award sites themselves could not be opened from the crew's sessions",
+      "evidence": "awwwards.com and thefwa.com don't resolve here, so research.md cites their listings through search and write-ups and says so"
+    },
+    {
+      "what": "Two hulls in one canvas may not fit the draw and triangle budgets",
+      "evidence": "Iris counts 8 draws, Pixel measured the card hull at 4, which makes 9 of 8; two desktop hulls are about 50k triangles of 30k (plan.md)"
+    }
+  ],
+  "proposals": [
+    { "change": "Allow awwwards.com and thefwa.com in the cloud environment's network policy", "moves": "research sources read first-hand instead of through search" }
+  ],
+  "followUps": [
+    { "who": "Iris", "what": "Ya's placement within 123 px at 390, and the words for the step links, Start again and the question" },
+    { "who": "Pixel", "what": "The two-hull spike: draws and triangles for the Theseus beside the ghost, before Yc's contract" },
+    { "who": "Ruslan", "what": "Optional: pick another direction or a visitor tally on the canvas or in PR #118" }
+  ]
+}
