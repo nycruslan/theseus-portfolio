@@ -213,6 +213,9 @@ On 03e5371, B5.19 on /log at 1440 light is red in 3 runs of 3: "5.0 … L 0.850 
   - 3.0 reads 0.851 to 0.854 and 1.0 0.856. The brightest plank is 0.914, against 0.935.
   - A sampling fix alone (a median over the sliver's pixels) would land at 0.850 to 0.851, still at
     the floor.
-- **A fix that holds is the look's:** `GHOST_LIT` from 0.4 to 0.36 (`lib/model/calls.ts`) draws
-  the lit mix toward the unlit `--vellum`, the lever sprint 33 used for the keel's planks. On
-  03e5371, 5.0's pixels then read 0.8528 to 0.859, none under 0.85. That change is Iris's call.
+- **The option in the look:** `GHOST_LIT` from 0.4 to 0.36 (`lib/model/calls.ts`) draws the lit
+  mix toward the unlit `--vellum`, the lever sprint 33 used for the keel's planks. On 03e5371,
+  5.0's pixels then read 0.8528 to 0.859, none under 0.85.
+- **Iris's call:** keep `GHOST_LIT` at 0.4, since 0.36 would flatten all 22 planks to win one
+  cell. Instead, B5.19's light floor for 5.0 alone becomes 0.84, as a named rewrite by Probe. The
+  sliver's darkest pixel, 0.8477, clears it by 0.008. The chunk doesn't change.
