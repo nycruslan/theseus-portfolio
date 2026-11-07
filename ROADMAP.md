@@ -17,10 +17,65 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
-## Now: the record you can check, then stand down
+## Now: the yard
 
-A hiring executive who reads the keel's "N sprints merged: G on the checks alone, O on Ruslan's own
-call" can trust the numbers and check them. The line links to the Log, and every revision's
+On the Log, a visitor rebuilds the Theseus themself, one real sprint's plank at a time, and each
+plank it replaces lands in the ghost hull beside it. At sprint 23 the last original leaves, and they
+hold Hobbes's question with a real ship: which one is the Theseus? Every step has its own address
+and card, so what they send is the record itself.
+
+This is the owner's goal for sprint 52: something genuinely cool that visitors want to play with and
+share. Iris researched it (`.crew/sprint/52/research.md`) and recommends direction A, the yard, on
+the canvas (https://claude.ai/artifact/LwQHtrkAkhMAmC4aJH1rEE; `direction-iris.md`). Pixel measured
+the headroom (`headroom.md`): 11 B are left of the loader's script budget, so all play code rides
+the lazily loaded 3D chunk, with WebGLRenderer and GLSL only.
+
+Quill's plan is `.crew/sprint/52/plan.md`, and Ya's contract is `first-contract.md`. The yard serves
+belief 2 (the toy is the crew's record: who drew, checked, tested and approved each plank) and
+principle 2 (every plank that moves is a real merge). It lives in the brief's archive moment, so
+`/`'s first screen doesn't change until Ye. The checks are Y1 onward, numbered across the
+milestone. No sprint needs an owner answer to start, touches an owner path or edits `content/`.
+
+- [x] Sprint 52 (L, notes only; the owner's goal): Iris's research, three directions on the canvas
+  and the yard recommended; Pixel's headroom; Quill's plan and Ya's contract (Y1 to Y8). (PR #118.)
+  Left open before Ya: Iris's placement and words; before Yc, Pixel's draw and triangle counts for
+  two hulls (9 draws against 8, about 50k triangles against 30k on desktop; `plan.md`).
+- [ ] Ya (M): every step is a page. `/log/n` draws the Theseus and the ghost as they stood after
+  sprint n, the record's previous and next become the step links in its head, `/log` gets Start
+  again, and the 22nd merge asks which one is the Theseus. No script, every mode, the 3D ghost
+  following its step. Pixel runs Yc's two-hull spike alongside. Y1 to Y8; it starts with Iris's
+  placement call.
+- [ ] Yb (S): a card and a title for every step: both ships at n, the sprint's line, and the
+  question at 23 (Y9 to Y11).
+- [ ] Yc (M; Pixel leads): the press in 3D. The Theseus joins the ghost in one canvas; a press lifts
+  the leaving plank and seats the new one (Calm fades); the URL is replaced; ← and →; a live region
+  (Y12 to Y18).
+- [ ] Yd (M; Pixel leads): hold to riffle, stopping at 23, 45 and the newest; Home, End and Escape;
+  the hand-off to Crew at the newest step (Y19 to Y23).
+- [ ] Ye (S): the door from `/`, one plain link on the revision block's count line, only if it
+  fits from 320 to 1440 (Y24 to Y26).
+- After the demo, if the yard earns it: the record in the motion (fix rounds as bounces, sprint 16
+  struck), the fleet at 45, and optional sound. Each has a question to settle first (`plan.md`).
+- **The owner's calls, and none blocks the work:**
+  - the direction: A fits the brief as it stands, while B or C would be his change to
+    `design/brief.md`;
+  - a visitor tally at 23: recommended no tally;
+  - #101's pick, still open under "Finished: the record you can check".
+- Out of scope, and why:
+  - `/` before Ye, since the five-second read comes first.
+  - New public retro fields and a step 0 page, since every step must be a real merge.
+  - The live feed on /log.
+  - A timeline slider, drag, a free camera or physics, since the brief wants named viewpoints.
+  - Visitor input that writes anything.
+
+## Finished: the record you can check, then stand down
+
+Ra merged on 2026-11-03 (#114, last). The crew then stood down as planned, until the owner set
+sprint 51's goal (the five-second test) and sprint 52's (the yard). No close of this milestone was
+run on production.
+
+The outcome as planned: a hiring executive who reads the keel's "N sprints merged: G on the checks
+alone, O on Ruslan's own call" can trust the numbers and check them. The line links to the Log, and every revision's
 Approved there says what GitHub's gate really did. On production on 2026-11-03 the line read 47: 34
 / 13, matching `/log`. But sprint 36 (#91) changed `.github/workflows/ci.yml` and waited for
 Ruslan, so the truth is 33 / 14 (`.crew/sprint/49/close.md`).
