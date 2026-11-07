@@ -122,3 +122,58 @@ silhouettes disagree.
 - The feel on a real phone.
 - Whether a 13 px "Seat" link is press enough. It is for Ya's link floor, and Yc's press should own
   a stronger control.
+
+## Addendum: the phone row at the band's head (B5.25 at 320 × 568)
+
+The red Probe's mutant found is real: B5.25 holds Full, Calm and Off wholly in 320 × 568 on /log
+and /log/13, which leaves 29 px today (the row ends at 539).
+- B5.1's header-end check needs every `.log-head` line above the row.
+- Those lines alone end at 483 at 320.
+- So no Theseus fits above a row at the header's end. The Theseus is 57 px tall at 320 before its
+  caption.
+
+**The call: below 768 the row moves from the header's end to the drawing band's head, under the h1.**
+This is `/`'s rule since Wb, where the row hangs at the band's head. It also keeps sprint 31's
+reason for the old place: the row never parts the ghost from its caption, and Tab still meets it
+where the eye does.
+
+**This replaces the order below 1024 and Start again's place in section 1.**
+
+- **DOM:** `.log-head` [h1, ghost caption, count, the question, `.log-lines`] → Foot →
+  **`p.log-start`** (on `/log` only, the Foot's next sibling, no longer in `.log-head`) → record →
+  `.log-theseus` → ghost → `[data-model]` → Every revision.
+  - Start again had to leave `.log-head`. Inside it, Tab from Contact reaches Start again before
+    Read as page, which breaks B5.1's Tab clause, and B5.1 was red in my first spec too.
+  - The question stays in `.log-head`: it holds no link.
+- **Orders below 1024** (`.log-head` is `display: contents`): h1 1; Foot 2 (`.log > .foot`, below
+  768, `margin: 12px 0 0`); `.log-theseus`, `.log-ghost` and `.log-ghost + [data-model]` 3; ghost
+  caption 4; count line and question 5; `.log-start` 6; `.log-lines` 7; `.record` 8; `.log-revs` 9.
+  - Margins as in section 1: the Theseus 16, its caption 6, the ghost 14.
+- **From 1024:**
+  - `.log-start { grid-column: 1; grid-row: 3; margin: 16px 0 0 24px }`, under the ghost, the
+    yard's control where the canvas drew it.
+  - `.log:not(.log-open) .log-revs { grid-row: 4 }`. Records are unchanged.
+- **Measured on production with the markup injected**, overflow 0 everywhere:
+
+| Where | What |
+|---|---|
+| 320 × 568, scripts on, /log and /log/13 | the row 133–177, Off 133–177 (391 px of room); the Theseus 193–250, the ghost 294–351; the canvas on the ghost |
+| 390 × 844, /log | the row 133–177; the Theseus 193–264; the ghost 308–379; Start again at 519; Every revision at 707 |
+| 390 × 844, records | next at 639 (/log/13) and 698 (/log/23); previous at 662 (/log/52) |
+| 390 × 844, B5.7 | the h2 at 710 on /log/43, unchanged (+115 of 123) |
+| 1440 × 900 and 1024, records | unchanged |
+| 1440 × 900, /log | Start again at 533; Every revision at 619; the first row near 779 |
+
+- **The flip book gets better.** Above the drawings there's now only the h1 and the row, the same
+  on every page. On phones the motion control stands right above the 3D it controls.
+- **Kept checks:**
+  - One clause turns red: B5.1's `expectHeaderEndRow`, "the row (top) under the header's last line"
+    (`e2e/log.spec.ts`, about line 396). The rewrite I ask Probe for: below 768 the row is still
+    `.log-head`'s next element in the DOM, set under the h1's bottom and above `[data-theseus]`'s
+    top, in one band.
+  - The rest of that check stays green: one band, DOM order, 44 × 44, inside the viewport, and Tab
+    from Contact to Read as page, Off, then out of the row.
+  - B5.25 is green, its Tab clause rewritten as the contract already plans. B5.26 and phone-window
+    (which reads `/` only) are untouched.
+- **For the owner, undoable, nothing waits:** this moves the Log's phone row from the place he
+  accepted with #78 (the drawing's foot) to `/`'s band head. The PR's retro should say so.
