@@ -14,8 +14,9 @@ answering all three, without changing `content/`, and record the before and afte
 - a stricter pass on production, with the phone at 1× and the laptop at half size.
 
 Every reader named VP Engineering, AI Platform, at JPMorgan Chase. Every one gave the scale (a team
-of 7, several thousand employees, about 8 product teams, about 55%). Every one found Email,
-LinkedIn and GitHub, plus Contact in the nav. With nothing stopping an answer, no product code
+of 7, several thousand employees, about 8 product teams, about 55%). Every one found a
+way to reach him, plus Contact in the nav: on the phone, Email (one also named LinkedIn); on the
+laptop, Email, LinkedIn and GitHub. With nothing stopping an answer, no product code
 changed, so the "after" answers are the "before" answers. The table, the method and what wasn't
 verified are in `.crew/sprint/51/five-second.md`.
 

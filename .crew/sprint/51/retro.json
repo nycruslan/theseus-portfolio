@@ -10,7 +10,7 @@
   "agents": [
     { "role": "general-purpose", "model": "opus", "tokens": 253729, "minutes": 2 }
   ],
-  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": { "runs": 1, "tokens": 148998, "important": 0, "actedOn": 1, "nits": 1 },
   "wentWrong": [
     {
       "what": "Every reader found the drawing before the name, though none missed an answer",
