@@ -17,3 +17,9 @@
    plan wants the 3D ghost to follow its step's drawing, gaps included. The 2D silhouette is the
    whole hull's outline, while frame 1's coverage has the gaps.
 6. **B1.6 is kept:** Start again keeps its underline.
+7. **B5.19: plank 5.0's light floor is 0.84, and GHOST_LIT stays at 0.4** (Iris). The red is a
+   whole-pixel row shift after the ghost moved down: the settled pose is identical when shifted by
+   a row, 0 of 161,100 pixels differ (Pixel). On main, 16 of 5.0's roughly 46 pixels already sit
+   under 0.85. Lowering the lit mix would flatten all 22 planks to win 0.003 L on one cell.
+8. **Yc's spike** (`spike-pixel.md`): two hulls fit at 7 to 8 draws with merged batches and lower
+   levels, for about +1.6 KB of chunk. Yc's contract starts from it.
