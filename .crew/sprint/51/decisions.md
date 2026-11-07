@@ -17,3 +17,8 @@
    the laptop at half size. Both still answered all three.
 5. **Sprint 50's merge record rides along** (`merge-record.mjs` wrote `.crew/sprint/50/merge.json`,
    and its approvals check passed).
+6. **The local suite's three reds were my own race, not a defect.** `PLAYWRIGHT_PORT=3317 pnpm
+   test:e2e` gave 343 passed and 3 failed (B4.16, B5.6, B5.5): I filled in the retro's `lens` fields
+   while it ran, so the build printed "—" under Checked and the oracle, re-reading the file, wanted
+   "Lens". Re-run on a fresh build of the same tree, the three specs passed 62 of 62. Don't edit a
+   retro while the suite runs.
