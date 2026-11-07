@@ -5,7 +5,7 @@ import { MOTION } from "./helpers";
 import { entryOf, RECORD } from "./log";
 import { type Box, CANVAS, MODEL, pause, whole } from "./model";
 import { coverage, decodePng, deltaE, type Image, pixel } from "./pixels";
-import { GHOST } from "./retros";
+import { GHOST, GHOST_AT } from "./retros";
 import type { ModelRun } from "./webgl";
 
 // What the B5c checks share (.crew/sprint/33/contract.md): the ghost hull in 3D on /log and every
@@ -38,6 +38,12 @@ export const SEAT_BY_NUMBER: ReadonlyMap<number, string> = new Map(
 );
 /** The seats in the oracle's order. */
 export const SEATS = Object.keys(GHOST);
+/**
+ * The ghost a page draws (Ya, .crew/sprint/52/first-contract.md): /log's is GHOST, the newest step's;
+ * /log/n's is GHOST_AT(n), the ghost as it stood after sprint n.
+ */
+export const ghostOn = (url: string) =>
+  url === "/log" ? GHOST : GHOST_AT(Number(url.slice("/log/".length)));
 /** The seat a record's sprint took, which its page marks. */
 export const markedSeat = (n: number) => SEAT_BY_NUMBER.get(n);
 

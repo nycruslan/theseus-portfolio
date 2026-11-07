@@ -18,6 +18,7 @@ import {
   ghostDrawing,
   ghostFit,
   ghostNumbers,
+  ghostOn,
   hullBox,
   landedOn,
   ledOutSeats,
@@ -178,11 +179,19 @@ function plankPoints(page: Page, margin = 3) {
   );
 }
 
-/** `[data-ghost] .ln-outline` alone, filled: the 2D hull's silhouette, as B3.1 reads `/`'s. */
+/**
+ * The 2D ghost's silhouette, as the 3D draws it (Ya, sprint 53): its drawn planks filled, in the
+ * hull's clip, and `[data-ghost] .ln-outline` stroked, since the 3D draws the whole outline line on
+ * every step and only its planks follow the step's gaps (Pixel, lib/model/hull.ts outlineLines).
+ * On /log, whose ghost is whole, the planks fill the hull, so this is the filled outline B3.1 reads
+ * on `/`, the same measure as before Ya; on a record with gaps, the gaps are open in both.
+ */
 async function outlineAlone(page: Page, clip: Box) {
   const handle = await page.addStyleTag({
     content: `html, body, body * { visibility: hidden !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
-${DRAWING} .ln-outline { visibility: visible !important; fill: #000 !important; stroke: #000 !important; opacity: 1 !important; }`,
+${DRAWING} svg clipPath, ${DRAWING} svg clipPath * { visibility: visible !important; }
+${DRAWING} .ln-outline { visibility: visible !important; fill: none !important; stroke: #000 !important; opacity: 1 !important; }
+${DRAWING} path[data-plank] { visibility: visible !important; fill: #000 !important; fill-opacity: 1 !important; stroke: #000 !important; opacity: 1 !important; }`,
   });
   const png = await page.screenshot({ clip, omitBackground: true });
   await handle.evaluate((style) => (style as Element).remove());
@@ -397,7 +406,7 @@ for (const url of PAGES) {
           .toBeLessThanOrEqual(bound);
         expect
           .soft(r.planks, `ghost planks sampled, ${name}`)
-          .toBe(SEATS.length);
+          .toBe(Object.keys(ghostOn(url)).length);
         expect
           .soft(
             r.fills
@@ -587,12 +596,16 @@ async function numbersAt(
 }
 
 for (const url of PAGES) {
-  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935 and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the 22 number spans at rest read GHOST, each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700`, async ({
+  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935, from 0.84 on the stern sliver 5.0, and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the number spans at rest read the page's ghost (GHOST on /log, GHOST_AT(13) on /log/13), each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700, the canvas changing from /log's only there and on the seats the step leaves gaps`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
     const record = url !== PAGES[0];
-    const expected = Object.values(GHOST).map(String).sort();
+    // Ya: the page's own ghost, and on a record the seats /log draws that this step leaves gaps.
+    const ghost = ghostOn(url);
+    const seats = Object.keys(ghost);
+    const gaps = SEATS.filter((s) => !(s in ghost));
+    const expected = Object.values(ghost).map(String).sort();
 
     // The bands, settled, in both schemes, at 1440 and 390: one scan per size (the pose is the
     // same in both schemes), read in light and again after a switch to dark. On a record, the same
@@ -600,8 +613,14 @@ for (const url of PAGES) {
     for (const size of SIZES) {
       const at = `${url} at ${size.width} x ${size.height}`;
       let plain: Image | null = null;
+      let gapCells: [number, number, string][] = [];
       if (record) {
         const log = await settledOn(browser, PAGES[0], size);
+        if (gaps.length > 0) {
+          gapCells = (await scanSeats(log, stepAt(size.width))).grid.filter(
+            ([, , s]) => gaps.includes(s),
+          );
+        }
         await log.page.mouse.move(1, 1);
         await pause(200);
         plain = (
@@ -613,7 +632,7 @@ for (const url of PAGES) {
       const scan = await scanSeats(run, stepAt(size.width));
       expect
         .soft(
-          SEATS.filter((s) => !scan.points.has(s)),
+          seats.filter((s) => !scan.points.has(s)),
           `seats a mouse scan found no point on, ${at}`,
         )
         .toEqual([]);
@@ -638,7 +657,7 @@ for (const url of PAGES) {
         ];
         const off: string[] = [];
         const reads: string[] = [];
-        for (const seat of SEATS) {
+        for (const seat of seats) {
           const sample = vellumCells.get(seat);
           if (!sample) {
             off.push(`${seat}: no cell of the scan on the canvas's coverage`);
@@ -649,11 +668,18 @@ for (const url of PAGES) {
           reads.push(
             `${seat} L ${lab.L.toFixed(3)} (${sample.cells.length} ${sample.method} cells)`,
           );
+          // Seat 5.0, the stern sliver, has a light floor of 0.84, at every size (Iris's call,
+          // sprint 53). Ya moves the ghost down (177.7 to 338.1 at 1440), a whole-pixel row shift
+          // of the same settled pose: 0 of 161,100 pixels differ once shifted by a row (Pixel).
+          // The sliver's ~46 pixels sit on its shaded edge, and on main 16 of them already read
+          // under 0.85, so its median reads 0.850 on the floor. GHOST_LIT stays 0.4, and the other
+          // 21 planks, the dark band and a and b are unchanged.
+          const floor = seat === "5.0" ? 0.84 : 0.85;
           const why = [
             scheme === "light"
-              ? lab.L >= 0.85 && lab.L <= 0.935 && lab.L < film.L
+              ? lab.L >= floor && lab.L <= 0.935 && lab.L < film.L
                 ? ""
-                : `L ${lab.L.toFixed(3)} outside 0.85 to 0.935 or not under the film's ${film.L.toFixed(3)}`
+                : `L ${lab.L.toFixed(3)} outside ${floor} to 0.935 or not under the film's ${film.L.toFixed(3)}`
               : lab.L >= 0.42 && lab.L <= 0.5 && lab.L <= card.L + 0.005
                 ? ""
                 : `L ${lab.L.toFixed(3)} outside 0.42 to 0.50 or over --card's ${card.L.toFixed(3)} + 0.005`,
@@ -682,7 +708,7 @@ for (const url of PAGES) {
             `canvas pixels within ΔE 10 of --accent, settled${record ? ", the record's mark showing" : ""}, ${where}`,
           )
           .toBe(0);
-        const hovered = scan.points.get(SEATS[0] ?? "");
+        const hovered = scan.points.get(seats[0] ?? "");
         if (hovered) {
           await run.page.mouse.move(hovered.x, hovered.y);
           await pause(300);
@@ -699,7 +725,10 @@ for (const url of PAGES) {
         if (plain && scheme === "light") {
           // One seat marked: what the record's canvas changes from /log's is on its seat alone.
           const seat = markedSeat(MARKED);
-          const own = scan.grid.filter(([, , s]) => s === seat);
+          const own = [
+            ...scan.grid.filter(([, , s]) => s === seat),
+            ...gapCells,
+          ];
           const w = Math.min(plain.width, settled.image.width);
           const h = Math.min(plain.height, settled.image.height);
           expect
@@ -790,7 +819,7 @@ for (const url of PAGES) {
           expect
             .soft(
               stray,
-              `pixels the record's canvas changes away from seat ${seat} (sprint ${MARKED}'s), ${where}`,
+              `pixels the record's canvas changes away from seat ${seat} (sprint ${MARKED}'s) and the step's gaps (${gaps.join(", ")}), ${where}`,
             )
             .toBe(0);
         }
