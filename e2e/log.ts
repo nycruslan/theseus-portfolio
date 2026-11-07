@@ -160,3 +160,20 @@ export const sameColor = (a: Rgba, b: Rgba) =>
         (value, i) => Math.abs(value - (b[i] ?? -9)) <= (i < 3 ? 1 : 0.02),
       ),
   );
+
+/**
+ * Ya's words, Iris's (.crew/sprint/53/placement.md): each link's accessible name, Start again, the
+ * Theseus's caption and the question. Each is one line here. The caption has no contract hook: the
+ * checks find it by its opening words and read it whole.
+ */
+export const YARD_WORDS = {
+  previous: (p: number) => `Back to sprint ${p}`,
+  next: (q: number) => `Seat sprint ${q}'s plank`,
+  start: (first: number) => `Start again from sprint ${first}`,
+  caption: "The Theseus",
+  captionAt: (n: number, today: boolean) =>
+    today
+      ? `The Theseus today, after sprint ${n}`
+      : `The Theseus after sprint ${n}`,
+  question: "The ghost hull is whole again. Which one is the Theseus?",
+};

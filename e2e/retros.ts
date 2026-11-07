@@ -450,3 +450,73 @@ export const LINES_PHRASE = "lines of the site's code are still original";
 
 /** The Log's lines line, from the newest record; undefined when no sprint has one (the line is absent). */
 export const LINES = NEWEST_MERGE ? linesLine(NEWEST_MERGE) : undefined;
+
+// ---------------------------------------------------------------------------------------------
+// The yard (.crew/sprint/52/first-contract.md, "The rule, word for word"; amended in
+// .crew/sprint/53/contract.md: every count from the record). Implemented from the rule's words,
+// never from lib/lines-plan.ts.
+
+/**
+ * "The steps are the Log's merged sprints in ascending sprint order (MERGED). Step n is merged
+ * sprint n, the i-th of them, counting i from 1."
+ */
+export const STEPS: readonly number[] = MERGED.map((retro) => retro.sprint);
+
+/** Step n's i, counting from 1; 0 when n is not a merged sprint. */
+export const stepIndex = (n: number) => STEPS.indexOf(n) + 1;
+
+/** The newest step, which /log is. */
+export const NEWEST_STEP = STEPS.at(-1) ?? Number.NaN;
+
+/**
+ * "The first i merged sprints have seated their planks. The k-th seats ORDER[(k − 1) mod 22]." Each
+ * seat's holders after step n, in the order they seated it.
+ */
+function holdersAt(n: number) {
+  const holders = new Map<string, number[]>();
+  STEPS.slice(0, stepIndex(n)).forEach((sprint, at) => {
+    const seat = ORDER[at % ORDER.length] ?? "";
+    holders.set(seat, [...(holders.get(seat) ?? []), sprint]);
+  });
+  return holders;
+}
+
+/**
+ * The Theseus after step n: "each seat shows the last of them to seat it, as its data-sprint. A
+ * seat none of them seated shows its original" (missing from the map).
+ */
+export const THESEUS_AT = (n: number): Record<string, number> =>
+  Object.fromEntries(
+    [...holdersAt(n)].map(([seat, list]) => [seat, list.at(-1) ?? 0]),
+  );
+
+/**
+ * The ghost after step n: "each seat shows the first of them to seat it. A seat none of them seated
+ * is a gap" (missing from the map).
+ */
+export const GHOST_AT = (n: number): Record<string, number> =>
+  Object.fromEntries(
+    [...holdersAt(n)].map(([seat, list]) => [seat, list[0] ?? 0]),
+  );
+
+/** "The count line (p[data-ghost-count]), with k = i", word for word. */
+export function COUNT_AT(k: number) {
+  const all = PLANK_IDS.length;
+  if (k < all) {
+    const sailing = all - k;
+    return `${k} of ${all} original planks ${k === 1 ? "is" : "are"} out. ${
+      sailing === 1
+        ? "The gap is the 1 still sailing."
+        : `The gaps are the ${sailing} still sailing.`
+    }`;
+  }
+  const since = k - all;
+  return `All ${all} original planks are out: the last went with sprint ${STEPS[all - 1]}.${
+    since > 0
+      ? ` Since then the crew has replaced ${since} ${since === 1 ? "plank" : "planks"} of its own.`
+      : ""
+  }`;
+}
+
+/** The step where k = 22: the one page that asks the question (sprint 23 today). */
+export const QUESTION_STEP = STEPS[PLANK_IDS.length - 1];
