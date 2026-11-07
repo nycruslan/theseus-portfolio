@@ -139,11 +139,11 @@ export function Log({ entries, open }: LogProps) {
 
   return (
     <>
-      {/* Below 1024 px CSS sets the drawing above the caption, but in the DOM it follows the
-        header and the record, so a first paint of HTML cut before it would draw the header
-        without it, and the drawing's arrival would push the caption down: B5.25's layout shift
-        of 0.0699 on /log/13 at 320 (.crew/sprint/33/). The page paints only once the parser is
-        past the drawing and the model's layer, whose next element is Every revision's heading.
+      {/* Below 1024 px CSS sets the drawings above the caption, but in the DOM they follow the
+        header and the record, so a first paint of HTML cut before them would draw the header
+        without them, and their arrival would push the caption down: B5.25's layout shift of
+        0.0699 on /log/13 at 320 (.crew/sprint/33/). The page paints only once the parser is past
+        both drawings and the model's layer, whose next element is Every revision's heading.
         React puts the link in the head; Chromium honours it, other browsers paint as before. */}
       <link rel="expect" href="#every-revision" blocking="render" />
       <SkipLink />
@@ -160,9 +160,11 @@ export function Log({ entries, open }: LogProps) {
       >
         {/* The header, then the record, then the drawings: below 1024 px CSS sets the drawings
           between the h1 and the caption, as the frame does; they are hidden from assistive tech,
-          so the reading order is the DOM's (.crew/sprint/30/notes-iris.md, section 1.2). From
-          1024 the header and the record are one column beside the drawings, so the Theseus over
-          the ghost moves neither (.crew/sprint/52/first-contract.md, "Iris's calls come first"). */}
+          so the reading order is the DOM's (.crew/sprint/30/notes-iris.md, section 1.2). A step
+          is a flip-book frame (.crew/sprint/53/placement.md): both drawings keep their boxes from
+          step to step, so every line whose length varies with the step sits in the header. From
+          1024 the header and the record are one column beside the drawings, so neither moves
+          (.crew/sprint/52/first-contract.md, "Iris's calls come first"). */}
         <div className="log-side">
           <div className="log-head">
             <h1>Log</h1>
@@ -171,17 +173,17 @@ export function Log({ entries, open }: LogProps) {
               numbered by the sprint that replaced it.
             </p>
             <p data-ghost-count="">{countLine(ships.k, merged)}</p>
-            {/* At the step where the last original leaves, and on no other page. */}
+            {/* At the step where the last original leaves, and on no other page. One string, so
+            the server's HTML holds the sentence whole. */}
             {record && ships.k === PLANKS.length ? (
-              <p data-yard-question="">
-                No original plank is left, and the ghost hull is whole. Which
-                one is the Theseus?
+              <p data-yard-question="" className="log-question">
+                {"The ghost hull is whole again. Which one is the Theseus?"}
               </p>
             ) : null}
             {record ? null : (
               <p className="log-start">
                 <a href={`/log/${merged[0]}`} data-step="start">
-                  Start again
+                  {`Start again from sprint ${merged[0]}`}
                 </a>
               </p>
             )}
@@ -193,7 +195,7 @@ export function Log({ entries, open }: LogProps) {
           foot on / (.crew/sprint/31/review-iris.md; .crew/sprint/33/notes-iris.md, section 5).
           Under the drawing the row would part the ghost hull from its caption, and on a record it
           would sit above the record's links yet follow them in Tab order, since the record
-          precedes the drawing in the DOM. Here Tab meets it where the eye does. */}
+          precedes the drawings in the DOM. Here Tab meets it where the eye does. */}
           <Foot control={<MotionControl />} />
 
           {record && seat ? (
@@ -207,10 +209,17 @@ export function Log({ entries, open }: LogProps) {
           ) : null}
         </div>
 
+        {/* The Theseus right before the ghost, so the ghost stays the drawing [data-model]
+          follows. */}
         <div className="log-theseus">
-          <LinesPlan seats={ships.theseus} view="theseus" current={seat?.[0]} />
-          <p data-theseus-caption="">
-            {"The Theseus after "}
+          <LinesPlan
+            seats={ships.theseus}
+            view="theseus"
+            current={seat?.[0]}
+            className="log-theseus-drawing"
+          />
+          <p data-theseus-caption="" className="log-theseus-caption">
+            {record ? "The Theseus after " : "The Theseus today, after "}
             <span className="whitespace-nowrap">{`sprint ${shown}`}</span>
           </p>
         </div>

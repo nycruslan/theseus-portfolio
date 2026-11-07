@@ -686,11 +686,16 @@ nav > [data-motion] {
  * the ship that sails. Inert like the lines plan, and never read by the 3D chunk.
  */
 
-/* On a record, the seat its sprint took: an ink edge and a bolder number, the fill unchanged. The
-   plank is drawn last, so its edge is whole. */
+/* On a record, the seat its sprint took: an ink edge and a bolder number, the fill unchanged; the
+   Theseus's edge is heavier, since its neighbours' are ink too. The plank is drawn last, so its
+   edge is whole. */
 :is([data-ghost], [data-theseus]) path[data-current] {
   stroke: var(--foreground);
   stroke-width: 1.4px;
+}
+
+[data-theseus] path[data-current] {
+  stroke-width: 2px;
 }
 
 .plan-view:is(.plan-ghost, .plan-theseus) > .plan-plank {
@@ -1779,13 +1784,15 @@ main:has(> [data-model]) {
 
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
- * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3). Below 1024 px one column:
- * the h1, the drawing, the caption, the count line, the lines figure, the row of Read as page and
- * the motion control, the record when one is open, then Every revision, its 2 px rule edge to edge as the facts' are.
- * The drawing follows the header in the DOM and is set after the h1 here; it is hidden from
- * assistive tech, so the reading order is the DOM's. From 1024 the sheet's inset box as a
- * two-column grid: the drawing beside the header, then Every revision beside the record, or across
- * both columns on /log. Nothing here moves: the ghost's 3D is the model layer's (above).
+ * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3; the yard's steps,
+ * .crew/sprint/53/placement.md). Below 1024 px one column: the h1, the Theseus and its caption,
+ * the ghost, its caption, the count line, the question or Start again, the lines figure, the row
+ * of Read as page and the motion control, the record when one is open, then Every revision, its
+ * 2 px rule edge to edge as the facts' are. The drawings follow the header in the DOM and are set
+ * after the h1 here; they are hidden from assistive tech, so the reading order is the DOM's. From
+ * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
+ * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
+ * the model layer's (above).
  */
 .log {
   display: flex;
@@ -1808,23 +1815,22 @@ main:has(> [data-model]) {
   letter-spacing: -0.01em;
 }
 
-/* The Theseus over the ghost, each a drawing at the same size, the Theseus's caption under it.
-   Both follow the record in the DOM and take the h1's next place. */
+/* The Theseus over the ghost, two drawings at one size, the Theseus's caption under it in the
+   header's type, one line at every width (.crew/sprint/53/placement.md). Both follow the record in
+   the DOM and take the h1's next place: 6 px from the caption to its drawing, 14 to the ghost. */
 .log-theseus {
   order: 2;
   margin-top: 16px;
 }
 
-[data-theseus-caption] {
+.log-theseus-caption {
   margin-top: 6px;
-  font-size: var(--step-sm);
   line-height: 1.45;
-  color: var(--muted);
 }
 
 .log-ghost {
   order: 2;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .log-head p {
@@ -1844,43 +1850,50 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
-/* The 22nd merge's question, in ink under the count it answers. */
-[data-yard-question] {
+/* The 22nd merge's question, in the count line's slot: the body face, a step up, in ink, so it
+   doesn't stack a third condensed block against the h1 and the lines figure. It out-ranks
+   `.log-head p`. */
+.log-head .log-question {
   order: 4;
-  margin-top: 8px;
+  margin-top: 12px;
+  font-size: var(--step-lg);
   font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
 }
 
-/* "Start again" on /log, its own line under the count. */
+/* Start again, on /log in the same slot, looks like Read as page (components/foot.tsx): ink, a
+   1 px underline 6 px off, 2 px hovered, a 44 px target, 24 from 1024. Never copper, the site's
+   ring (Y4). */
 .log-start {
   order: 4;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
-/* The steps through the yard (Y4): ink and underlined like the record's links, never copper, the
-   site's ring, 44 px tall below 1024 and 24 x 24 from it. */
-a[data-step] {
+.log-start a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   color: var(--foreground);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  white-space: nowrap;
+  text-underline-offset: 6px;
 }
 
 @media (hover: hover) {
-  a[data-step]:hover {
+  .log-start a:hover {
     text-decoration-thickness: 2px;
   }
 }
 
 @media (width >= 64rem) {
-  a[data-step] {
-    min-width: 24px;
+  .log-start {
+    margin-top: 8px;
+  }
+
+  .log-start a {
     min-height: 24px;
   }
 }
@@ -2169,8 +2182,10 @@ a[data-step] {
   }
 
   /* The right column is the header, then the record: one item, so the drawings' height moves
-     neither. On /log it spans the drawings' rows and Every revision runs under both columns; on a
-     record it runs down beside Every revision too. */
+     neither, and its height, which varies by step, moves neither drawing: the drawings' rows are
+     the drawings' own, and the ghost's, the flexible one, takes any slack under the ghost. On /log
+     it spans the drawings' rows and Every revision runs under both columns; on a record it runs
+     down beside Every revision too. */
   .log-side {
     display: block;
     grid-column: 2;
@@ -2202,12 +2217,13 @@ a[data-step] {
     grid-column: 1;
     grid-row: 2;
     align-self: start;
-    margin: 16px 0 0 24px;
+    margin: 24px 0 0 24px;
   }
 
-  /* The model's layer is the drawings' rows, so the canvas it lays on the ghost is inside it. */
+  /* The model's layer is the drawings' rows: it clips to its grid area, so the canvas it lays on
+     the ghost must lie inside it. */
   .log-ghost + [data-model] {
-    grid-row: 1 / 3;
+    grid-area: 1 / 1 / 3 / -1;
   }
 
   .record {
@@ -2259,7 +2275,8 @@ a[data-step] {
   }
 }
 
-/* The number, the steps after it, and Close at the row's right. */
+/* The number at the left, the steps at the right (.crew/sprint/53/placement.md): in one row they
+   cost nothing above the h2, 283 px at their widest against 310 at 1024 and 324 at 390. */
 .record-top {
   display: flex;
   align-items: center;
@@ -2272,13 +2289,54 @@ a[data-step] {
   font-variant-numeric: tabular-nums;
 }
 
-.record-close {
+.record-steps {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+}
+
+/* Close and the steps: ink underlined (`.record a`), never copper, the site's ring, 44 px tall
+   below 1024 and 24 from it (Y4). An arrow is drawn 4 px off its word; as an inline-block it is
+   left out of the underline. */
+.record-close,
+.record-steps a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-left: auto;
   font-size: var(--step-sm);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.step-arrow {
+  display: inline-block;
+}
+
+[data-step="previous"] .step-arrow {
+  margin-right: 4px;
+}
+
+[data-step="next"] .step-arrow {
+  margin-left: 4px;
+}
+
+/* Below 360 the four don't fit one row: the steps take their own, previous at the left and next
+   at the right, alone or not. */
+@media (width < 22.5rem) {
+  .record-top {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .record-steps {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .record-steps [data-step="next"] {
+    margin-left: auto;
+  }
 }
 
 /* `pretty`, not `balance`: a goal that runs past two lines keeps its lines full at 390, where balance
@@ -2349,6 +2407,18 @@ a[data-step] {
   background: var(--muted);
 }
 
+/* Close at the foot's right, under its rule. */
+.record-foot {
+  display: flex;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.record-foot .record-close {
+  margin-left: auto;
+}
+
 @media (width >= 64rem) {
   .record {
     padding: 20px 24px 24px;
@@ -2358,7 +2428,8 @@ a[data-step] {
     margin-top: 8px;
   }
 
-  .record-close {
+  .record-close,
+  .record-steps a {
     min-height: 24px;
   }
 }
