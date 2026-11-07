@@ -93,17 +93,28 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # The check the `protect-main` ruleset requires, by this name. It passes only when `verify` and
-  # every shard passed. `always()` makes it report even when a job above failed or the run was
-  # cancelled; under `!cancelled()` it would be skipped instead, and GitHub counts a skipped
-  # required check as passing.
+  # The check the `protect-main` ruleset requires, by this name. It passes only when every other
+  # job in this run succeeded. It starts with the run rather than after the jobs (`needs:`), so a
+  # head shows `check` pending from the first second and a cancelled run leaves it cancelled, as
+  # the single job did. Under `needs:` it would start only once the shards finished: until then
+  # the newest `check` on a re-run head (a PR body edit starts one) is the cancelled run's, which
+  # merge.mjs reads as a failure, or a skipped one, which GitHub counts as passing.
   check:
-    if: always()
-    needs: [verify, e2e]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Waits for the slowest shard, whose own cap is 20 minutes.
+    timeout-minutes: 25
+    permissions:
+      actions: read
     steps:
-      - run: test "$VERIFY" = success && test "$E2E" = success
-        env:
-          VERIFY: ${{ needs.verify.result }}
-          E2E: ${{ needs.e2e.result }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          JOBS: repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100
+        run: |
+          # A failed API call waits and asks again; the job's cap ends a wait that never settles.
+          until others=$(gh api "$JOBS" --jq '[.jobs[] | select(.name != "check")]') &&
+            jq -e 'all(.status == "completed")' <<<"$others" >/dev/null; do
+            sleep 15
+          done
+          jq -r '.[] | "\(.name): \(.conclusion)"' <<<"$others"
+          jq -e 'any(.name == "verify") and any(.name | startswith("e2e (")) and
+            all(.conclusion == "success")' <<<"$others" >/dev/null
