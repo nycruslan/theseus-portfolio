@@ -2157,9 +2157,12 @@ a[data-step] {
     padding-block: 4px;
   }
 
+  /* The ghost's row is the flexible one, so where the header outgrows the two drawings its slack
+     falls under the ghost, never between the ships. */
   .log {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto 1fr;
     column-gap: 40px;
     margin: 0 16px;
     padding: 0;
@@ -2198,6 +2201,7 @@ a[data-step] {
   .log-ghost {
     grid-column: 1;
     grid-row: 2;
+    align-self: start;
     margin: 16px 0 0 24px;
   }
 
