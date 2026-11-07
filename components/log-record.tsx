@@ -101,11 +101,23 @@ export function LogRecord({
 
   return (
     <section aria-labelledby="record" className="record">
-      {/* The revision's number, and Close back to the Log at the row's right. Plain links, no
-        boxes (.crew/sprint/30/notes-iris.md, section 2.3); the one list in the record is what
-        went wrong. */}
+      {/* The revision's number, the steps either side of it by merged order, each left out at its
+        end, and Close back to the Log at the row's right: the record's head, in the first screen,
+        so a visitor steps through the yard from it (.crew/sprint/52/first-contract.md, Y4). Plain
+        links, no boxes (.crew/sprint/30/notes-iris.md, section 2.3); the one list in the record
+        is what went wrong. */}
       <div className="record-top">
         <p className="record-rev">Rev {sprint}</p>
+        {previous === undefined ? null : (
+          <a href={`/log/${previous}`} data-step="previous">
+            Rev {previous}
+          </a>
+        )}
+        {next === undefined ? null : (
+          <a href={`/log/${next}`} data-step="next">
+            Rev {next}
+          </a>
+        )}
         <a href="/log" className="record-close">
           Close<span className="sr-only"> revision {sprint}</span>
         </a>
@@ -129,17 +141,6 @@ export function LogRecord({
           </ul>
         </>
       ) : null}
-      {/* Earlier at the left, later at the right, by merged order; each left out at its end. */}
-      <div className="record-foot">
-        {previous === undefined ? null : (
-          <a href={`/log/${previous}`}>Rev {previous}</a>
-        )}
-        {next === undefined ? null : (
-          <a href={`/log/${next}`} className="record-next">
-            Rev {next}
-          </a>
-        )}
-      </div>
     </section>
   );
 }

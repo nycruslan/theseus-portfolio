@@ -8,7 +8,7 @@ import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { PLANKS } from "@/lib/hull-layouts";
-import { ghostPlanks, seatHolders } from "@/lib/lines-plan";
+import { seatHolders, shipsAt } from "@/lib/lines-plan";
 import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
 import type { MergeRecord, SprintEntry } from "@/lib/sprint-log";
 
@@ -28,18 +28,24 @@ type LogProps = {
 };
 
 /**
- * The count line under the caption (contract, "The Log's header"). "sprint 23" never breaks, so a
- * phone's line doesn't end on "sprint" with the number alone below it.
+ * The count line under the caption, after `k` merges (.crew/sprint/52/first-contract.md, "The
+ * rule, word for word"). "sprint 23" never breaks, so a phone's line doesn't end on "sprint" with
+ * the number alone below it.
  */
-function countLine(merged: readonly number[]): ReactNode {
-  const k = merged.length;
+function countLine(k: number, merged: readonly number[]): ReactNode {
   const all = PLANKS.length;
   if (k < all) {
-    return `${k} of ${all} original planks are out. The gaps are the ${all - k} still sailing.`;
+    const sailing = all - k;
+    return `${k} of ${all} original planks ${k === 1 ? "is" : "are"} out. ${
+      sailing === 1
+        ? "The gap is the 1 still sailing."
+        : `The gaps are the ${sailing} still sailing.`
+    }`;
   }
+  const own = k - all;
   const since =
-    k > all
-      ? ` Since then the crew has replaced ${k - all} planks of its own.`
+    own > 0
+      ? ` Since then the crew has replaced ${own} ${own === 1 ? "plank" : "planks"} of its own.`
       : "";
   return (
     <>
@@ -122,8 +128,11 @@ export function Log({ entries, open }: LogProps) {
   const seat = record
     ? [...holders].find(([, list]) => list.includes(record.sprint))
     : undefined;
-  // The record's place in merged order, for its previous and next revisions.
+  // The record's place in merged order, its previous and next steps.
   const at = record ? merged.indexOf(record.sprint) : -1;
+  // Both ships as they stood after the record's step, or, on /log, as they stand today.
+  const ships = shipsAt(merged, record?.sprint);
+  const shown = record?.sprint ?? merged.at(-1);
   // The newest record is the one merged last: the lines figure's, and the year a date leaves out.
   const newest = latestMerge(entries);
   const year = newest ? utcYear(newest.mergedAt) : Number.NaN;
@@ -149,39 +158,64 @@ export function Log({ entries, open }: LogProps) {
         tabIndex={-1}
         className={`log${record ? " log-open" : ""} ${sofiaCondensed.variable}`}
       >
-        {/* The header, then the record, then the drawing: below 1024 px CSS sets the drawing
-          between the h1 and the caption, as the frame does; it is hidden from assistive tech, so
-          the reading order is the DOM's (.crew/sprint/30/notes-iris.md, section 1.2). */}
-        <div className="log-head">
-          <h1>Log</h1>
-          <p data-ghost-caption="">
-            The ghost hull: the original planks the crew has taken out, each
-            numbered by the sprint that replaced it.
-          </p>
-          <p data-ghost-count="">{countLine(merged)}</p>
-          {newest ? <LinesFigure {...newest} /> : null}
-        </div>
+        {/* The header, then the record, then the drawings: below 1024 px CSS sets the drawings
+          between the h1 and the caption, as the frame does; they are hidden from assistive tech,
+          so the reading order is the DOM's (.crew/sprint/30/notes-iris.md, section 1.2). From
+          1024 the header and the record are one column beside the drawings, so the Theseus over
+          the ghost moves neither (.crew/sprint/52/first-contract.md, "Iris's calls come first"). */}
+        <div className="log-side">
+          <div className="log-head">
+            <h1>Log</h1>
+            <p data-ghost-caption="">
+              The ghost hull: the original planks the crew has taken out, each
+              numbered by the sprint that replaced it.
+            </p>
+            <p data-ghost-count="">{countLine(ships.k, merged)}</p>
+            {/* At the step where the last original leaves, and on no other page. */}
+            {record && ships.k === PLANKS.length ? (
+              <p data-yard-question="">
+                No original plank is left, and the ghost hull is whole. Which
+                one is the Theseus?
+              </p>
+            ) : null}
+            {record ? null : (
+              <p className="log-start">
+                <a href={`/log/${merged[0]}`} data-step="start">
+                  Start again
+                </a>
+              </p>
+            )}
+            {newest ? <LinesFigure {...newest} /> : null}
+          </div>
 
-        {/* Below 768 px the bar is full (components/bar.tsx), so Read as page and the motion
+          {/* Below 768 px the bar is full (components/bar.tsx), so Read as page and the motion
           control close the header here, in one row under the lines figure, as at the drawing's
           foot on / (.crew/sprint/31/review-iris.md; .crew/sprint/33/notes-iris.md, section 5).
           Under the drawing the row would part the ghost hull from its caption, and on a record it
           would sit above the record's links yet follow them in Tab order, since the record
           precedes the drawing in the DOM. Here Tab meets it where the eye does. */}
-        <Foot control={<MotionControl />} />
+          <Foot control={<MotionControl />} />
 
-        {record && seat ? (
-          <LogRecord
-            entry={record}
-            seat={seat[0]}
-            holders={seat[1]}
-            previous={merged[at - 1]}
-            next={merged[at + 1]}
-          />
-        ) : null}
+          {record && seat ? (
+            <LogRecord
+              entry={record}
+              seat={seat[0]}
+              holders={seat[1]}
+              previous={merged[at - 1]}
+              next={merged[at + 1]}
+            />
+          ) : null}
+        </div>
 
+        <div className="log-theseus">
+          <LinesPlan seats={ships.theseus} view="theseus" current={seat?.[0]} />
+          <p data-theseus-caption="">
+            {"The Theseus after "}
+            <span className="whitespace-nowrap">{`sprint ${shown}`}</span>
+          </p>
+        </div>
         <LinesPlan
-          seats={ghostPlanks(merged)}
+          seats={ships.ghost}
           view="ghost"
           current={seat?.[0]}
           className="log-ghost"
