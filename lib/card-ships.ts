@@ -33,12 +33,13 @@ export type CardShip = {
 };
 
 /**
- * Each line's weight in the card's pixels: the page's (app/globals.css, "The ghost hull" and the
- * Theseus after it), which hold at every width there; the card is drawn at about the page's size.
+ * Each line's weight in the card's pixels. A network shows the card at 0.3 to 0.46 of its size, so
+ * its lines run about 1.5 times the page's (app/globals.css, "The ghost hull" and the Theseus after
+ * it), which hold at every width there; the leaders keep the page's (Iris).
  */
 const WEIGHT = {
-  ghost: { outline: 1.4, plank: 0.75, current: 1.4 },
-  theseus: { outline: 1.6, plank: 0.9, current: 2 },
+  ghost: { outline: 2, plank: 1, current: 2 },
+  theseus: { outline: 2.4, plank: 1.2, current: 3 },
   leader: 0.75,
 } as const;
 

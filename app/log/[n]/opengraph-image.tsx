@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { profile } from "@/content/profile";
+import { cardText } from "@/lib/card";
 import { cardFonts } from "@/lib/card-fonts";
 import { type CardShip, cardShips } from "@/lib/card-ships";
 import { LIGHT, SITE_URL } from "@/lib/site";
@@ -9,8 +10,8 @@ import { STEP_CARD, stepCard } from "@/lib/step-card";
 // A step's own card (.crew/sprint/54/contract.md; Iris's "share card for /log/23" in
 // .crew/sprint/52/design/yard-states.webp): both ships as they stood after sprint n, the Theseus
 // above the ghost, beside the step's head, its headline and the page's count line, every word from
-// lib/step-card.ts; under an ink rule, the owner's name in the condensed display face, his role,
-// and the step's address. In the light tokens and the root card's faces (lib/card-fonts.ts).
+// lib/step-card.ts; under an ink rule, the owner's name in the condensed display face, his role at
+// his employer, and the step's address. In the light tokens and the root card's faces (lib/card-fonts.ts).
 // Prerendered for every step at build, as the records are. The page names it with the step's own
 // alt (app/log/[n]/page.tsx): a card file's `alt` is one string for every step, and
 // generateImageMetadata, which varies it, moves the image under a param no build-time list reaches.
@@ -23,6 +24,9 @@ export function generateStaticParams() {
 }
 
 const fonts = await cardFonts();
+
+/** The foot's role: the root card's lead without its full stop (Foot says why). */
+const ROLE = cardText(profile).lead.replace(/\.$/, "");
 
 /** The drawings' width: the card's left column, as the frame sets it. */
 const SHIP_WIDTH = 600;
@@ -110,6 +114,7 @@ function Words({ card }: { card: ReturnType<typeof stepCard> }) {
           fontWeight: 700,
           lineHeight: 1.02,
           letterSpacing: -headline / 100,
+          textWrap: "balance",
         }}
       >
         {card.headline}
@@ -121,7 +126,11 @@ function Words({ card }: { card: ReturnType<typeof stepCard> }) {
   );
 }
 
-/** Under an ink rule: the owner's name, his role and the step's address. */
+/**
+ * Under an ink rule: the owner's name, his role at his employer and the step's address. The role is
+ * the root card's lead, the bio's first sentence (lib/card.ts), without its full stop: the one
+ * place the unfurl says who he is, so it names the scale an executive reads (Atlas's call).
+ */
 function Foot({ sprint }: { sprint: number }) {
   return (
     <div
@@ -137,14 +146,14 @@ function Foot({ sprint }: { sprint: number }) {
       <div
         style={{
           fontFamily: DISPLAY,
-          fontSize: 40,
+          fontSize: 48,
           fontWeight: 700,
           lineHeight: 1,
         }}
       >
         {profile.name}
       </div>
-      <div style={{ fontSize: 22 }}>{profile.headline}</div>
+      <div style={{ fontSize: 28 }}>{ROLE}</div>
       <div style={{ marginLeft: "auto", fontSize: 22, color: LIGHT.muted }}>
         {`${new URL(SITE_URL).host}/log/${sprint}`}
       </div>
