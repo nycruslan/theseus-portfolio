@@ -1,0 +1,55 @@
+{
+ "sprint": 53,
+ "pr": 119,
+ "goal": "Every step of the record is a page: both ships as they stood after it",
+ "goalFrom": "roadmap",
+ "size": "M",
+ "outcome": "merged",
+ "fixRounds": 1,
+ "minutes": 125,
+ "agents": [
+  {
+   "role": "qa-engineer",
+   "model": "opus",
+   "tokens": 106662,
+   "minutes": 14
+  }
+ ],
+ "lens": {
+  "runs": 1,
+  "tokens": 5330167,
+  "important": 0,
+  "actedOn": 0,
+  "nits": 2
+ },
+ "wentWrong": [
+  {
+   "what": "A check change the team had agreed on never reached the branch",
+   "evidence": "Decision 10's B5.18 and B5.19 clauses were recorded at a1ea5c9 without Probe's commit; CI went red on exactly those two, and a resumed run landed them in 3726840"
+  },
+  {
+   "what": "The 3D ghost's seams ran a few pixels into the gaps on a partial step",
+   "evidence": "The rewritten B5.18 read 3 px on /log/13; Pixel's seam trim (330838c) ends each seam at its seated planks"
+  }
+ ],
+ "proposals": [
+  {
+   "change": "Have a role's report name its pushed branch and commit, and have Atlas check the sprint branch for them before recording a decision as done",
+   "moves": "decisions recorded but missing from the branch (1 this sprint)"
+  }
+ ],
+ "followUps": [
+  {
+   "who": "Forge",
+   "what": "Lens's nit: update the Log's layout comments (globals.css 169, 1788, 2262, 2332; foot.tsx; bar.tsx) to the phone row under the h1"
+  },
+  {
+   "who": "Probe",
+   "what": "Lens's nit: report Y8's script bytes before and after, and each shard's time, in Yb's record"
+  },
+  {
+   "who": "Pixel",
+   "what": "Yc's contract starts from the two-hull spike (spike-pixel.md)"
+  }
+ ]
+}

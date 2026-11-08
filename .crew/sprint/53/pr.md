@@ -23,7 +23,7 @@ planned by Quill in sprint 52, under the owner's sprint 52 goal.
 ### Who did what
 
 - **Iris:** the placement and words (`placement.md`, with its phone-row addendum), the GHOST_LIT
-  call, and an early look. Her verdict was ship (8.2), and it is posted below as advice.
+  call, and an early look. Her verdict was ship (8.2). Its full text was lost with the first run's session, so it isn't posted.
 - **Forge:** the rule (`shipsAt` in `lib/lines-plan.ts`), the Theseus drawing, the step pages, the
   links and the CSS.
 - **Pixel:**
@@ -43,6 +43,7 @@ planned by Quill in sprint 52, under the owner's sprint 52 goal.
   - B5.19's mark has **0** pixels away from the marked seat, against 8 before.
   - The whole of `log-model.spec.ts` passed in 2 runs (8 passed).
   - `expect(` counts are unchanged.
+- **CI on 040baac:** every check passed. The e2e shards took 5.7, 12.1, 8.1 and 9.4 minutes, all under the 20-minute budget. Lens: ship, with two nits that ride along with Yb: stale layout comments in `app/globals.css`, `foot.tsx` and `bar.tsx`, and Y8's script bytes before and after, which are not in this record. Y8 itself asserts 0 B of new script.
 - **B5.18 still bites.** With Pixel's seam trim reverted, it reads 3.00 / 3.50 px at 1440 and 2.00 / 1.50 at 390, all red. With all 22 planks drawn, it reads 12.00 / 6.00 px.
 
 ### The kept checks this rewrites, and why
