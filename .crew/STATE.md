@@ -125,6 +125,9 @@ makes stale.
     CI, not a judgement: re-run its failed job once (`actions/runs/<id>/rerun-failed-jobs`)
     before pushing anything, since a push re-reviews from scratch. Sprint 24's died at 71 turns
     and 7.6M tokens; the re-run shipped the same head in 36.
+    Read the job's log first: one that died at setup (sprint 55: three runs on 504s installing Bun
+    from GitHub's releases) needs the outage over, so probe the download until it answers twice in
+    a row before the next re-run; a run that is still going answers 403 to a re-run.
 - **Designs.**
   - A direction only in a repo file reaches nobody (sprints 15 and 16 were superseded this way):
     it goes on a Design canvas, where the build starts on Iris's recommendation and the owner may

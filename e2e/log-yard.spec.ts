@@ -788,7 +788,7 @@ const unpainted = (
     .map((p) => `${p.id}: fill ${p.fill}, alpha ${p.alpha}, seen ${p.seen}`);
 
 for (const url of SAMPLED) {
-  test(`Y6 Whole in every mode, on ${url}: with WebGL refused, Off stored or scripts off, every plank of both drawings painted at full opacity at 1440 and 390; in Full and in Calm at rest, one canvas, the ghost's, the Theseus's planks still painted, the 3D ghost's planks exactly GHOST_AT(n), and no console errors`, async ({
+  test(`Y6 Whole in every mode, on ${url}: with WebGL refused, Off stored or scripts off, every plank of both drawings painted at full opacity at 1440 and 390; in Full and in Calm at rest, one canvas, the ghost's, the 3D ghost's planks exactly GHOST_AT(n), and no console errors (the Theseus at rest is the canvas's since Yc: Y12 checks it)`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(420_000);
@@ -842,12 +842,10 @@ for (const url of SAMPLED) {
             `the canvas is the ghost's model's, ${where}`,
           )
           .toBe(1);
-        expect
-          .soft(
-            unpainted(paint.theseus),
-            `Theseus planks not painted whole, ${where}`,
-          )
-          .toEqual([]);
+        // Retired in sprint 55 (Yc): "the Theseus's planks still painted" at rest in Full and Calm.
+        // The Theseus is drawn in the one canvas now and its svg goes under the model as the
+        // ghost's does; Y12 (e2e/log-press.spec.ts) checks it there, frame 1's registration and
+        // fills on [data-theseus] and its settled pixels in that box (accepted by Atlas for Lens).
         const scan = await scanSeats(run, width >= 1280 ? 6 : 2);
         const picked = [...new Set(scan.grid.map(([, , seat]) => seat))].sort();
         testInfo.annotations.push({

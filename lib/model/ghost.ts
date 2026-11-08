@@ -3,7 +3,18 @@
 // numbers riding their planks. The drawing is the record: the seats, their numbers, the record's
 // own seat and the leaders all come from it, so the 3D can't disagree with the 2D. No three.js.
 
-import { GHOST, type Layout, PENCIL, PLANKS } from "@/lib/hull-layouts";
+import {
+  depths,
+  GHOST,
+  type Layout,
+  LEAD_OUT as LEAD_OUT_2D,
+  ledOut,
+  numberX,
+  numberY,
+  ORDER,
+  PENCIL,
+  PLANKS,
+} from "@/lib/hull-layouts";
 import { LEAD_GAP, LEAD_OUT, LED_OUT } from "./calls";
 import { bandAt, type Ghost, nearSide, plankBody, type Vec3 } from "./hull";
 import type { Loft } from "./loft";
@@ -38,6 +49,42 @@ type Label = {
    */
   dot?: Vec3 | null;
 };
+
+/** A number's place on its plank, drawn or not: what `riders` places, without the span. */
+type Spot = Pick<Label, "seat" | "anchor" | "end" | "lead" | "out" | "into">;
+
+/**
+ * A seat's number where the 2D would set it once the seat is filled (lib/lines-plan.ts,
+ * `numberPlank`): in its body's middle, or led out aft with a leader for a body too short, or led
+ * out by the 3D (LED_OUT).
+ */
+function standIn(plank: (typeof PLANKS)[number]): Spot {
+  const mid = (plank.yTop + plank.yBot) / 2;
+  if (ledOut(depths(plank))) {
+    const at: [number, number] = [plank.x0 - LEAD_OUT_2D, mid];
+    return {
+      seat: plank.id,
+      anchor: at,
+      end: true,
+      lead: "2d",
+      out: at,
+      into: [plank.x1 - 2, mid],
+    };
+  }
+  const anchor: [number, number] = [
+    numberX(plank.id, false),
+    numberY(plank.id, false) ?? mid,
+  ];
+  const lead = LED_OUT.includes(plank.id) ? "3d" : undefined;
+  return {
+    seat: plank.id,
+    anchor,
+    end: false,
+    lead,
+    out: lead ? [plank.x0 - LEAD_OUT, mid] : anchor,
+    into: anchor,
+  };
+}
 
 /** Hull units from a drawing's own (its viewBox's). */
 const toHull = (
@@ -173,7 +220,7 @@ export function readGhost(drawing: Element) {
  * frame: from LEAD_GAP units short of the number into its plank. The 3D's own rides out with its
  * number from the plank, so at frame 1 it has no length.
  */
-function leaderAt(label: Label, e: number): Vec3[] {
+function leaderAt(label: Spot, e: number): Vec3[] {
   const [ox, oy] = [label.out[0] + LEAD_GAP, label.out[1]];
   const [ax, ay] =
     label.lead === "3d"
@@ -193,7 +240,7 @@ type Plank = (typeof PLANKS)[number];
 type Point = readonly [number, number];
 
 /** A number with a leader to its plank: led out by the 2D or the 3D, not one the hull brings in. */
-const leads = (label: Label) => label.lead === "2d" || label.lead === "3d";
+const leads = (label: Spot) => label.lead === "2d" || label.lead === "3d";
 
 /**
  * The film chip's padding on each side of a pencil number on the hull, in CSS px (app/globals.css,
@@ -318,17 +365,57 @@ export function riders(
   const planks = labels.map((label) =>
     PLANKS.find((plank) => plank.id === label.seat),
   );
-  const edges = planks.map((plank) => (plank ? edgesOf(plank) : []));
   /** Each label's settled x in hull units; a led-out one rides out instead. */
   let targets: number[] | null = null;
 
   /** Each span's width, read with the places: a 3D-led number's right edge goes on its point. */
   let widths: number[] = [];
 
+  /**
+   * A number's box and its digits' ink insets by its count of digits, at the record's bold weight.
+   * The figures are tabular, so every number with as many digits is as wide, and a seat keeps its
+   * first holder's number on every step: each seat's box is the same on every step, holds the
+   * record's bold number, and moves no other number with the record.
+   */
+  const bySize = () => {
+    const span = labels[0]?.span;
+    const parent = span?.parentElement;
+    const none = { w: 0, h: 0, inset: { l: 0, r: 0, t: 0, b: 0 } };
+    if (!span || !parent) return () => none;
+    const sizes = new Map<number, typeof none>();
+    return (digits: number) => {
+      const known = sizes.get(digits);
+      if (known) return known;
+      const probe = span.cloneNode(false) as HTMLElement;
+      probe.classList.remove("plan-end");
+      probe.classList.add("plan-current");
+      probe.textContent = "8".repeat(digits);
+      probe.style.visibility = "hidden";
+      parent.append(probe);
+      const size = {
+        w: probe.offsetWidth,
+        h: probe.offsetHeight,
+        inset: inkInsets(probe),
+      };
+      probe.remove();
+      sizes.set(digits, size);
+      return size;
+    };
+  };
+
   /** A number's point (its box's anchor) and its plank's projected depth there, at x and e. */
-  const pointAt = (i: number, loft: Loft, x: number, e: number) => {
-    const label = labels[i];
-    const plank = planks[i];
+  const pointAt = (i: number, loft: Loft, x: number, e: number) =>
+    pointOf(labels[i], planks[i], widths[i] ?? 0, loft, x, e);
+
+  /** The same for any seat's number, a drawn one's or one the step doesn't draw (`settle`). */
+  const pointOf = (
+    label: Spot | undefined,
+    plank: Plank | undefined,
+    width: number,
+    loft: Loft,
+    x: number,
+    e: number,
+  ) => {
     if (label?.lead === "3d") {
       const [ax, ay] = label.anchor;
       const [ox, oy] = label.out;
@@ -337,7 +424,7 @@ export function riders(
         e,
       )[0] ?? [0, 0];
       // Centred in the 2D, right-aligned on its leader's end once out.
-      return { at: [px - ((widths[i] ?? 0) / 2) * e, py] as const, depth: 0 };
+      return { at: [px - (width / 2) * e, py] as const, depth: 0 };
     }
     if (!label || !plank || leads(label)) {
       return {
@@ -464,7 +551,29 @@ export function riders(
       const [a, b] = [flat[i], flat[i + 1]];
       if (a && b) add(a, b);
     }
-    for (const label of labels) {
+    // Every seat's number, as the 2D numbers it: the drawing's own, and the step's others where the
+    // 2D would set them once their seats are filled (Iris, press-iris.md 7, "Second look"). Each is
+    // placed as if all were drawn, at its seat's box (`bySize`), so a number's place depends only
+    // on its own plank and the pose: a step changes no number but its own seat's, and cold loads of
+    // two steps agree. The seats a step doesn't number stand in, placed but never shown.
+    const drawnSeats = new Set(labels.map((label) => label.seat));
+    const spots: Spot[] = [
+      ...labels,
+      ...PLANKS.filter((plank) => !drawnSeats.has(plank.id)).map(standIn),
+    ];
+    // A stand-in's number is its seat's first holder to come, with as many digits as the seat's
+    // place in ORDER counts: sprints 1 to 9 each took a seat, in ORDER's first nine.
+    const size = bySize();
+    const sizes = spots.map((spot, i) =>
+      size(
+        labels[i]?.span.textContent?.trim().length ||
+          String(ORDER.indexOf(spot.seat ?? "") + 1).length,
+      ),
+    );
+    const spotPlanks = spots.map((spot) =>
+      PLANKS.find((plank) => plank.id === spot.seat),
+    );
+    for (const label of spots) {
       if (!leads(label)) continue;
       const line = loft.screen(leaderAt(label, 1), 1);
       for (let j = 1; j < line.length; j++) {
@@ -493,20 +602,26 @@ export function riders(
     };
     type Place = { x: number; box: Box; score: number; d: number };
     widths = labels.map(({ span }) => span.offsetWidth);
-    const insets = labels.map(({ span }) => inkInsets(span));
     /** Each number's places along its plank, with how clear each is of the plank's lines. */
-    const places = labels.map((label, i): Place[] => {
-      const plank = planks[i];
-      const [w, h] = [label.span.offsetWidth, label.span.offsetHeight];
+    const places = spots.map((label, i): Place[] => {
+      const plank = spotPlanks[i];
+      const { w, h, inset } = sizes[i] ?? size(2);
       const boxAt = ([x, y]: Point): Box =>
         label.end
           ? { l: x - w, r: x, t: y - h / 2, b: y + h / 2 }
           : { l: x - w / 2, r: x + w / 2, t: y - h / 2, b: y + h / 2 };
       if (label.lead || !plank) {
         const x = label.anchor[0];
-        return [{ x, box: boxAt(pointAt(i, loft, x, 1).at), score: ink, d: 0 }];
+        return [
+          {
+            x,
+            box: boxAt(pointOf(label, plank, w, loft, x, 1).at),
+            score: ink,
+            d: 0,
+          },
+        ];
       }
-      const [top, bottom, ...butts] = (edges[i] ?? []).map((line) =>
+      const [top, bottom, ...butts] = edgesOf(plank).map((line) =>
         loft.screen(line, 1),
       );
       /**
@@ -514,7 +629,6 @@ export function riders(
        * top and bottom edges over their width (negative where a seam crosses them), and their
        * distance from its butts and every other line drawn. At least `ink` is clear.
        */
-      const inset = insets[i] ?? { l: 0, r: 0, t: 0, b: 0 };
       const clearance = (outer: Box) => {
         // The digits' ink, not the span's box: a line through its margin doesn't show.
         const box: Box = {
@@ -561,7 +675,7 @@ export function riders(
       for (let x = Math.ceil(lo); x <= hi; x += 1) xs.push(x);
       const found: Place[] = [];
       for (const x of xs) {
-        const box = boxAt(pointAt(i, loft, x, 1).at);
+        const box = boxAt(pointOf(label, plank, w, loft, x, 1).at);
         found.push({
           x,
           box,
@@ -578,21 +692,24 @@ export function riders(
      * Of a number's places 2 px clear of the others, nearest the 2D's place: the first clear of the
      * lines; where none is, the first, so the number keeps its plank's middle and touches a line
      * (Iris accepts the stern's and keel's touches; review-iris.md, the decision on the touches).
+     * Where no place is clear of the others, the 2D's place, held so the others make way.
      */
     const choose = (i: number, others: readonly Box[]) => {
       const open = (places[i] ?? [])
         .filter((place) => others.every((other) => apart(place.box, other)))
         .sort((a, b) => a.d - b.d);
-      return open.find((place) => place.score >= ink) ?? open[0];
+      return (
+        open.find((place) => place.score >= ink) ?? open[0] ?? places[i]?.[0]
+      );
     };
     // The hardest first, the planks whose clearest place is least clear (the keel's and the
     // stern's), so the roomier ones make way; then each again with all the others set.
     const hardest = (i: number) =>
       Math.max(...(places[i] ?? []).map((place) => place.score));
-    const order = labels
+    const order = spots
       .map((_, i) => i)
       .sort((a, b) => hardest(a) - hardest(b));
-    const chosen: (Place | undefined)[] = labels.map(() => undefined);
+    const chosen: (Place | undefined)[] = spots.map(() => undefined);
     const boxes = () =>
       chosen
         .filter((place): place is Place => Boolean(place))
@@ -624,6 +741,8 @@ export function riders(
       e: number,
       shown: boolean,
       drawn: () => Float32Array,
+      /** The drawing's top left in the canvas, where the canvas holds two (the Log's ships). */
+      origin: readonly [number, number] = [0, 0],
     ) {
       if (!shown) return this.clear();
       targets ??= fixed
@@ -645,7 +764,10 @@ export function riders(
             ? inAt(i, loft, now[i] ?? label.into[0], e)
             : pointAt(i, loft, ax + ((now[i] ?? ax) - ax) * e, e).at;
         // The span's own place on the canvas, which lies on the drawing's box: frame 1's point.
-        const [x0, y0] = [label.share[0] * BW * k, label.share[1] * BH * k];
+        const [x0, y0] = [
+          origin[0] + label.share[0] * BW * k,
+          origin[1] + label.share[1] * BH * k,
+        ];
         const [gx, gy] = [snap(px - x0), snap(py - y0)];
         const { style } = label.span;
         style.setProperty("--ghost-x", `${gx}px`);

@@ -1,0 +1,44 @@
+{
+ "sprint": 55,
+ "pr": 121,
+ "goal": "Press a step and watch one real plank leave the Theseus for the ghost",
+ "goalFrom": "roadmap",
+ "size": "M",
+ "outcome": "merged",
+ "fixRounds": 1,
+ "minutes": 355,
+ "agents": [
+  { "role": "creative-engineer", "model": "opus", "tokens": 401085, "minutes": 218 },
+  { "role": "engineer", "model": "opus", "tokens": 374305, "minutes": 62 },
+  { "role": "qa-engineer", "model": "opus", "tokens": 634311, "minutes": 99 },
+  { "role": "design-director", "model": "opus", "tokens": 393961, "minutes": 27 }
+ ],
+ "lens": { "runs": 4, "tokens": 6025174, "important": 0, "actedOn": 0, "nits": 4 },
+ "wentWrong": [
+  {
+   "what": "In dark mode the Theseus's numbers were too faint to read on its lit planks",
+   "evidence": "Iris measured 2.1 to 3.3:1 on /log/13 at 1440, because the Log's Theseus kept the home page's lamp; its own dark light brought the worst to 4.88:1 (decision 13)"
+  },
+  {
+   "what": "The question at sprint 23 shifted the page when the plank landed",
+   "evidence": "A layout shift of 0.0253 at 390, 760 ms after the press and past Chrome's input window; the question now takes its space at press start (decision 12, cad6134)"
+  },
+  {
+   "what": "The review could not start for an hour while GitHub's downloads were down",
+   "evidence": "Three lens runs died installing Bun on 504s from GitHub's release downloads, 09:30 to 10:54 UTC; the fourth, after downloads held, shipped the same head"
+  }
+ ],
+ "proposals": [
+  {
+   "change": "Cache Bun in the lens workflow (or pin it to an action cache) so a GitHub release outage doesn't stop the review",
+   "moves": "lens runs that die at setup (3 this sprint)"
+  }
+ ],
+ "followUps": [
+  { "who": "Forge", "what": "Lens's nit: prefetch a pressed step's neighbours once its page arrives, so a quick run of presses never swaps words outside the input window (yard.ts:178)" },
+  { "who": "Pixel", "what": "Lens's nit: on teardown before the step's page arrives, restore the drawings' hidden numbers and remove the clone (mount.ts:1225)" },
+  { "who": "Forge", "what": "Lens's nits: the stale comments in components/lines-plan.tsx:29 and components/log.tsx:226, and the caption under the canvas at rest (globals.css:953)" },
+  { "who": "Iris", "what": "Judge the press's feel on a real GPU, and the hitch at the top of the lift" },
+  { "who": "Pixel", "what": "The chunk grew 9.7 KB against the plan's 4 to 7 KB; Yd's riffle should report its own delta against what's left" }
+ ]
+}

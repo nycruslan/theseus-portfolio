@@ -83,6 +83,8 @@ import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 
 const SWIFTSHADER =
   "SwiftShader, headless Chromium's software WebGL: a floor, not a GPU's number";
+/** The Theseus's drawing, which shares the one canvas with the ghost since Yc (sprint 55). */
+const THESEUS = "[data-theseus]";
 /** Layout's precision: Chromium keeps lengths in 1/64 CSS px. */
 const LAYOUT = 1 / 64;
 /** Two animation frames on the clock: "within 2 frames". */
@@ -112,6 +114,21 @@ async function settledOn(browser: Browser, url: string, options: ModelOptions) {
 }
 
 /**
+ * B5.19's mark: a hover within 5 CSS px of a changed pixel must read the seat. The mark's round cap
+ * reaches past 3 px, and the pick runs on the coarse 24 x 2 hull (PICK in lib/model/hull.ts), whose
+ * edge moved 0.25 px with Yc's two-hull build: the bow end of 6.1's mark at 1440, (761, 499) on
+ * /log/13, read 6.1 at 5 px and not at 4 (sprint 55, measured on pixel/55 at 2fd93f3; 4 before).
+ */
+const MARK_REACH = 5;
+/**
+ * B5.19's mark: a pixel counts as changed from /log's beyond 32 levels. The step's far-side gaps
+ * show through the near vellum (α 0.7) and change it a little on any seat: at (387, 416) on /log/13
+ * at 1440, inside near plank 1.1 with no gap seat or 6.1 within 8 px of hover, 18 levels on main
+ * and 26 on Yc's build; an ink mark changes its pixels by far more (sprint 55; 24 before).
+ */
+const MARK_LEVELS = 32;
+
+/**
  * Whether a real-mouse hover within `reach` CSS px of the pixel at (x, y), at 1 px steps nearest
  * first, reads one of `seats` (B5.19's mark).
  */
@@ -120,7 +137,7 @@ async function pickNear(
   x: number,
   y: number,
   seats: readonly string[],
-  reach = 4,
+  reach = MARK_REACH,
 ) {
   const steps = [0];
   for (let d = 1; d <= reach; d++) steps.push(-d, d);
@@ -298,7 +315,9 @@ async function register(
 
 /**
  * B5.18's fit on a page at rest: where the layer mounts, one canvas, a whole buffer at the cap on
- * [data-ghost]'s box, and the settled hull inside it.
+ * the union of [data-theseus]'s and [data-ghost]'s boxes, and the settled hulls inside it. Since Yc
+ * (sprint 55) the one canvas holds both hulls, the Theseus over its drawing and the ghost over its
+ * own (.crew/sprint/55/contract.md, "Kept"; Lens accepted the rewrite from "on [data-ghost]'s box").
  */
 async function fitAt(
   run: ModelRun,
@@ -332,11 +351,28 @@ async function fitAt(
   const fit = await ghostFit(run.page);
   const [bw = 0, bh = 0] = fit.buffer ?? [];
   const [cw = 0, ch = 0] = fit.css ?? [];
-  const [gw = 0, gh = 0] = fit.ghost ?? [];
+  // The union of both drawings' boxes: the canvas's place since Yc.
+  const union = await run.page.evaluate(
+    (drawings) => {
+      const boxes = drawings.map((css) =>
+        document.querySelector(css)?.getBoundingClientRect(),
+      );
+      if (boxes.some((b) => !b)) return null;
+      const all = boxes as DOMRect[];
+      const left = Math.min(...all.map((b) => b.left));
+      const top = Math.min(...all.map((b) => b.top));
+      const right = Math.max(...all.map((b) => b.right));
+      const bottom = Math.max(...all.map((b) => b.bottom));
+      return { x: left, y: top, width: right - left, height: bottom - top };
+    },
+    [THESEUS, DRAWING],
+  );
+  expect(union, `[data-theseus] and [data-ghost], ${where}`).not.toBeNull();
+  const [uw, uh] = [union?.width ?? 0, union?.height ?? 0];
   note(
     testInfo,
     "canvas",
-    `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch}, [data-ghost] ${gw} x ${gh}, ratio ${ratio}`,
+    `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch} at ${fit.at?.join(", ")}, the drawings' union ${uw} x ${uh} at ${union?.x}, ${union?.y}, ratio ${ratio}`,
   );
   expect
     .soft(
@@ -354,17 +390,17 @@ async function fitAt(
     .toBe(true);
   expect
     .soft(
-      Math.max(Math.abs(cw - gw), Math.abs(ch - gh)),
-      `the canvas's CSS size against [data-ghost]'s box (px), ${where}`,
+      Math.max(Math.abs(cw - uw), Math.abs(ch - uh)),
+      `the canvas's CSS size against the union of [data-theseus]'s and [data-ghost]'s boxes (px), ${where}`,
     )
     .toBeLessThanOrEqual(1 / ratio + 1e-3);
   expect
     .soft(
       Math.max(
-        Math.abs((fit.at?.[0] ?? 0) - (fit.ghostAt?.[0] ?? -99)),
-        Math.abs((fit.at?.[1] ?? 0) - (fit.ghostAt?.[1] ?? -99)),
+        Math.abs((fit.at?.[0] ?? 0) - (union?.x ?? -99)),
+        Math.abs((fit.at?.[1] ?? 0) - (union?.y ?? -99)),
       ),
-      `the canvas's corner on [data-ghost]'s (px), ${where}`,
+      `the canvas's corner on the drawings' union's (px), ${where}`,
     )
     .toBeLessThanOrEqual(1 / ratio + 1e-3);
   const box = await canvasBox(run.page);
@@ -390,7 +426,7 @@ async function fitAt(
 }
 
 for (const url of PAGES) {
-  test(`B5.18 It stands on the Log, on ${url}: [data-model] follows [data-ghost] and comes to rest; frame 1 is registered on the 2D ghost within B3.1's bound (1.0 CSS px at DPR 2, 1.5 at DPR 1) with its planks' fills the Off page's within 8 levels; the canvas lies on the ghost's box in whole buffer pixels at 320, 390, 768, 1024 and 1440, and the settled hull is inside it; /read and the 404 have no [data-model] and request no WebGL context`, async ({
+  test(`B5.18 It stands on the Log, on ${url}: [data-model] follows [data-ghost] and comes to rest; frame 1 is registered on the 2D ghost within B3.1's bound (1.0 CSS px at DPR 2, 1.5 at DPR 1) with its planks' fills the Off page's within 8 levels; the canvas lies on the union of [data-theseus]'s and [data-ghost]'s boxes in whole buffer pixels at 320, 390, 768, 1024 and 1440, and the settled hulls are inside it; /read and the 404 have no [data-model] and request no WebGL context`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
@@ -622,7 +658,7 @@ async function numbersAt(
 }
 
 for (const url of PAGES) {
-  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935, from 0.84 on the stern sliver 5.0, and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the number spans at rest read the page's ghost (GHOST on /log, GHOST_AT(13) on /log/13), each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700, the canvas changing from /log's only there and on the seats the step leaves gaps`, async ({
+  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935, from 0.84 on the stern sliver 5.0, and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the number spans at rest read the page's ghost (GHOST on /log, GHOST_AT(13) on /log/13), each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700, the ghost changing from /log's only there and on the seats the step leaves gaps; the ghost read over [data-ghost]'s box, since it shares the canvas with the Theseus (Yc)`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
@@ -642,20 +678,27 @@ for (const url of PAGES) {
       let gapCells: [number, number, string][] = [];
       if (record) {
         const log = await settledOn(browser, PAGES[0], size);
+        // The scan's grid starts at the ghost's own corner, as it did at the canvas's (the same
+        // point before Yc); only the shots take whole pixels.
+        const logArea = (await ghostBox(log.page)) as Box;
         if (gaps.length > 0) {
-          gapCells = (await scanSeats(log, stepAt(size.width))).grid.filter(
-            ([, , s]) => gaps.includes(s),
-          );
+          gapCells = (
+            await scanSeats(log, stepAt(size.width), logArea)
+          ).grid.filter(([, , s]) => gaps.includes(s));
         }
         await log.page.mouse.move(1, 1);
         await pause(200);
-        plain = (
-          await canvasAlone(log.page, whole((await canvasBox(log.page)) as Box))
-        ).image;
+        plain = (await canvasAlone(log.page, whole(logArea))).image;
         await log.close();
       }
       const run = await settledOn(browser, url, size);
-      const scan = await scanSeats(run, stepAt(size.width));
+      // The ghost's own box (Yc, sprint 55): the canvas holds the Theseus's opaque card too, which
+      // would take the coverage's fill levels and, between steps, change pixels by design.
+      // The scan's grid from the ghost's own corner, unrounded, as the canvas's was before Yc: at
+      // 390 the box's top is 307.9375, and a whole-pixel origin moved the 2 px grid by 0.94 px.
+      const ghostArea = (await ghostBox(run.page)) as Box;
+      const ghostClip = whole(ghostArea);
+      const scan = await scanSeats(run, stepAt(size.width), ghostArea);
       expect
         .soft(
           seats.filter((s) => !scan.points.has(s)),
@@ -663,12 +706,12 @@ for (const url of PAGES) {
         )
         .toEqual([]);
       const box = whole((await canvasBox(run.page)) as Box);
-      // Each plank's own vellum, from the canvas's coverage (geometry, the same in both schemes).
-      const lit = await canvasAlone(run.page, box);
+      // Each plank's own vellum, from the ghost's coverage (geometry, the same in both schemes).
+      const lit = await canvasAlone(run.page, ghostClip);
       const vellumCells = plankCells(
         scan.grid,
         lit.alpha,
-        box,
+        ghostClip,
         stepAt(size.width),
       );
       for (const scheme of ["light", "dark"] as const) {
@@ -749,23 +792,24 @@ for (const url of PAGES) {
           await pause(300);
         }
         if (plain && scheme === "light") {
-          // One seat marked: what the record's canvas changes from /log's is on its seat alone.
+          // One seat marked: what the record's ghost changes from /log's is on its seat alone.
           const seat = markedSeat(MARKED);
+          const marked = (await canvasAlone(run.page, ghostClip)).image;
           const own = [
             ...scan.grid.filter(([, , s]) => s === seat),
             ...gapCells,
           ];
-          const w = Math.min(plain.width, settled.image.width);
-          const h = Math.min(plain.height, settled.image.height);
+          const w = Math.min(plain.width, marked.width);
+          const h = Math.min(plain.height, marked.height);
           expect
             .soft(
-              [settled.image.width, settled.image.height],
-              `the canvas's size against /log's, ${where}`,
+              [marked.width, marked.height],
+              `the ghost's box against /log's, ${where}`,
             )
             .toEqual([plain.width, plain.height]);
           const d = channelDelta(
             crop(plain, 0, 0, w, h),
-            crop(settled.image, 0, 0, w, h),
+            crop(marked, 0, 0, w, h),
           );
           const reach = stepAt(size.width) + 4;
           let changed = 0;
@@ -773,9 +817,9 @@ for (const url of PAGES) {
           const strays: [number, number][] = [];
           for (let y = 0; y < h; y++)
             for (let x = 0; x < w; x++) {
-              if ((d[y * w + x] ?? 0) <= 24) continue;
+              if ((d[y * w + x] ?? 0) <= MARK_LEVELS) continue;
               changed++;
-              const [px, py] = [box.x + x, box.y + y];
+              const [px, py] = [ghostClip.x + x, ghostClip.y + y];
               if (
                 !own.some(
                   ([gx, gy]) =>
@@ -788,8 +832,8 @@ for (const url of PAGES) {
             }
           // The grid is coarser than a plank where it tapers (6 px at 1440), so a pixel the grid
           // puts away from the seat is checked by hover: the mark's edges lie on the plank's own
-          // boundary, so a hover within 4 px of an edge pixel (the mark's round cap reaches past
-          // 3) reads the seat, searched at 1 px steps (a plank tapers to 1 px). Up to 80 places.
+          // boundary, so a hover within MARK_REACH of an edge pixel reads the seat, searched at
+          // 1 px steps (a plank tapers to 1 px). Up to 80 places.
           const places = [
             ...new Map(
               strays.map(([x, y]) => [
@@ -809,17 +853,17 @@ for (const url of PAGES) {
           await pause(300);
           // A place left may lie on a gap seat's edge, where the record's canvas may change too
           // (decision 10). The record picks no gap seat, so /log, settled on the same pose, is
-          // hovered at the same place on its own canvas, by the same 4 px search.
+          // hovered at the same place on its own canvas, by the same search.
           let onGap = 0;
           if (left.length > 0 && gaps.length > 0) {
             const log = await settledOn(browser, PAGES[0], size);
-            const logBox = whole((await canvasBox(log.page)) as Box);
+            const logBox = whole((await ghostBox(log.page)) as Box);
             for (const [x, y] of left) {
               if (
                 await pickNear(
                   log.page,
-                  logBox.x + x - box.x,
-                  logBox.y + y - box.y,
+                  logBox.x + x - ghostClip.x,
+                  logBox.y + y - ghostClip.y,
                   gaps,
                 )
               ) {
@@ -852,15 +896,15 @@ for (const url of PAGES) {
           note(
             testInfo,
             "mark",
-            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
+            `${where}: ${changed} ghost pixels differ from /log's by more than ${MARK_LEVELS} levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
           );
           expect
-            .soft(changed, `canvas pixels the record's mark changes, ${where}`)
+            .soft(changed, `ghost pixels the record's mark changes, ${where}`)
             .toBeGreaterThan(0);
           expect
             .soft(
               stray,
-              `pixels the record's canvas changes away from seat ${seat} (sprint ${MARKED}'s) and the step's gaps (${gaps.join(", ")}), ${where}`,
+              `pixels the record's ghost changes away from seat ${seat} (sprint ${MARKED}'s) and the step's gaps (${gaps.join(", ")}), ${where}`,
             )
             .toBe(0);
         }

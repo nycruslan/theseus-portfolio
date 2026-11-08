@@ -3,7 +3,7 @@ import { LENGTH } from "../lib/half-model";
 import { GHOST as LAYOUT } from "../lib/hull-layouts";
 import { MOTION } from "./helpers";
 import { entryOf, RECORD } from "./log";
-import { type Box, CANVAS, MODEL, pause, whole } from "./model";
+import { type Box, MODEL, pause, whole } from "./model";
 import { coverage, decodePng, deltaE, type Image, pixel } from "./pixels";
 import { GHOST, GHOST_AT } from "./retros";
 import type { ModelRun } from "./webgl";
@@ -288,12 +288,18 @@ export type Scan = {
  * run on screen (the near side: the far side's inside shows above the near sheer), with a
  * neighbour of the same seat on all four sides, nearest that run's centre; each is then checked on
  * its own with a hover. A seat with no such point is missing from the map, and the caller asserts
- * all 22. The pointer ends off the canvas.
+ * all 22. The pointer ends off the canvas. `area` is the box scanned, the canvas's unless given:
+ * since Yc (sprint 55) the canvas holds the Theseus too, so a read of the ghost alone scans
+ * [data-ghost]'s box.
  */
-export async function scanSeats(run: ModelRun, step: number): Promise<Scan> {
+export async function scanSeats(
+  run: ModelRun,
+  step: number,
+  area?: Box,
+): Promise<Scan> {
   const { page } = run;
-  const canvas = await box(page, "[data-model] canvas");
-  expect(canvas, "the canvas's box, for the scan").not.toBeNull();
+  const canvas = area ?? (await box(page, "[data-model] canvas"));
+  expect(canvas, "the box to scan").not.toBeNull();
   const c = canvas as Box;
   const xs: number[] = [];
   const ys: number[] = [];
@@ -650,13 +656,14 @@ export async function press(page: Page, label: string) {
   await page.mouse.click(at?.x ?? 0, at?.y ?? 0);
 }
 
-/** A point on a plank, by hover: the canvas's centre, else the first along its middle row. */
+/**
+ * A point on a plank, by hover: the ghost's centre, else the first along its middle row. Since Yc
+ * (sprint 55) the canvas holds the Theseus too and its middle row is the caption between the
+ * hulls, so the walk is [data-ghost]'s box, where the ghost's planks lie.
+ */
 export async function aPlank(run: ModelRun) {
-  const c = await run.page.evaluate((canvas) => {
-    const r = document.querySelector(canvas)?.getBoundingClientRect();
-    return r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null;
-  }, CANVAS);
-  expect(c, "the canvas's box").not.toBeNull();
+  const c = await ghostBox(run.page);
+  expect(c, "[data-ghost]'s box").not.toBeNull();
   const b = c as Box;
   for (const dy of [0, 4, -4, 8, -8])
     for (let x = b.x + b.width / 2; x < b.x + b.width - 2; x += 6) {
@@ -670,13 +677,14 @@ export async function aPlank(run: ModelRun) {
 }
 
 /**
- * Two neighbouring planks along the canvas's middle row, by hover on a `step` px walk: a point in
+ * Two neighbouring planks along [data-ghost]'s middle row, by hover on a `step` px walk: a point in
  * the first run of one seat at least three steps long, a point one step further in the same run,
- * and a point in the next run of another seat. The pointer ends off the canvas.
+ * and a point in the next run of another seat. The pointer ends off the drawing. The ghost's box,
+ * not the canvas's: since Yc (sprint 55) the canvas's middle row is the Theseus's caption.
  */
 export async function twoPlanks(run: ModelRun, step = 2) {
-  const c = await canvasBox(run.page);
-  expect(c, "the canvas's box").not.toBeNull();
+  const c = await ghostBox(run.page);
+  expect(c, "[data-ghost]'s box").not.toBeNull();
   const b = c as Box;
   const y = b.y + b.height / 2;
   const walk: { x: number; seat: string | null }[] = [];

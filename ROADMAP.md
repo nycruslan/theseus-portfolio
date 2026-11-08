@@ -50,9 +50,13 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   employer, and no card says "of N", `.crew/sprint/54/decisions.md`. Left open: a version query on
   the step card's URL, the square crop, og:description repeating the goal, and Lens's nit on
   Probe's memory.)
-- [ ] Yc (M; Pixel leads): the press in 3D. The Theseus joins the ghost in one canvas; a press lifts
+- [x] Yc (M; Pixel leads): the press in 3D. The Theseus joins the ghost in one canvas; a press lifts
   the leaving plank and seats the new one (Calm fades); the URL is replaced; ← and →; a live region
-  (Y12 to Y18).
+  (Y12 to Y18, and Y19 for the numbers' dark contrast). (Sprint 55, PR #121, one fix round on
+  Iris's two musts. Lens: ship on 74705ef, accepting B5.18 to B5.23's rewrites and Y6's retired
+  clause. The chunk grew 9.7 KB, over the plan's 4 to 7 KB. Left open, as Lens's nits for Yd:
+  prefetch after a press's own page arrives (`yard.ts:178`), restore the drawings' numbers on an
+  early teardown (`mount.ts:1225`), two stale comments, and the caption under the canvas at rest.)
 - [ ] Yd (M; Pixel leads): hold to riffle, stopping at 23, 45 and the newest; Home, End and Escape;
   the hand-off to Crew at the newest step (Y19 to Y23).
 - [ ] Ye (S): the door from `/`, one plain link on the revision block's count line, only if it
