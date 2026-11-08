@@ -33,3 +33,8 @@
     - B5.19's hover accepts a stray on a step's gap seat, and widens to 4 px for the mark's round
       cap.
     - Moving the 3D lines to suit the measure was refused.
+11. **Decision 10's clause changes are landed by a resumed run (3726840).** The first run recorded
+    them, but Probe's commit never reached the branch, so CI on a1ea5c9 was red on exactly those two
+    clauses. Probe made them: B5.18 rounds the 2D coverage to quarter steps, and B5.19's hover reaches
+    4 px and accepts a pick that `/log` reads as a step's gap seat. `/log/13` can't pick a gap seat,
+    since `pickAt` returns only the ghost's numbers. B5.18 still fails the untrimmed build.

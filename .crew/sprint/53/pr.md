@@ -37,7 +37,13 @@ planned by Quill in sprint 52, under the owner's sprint 52 goal.
 
 ### Contract results
 
-SEE_RESULTS
+- **Y1 to Y8** (`e2e/log-yard.spec.ts`) all pass in CI on a1ea5c9: Y1 to Y5 and Y8 once each, Y6 and Y7 at each of their three sizes. They were red first on main (Probe, 0d32fe3).
+- **The kept suite:** on a1ea5c9, three shards were green (90, 89 and 89 passed). Shard 2 had 88 passed and 2 failed, B5.18 and B5.19 on /log/13. Those were decision 10's two clause changes: they were recorded but not committed. Probe landed them in 3726840. Locally, on a fresh build of the head:
+  - B5.18 at 390 DPR 1 reads **1.00 px**, against 2.24 before and the unchanged 1.5 bound. At 1440 it reads 1.41 at DPR 1 and 1.00 at DPR 2.
+  - B5.19's mark has **0** pixels away from the marked seat, against 8 before.
+  - The whole of `log-model.spec.ts` passed in 2 runs (8 passed).
+  - `expect(` counts are unchanged.
+- **B5.18 still bites.** With Pixel's seam trim reverted, it reads 3.00 / 3.50 px at 1440 and 2.00 / 1.50 at 390, all red. With all 22 planks drawn, it reads 12.00 / 6.00 px.
 
 ### The kept checks this rewrites, and why
 
