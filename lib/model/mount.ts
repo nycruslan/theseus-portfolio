@@ -11,6 +11,7 @@ import {
   GHOST,
   type Layout,
   NARROW,
+  ORDER,
   PLANKS,
   WIDE,
 } from "@/lib/hull-layouts";
@@ -35,7 +36,9 @@ import {
   riders,
 } from "./ghost";
 import {
+  ALWAYS,
   buildHull,
+  buildShip,
   DESKTOP,
   type Ghost,
   type Hull,
@@ -43,11 +46,17 @@ import {
   PHONE,
   PICK,
   plankEdges,
+  type Ship,
+  SIDE,
+  YARD_DESKTOP,
+  YARD_PHONE,
 } from "./hull";
 import { type Frame, type Loft, makeLoft } from "./loft";
 import { type Pencil, pencilMarks, readPencil } from "./pencil";
 import { bakeShadow } from "./shadow";
+import { createShips, type Plan, type Ships, type Step } from "./ships";
 import { createStage, type Palette, type Stage } from "./stage";
+import { type MakePress, startYard } from "./yard";
 
 type State = "landed" | "lofting" | "settled" | "still";
 type Rest = "settled" | "still";
@@ -56,7 +65,17 @@ type Rest = "settled" | "still";
  * (Calm); `loft`, the loft whatever the visit has seen (a press of Full).
  */
 export type Open = "auto" | "settled" | "loft";
-type Fit = Frame & { left: number; top: number; buffer: [number, number] };
+type Box = NonNullable<Frame["box"]>;
+/**
+ * Where the canvas lies on the page and how big its buffer is; on the Log, where it lies over both
+ * ships, `box` is the ghost's drawing in it and `theseus` the Theseus's.
+ */
+type Fit = Frame & {
+  left: number;
+  top: number;
+  buffer: [number, number];
+  theseus?: Box & { drawing: number };
+};
 
 type Riders = ReturnType<typeof riders>;
 
@@ -101,6 +120,34 @@ const hullAt = (level: Level, ghost?: Ghost) => {
   const hull = hulls.get(level) ?? buildHull(level, ghost);
   hulls.set(level, hull);
   return hull;
+};
+
+/**
+ * The Log's two ships at each level, built once a visit (.crew/sprint/55/contract.md): every seat
+ * of the ghost is built, and a step's gaps are hidden by state.
+ */
+type Yard = { theseus: Ship; ghost: Ship; level: Level };
+const yards = new Map<Level, Yard>();
+const yardAt = (level: Level) => {
+  const found = yards.get(level) ?? {
+    theseus: buildShip(level, "theseus"),
+    ghost: buildShip(level, "ghost"),
+    level,
+  };
+  yards.set(level, found);
+  return found;
+};
+/** The ghost's pick hull has every seat; a pick takes the first plank the step shows. */
+const EVERY: Ghost = { seats: new Set(PLANKS.map((plank) => plank.id)) };
+
+/**
+ * The hulls after the i-th step, as the server draws /log/<n> (lib/lines-plan.ts, `shipsAt`): the
+ * first i + 1 merges have seated ORDER's seats in turn, so both ships hold the same seats, and the
+ * record's seat is the step's own. The drawing is the truth at rest; a press flies to this.
+ */
+const stepAt = (i: number): Step => {
+  const seats = new Set(ORDER.slice(0, Math.min(i + 1, ORDER.length)));
+  return { seated: seats, ghost: seats, current: ORDER[i % ORDER.length] };
 };
 
 const pause = () => new Promise((done) => setTimeout(done, 0));
@@ -197,11 +244,22 @@ function start(
   const ghostDrawing = plan?.matches("[data-ghost]")
     ? plan.querySelector(".plan-ghost")
     : null;
-  const wide = ghostDrawing ?? plan?.querySelector(".plan-wide");
-  const narrow = ghostDrawing ?? plan?.querySelector(".plan-narrow");
-  if (!wide || !narrow) return { stop() {}, settle() {} };
-  const ghost: GhostPage | undefined = ghostDrawing
+  // The Log's other ship (.crew/sprint/55/contract.md): the Theseus, drawn on the same profile above
+  // the ghost, in the same canvas. A press swaps both drawings' markup for the step's (`swapped`).
+  const shipyard = ghostDrawing
+    ? (host.parentElement?.querySelector("[data-theseus]") ?? null)
+    : null;
+  let theseusDrawing = shipyard?.querySelector(".plan-theseus") ?? null;
+  let wide = ghostDrawing ?? plan?.querySelector(".plan-wide");
+  let narrow = ghostDrawing ?? plan?.querySelector(".plan-narrow");
+  if (!wide || !narrow || (ghostDrawing && !theseusDrawing)) {
+    return { stop() {}, settle() {} };
+  }
+  let ghost: GhostPage | undefined = ghostDrawing
     ? readGhost(ghostDrawing)
+    : undefined;
+  let theseus: GhostPage | undefined = theseusDrawing
+    ? readGhost(theseusDrawing)
     : undefined;
   // /crew's detail drawings (.crew/sprint/36/contract.md, "The hull on /crew"): `.plan-wide` and
   // `.plan-narrow` too, told apart by the plan's `data-focus`. What they show changes with each
@@ -258,14 +316,15 @@ function start(
     wide: {
       drawing: wide,
       layout: layouts.wide,
-      level: DESKTOP,
+      // The Log's two ships take the lower levels (.crew/sprint/55/contract.md, call 2).
+      level: ghost ? YARD_DESKTOP : DESKTOP,
       cap: 2,
       ...pencilled(wide, crew ? layouts.wide : WIDE),
     },
     narrow: {
       drawing: narrow,
       layout: layouts.narrow,
-      level: PHONE,
+      level: ghost ? YARD_PHONE : PHONE,
       cap: 1.5,
       ...pencilled(narrow, crew ? layouts.narrow : NARROW),
     },
@@ -281,7 +340,9 @@ function start(
     matchMedia(THREE_VIEWS).matches ? sheets.wide : sheets.narrow;
   const canvas = document.createElement("canvas");
   host.append(canvas);
-  const numbers = ghost ? riders(ghost) : null;
+  let numbers = ghost ? riders(ghost) : null;
+  /** The Theseus's numbers, riding its planks as the ghost's ride theirs. */
+  let theseusNumbers = theseus ? riders(theseus) : null;
   const scheme = matchMedia("(prefers-color-scheme: dark)");
   const forced = matchMedia("(forced-colors: active)");
   let sheet = shownSheet();
@@ -293,6 +354,10 @@ function start(
   let stage: Stage | null = null;
   let hull: Hull | null = null;
   let loft: Loft | null = null;
+  /** The Log's scene, its two ships at the level shown, and the Theseus's loft (the ghost's is `loft`). */
+  let ships: Ships | null = null;
+  let yard: Yard | null = null;
+  let theseusLoft: Loft | null = null;
   let fit: Fit | null = null;
   /** The drawing the stage is laid on: behind `sheet` while a crossing waits for the build. */
   let on: Sheet | null = null;
@@ -327,9 +392,20 @@ function start(
    * What must be on screen: the layer, which is the drawing's row on the sheet; on the Log, whose
    * main is a flex column below 1024 px, the layer is all of main, so the drawing (spike, sprint 33).
    */
+  /** On the Log, the box over both ships: the Theseus's drawing's top to the ghost's bottom. */
+  const shipsBox = () => {
+    const g = sheet.drawing.getBoundingClientRect();
+    const t = theseusDrawing?.getBoundingClientRect() ?? g;
+    const [left, top] = [Math.min(g.left, t.left), Math.min(g.top, t.top)];
+    const right = Math.max(g.right, t.right);
+    const bottom = Math.max(g.bottom, t.bottom);
+    return new DOMRect(left, top, right - left, bottom - top);
+  };
   const shownBox = () =>
     box().width > 0
-      ? (ghost ? wide : crew ? sheet.drawing : host).getBoundingClientRect()
+      ? ghost
+        ? shipsBox()
+        : (crew ? sheet.drawing : host).getBoundingClientRect()
       : box();
   /** On screen now: the loft plays only to someone who can see it. */
   const visible = () => {
@@ -344,7 +420,7 @@ function start(
   };
 
   const measure = (): Fit => {
-    const p = sheet.drawing.getBoundingClientRect();
+    const p = ghost ? shipsBox() : sheet.drawing.getBoundingClientRect();
     const h = box();
     // Whole buffer pixels, and the CSS size they make: round(css × dpr) / dpr (S4, rule 1).
     const buffer: [number, number] = [
@@ -356,15 +432,26 @@ function start(
     // = 71.333 reads back 71.328 at 390, over the 1.5 cap: B5.23).
     const css = (n: number) =>
       ghost || crew ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
+    // On the Log each ship registers on its own drawing in the canvas, and turns inside it.
+    const g = sheet.drawing.getBoundingClientRect();
+    const t = theseusDrawing?.getBoundingClientRect();
+    const within = (r: DOMRect) => ({
+      left: r.left - p.left,
+      top: r.top - p.top,
+      height: r.height,
+    });
     return {
       left: p.left - h.left,
       top: p.top - h.top,
-      drawing: p.width,
+      drawing: ghost ? g.width : p.width,
       width: css(buffer[0]),
       height: css(buffer[1]),
       viewport: innerHeight,
       buffer,
       ratio,
+      ...(ghost && t
+        ? { box: within(g), theseus: { ...within(t), drawing: t.width } }
+        : {}),
     };
   };
 
@@ -373,6 +460,7 @@ function start(
    * shadow too unless `keep` (a step of the ratio mid-move, on the same drawing).
    */
   const apply = (next: Fit, keep = false) => {
+    if (ships) return applyShips(next);
     if (!stage) return;
     const level = hullAt(sheet.level, ghost?.hull);
     const reshade = !ghost && (!keep || level !== hull);
@@ -402,6 +490,41 @@ function start(
     }
     if (changed) remark();
   };
+
+  /**
+   * The Log's canvas over both ships (.crew/sprint/55/contract.md): each loft registers its ship
+   * on its own drawing, and both settle at the ghost's turn (Iris, section 0).
+   */
+  function applyShips(next: Fit) {
+    if (!ships) return;
+    const level = yardAt(sheet.level);
+    const changed = level !== yard;
+    if (changed) ships.load(level);
+    yard = level;
+    fit = next;
+    on = sheet;
+    Object.assign(canvas.style, {
+      left: `${next.left}px`,
+      top: `${next.top}px`,
+      width: `${next.width}px`,
+      height: `${next.height}px`,
+    });
+    ships.fit(next.buffer, [next.width, next.height]);
+    loft = makeLoft(next, level.ghost.points, GHOST);
+    theseusLoft = makeLoft(
+      {
+        ...next,
+        drawing: next.theseus?.drawing ?? next.drawing,
+        box: next.theseus,
+      },
+      level.theseus.points,
+      GHOST,
+    );
+    led = "";
+    numbers?.reset();
+    theseusNumbers?.reset();
+    if (changed) remark();
+  }
 
   /** The ticks the stage holds: what the next frame draws, and `data-marks` once it has. */
   let marked = 0;
@@ -465,7 +588,90 @@ function start(
     return all;
   };
 
+  /**
+   * The lines a ship's numbers clear at rest on the Log: its seams the step shows (the ghost's
+   * seats', or all the Theseus's), its outline and the record's mark.
+   */
+  const linesOf = (ship: Ship | undefined, page: GhostPage | undefined) => {
+    if (!ship) return new Float32Array(0);
+    const has = (tag: number) =>
+      tag === ALWAYS ||
+      page?.hull.seats.has(PLANKS[tag >= SIDE ? tag - SIDE : tag]?.id ?? "");
+    const kept: number[] = [];
+    const { seams, tags } = ship;
+    for (let i = 0; i < seams.length / 6; i++) {
+      if (tags && !has(tags[2 * i] ?? 0) && !has(tags[2 * i + 1] ?? 0))
+        continue;
+      for (let j = 0; j < 6; j++) kept.push(seams[6 * i + j] ?? 0);
+    }
+    const record = page?.current
+      ? plankEdges(sheet.level, page.current, 1)
+      : new Float32Array(0);
+    const all = new Float32Array(
+      kept.length + ship.outline.length + record.length,
+    );
+    all.set(kept);
+    all.set(ship.outline, kept.length);
+    all.set(record, kept.length + ship.outline.length);
+    return all;
+  };
+
+  /** The leaders laid last, as "e:shown", so a frame that keeps them rebuilds no batch. */
+  let led = "";
+
+  /** Each led-out number's leader as segment pairs in its ship's frame. */
+  const pairs = (lines: { points: number[][] }[]) => {
+    const all: number[] = [];
+    for (const { points } of lines) {
+      for (let i = 1; i < points.length; i++) {
+        all.push(...(points[i - 1] ?? []), ...(points[i] ?? []));
+      }
+    }
+    return new Float32Array(all);
+  };
+
+  /** Sets both ships' numbers on the frame at e, each on its own drawing in the canvas. */
+  const placeNumbers = (e: number) => {
+    if (!fit || !loft || !theseusLoft) return;
+    const shown = matchMedia(THREE_VIEWS).matches;
+    const at = (box?: Box): [number, number] => [box?.left ?? 0, box?.top ?? 0];
+    numbers?.place(
+      loft,
+      fit.drawing / GHOST.box[2],
+      e,
+      shown,
+      () => linesOf(yard?.ghost, ghost),
+      at(fit.box),
+    );
+    theseusNumbers?.place(
+      theseusLoft,
+      (fit.theseus?.drawing ?? fit.drawing) / GHOST.box[2],
+      e,
+      shown,
+      () => linesOf(yard?.theseus, theseus),
+      at(fit.theseus),
+    );
+  };
+
+  /** One frame of the Log's two ships at e, and, at rest, their numbers riding them. */
+  const drawShips = (e: number) => {
+    if (!ships || !loft || !theseusLoft) return;
+    const shown = matchMedia(THREE_VIEWS).matches;
+    const key = `${e}:${shown}`;
+    if (key !== led) {
+      led = key;
+      ships.lead({
+        ghost: pairs(numbers?.leaders(e, shown) ?? []),
+        theseus: pairs(theseusNumbers?.leaders(e, shown) ?? []),
+      });
+    }
+    ships.draw(e, { theseus: theseusLoft, ghost: loft });
+    if (pressing) ride();
+    else placeNumbers(e);
+  };
+
   const draw = (e: number) => {
+    if (ships) return drawShips(e);
     if (!stage || !loft) return;
     // The leaders ride with their numbers, so they are laid before the frame is drawn.
     if (numbers) {
@@ -585,7 +791,7 @@ function start(
 
   /** A redraw at rest, for a new size or scheme: now if it can be seen soon, or once it can. */
   const redraw = () => {
-    if (!stage || !state || moving()) return;
+    if ((!stage && !ships) || !state || moving() || pressing) return;
     if (document.hidden || !near()) {
       pending = true;
       return;
@@ -604,6 +810,8 @@ function start(
     if (!alive) return;
     const next = shownSheet();
     if (next === sheet) return refit();
+    // A press in flight lands at once, on the drawing it flew over.
+    finish(false);
     sheet = next;
     // Mid-build, frame 1 registers on it; with the context lost, the restore does. The cap is the
     // new drawing's now, so the build's own fit doesn't lay the old one's on it (Lens, #73).
@@ -624,26 +832,38 @@ function start(
       return;
     }
     // Nothing is laid out to fit: the layer under forced colours, or a drawing with no box.
-    if (!stage || !box().width) return;
+    if ((!stage && !ships) || !box().width) return;
     // A refit is at rest or ends the move, so it is at the cap; a zoom may have moved the cap.
     cap = Math.min(devicePixelRatio, sheet.cap);
     ratio = cap;
     const next = measure();
     if (!next.buffer[0] || !next.buffer[1]) return;
-    const same =
-      fit &&
-      on === sheet &&
-      fit.buffer.join() === next.buffer.join() &&
-      (["left", "top", "drawing", "viewport"] as const).every(
-        (key) => fit?.[key] === next[key],
-      );
-    if (same) return;
+    // Where the canvas lies, and on the Log where each ship lies in it.
+    const where = (f: Fit) =>
+      [
+        f.buffer.join(),
+        f.left,
+        f.top,
+        f.drawing,
+        f.viewport,
+        f.box?.left,
+        f.box?.top,
+        f.theseus?.left,
+        f.theseus?.top,
+      ].join();
+    if (fit && on === sheet && where(fit) === where(next)) return;
+    finish(false);
     apply(next);
     if (moving()) rest("settled");
     else redraw();
   };
 
   const recolour = () => {
+    if (ships) {
+      finish(false);
+      ships.paint(palette());
+      return redraw();
+    }
     if (!stage) return;
     stage.paint(palette(), seats());
     redraw();
@@ -662,6 +882,8 @@ function start(
 
   const shown = () => {
     if (document.hidden) {
+      // A press lands, to be drawn once the tab is back.
+      finish(false);
       // The tab went away mid-move: stop asking for frames, and settle when it's back.
       if (moving() && raf) {
         cancelAnimationFrame(raf);
@@ -679,6 +901,7 @@ function start(
    * back: the state goes, so the whole drawing returns, as with the model Off (Lens's nit on #72).
    */
   const lost = () => {
+    finish(false);
     blank = true;
     // A move cut short comes back settled; a still frame stays still.
     if (state) resume = state === "still" ? "still" : "settled";
@@ -759,9 +982,13 @@ function start(
     a?.seat === b?.seat && a?.side === b?.side;
   /** The ink marks: the record's plank, and the one under the pointer or the finger. */
   function remark() {
-    if (!stage || !ghost) return;
-    const record = ghost.current ? { seat: ghost.current, side: 1 } : undefined;
+    const record = ghost?.current
+      ? { seat: ghost.current, side: 1 }
+      : undefined;
     const lit = press?.touch ? press.target : hovered;
+    // On the Log the scene inks the step's record seat itself, on both ships (`show`).
+    if (ships) return ships.hover(same(lit, record) ? null : lit);
+    if (!stage || !ghost) return;
     const parts = [record, same(lit, record) ? undefined : lit]
       .filter((target): target is Target => Boolean(target))
       .map(edges);
@@ -776,7 +1003,10 @@ function start(
   const resting = () => state === "settled" || state === "still";
   /** The plank under a point of the viewport, as the settled frame draws it. */
   const pickAt = (x: number, y: number): Target | null => {
-    if (!ghost || !stage || !loft || !resting()) return null;
+    // Hover is off while a press moves a plank (Iris, section 6).
+    if (!ghost || (!stage && !ships) || !loft || !resting() || pressing) {
+      return null;
+    }
     const r = canvas.getBoundingClientRect();
     // A number set aft of the hull picks its plank: its box, and 4 px round its leader, from
     // 768 px, where they show (both led-out numbers: 5.0's, and 3.0's by Iris's decision).
@@ -795,7 +1025,13 @@ function start(
         .map(([px, py]) => [px + r.left, py + r.top] as const);
       if (on || nearLine(line, x, y, 4)) return { seat: leader.seat, side: 1 };
     }
-    const hit = stage.pick(x - r.left, y - r.top);
+    const page = ghost;
+    // The Log's pick hull has every seat: the first hit the step shows is the plank.
+    const hit = ships
+      ? ships.pick(x - r.left, y - r.top, (slot) =>
+          page.numbers.has(PLANKS[slot]?.id ?? ""),
+        )
+      : stage?.pick(x - r.left, y - r.top);
     const seat = hit ? PLANKS[hit.slot]?.id : undefined;
     return hit && seat && ghost.numbers.has(seat)
       ? { seat, side: hit.side }
@@ -819,6 +1055,7 @@ function start(
     delete host.dataset.pick;
     canvas.style.cursor = "";
     numbers?.clear();
+    theseusNumbers?.clear();
     sheets.wide.ride?.clear();
     sheets.narrow.ride?.clear();
   }
@@ -889,15 +1126,341 @@ function start(
     canvas.addEventListener("pointercancel", cancel);
   }
   const sized = new ResizeObserver(refit);
-  for (const element of [wide, narrow, host, crew]) {
+  for (const element of [wide, narrow, host, crew, theseusDrawing]) {
     if (element) sized.observe(element);
   }
+  if (theseusDrawing) seen.observe(theseusDrawing);
   addEventListener("resize", refit);
   scheme.addEventListener("change", recolour);
   forced.addEventListener("change", unforced);
   document.addEventListener("visibilitychange", shown);
 
+  // The press (.crew/sprint/55/contract.md; Iris's calls, press-iris.md): Forge's controller
+  // (lib/model/yard.ts) takes the Log's step links and keys, and asks this for one plank's move
+  // between two steps. Full flies it in beats, Calm fades it, and a jump, an unseen page or a model
+  // not yet drawn takes the step at once. The scene is the truth for the canvas; the drawings,
+  // swapped once the plank lands, are the truth for the numbers, and at rest for both.
+  /** The merged sprints, ascending: the steps the controller indexes. */
+  let steps: readonly number[] = [];
+  /** The step the hulls show at rest, read off the drawings or flown to. */
+  let showing: Step | null = null;
+  /** The press in progress: its plan, which way it plays, and how it ends. */
+  let pressing: {
+    plan: Plan;
+    back: boolean;
+    to: Step;
+    begin: number;
+    length: number;
+    /** The beat drawn last, in ms into the press played forward. */
+    at: number;
+    done: () => void;
+    /** The leaving number on steps 24 to 51: a card plank's, riding it and fading with it. */
+    rider: { span: HTMLElement; x: string; y: string; clone: boolean } | null;
+    /** Scroll lands it only from its first frame: the words' swap may scroll the page itself. */
+    scrolls: boolean;
+  } | null = null;
+
+  /** The step the drawings show: the Theseus's seated planks, the ghost's seats, the record's. */
+  const readStep = (): Step => ({
+    seated: theseus?.hull.seats ?? new Set(),
+    ghost: ghost?.hull.seats ?? new Set(),
+    current: ghost?.current,
+  });
+  const sameStep = (a: Step | null, b: Step) =>
+    Boolean(a) &&
+    a?.current === b.current &&
+    [...PLANKS].every(
+      ({ id }) =>
+        a?.seated.has(id) === b.seated.has(id) &&
+        a?.ghost.has(id) === b.ghost.has(id),
+    );
+
+  /** Any input lands a moving plank at once (the contract; Iris, section 6). */
+  const pressInput = (event: Event) => {
+    if (event.type === "scroll" && !pressing?.scrolls) return;
+    finish();
+  };
+  const pressListen = (active: boolean) => {
+    for (const type of INPUTS) {
+      if (active) {
+        addEventListener(type, pressInput, { capture: true, passive: true });
+      } else removeEventListener(type, pressInput, { capture: true });
+    }
+  };
+
+  /** The numbers on both ships at the press's seat, which leave at its start (Iris, section 6). */
+  const atSeat = (seat: string) =>
+    [...(ghost?.labels ?? []), ...(theseus?.labels ?? [])]
+      .filter((label) => label.seat === seat)
+      .map((label) => label.span);
+
+  /**
+   * The press's numbers: every one at its seat hidden, but on steps 24 to 51 the card plank's that
+   * leaves, which rides it and fades (Iris, section 1). Played back, that number is the plank's
+   * coming home, which the drawing doesn't hold yet: a copy of the seat's span, renumbered.
+   */
+  const hideNumbers = (plan: Plan, back: boolean, hi: number) => {
+    const own = theseus?.labels.find((label) => label.seat === plan.seat)?.span;
+    for (const span of atSeat(plan.seat)) span.style.visibility = "hidden";
+    // The plank that leaves forward is the step before's: an original has no number.
+    const holder = steps[hi - ORDER.length];
+    if (!own || !plan.lo.seated.has(plan.seat) || holder === undefined) {
+      return null;
+    }
+    const span = back ? (own.cloneNode(true) as HTMLElement) : own;
+    if (back) {
+      span.textContent = String(holder);
+      own.after(span);
+    }
+    span.style.visibility = "";
+    return {
+      span,
+      x: own.style.getPropertyValue("--ghost-x"),
+      y: own.style.getPropertyValue("--ghost-y"),
+      clone: back,
+    };
+  };
+
+  /**
+   * The leaving number at the press's beat `ms` (played forward): riding its plank's lift and
+   * fading with it in Full, fading in place in Calm, gone once the new plank is in.
+   */
+  function ride(ms = pressing?.at ?? 0) {
+    const p = pressing;
+    const rider = p?.rider;
+    if (!p || !rider || !ships) return;
+    const { style } = rider.span;
+    const shift = (base: string, by: number) =>
+      `${(Number.parseFloat(base) || 0) + by}px`;
+    const flown = p.plan.kind === "fade" ? null : ships.flown();
+    style.setProperty("--ghost-x", shift(rider.x, flown?.dx ?? 0));
+    style.setProperty("--ghost-y", shift(rider.y, flown?.dy ?? 0));
+    const alpha =
+      ms <= 0
+        ? 1
+        : ms >= p.length
+          ? 0
+          : p.plan.kind === "fade"
+            ? 1 - ms / p.length
+            : (flown?.alpha ?? 0);
+    style.opacity = String(alpha);
+  }
+
+  /** One frame of the press at `ms` into it played forward. */
+  const pressFrame = (ms: number) => {
+    if (!pressing || !ships) return;
+    pressing.at = ms;
+    ships.beat(ms);
+    drawShips(1);
+  };
+
+  /**
+   * Lands the press at once (`land`), or at its end: the step's frame, a cold load's, drawn once,
+   * or left for the next redraw when nobody can see it (`draw` false, or a hidden page). Then
+   * `go` resolves. Idempotent, and nothing at rest.
+   */
+  function finish(draw = true) {
+    const p = pressing;
+    if (!p || !ships) return;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    pressListen(false);
+    const end = p.back ? 0 : p.length;
+    p.at = end;
+    ships.beat(end);
+    // The frame is the step's at the cap, as a still frame is (`rest`).
+    if (ratio < cap) step(cap);
+    if (draw && !document.hidden && near()) {
+      pending = false;
+      drawShips(1);
+    } else pending = true;
+    pressing = null;
+    ships.press(null);
+    ships.show(p.to);
+    showing = p.to;
+    if (p.rider && !p.rider.clone) p.rider.span.style.opacity = "0";
+    delete host.dataset.press;
+    delete host.dataset.pressKind;
+    p.done();
+  }
+
+  const pressTick = (now: number) => {
+    raf = 0;
+    const p = pressing;
+    if (!p || !alive) return;
+    // From its first frame a scroll lands it too.
+    p.scrolls = true;
+    const t = Math.max(0, now - p.begin);
+    if (t >= p.length) return finish();
+    // The loft's quality rule: three frames over 22 ms step the ratio down a rung; at 1, six over
+    // 33.4 ms land the plank, the frame then still.
+    const interval = now - last;
+    last = now;
+    slow = interval > SLOW_MS ? slow + 1 : 0;
+    stall = interval > STALL_MS ? stall + 1 : 0;
+    if (ratio > 1 && slow >= 3) {
+      slow = 0;
+      stall = 0;
+      step(below(ratio));
+      if (loft && theseusLoft) {
+        ships?.press(p.plan, { theseus: theseusLoft, ghost: loft });
+      }
+    } else if (ratio <= 1 && stall >= 6) {
+      finish(false);
+      return rest("still");
+    }
+    pressFrame(p.back ? p.length - t : t);
+    raf = requestAnimationFrame(pressTick);
+  };
+
+  /**
+   * The controller's press (lib/model/yard.ts): `go` moves the hulls from one step to the next,
+   * `land` lands a moving plank at once.
+   */
+  const makePress: MakePress = (list) => {
+    steps = list;
+    return {
+      go(from, to) {
+        finish();
+        const target = stepAt(to);
+        if (!alive) return Promise.resolve();
+        // Not drawn yet: frame 1 reads the drawing the controller swaps in once this resolves.
+        if (
+          !ships ||
+          !built ||
+          blank ||
+          !state ||
+          !loft ||
+          !theseusLoft ||
+          !fit
+        ) {
+          return Promise.resolve();
+        }
+        // A moving loft lands first: play starts only from rest (B3.1).
+        if (moving()) rest("settled");
+        showing = target;
+        // A jump, or a page nobody sees: the step at once, drawn when it can be seen.
+        if (Math.abs(to - from) !== 1 || document.hidden || !near()) {
+          ships.show(target);
+          redraw();
+          return Promise.resolve();
+        }
+        const hi = Math.max(from, to);
+        const back = to < from;
+        const plan: Plan = {
+          seat: ORDER[hi % ORDER.length] ?? "",
+          lo: stepAt(hi - 1),
+          hi: stepAt(hi),
+          kind:
+            open === "settled" ? "fade" : hi < ORDER.length ? "carry" : "crew",
+          narrow: sheet === sheets.narrow,
+          drawing: fit.drawing,
+        };
+        // Hover is off, and the record's marks leave both ships, at the press's start: its first
+        // frame draws that, so nothing is drawn now.
+        hovered = null;
+        press = null;
+        delete host.dataset.pick;
+        canvas.style.cursor = "";
+        ships.press(plan, { theseus: theseusLoft, ghost: loft });
+        host.dataset.press = plan.seat;
+        host.dataset.pressKind = plan.kind === "fade" ? "fade" : "fly";
+        const length = ships.length(plan);
+        return new Promise<void>((done) => {
+          const now = performance.now();
+          pressing = {
+            plan,
+            back,
+            to: target,
+            begin: now,
+            length,
+            at: back ? length : 0,
+            done,
+            rider: hideNumbers(plan, back, hi),
+            scrolls: false,
+          };
+          last = now;
+          slow = 0;
+          stall = 0;
+          pressListen(true);
+          raf = requestAnimationFrame(pressTick);
+        });
+      },
+      land: () => finish(),
+    };
+  };
+
+  /**
+   * The controller swapped a drawing's markup for the step's (lib/model/yard.ts): read both again.
+   * Their numbers are new nodes, placed on the hulls before the next paint. At rest, a drawing that
+   * shows another step than the hulls do (a slow page, a jump) is the truth, and draws a frame.
+   */
+  const swapped = () => {
+    if (!alive || !ghost) return;
+    const g = plan?.querySelector(".plan-ghost");
+    const t = shipyard?.querySelector(".plan-theseus");
+    if (!g || !t || (g === wide && t === theseusDrawing)) return;
+    const before = leadsNow();
+    for (const old of [wide, theseusDrawing]) {
+      if (old) {
+        sized.unobserve(old);
+        seen.unobserve(old);
+      }
+    }
+    numbers?.clear();
+    theseusNumbers?.clear();
+    wide = g;
+    narrow = g;
+    theseusDrawing = t;
+    sheets.wide.drawing = g;
+    sheets.narrow.drawing = g;
+    for (const element of [g, t]) {
+      sized.observe(element);
+      seen.observe(element);
+    }
+    ghost = readGhost(g);
+    theseus = readGhost(t);
+    numbers = riders(ghost);
+    theseusNumbers = riders(theseus);
+    if (pressing) {
+      // Mid-press, the drawing is a step behind the hulls: its seat's numbers leave too.
+      for (const span of atSeat(pressing.plan.seat)) {
+        span.style.visibility = "hidden";
+      }
+      return;
+    }
+    if (!ships) return;
+    const drawn = readStep();
+    const changed = !sameStep(showing, drawn) || before !== leadsNow();
+    showing = drawn;
+    if (changed) {
+      ships.show(drawn);
+      led = "";
+    }
+    if (!state) return;
+    if (changed) redraw();
+    else placeNumbers(1);
+  };
+  /** Both ships' leaders at rest, as text, so a swap that keeps them draws no frame. */
+  function leadsNow() {
+    const shown = matchMedia(THREE_VIEWS).matches;
+    return [numbers, theseusNumbers]
+      .map((each) => pairs(each?.leaders(1, shown) ?? []).join())
+      .join("|");
+  }
+  const swaps = ghost ? new MutationObserver(swapped) : null;
+  for (const element of [plan, shipyard]) {
+    if (element && swaps) swaps.observe(element, { childList: true });
+  }
+  /** The controller's teardown, once it has taken the Log's step links. */
+  const unyard = ghost ? startYard(document, makePress) : null;
+
   function stop() {
+    // The controller first: torn down mid-flight it puts the step's page up at once; then the
+    // plank lands, unseen, and `go` resolves.
+    unyard?.();
+    finish(false);
+    swaps?.disconnect();
     alive = false;
     cancelAnimationFrame(raf);
     cancelAnimationFrame(crossing);
@@ -913,11 +1476,12 @@ function start(
     canvas.removeEventListener("webglcontextlost", lost);
     canvas.removeEventListener("webglcontextrestored", restored);
     // three's compile polls the programs on a timer: disposing under it is left until it settles.
-    const done = stage;
+    const done = stage ?? ships;
     const dispose = () => done?.dispose();
     if (compiling !== null) compiling.then(dispose, dispose);
     else dispose();
     stage = null;
+    ships = null;
     canvas.remove();
     delete host.dataset.state;
     delete host.dataset.marks;
@@ -928,16 +1492,11 @@ function start(
   const build = async () => {
     await pause();
     if (!alive) return;
-    hull = hullAt(sheet.level, ghost?.hull);
+    if (ghost) return buildShips();
+    hull = hullAt(sheet.level);
     await pause();
     if (!alive) return;
-    stage = createStage(
-      canvas,
-      hull,
-      Boolean(ghost),
-      ghost ? buildHull(PICK, ghost.hull) : undefined,
-      Boolean(crew),
-    );
+    stage = createStage(canvas, hull, false, undefined, Boolean(crew));
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     await pause();
@@ -956,6 +1515,29 @@ function start(
     built = true;
     if (alive && !blank) raf = requestAnimationFrame(first);
   };
+  /** The Log's build: both ships at the drawing's level, the scene, the lofts, the programs. */
+  async function buildShips() {
+    yard = yardAt(sheet.level);
+    await pause();
+    if (!alive) return;
+    ships = createShips(canvas, yard, buildHull(PICK, EVERY));
+    canvas.addEventListener("webglcontextlost", lost);
+    canvas.addEventListener("webglcontextrestored", restored);
+    await pause();
+    if (!alive || !ships) return;
+    ships.paint(palette());
+    showing = readStep();
+    ships.show(showing);
+    apply(measure(), true);
+    remark();
+    await pause();
+    if (!alive || !ships || !loft || !theseusLoft) return;
+    compiling = ships.compile({ theseus: theseusLoft, ghost: loft });
+    await compiling;
+    compiling = null;
+    built = true;
+    if (alive && !blank) raf = requestAnimationFrame(first);
+  }
   build().catch(() => {
     // No WebGL after all, or the build failed: the drawing is the page, as with the model Off.
     compiling = null;

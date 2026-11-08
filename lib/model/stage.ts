@@ -80,11 +80,11 @@ export type Palette = {
 /** One slot per plank and one for the deck: the state lookup (contract, build note 1). */
 const SLOTS = PLANKS.length + 1;
 /** The light scheme's sky bounce under the hull: the spike's rig, kept (notes-iris.md, call 6). */
-const GROUND_LIGHT = "#9fb2ad";
+export const GROUND_LIGHT = "#9fb2ad";
 /** The rig, light scheme: a soft sky, a frontal fill so the lit card stays card, and a sun. */
-const SKY = 1.6;
-const FILL = 0.9;
-const SUN = 1.4;
+export const SKY = 1.6;
+export const FILL = 0.9;
+export const SUN = 1.4;
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -162,7 +162,9 @@ function cardMaterial(uniforms = cardUniforms(), side?: Side) {
 }
 
 /** The card's buffers at one level: every plank, the deck and the transom, with their slots. */
-function cardGeometry(hull: Hull) {
+export function cardGeometry(
+  hull: Pick<Hull, "position" | "normal" | "slot" | "index">,
+) {
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new BufferAttribute(hull.position, 3));
   geometry.setAttribute("normal", new BufferAttribute(hull.normal, 3));

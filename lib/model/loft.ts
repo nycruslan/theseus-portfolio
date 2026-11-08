@@ -108,6 +108,12 @@ export type Frame = {
   viewport: number;
   /** Buffer pixels per CSS px, where a turn in place needs it (the ghost's room). */
   ratio?: number;
+  /**
+   * The drawing's box inside the canvas, in CSS px from its top left, where the canvas holds more
+   * than one drawing (the Log's two ships, .crew/sprint/55/contract.md); the whole canvas if none.
+   * The model registers on it and turns in place inside it, while the camera stays the canvas's.
+   */
+  box?: { left: number; top: number; height: number };
 };
 
 /** Where the model settles on one drawing: its offset in the drawing's units, its turn in
@@ -154,13 +160,17 @@ const settleOn = (layout: Layout): Settle =>
  * is the drawing's own (lib/hull-layouts.ts, WIDE or NARROW), the settled one its turn and lift,
  * both scaled by the drawing's width (call 7). The lens is 30° over the viewport.
  */
-function poses({ drawing, viewport }: Frame, layout: Layout, settle: Settle) {
+function poses(
+  { drawing, viewport, box: on }: Frame,
+  layout: Layout,
+  settle: Settle,
+) {
   const { box, ox, oy, s } = layout;
   const k = drawing / box[2];
   const scale = s * k;
   const from: Screen = {
-    cx: (ox - box[0] + (LENGTH / 2) * s) * k,
-    cy: (oy - box[1] + (HEIGHT / 2) * s) * k,
+    cx: (on?.left ?? 0) + (ox - box[0] + (LENGTH / 2) * s) * k,
+    cy: (on?.top ?? 0) + (oy - box[1] + (HEIGHT / 2) * s) * k,
     lift: STANDOFF * scale,
     yaw: 0,
     pitch: 0,
@@ -194,6 +204,9 @@ export function makeLoft(
 ) {
   const { width, height, ratio = 1 } = frame;
   const margin = EDGE + 0.5 / ratio;
+  // The box the model turns in place inside: its drawing's, or the canvas.
+  const room = frame.box?.height ?? height;
+  const middle = (frame.box?.top ?? 0) + room / 2;
   const settle = settleOn(layout);
   const { from, to, scale, lens } = poses(frame, layout, settle);
   const lerp = (a: number, b: number, e: number) => a + (b - a) * e;
@@ -245,10 +258,10 @@ export function makeLoft(
       // and riding to the canvas's centre down, so both margins are kept.
       if (settle.centre) {
         const tall = (box.height * want) / box[settle.hold];
-        const room = height - 2 * margin;
-        if (tall > room) s *= room / tall;
+        const inside = room - 2 * margin;
+        if (tall > inside) s *= inside / tall;
         screen.cx += registered.cx - box.cx;
-        screen.cy += lerp(registered.cy, height / 2, e) - box.cy;
+        screen.cy += lerp(registered.cy, middle, e) - box.cy;
       }
     }
     return worldPose(screen, s, invD);

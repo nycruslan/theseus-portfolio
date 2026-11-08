@@ -37,6 +37,15 @@ export const PHONE: Level = { stations: 56, rows: 4 };
  * hull's; only the curve between them is coarser.
  */
 export const PICK: Level = { stations: 24, rows: 2 };
+/**
+ * The Log's two hulls in one canvas (.crew/sprint/55/contract.md, call 2; spike-pixel.md, section
+ * 2): both drop to these from 768 px and below, so the pair is at most 26,619 and 10,499 triangles
+ * against 30,000 and 12,000. `/` keeps DESKTOP and PHONE.
+ */
+export const YARD_DESKTOP: Level = { stations: 72, rows: 6 };
+export const YARD_PHONE: Level = { stations: 40, rows: 3 };
+/** On the Log a far side's plank takes its slot + SIDE, so either side can change alone. */
+export const SIDE = 32;
 
 /** The state lookup's slot for the deck and the transom, after the 22 planks: always card. */
 export const DECK = PLANKS.length;
@@ -147,7 +156,10 @@ function plankStations(plank: Plank, stations: number[]) {
   return { band, xs };
 }
 
-/** One plank, on the sides given (both on the sheet), into the card mesh with its slot. */
+/**
+ * One plank, on the sides given (both on the sheet), into the card mesh with its slot; on the Log,
+ * with `far`, the far side's slot is `slot + far`, and `ranges` takes each side's run of indices.
+ */
 function plankMesh(
   card: Card,
   plank: Plank,
@@ -155,15 +167,19 @@ function plankMesh(
   stations: number[],
   rows: number,
   sides: readonly number[],
+  far = 0,
+  ranges?: Map<number, [number, number]>,
 ) {
   const { band, xs } = plankStations(plank, stations);
   for (const side of sides) {
     const base = card.count;
+    const start = card.index.length;
+    const own = side === 1 ? slot : slot + far;
     for (const x of xs) {
       const [top, bottom] = band(x) ?? [0, 0];
       for (let j = 0; j <= rows; j++) {
         const { p, n } = surface(x, top + ((bottom - top) * j) / rows, side);
-        card.vertex(p, n, slot);
+        card.vertex(p, n, own);
       }
     }
     // Front faces point out of the hull on either side, so back faces can be culled.
@@ -176,6 +192,7 @@ function plankMesh(
         else card.index.push(a, b, c, c, b, d);
       }
     }
+    ranges?.set(own, [start, card.index.length - start]);
   }
 }
 
@@ -386,6 +403,21 @@ export function plankEdges(
 export const nearSide = (x: number, y: number, out = 0): Vec3 =>
   toLocal(x, y, halfBreadth(Math.min(Math.max(x, 0), LENGTH), y) + out);
 
+/**
+ * A seat's near-side plank as the press moves it (.crew/sprint/55/press-iris.md, section 4): its
+ * middle, on its body's middle station at mid-depth, and the outward normal there, the line it
+ * lifts along, in the model's frame.
+ */
+export function seatFrame(id: string): { centre: Vec3; normal: Vec3 } {
+  const plank = PLANKS.find((candidate) => candidate.id === id);
+  const body = plank && plankBody(plank);
+  const x = body ? (body[0] + body[1]) / 2 : LENGTH / 2;
+  const band = plank ? bandAt(plank, x) : null;
+  const y = band ? (band[0] + band[1]) / 2 : HEIGHT / 2;
+  const { p, n } = surface(x, y, 1);
+  return { centre: p, normal: n };
+}
+
 /** The ghost's seats: the planks the crew took out. */
 export type Ghost = { seats: ReadonlySet<string> };
 
@@ -438,6 +470,132 @@ export function buildHull({ stations: count, rows }: Level, ghost?: Ghost) {
     /** Where the near side's triangles start in `index`: the ghost's far range is before it. */
     far,
     seams: seamLines(stations, rows, ghost?.seats),
+    outline: outlineLines(stations, rows),
+    points: skeleton(),
+  };
+}
+
+/** A line batch's seat tag that is always shown: the Theseus's lines, the outlines, the marks. */
+export const ALWAYS = 63;
+
+const slotOf = new Map(PLANKS.map((plank, slot) => [plank.id, slot]));
+
+/**
+ * The ghost's seams with every seat built (.crew/sprint/55/contract.md: all 22 ghost seats, gaps
+ * hidden by state): each seam is cut at every butt of the lifts on both sides of it, so each run
+ * borders one plank above and one below, and each segment carries those two planks' slots (the far
+ * side's + SIDE). A segment shows while either plank does, so a gap's seams stop butt to butt, as
+ * the 2D's do (sprint 53, `seamLines`).
+ */
+function taggedSeams(stations: number[], rows: number) {
+  const out: number[] = [];
+  const tags: number[] = [];
+  const on = (x: number, y: number, side: number) => surface(x, y, side).p;
+  const push = (points: Vec3[], a: number, b: number) => {
+    const before = out.length;
+    segments(points, out);
+    for (let n = (out.length - before) / 6; n > 0; n--) tags.push(a, b);
+  };
+  for (let k = 1; k < BUTTS.length; k++) {
+    const y = seamDepth(k);
+    const [a, b] = ends(y);
+    const above = PLANKS.filter((plank) => lift(plank) === k - 1);
+    const below = PLANKS.filter((plank) => lift(plank) === k);
+    const cuts = [
+      ...new Set([
+        a,
+        b,
+        ...[...above, ...below]
+          .flatMap((plank) => [plank.x0, plank.x1])
+          .filter((x) => x > a && x < b),
+      ]),
+    ].sort((p, q) => p - q);
+    const at = (list: Plank[], x: number) =>
+      slotOf.get(
+        list.find((plank) => plank.x0 <= x && x <= plank.x1)?.id ?? "",
+      );
+    for (const side of [1, -1]) {
+      const off = side === 1 ? 0 : SIDE;
+      for (let i = 1; i < cuts.length; i++) {
+        const [x0 = 0, x1 = 0] = [cuts[i - 1], cuts[i]];
+        if (x1 - x0 < 1e-6) continue;
+        const mid = (x0 + x1) / 2;
+        const up = at(above, mid);
+        const down = at(below, mid);
+        const one = up ?? down;
+        const other = down ?? up;
+        push(
+          stationsIn(stations, x0, x1).map((x) => on(x, y, side)),
+          one === undefined ? ALWAYS : one + off,
+          other === undefined ? ALWAYS : other + off,
+        );
+      }
+    }
+  }
+  PLANKS.forEach((plank, i) => {
+    const previous = PLANKS[i - 1];
+    if (!previous || lift(previous) !== lift(plank)) return;
+    const band = bandAt(plank, plank.x0);
+    if (!band) return;
+    const ys = Array.from(
+      { length: rows + 1 },
+      (_, j) => band[0] + ((band[1] - band[0]) * j) / rows,
+    );
+    for (const side of [1, -1]) {
+      const off = side === 1 ? 0 : SIDE;
+      push(
+        ys.map((y) => on(plank.x0, y, side)),
+        i - 1 + off,
+        i + off,
+      );
+    }
+  });
+  return { seams: new Float32Array(out), tags: new Float32Array(tags) };
+}
+
+export type Ship = ReturnType<typeof buildShip>;
+
+/**
+ * One of the Log's two ships at a level (.crew/sprint/55/contract.md): the Theseus, every plank on
+ * both sides with the deck and the transom, as the sheet's card; or the ghost, all 22 seats on
+ * both sides with no deck, its far side's triangles first. A far side's plank takes its slot +
+ * SIDE, and `ranges` holds each side's run of indices by that slot, so one plank can be drawn
+ * alone. The ghost's seams carry their seats (`tags`); the Theseus's are whole.
+ */
+export function buildShip(
+  { stations: count, rows }: Level,
+  ship: "theseus" | "ghost",
+) {
+  const stations = stationsAt(count);
+  const card = new Card();
+  const ranges = new Map<number, [number, number]>();
+  let far = 0;
+  if (ship === "ghost") {
+    for (const side of [-1, 1]) {
+      if (side === 1) far = card.index.length;
+      PLANKS.forEach((plank, slot) => {
+        plankMesh(card, plank, slot, stations, rows, [side], SIDE, ranges);
+      });
+    }
+  } else {
+    PLANKS.forEach((plank, slot) => {
+      plankMesh(card, plank, slot, stations, rows, [1, -1], SIDE, ranges);
+    });
+    deckMesh(card, stations, rows);
+  }
+  const seams =
+    ship === "ghost"
+      ? taggedSeams(stations, rows)
+      : { seams: seamLines(stations, rows), tags: null };
+  return {
+    position: new Float32Array(card.position),
+    normal: new Float32Array(card.normal),
+    slot: new Float32Array(card.slot),
+    index: new Uint16Array(card.index),
+    far,
+    ranges,
+    seams: seams.seams,
+    tags: seams.tags,
     outline: outlineLines(stations, rows),
     points: skeleton(),
   };

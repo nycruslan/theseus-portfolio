@@ -40,6 +40,17 @@ export const PLANKS: readonly Plank[] = BUTTS.flatMap((butts, k) => {
   }));
 });
 
+/**
+ * The shipwright's order (.crew/sprint/15/direction-iris.md): the k-th merged sprint seats plank
+ * ORDER[(k - 1) mod 22], so a new plank always lands away from the last one. Here, beside the
+ * planks, so the Log's press in the 3D chunk seats by the drawing's own rule
+ * (.crew/sprint/55/contract.md).
+ */
+export const ORDER: readonly string[] =
+  "5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0".split(
+    " ",
+  );
+
 /** Where one drawing puts the three views, in its viewBox's units (notes-iris.md, section 4). */
 export type Layout = {
   /** The viewBox: left, top, width, height. */

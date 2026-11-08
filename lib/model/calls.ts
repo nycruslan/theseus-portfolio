@@ -124,11 +124,53 @@ export const LED_OUT: readonly string[] = ["3.0"];
 export const LEAD_OUT = 22;
 export const LEAD_GAP = 2;
 
+// The press (.crew/sprint/55/press-iris.md, Iris's calls, section 4): one plank between the two
+// ships, in beats. Times in ms; a length given at 1440 and 390 scales with the drawing's width
+// between them (`byWidth`). No beat bounces, overshoots or recoils: in the yard a bounce is a fix
+// round.
+
+/** The lift: the leaving plank rises off its seat along its outward normal, on the site's ease. */
+export const PRESS_LIFT = 140;
+/** The carry to the ghost's seat on one path, cubic in-out: from 768 px, and below. */
+export const PRESS_CARRY = 480;
+export const PRESS_CARRY_NARROW = 400;
+/** Steps 24 to 51: the lifted card plank fades out where it stands, linear. */
+export const PRESS_FADE = 200;
+/** The knock: the new card plank fades in L proud of its gap, then drives in on a cubic ease-in. */
+export const PRESS_KNOCK = 140;
+export const KNOCK_FADE = 60;
+/** The ghost's far twin fades in over the carry's last this many ms, ending at touchdown. */
+export const FAR_FADE = 240;
+/** Calm and reduced motion: the site's fade, linear, in place. */
+export const CALM_FADE = 240;
+/** The look's morph, opaque card to vellum, over this share of the carry (smoothstep). */
+export const MORPH: readonly [number, number] = [0.4, 0.9];
+/** The lift's height L, and how far the carry may rise over the lift point, at 390 and 1440. */
+export const LIFT_PX: readonly [number, number] = [6, 14];
+export const RISE_PX: readonly [number, number] = [6, 16];
+/** The carry's bow toward the camera: its seated length × at most this at mid-carry. */
+export const BOW = 1.05;
+/** Its roll about its long axis at mid-carry, in degrees, outer face up to the light. */
+export const ROLL = 6;
+/** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
+export const PRESS_WIDTHS: readonly [number, number] = [358, 900];
+
+/** A length Iris gave at 390 and 1440, at a drawing `width` CSS px wide. */
+export const byWidth = (
+  [at390, at1440]: readonly [number, number],
+  width: number,
+) =>
+  at390 +
+  ((at1440 - at390) * (width - PRESS_WIDTHS[0])) /
+    (PRESS_WIDTHS[1] - PRESS_WIDTHS[0]);
+
 /** The ghost's line weights in CSS px: the seams and butts, the outline, and the ink mark of a
  * record's plank or the hovered one (calls 1 and 4); the leaders are the seams' weight. */
 export const GHOST_EDGE_PX = 0.75;
 export const GHOST_OUTLINE_PX = 1.4;
 export const MARK_PX = 1.4;
+/** The Theseus's mark on a record's seat, heavier than the ghost's since its seams are ink too. */
+export const THESEUS_MARK_PX = 2;
 
 /** The shadow's darkness: --foreground over the sheet in light, black over it in dark (call 4). */
 export const SHADOW_LIGHT = 0.18;

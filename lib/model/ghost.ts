@@ -624,6 +624,8 @@ export function riders(
       e: number,
       shown: boolean,
       drawn: () => Float32Array,
+      /** The drawing's top left in the canvas, where the canvas holds two (the Log's ships). */
+      origin: readonly [number, number] = [0, 0],
     ) {
       if (!shown) return this.clear();
       targets ??= fixed
@@ -645,7 +647,10 @@ export function riders(
             ? inAt(i, loft, now[i] ?? label.into[0], e)
             : pointAt(i, loft, ax + ((now[i] ?? ax) - ax) * e, e).at;
         // The span's own place on the canvas, which lies on the drawing's box: frame 1's point.
-        const [x0, y0] = [label.share[0] * BW * k, label.share[1] * BH * k];
+        const [x0, y0] = [
+          origin[0] + label.share[0] * BW * k,
+          origin[1] + label.share[1] * BH * k,
+        ];
         const [gx, gy] = [snap(px - x0), snap(py - y0)];
         const { style } = label.span;
         style.setProperty("--ghost-x", `${gx}px`);

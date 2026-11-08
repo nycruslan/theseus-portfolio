@@ -35,6 +35,7 @@ import {
   NARROW,
   numberX,
   numberY,
+  ORDER,
   PENCIL,
   PLANKS,
   type Plank,
@@ -45,15 +46,6 @@ import {
 } from "./hull-layouts";
 
 type Point = readonly [number, number];
-
-/**
- * The shipwright's order (.crew/sprint/15/direction-iris.md): the k-th merged sprint seats plank
- * ORDER[(k - 1) mod 22], so a new plank always lands away from the last one.
- */
-const ORDER =
-  "5.1 3.2 1.1 6.0 4.2 0.1 2.0 3.0 5.2 1.3 4.0 0.2 6.1 2.1 1.2 3.1 4.1 2.2 5.0 3.3 0.0 1.0".split(
-    " ",
-  );
 
 /**
  * Each plank's label: the last sprint to seat it, from the merged sprints in ascending order. A
