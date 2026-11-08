@@ -20,6 +20,14 @@ On `/log/n` in Full and Calm, holding a step link (mouse, touch, or ← and →)
 - **While riffling** (Pixel): at most 6 draws, 26,697 triangles at 1440 and 10,397 at 390; 0 frames at rest after a stop or release; the settled canvas 0 px off a cold load.
 - **Iris: `Verdict: ship`, 8.3/10, no musts open** (her one must, a mouse press leaving the focus ring, is fixed in de2ebc7). axe 0 serious or critical; 320 px reflow clean; no layout shift without input in any riffle.
 
+### Fix round (after Lens's ship on 7b2d154)
+
+CI's e2e shard 2 of 4 hit its 20-minute cap 3 s after its last test passed (96 of 96 green), so one round (decision 12):
+- **Probe, `e2e/log-riffle.spec.ts` (d9983b1):** its original checks' test time is down 50.6% (517 to 255.5 s on 2 workers). No expect dropped or loosened: 67 expect calls before, 76 after, the 9 added being the new check below, and every earlier assertion message is kept. The cuts: Y20 Full and Y21 run at 390 × 844, since no clause names a size and Y23 keeps a Full riffle at 1440 for the 1440 draw and triangle budgets; reduced motion shares Calm's test and riffles 50 to the newest; bigger clock steps where nothing lets go; shorter real-time waits. Y24 stays real time, and its key hold now starts from the first step (reached by Home), so it no longer depends on where the 4x mouse riffle stopped.
+- **Forge, `lib/model/yard.ts` (a0ecff0), Lens's nits 1 and 2:** a tap or Enter on a step link steps from the target, not the held record's href; Off mid-riffle before the step's page has come leaves the last whole step. Both are a new check, "Y23 A step's page late", red on 7b2d154 and green now.
+- Nit 3 is accepted: Home or End one step from its end flies one press, which is one plank. Nit 4 (the chunk's baseline) is corrected above.
+- `ci.yml`'s split by count puts every heavy Log spec in one shard; a split by time or a fifth shard is the owner's (proposed in the retro).
+
 ### For Lens: rewritten kept checks (decision 7)
 
 Probe's contract mutant ran 219 kept tests; two went red by design, both from the new hand-off link (contract point 6):
