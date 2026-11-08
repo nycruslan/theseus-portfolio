@@ -1251,7 +1251,7 @@ async function landedOn(page: Page, target: string, timeout = 20_000) {
 const goalOf = (n: number) =>
   MERGED.find((e) => e.sprint === n)?.goal ?? `(no goal for ${n})`;
 
-test("Y16 The step's page, from the server, without a navigation: in Calm at 1440, presses from /log/13 to 14 and back, then from /log/22 to 23 (the question appears) and 24 (it goes), each keep the document and history.length and set location.pathname to the step's; the record, both captions, the count, the question, the step links, the table's open row, the title and both drawings' planks and numbers equal the server's HTML for that step; with Off stored, Next is a document navigation that grows history; when the step's fetch fails, Next navigates to it", async ({
+test("Y16 The step's page, from the server, without a navigation: in Calm at 1440, presses from /log/13 to 14 and back, then from /log/22 to 23 (the question appears) and 24 (it goes), each keep the document and history.length and set location.pathname to the step's; the record, both captions, the count, the question, the step links, the table's open row, the title and both drawings' planks and numbers equal the server's HTML for that step; with Off stored, Next is a document navigation that grows history; when the step's fetch fails, Next navigates to it; in Full on the clock at 390 x 844 and 1440 x 900, Next from /log/22 to 23, its frames played from 700 ms after the click, shifts no layout without recent input from the press to 1 s after it lands (Iris's review, must 1)", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1316,6 +1316,70 @@ test("Y16 The step's page, from the server, without a navigation: in Calm at 144
   }
   expect.soft(run.errors, "console errors, Calm").toEqual([]);
   await run.close();
+
+  // Full: no layout shift without recent input from the press until a second after it lands.
+  // The question arrives with the knock, about 760 ms after the click, past Chrome's 500 ms input
+  // window (Iris's review, .crew/sprint/55/review-iris.md, must 1: 0.0253 at 390 on 87fce76). In
+  // real time a loaded SwiftShader lands the press early by its stall rule, inside the window, and
+  // a real-time read at 390 saw none on 87fce76; so the press is held on the clock and its frames
+  // stepped only once 700 ms of real time have passed since the click, as on a device that plays
+  // it. The entries are the ones recorded after the click (a buffered observer's takeRecords, by
+  // index: the clock's performance.now() isn't the entries' clock).
+  const asking = QUESTION_STEP ?? 23;
+  const before = STEPS[STEPS.indexOf(asking) - 1] ?? 22;
+  const shiftsNow = (page: Page) =>
+    page.evaluate(() => {
+      type Shift = PerformanceEntry & {
+        value: number;
+        hadRecentInput: boolean;
+        sources?: { node?: Node | null }[];
+      };
+      const observer = new PerformanceObserver(() => undefined);
+      observer.observe({ type: "layout-shift", buffered: true });
+      const list = observer.takeRecords() as Shift[];
+      observer.disconnect();
+      const name = (node?: Node | null) =>
+        node instanceof Element
+          ? `${node.tagName.toLowerCase()}${node.classList[0] ? `.${node.classList[0]}` : ""}`
+          : String(node?.nodeName ?? "none");
+      return list.map((e) => ({
+        value: e.value,
+        recent: e.hadRecentInput,
+        sources: (e.sources ?? []).map((source) => name(source.node)),
+      }));
+    });
+  for (const size of [PHONE, DESKTOP]) {
+    const where = `next from /log/${before} to /log/${asking}, Full on the clock at ${size.width} x ${size.height}`;
+    const full = await atRestOnClock(browser, recordOf(before), size);
+    const seen = (await shiftsNow(full.page)).length;
+    const press = await pressOn(full, recordOf(asking), async () => {
+      await clickStep(full.page, "next");
+      await pause(700);
+    });
+    expect(
+      press.sameDocument,
+      `the press stays on the page (no document navigation), ${where}`,
+    ).toBe(true);
+    expect.soft(press.landed, `the press lands, ${where}`).toBe(true);
+    await full.step(1000);
+    await pause(300);
+    const shifts = (await shiftsNow(full.page))
+      .slice(seen)
+      .filter((e) => !e.recent);
+    note(
+      testInfo,
+      "layout shift",
+      `${where}: ${told(press)}; without recent input: ${shifts.map((e) => `${e.value.toFixed(4)} (${e.sources.join(", ")})`).join("; ") || "none"}`,
+    );
+    expect
+      .soft(
+        shifts.reduce((total, e) => total + e.value, 0),
+        `layout shift without recent input from the press to 1 s after it lands, ${where}`,
+      )
+      .toBe(0);
+    expect.soft(full.errors, `console errors, ${where}`).toEqual([]);
+    await full.close();
+  }
 
   // Off: Ya's page, where Next is a document navigation.
   const off = await openModel(browser, { ...DESKTOP, stored: "off" });
