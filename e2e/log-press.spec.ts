@@ -3,7 +3,6 @@ import {
   canvasAlone,
   canvasBox,
   DRAWING,
-  medianIn,
   offHull,
   onEdge,
   pickOf,
@@ -1813,7 +1812,57 @@ function theseusNumbers(page: Page) {
   );
 }
 
-test(`Y19 The Theseus's numbers read in dark: settled in Full, dark, at 1440 x 900 and 1024 x 768 on ${Y19_PAGES.join(", ")}, the Theseus shows numbers and each sits at least 4.5:1 on what it sits on, read as B5.19 reads the ghost's (its ink against the median of the view with the numbers hidden, under its box)`, async ({
+/** WCAG's relative luminance of an sRGB [0, 255] colour, as `contrast` reads it. */
+function luminance([r = 0, g = 0, b = 0]: readonly number[]) {
+  const lin = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * The plank's fill under a number (Atlas's decision on Y19, .crew/sprint/55/decisions.md): the
+ * view's pixels in the number's box, less the drawn lines crossing it, the record's ink mark and
+ * the seams, which are ink as the 2D's own strokes are. A line splits the box's luminances in two
+ * groups 1.5:1 or more apart (ink against the card); then the fill is the group farther from the
+ * number's ink, and its median is the ground. With no such split, the whole box's median, as
+ * B5.19 reads the ghost's. The record's 13 on /log/13 at 1024 sits half on its 2 px mark, where
+ * the box's median read the mark's anti-aliased edge (4.45:1 on a card of about 8.6:1).
+ */
+function plankFill(image: Image, b: Box, ink: readonly number[]) {
+  const c = whole(b);
+  const px: number[][] = [];
+  for (let y = c.y; y < c.y + c.height; y++)
+    for (let x = c.x; x < c.x + c.width; x++)
+      if (x >= 0 && y >= 0 && x < image.width && y < image.height)
+        px.push(pixel(image, x, y).slice(0, 3));
+  const median = (list: number[][]) =>
+    [0, 1, 2].map((k) => {
+      const v = list.map((p) => p[k] ?? 0).sort((p, q) => p - q);
+      return v[Math.floor(v.length / 2)] ?? Number.NaN;
+    });
+  const ys = px.map(luminance);
+  let lo = Math.min(...ys);
+  let hi = Math.max(...ys);
+  for (let i = 0; i < 20; i++) {
+    const low = ys.filter((y) => Math.abs(y - lo) <= Math.abs(y - hi));
+    const high = ys.filter((y) => Math.abs(y - lo) > Math.abs(y - hi));
+    if (!low.length || !high.length) break;
+    lo = low.reduce((sum, y) => sum + y, 0) / low.length;
+    hi = high.reduce((sum, y) => sum + y, 0) / high.length;
+  }
+  if ((hi + 0.05) / (lo + 0.05) < 1.5) return { rgb: median(px), lines: 0 };
+  const inkY = luminance(ink);
+  const fillLow = Math.abs(lo - inkY) >= Math.abs(hi - inkY);
+  const fill = px.filter(
+    (_, i) =>
+      Math.abs((ys[i] ?? 0) - lo) <= Math.abs((ys[i] ?? 0) - hi) === fillLow,
+  );
+  return { rgb: median(fill), lines: px.length - fill.length };
+}
+
+test(`Y19 The Theseus's numbers read in dark: settled in Full, dark, at 1440 x 900 and 1024 x 768 on ${Y19_PAGES.join(", ")}, the Theseus shows numbers and each sits at least 4.5:1 on what it sits on, its ink against the plank's fill under its box with the numbers hidden: the box's median, leaving out the drawn lines crossing it (the record's mark and the seams, ink as the 2D's strokes are) when they split its luminances 1.5:1 or more`, async ({
   browser,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -1835,12 +1884,14 @@ test(`Y19 The Theseus's numbers read in dark: settled in Full, dark, at 1440 x 9
       const faint: string[] = [];
       for (const n of numbers) {
         const ink = await rgbOf(run.page, n.color);
-        const ground = medianIn(image, n.box);
+        const ground = plankFill(image, n.box, ink);
         const ratio = contrast(
           ink as [number, number, number],
-          ground as [number, number, number],
+          ground.rgb as [number, number, number],
         );
-        reads.push(`${n.text} ${ratio.toFixed(2)}:1`);
+        reads.push(
+          `${n.text} ${ratio.toFixed(2)}:1${ground.lines ? ` (${ground.lines} line px left out)` : ""}`,
+        );
         if (ratio < 4.5) faint.push(`${n.text} ${ratio.toFixed(2)}:1`);
       }
       note(testInfo, "contrast", `${where}: ${reads.join(", ") || "none"}`);
