@@ -16,9 +16,10 @@ import type { ReactNode } from "react";
 //
 // Below 768 px five links don't fit and the bar is full: it shows Work, Crew, Log and Contact, and
 // Read as page stays in the nav's DOM, hidden. Read as page, with the control, takes one row in the
-// page instead (components/foot.tsx): at the drawing's foot on the sheet (app/page.tsx;
-// .crew/sprint/27/) and on /crew, and at the header's end on the Log and its records
-// (components/log.tsx; .crew/sprint/33/).
+// page instead (components/foot.tsx): hung from the bar at the drawing's head on the sheet
+// (app/page.tsx; .crew/sprint/44/placement.md), at the drawing's foot on /crew, and under the h1
+// at the drawings' head on the Log and its records (components/log.tsx; .crew/sprint/53/
+// placement.md, the addendum).
 type BarProps = {
   /** Where the bar is: the sheet, the Log, a record, the crew's page, a case study, or any other. */
   at?: "sheet" | "log" | "record" | "crew" | "work" | "page";
