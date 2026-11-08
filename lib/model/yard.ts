@@ -41,7 +41,11 @@ const HEAD = ".log-head";
 /** The record, and in it the step links: replaced whole. */
 const RECORD = ".record";
 const COUNT = "[data-ghost-count]";
-/** The Theseus's caption between the drawings, one line held whole, so it moves nothing. */
+/**
+ * The Theseus's caption between the drawings, one line held whole, so it moves nothing. It names
+ * the drawing above it, so it lands with the drawings, never ahead of the hulls: in a riffle it is
+ * the flip book's page number (Iris's calls, section 3; Pixel's frames at the chapter step).
+ */
 const CAPTION = "[data-theseus-caption]";
 /**
  * The 22nd merge's question, on its step alone, right after the count line. It comes with the
@@ -49,22 +53,18 @@ const CAPTION = "[data-theseus-caption]";
  * last original (Iris; .crew/sprint/55/review-iris.md, must 1).
  */
 const QUESTION = "[data-yard-question]";
-/** The step's drawings, swapped once the plank lands, so the page under the canvas is the step's. */
-const DRAWINGS = ["[data-theseus]", "[data-ghost]"];
+/**
+ * The step's drawings and the Theseus's caption, swapped once the plank lands, so the page under
+ * the canvas is the step's.
+ */
+const DRAWINGS = ["[data-theseus]", "[data-ghost]", CAPTION];
 /** Every revision, which below 1024 follows the record. */
 const TABLE = ".log-revs";
 /** The revision table's row for the open record. */
 const OPEN_ROW = ".rev-link[aria-current]";
 const CANONICAL = 'link[rel="canonical"]';
 /** Half a step is never shown: every region a step's page swaps in must be there. */
-const REGIONS = [
-  HEAD,
-  "[data-ghost-caption]",
-  COUNT,
-  RECORD,
-  CAPTION,
-  ...DRAWINGS,
-];
+const REGIONS = [HEAD, "[data-ghost-caption]", COUNT, RECORD, ...DRAWINGS];
 /** The links the model plays. */
 const STEP_LINK =
   '.record a[data-step="previous"], .record a[data-step="next"]';
@@ -305,13 +305,13 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     fetchAll(next);
   };
 
-  /** The step's words: its header, record and Theseus caption, the table's open row, the title. */
+  /** The step's words: its header and record, the table's open row, the title. */
   const words = (fresh: Document) => {
     const record = doc.querySelector(RECORD);
     const focused = focusIn(record);
     const table = doc.querySelector(TABLE);
     const tableTop = table?.getBoundingClientRect().top;
-    swap(doc, fresh, [HEAD, CAPTION]);
+    swap(doc, fresh, [HEAD]);
     const asked = doc.querySelector(QUESTION);
     if (asked instanceof HTMLElement) asked.style.visibility = "hidden";
     refocus(replace(doc, fresh, RECORD), focused);
@@ -375,14 +375,15 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     announce(flown, fresh);
   };
 
-  /** The landed step's drawings; then, unless a newer step is on, its caption or its words. */
+  /** The landed step's drawings; then, unless a newer step is on, its count or its words. */
   const settle = (flown: Flight, fresh: Document) => {
     swap(doc, fresh, DRAWINGS);
     if (flight !== flown) return;
     flight = null;
     if (flown.passing) {
-      // The flip book's page number: one line each, held whole, so neither moves the page.
-      swap(doc, fresh, [CAPTION, COUNT]);
+      // The count line follows the hulls too: from 1 to 22 and from 24 on it keeps one height at
+      // every width (Iris measured it), and a riffle never passes 23, so it moves nothing.
+      swap(doc, fresh, [COUNT]);
       passed = flown;
       return;
     }
