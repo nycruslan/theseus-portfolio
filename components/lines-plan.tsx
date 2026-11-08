@@ -26,8 +26,9 @@ type Pencil = { seat: string; sprint: number; live: boolean };
 // profile alone, with only the originals the crew has taken out, in vellum, each numbered by its
 // first holder; `current` marks the seat a record's sprint took. Beside it the Theseus, the same
 // profile with every plank, as / draws a seated or an original one (.crew/sprint/52/
-// first-contract.md). It is `[data-theseus]`, never `[data-plan]` or `[data-ghost]`, so the 3D
-// chunk, which reads those, never reads it.
+// first-contract.md). It is `[data-theseus]`, never `[data-plan]` or `[data-ghost]`, so the
+// sheet's and the ghost's rules never take it; on the Log the 3D chunk reads its seats and numbers
+// as the Theseus's own (.crew/sprint/55/contract.md).
 export function LinesPlan({
   seats,
   view = "sheet",
