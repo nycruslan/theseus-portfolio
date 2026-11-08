@@ -34,3 +34,18 @@
    by Pixel). Production already moved untouched numbers between cold loads of neighbouring steps
    (the ghost's 6, x 504 on `/log/13` against 414 on `/log/14`); here they hold, so numbers sit a
    little differently from production.
+10. **B5.19's two named loosenings are kept, for Lens to accept** (Probe, `36c918e`, `65a5002`):
+    - The record's mark is hovered within 5 px, not 4: the Log's pick hull moved 0.25 px with the
+      two-hull canvas, which put the mark's bow-end pixel one step out of reach.
+    - A pixel counts as changed by the mark beyond 32 levels, not 24: at (387, 416) a far-side gap
+      shows through the translucent vellum, changing the pixel 26 levels here and 18 on main, and
+      `data-pick` names a seat but never a side, so the method can't attribute it.
+    - Both are proven: main and the build pass with 0 strays; variant B (mark on 3.0, GHOST_LIT 0.8)
+      stays red on the band, and on the mark clause with 134 pixels away from 6.1 at 1440 (proved
+      with a 3,600 s limit; the committed test reaches its 900 s limit first, still red).
+11. **Y13 to Y15 are tightened on the real flight**: a press may change at most 1.75 plank areas
+    outside where the step changes, which turns a two-plank press red (the earlier bound let it
+    through), and the landed canvas must match a cold load to 0.01% of pixels.
+12. **Iris's two musts are checks**: Y16 asserts no layout shift without recent input on 22→23 in
+    Full (Forge's fix, `cad6134`, measured 0), and Y19 holds the Theseus's numbers at 4.5:1 in dark
+    on `/log/13`, `/log/23` and `/log/40` at 1440 and 1024 (Pixel's fix in progress).
