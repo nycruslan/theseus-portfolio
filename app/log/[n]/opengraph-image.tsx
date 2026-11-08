@@ -25,21 +25,21 @@ export function generateStaticParams() {
 const fonts = await cardFonts();
 
 /** The drawings' width: the card's left column, as the frame sets it. */
-const SHIP_WIDTH = 560;
-/** A plank number's size: the page's where a lift is this deep (about 13 px). */
+const SHIP_WIDTH = 600;
+/** A plank number's size: the page's where a lift is this deep (about 14 px). */
 const NUMBER_SIZE = 12;
 /** A plank number's box, centred on its anchor or ending at it. */
 const NUMBER_BOX = 40;
 const DISPLAY = "Sofia Sans Extra Condensed";
 
 /**
- * The headline's size in the display face: the largest that keeps it in the column above the count
- * line, by its length (the record's goals run from 50 to 137 characters, the question 25).
+ * The headline's size in the display face: the largest that keeps it within four lines of the
+ * column, by its length (the record's goals run from 50 to 137 characters, the question 25).
  */
 function headlineSize(text: string) {
   if (text.length <= 30) return 72;
-  if (text.length <= 64) return 60;
-  if (text.length <= 96) return 50;
+  if (text.length <= 75) return 60;
+  if (text.length <= 100) return 52;
   return 44;
 }
 
@@ -178,7 +178,7 @@ export default async function StepCardImage({
         fontFamily: "Sofia Sans",
       }}
     >
-      <div style={{ display: "flex", flex: 1, gap: 48 }}>
+      <div style={{ display: "flex", flex: 1, gap: 44 }}>
         <div
           style={{
             display: "flex",
