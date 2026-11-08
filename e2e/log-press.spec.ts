@@ -3,10 +3,13 @@ import {
   canvasAlone,
   canvasBox,
   DRAWING,
+  medianIn,
   offHull,
   onEdge,
   pickOf,
+  rgbOf,
 } from "./ghost";
+import { contrast } from "./helpers";
 import { LOG, RECORD, recordOf, YARD_WORDS } from "./log";
 import {
   type Box,
@@ -1778,3 +1781,80 @@ for (const size of [DESKTOP, PHONE]) {
     await run.close();
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Y19 (Iris's review of the press, .crew/sprint/55/review-iris.md, must 2)
+
+const Y19_PAGES = [...new Set([13, QUESTION_STEP ?? 23, 40])].map(recordOf);
+const Y19_SIZES: Size[] = [DESKTOP, { width: 1024, height: 768 }];
+
+/** The Theseus's numbers a visitor sees: text, ink and box, read with the page as it is. */
+function theseusNumbers(page: Page) {
+  return page.evaluate(
+    (css) =>
+      [...document.querySelectorAll(css)]
+        .filter(
+          (el) =>
+            el.getClientRects().length > 0 &&
+            el.checkVisibility({
+              opacityProperty: true,
+              visibilityProperty: true,
+            }),
+        )
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            text: (el.textContent ?? "").trim(),
+            color: getComputedStyle(el).color,
+            box: { x: r.left, y: r.top, width: r.width, height: r.height },
+          };
+        }),
+    `${THESEUS} .plan-plank`,
+  );
+}
+
+test(`Y19 The Theseus's numbers read in dark: settled in Full, dark, at 1440 x 900 and 1024 x 768 on ${Y19_PAGES.join(", ")}, the Theseus shows numbers and each sits at least 4.5:1 on what it sits on, read as B5.19 reads the ghost's (its ink against the median of the view with the numbers hidden, under its box)`, async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  for (const url of Y19_PAGES) {
+    for (const size of Y19_SIZES) {
+      const where = `${url} at ${size.width} x ${size.height}, Full, dark`;
+      const run = await openModel(browser, { ...size, scheme: "dark" });
+      await run.goto(url);
+      await run.waitFor([...REST], FIRST);
+      await run.page.mouse.move(2, 2);
+      await pause(600);
+      const numbers = await theseusNumbers(run.page);
+      const bare = await run.page.addStyleTag({
+        content: `${THESEUS} .plan-plank { visibility: hidden !important; }`,
+      });
+      const image = decodePng(await run.page.screenshot());
+      await bare.evaluate((style) => (style as Element).remove());
+      const reads: string[] = [];
+      const faint: string[] = [];
+      for (const n of numbers) {
+        const ink = await rgbOf(run.page, n.color);
+        const ground = medianIn(image, n.box);
+        const ratio = contrast(
+          ink as [number, number, number],
+          ground as [number, number, number],
+        );
+        reads.push(`${n.text} ${ratio.toFixed(2)}:1`);
+        if (ratio < 4.5) faint.push(`${n.text} ${ratio.toFixed(2)}:1`);
+      }
+      note(testInfo, "contrast", `${where}: ${reads.join(", ") || "none"}`);
+      expect
+        .soft(numbers.length, `the Theseus's numbers shown, ${where}`)
+        .toBeGreaterThan(0);
+      expect
+        .soft(
+          faint,
+          `the Theseus's numbers under 4.5:1 on what they sit on, ${where}`,
+        )
+        .toEqual([]);
+      expect.soft(run.errors, `console errors, ${where}`).toEqual([]);
+      await run.close();
+    }
+  }
+});
