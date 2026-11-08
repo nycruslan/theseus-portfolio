@@ -677,13 +677,14 @@ export async function aPlank(run: ModelRun) {
 }
 
 /**
- * Two neighbouring planks along the canvas's middle row, by hover on a `step` px walk: a point in
+ * Two neighbouring planks along [data-ghost]'s middle row, by hover on a `step` px walk: a point in
  * the first run of one seat at least three steps long, a point one step further in the same run,
- * and a point in the next run of another seat. The pointer ends off the canvas.
+ * and a point in the next run of another seat. The pointer ends off the drawing. The ghost's box,
+ * not the canvas's: since Yc (sprint 55) the canvas's middle row is the Theseus's caption.
  */
 export async function twoPlanks(run: ModelRun, step = 2) {
-  const c = await canvasBox(run.page);
-  expect(c, "the canvas's box").not.toBeNull();
+  const c = await ghostBox(run.page);
+  expect(c, "[data-ghost]'s box").not.toBeNull();
   const b = c as Box;
   const y = b.y + b.height / 2;
   const walk: { x: number; seat: string | null }[] = [];
