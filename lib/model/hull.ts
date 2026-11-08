@@ -404,6 +404,19 @@ export const nearSide = (x: number, y: number, out = 0): Vec3 =>
   toLocal(x, y, halfBreadth(Math.min(Math.max(x, 0), LENGTH), y) + out);
 
 /**
+ * A plank's near-side outline as one closed polygon in the model's frame, its top edge stern to bow
+ * and its lower edge back: what a flying plank hides of the numbers under it (press-iris.md, 7).
+ */
+export function plankOutline({ stations: count }: Level, id: string): Vec3[] {
+  const plank = PLANKS.find((candidate) => candidate.id === id);
+  if (!plank) return [];
+  const { band, xs } = plankStations(plank, stationsAt(count));
+  const on = (x: number, y: number) => surface(x, y, 1).p;
+  const edge = (end: 0 | 1) => xs.map((x) => on(x, band(x)?.[end] ?? 0));
+  return [...edge(0), ...edge(1).reverse()];
+}
+
+/**
  * A seat's near-side plank as the press moves it (.crew/sprint/55/press-iris.md, section 4): its
  * middle, on its body's middle station at mid-depth, and the outward normal there, the line it
  * lifts along, in the model's frame.

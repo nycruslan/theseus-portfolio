@@ -4,20 +4,15 @@
 // shadow once the model lifts; while the crew is live, two more, the pencil plank's copper tip
 // (.crew/sprint/34/notes-iris.md, 4.3). On /crew, one more while a tick is shown: the tally's ticks
 // in the marks batch (.crew/sprint/36/), so 7 while live. Nothing loops here: `draw` draws one
-// frame. The Log's ghost hull (.crew/sprint/33/contract.md, "How it's built") draws at most five:
-// the card's far and near sides, each its own index range once, translucent; the seams, the
-// outline, and the ink marks.
+// frame. The Log's two ships are lib/model/ships.ts's (.crew/sprint/55/contract.md).
 
 import {
-  BackSide,
   BufferAttribute,
   BufferGeometry,
   Color,
   CustomBlending,
   DataTexture,
   DirectionalLight,
-  DoubleSide,
-  FrontSide,
   Group,
   HemisphereLight,
   LinearFilter,
@@ -28,10 +23,8 @@ import {
   OneMinusSrcAlphaFactor,
   OrthographicCamera,
   PlaneGeometry,
-  Raycaster,
   RGBAFormat,
   Scene,
-  type Side,
   SrcAlphaFactor,
   Vector3,
   Vector4,
@@ -44,12 +37,6 @@ import { MARKS, PENCIL, PLANKS } from "@/lib/hull-layouts";
 import {
   DARK_GAIN,
   DARK_LIGHT,
-  GHOST_ALPHA,
-  GHOST_DARK_GAIN,
-  GHOST_EDGE_PX,
-  GHOST_GAIN,
-  GHOST_LIT,
-  GHOST_OUTLINE_PX,
   MARK_PX,
   OUTLINE_PX,
   SEAM_PX,
@@ -107,11 +94,7 @@ const cardUniforms = () => ({
   uHatch: { value: new Vector3() },
 });
 
-/**
- * With `side`, the ghost's: one side of the card, translucent, writing no depth, so the far side
- * shows through the near one as vellum shows what lies under it (notes-iris.md, section 1).
- */
-function cardMaterial(uniforms = cardUniforms(), side?: Side) {
+function cardMaterial(uniforms = cardUniforms()) {
   const material = new MeshStandardMaterial({
     roughness: 1,
     metalness: 0,
@@ -120,9 +103,6 @@ function cardMaterial(uniforms = cardUniforms(), side?: Side) {
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,
-    ...(side === undefined
-      ? {}
-      : { side, transparent: true, depthWrite: false }),
   });
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -171,23 +151,6 @@ export function cardGeometry(
   geometry.setAttribute("slot", new BufferAttribute(hull.slot, 1));
   geometry.setIndex(new BufferAttribute(hull.index, 1));
   return geometry;
-}
-
-/**
- * The ghost's two sides over one set of buffers: the far side's index range and the near side's,
- * so each pass draws its own triangles once (three's two-pass `DoubleSide` would draw every
- * triangle twice: 46,288 a frame, over the 30,000 budget; spike-pixel.md, section 2).
- */
-function sideGeometries(hull: Hull) {
-  const near = cardGeometry(hull);
-  const far = new BufferGeometry();
-  for (const name of ["position", "normal", "slot"]) {
-    far.setAttribute(name, near.getAttribute(name));
-  }
-  far.setIndex(near.getIndex());
-  far.setDrawRange(0, hull.far);
-  near.setDrawRange(hull.far, hull.index.length - hull.far);
-  return { near, far };
 }
 
 /** A batch of fat lines' segments at one level. */
@@ -251,16 +214,12 @@ function pencilSeams(material: LineMaterial) {
 export type Stage = ReturnType<typeof createStage>;
 
 /**
- * The scene on `canvas`: the sheet's white card model, or with `ghost` the Log's ghost hull
- * (.crew/sprint/33/): the same card, lines and rig, in vellum, with no shadow. With `tally`, /crew's
+ * The scene on `canvas`: the sheet's white card model. With `tally`, /crew's
  * card model (.crew/sprint/36/): the sheet's, whose ink marks batch is the pencil plank's ticks.
  */
 export function createStage(
   canvas: HTMLCanvasElement,
   hull: Hull,
-  ghost = false,
-  /** A coarse hull to pick against: a ray costs 0.1 ms on it, 0.5 to 0.7 on the drawn one. */
-  pickHull?: Hull,
   tally = false,
 ) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -272,49 +231,29 @@ export function createStage(
   const model = new Group();
   scene.add(model);
 
-  const card = cardMaterial(cardUniforms(), ghost ? FrontSide : undefined);
-  const sides = ghost ? sideGeometries(hull) : null;
-  const mesh = new Mesh(sides?.near ?? cardGeometry(hull), card.material);
+  const card = cardMaterial(cardUniforms());
+  const mesh = new Mesh(cardGeometry(hull), card.material);
   mesh.frustumCulled = false;
-  // The ghost's far side, drawn before the near (renderOrder sorts the transparent pass).
-  const back = sides
-    ? new Mesh(sides.far, cardMaterial(card.uniforms, BackSide).material)
-    : null;
-  if (back) {
-    back.frustumCulled = false;
-    back.renderOrder = 1;
-    mesh.renderOrder = 2;
-    model.add(back);
-  }
 
   const seams = lines(hull.seams, true);
   const outline = lines(hull.outline, false);
   model.add(mesh, seams.line, outline.line);
-  // The ghost's ink marks: a record's plank and the one under the pointer, drawn after the seams
-  // they lie on, so at an equal depth the mark wins.
+  // /crew's ticks, drawn after the seams they lie on, so at an equal depth they win.
   const marks = lines(new Float32Array(6), false);
   marks.line.visible = false;
   marks.line.renderOrder = 1;
-  // The led-out numbers' leaders, graphite at the seams' weight, laid each frame.
-  const leads = lines(new Float32Array(6), true);
-  leads.line.visible = false;
-  model.add(marks.line, leads.line);
-  /** The ghost's colours: the token and the translucent colour that composites to it. */
-  const vellum = new Color();
-  const solved = new Color();
+  model.add(marks.line);
   const tint = new Color();
 
-  // The sprint in progress, on the sheet only (the Log's ghost shows no pencil): its plank's slot,
+  // The sprint in progress: its plank's slot,
   // its edge in the seams' batch, and while live its copper tip (notes-iris.md, 4.3): the 2D's run
   // and dot in the same CSS px, unlit, exactly the token, drawn after the seams they lie on. A
   // batch's lines share one weight, so the run and the dot are a batch each: two draws, while live.
-  const edges = ghost ? null : pencilSeams(seams.material);
-  const tip = ghost
-    ? null
-    : {
-        run: lines(new Float32Array(6), false),
-        dot: lines(new Float32Array(6), false),
-      };
+  const edges = pencilSeams(seams.material);
+  const tip = {
+    run: lines(new Float32Array(6), false),
+    dot: lines(new Float32Array(6), false),
+  };
   /**
    * How far the tip is drawn toward the camera, in clip space: its run and dot lie flat to the
    * screen at the seam's depth, and the card around a seam bulges toward the camera above it (the
@@ -322,7 +261,7 @@ export function createStage(
    * depth clears that, while the rest of the hull still hides a tip turned away.
    */
   const lift = { value: 0 };
-  for (const part of tip ? [tip.run, tip.dot] : []) {
+  for (const part of [tip.run, tip.dot]) {
     part.line.visible = false;
     part.line.renderOrder = 1;
     part.material.onBeforeCompile = (shader) => {
@@ -338,12 +277,12 @@ export function createStage(
   }
   // The dot's round caps are the material's discard: alpha to coverage smooths their edge under
   // MSAA. Not the run's: where its spans' caps overlap at a joint, partial coverage lightens it.
-  if (tip) tip.dot.material.alphaToCoverage = true;
+  tip.dot.material.alphaToCoverage = true;
   // /crew's ticks (.crew/sprint/36/contract.md, "A tick"): the marks batch, one draw, graphite at
   // 1.4 px, each a chord 3.5 units up the near side from the lower edge, which the card bulges past
   // as it does past the tip: they take the tip's lift. Paint order is plank, edge, ticks, then the
   // tip, so the copper covers the ticks' feet on the edge and nothing covers the copper.
-  if (tally && tip) {
+  if (tally) {
     marks.material.onBeforeCompile = tip.run.material.onBeforeCompile;
     tip.run.line.renderOrder = 2;
     tip.dot.line.renderOrder = 2;
@@ -419,19 +358,6 @@ export function createStage(
   // camera's flag keeps the lighting's view direction straight down at the sheet.
   const camera = new OrthographicCamera();
   let [width, height] = [1, 1];
-  const ray = new Raycaster();
-  // Both of its faces: a pointer above the near sheer finds the far side's inside.
-  const proxy = pickHull
-    ? new Mesh(
-        cardGeometry(pickHull),
-        new MeshBasicMaterial({ side: DoubleSide }),
-      )
-    : null;
-  if (proxy) {
-    proxy.visible = false;
-    model.add(proxy);
-  }
-  const hits: ReturnType<Raycaster["intersectObject"]> = [];
 
   return {
     /** Sizes the buffer in whole pixels and the scene in the canvas's CSS px. */
@@ -442,15 +368,11 @@ export function createStage(
       // viewport is in buffer pixels here, so the weights are too: the drawing's CSS px × ratio.
       const ratio = buffer[0] / width;
       frame.value.set(buffer[0], buffer[1], SHADOW_FADE * ratio);
-      if (tip) {
-        tip.run.material.linewidth = PENCIL.tip.width * ratio;
-        tip.dot.material.linewidth = PENCIL.tip.dot * ratio;
-      }
-      seams.material.linewidth = (ghost ? GHOST_EDGE_PX : SEAM_PX) * ratio;
-      outline.material.linewidth =
-        (ghost ? GHOST_OUTLINE_PX : OUTLINE_PX) * ratio;
+      tip.run.material.linewidth = PENCIL.tip.width * ratio;
+      tip.dot.material.linewidth = PENCIL.tip.dot * ratio;
+      seams.material.linewidth = SEAM_PX * ratio;
+      outline.material.linewidth = OUTLINE_PX * ratio;
       marks.material.linewidth = (tally ? MARKS.width : MARK_PX) * ratio;
-      leads.material.linewidth = GHOST_EDGE_PX * ratio;
     },
 
     /**
@@ -458,13 +380,9 @@ export function createStage(
      * materials and so the compiled programs stay (.crew/sprint/26/contract.md, "Which drawing").
      */
     load(next: Hull) {
-      const old = [mesh.geometry, back?.geometry];
-      if (back) {
-        const fresh = sideGeometries(next);
-        mesh.geometry = fresh.near;
-        back.geometry = fresh.far;
-      } else mesh.geometry = cardGeometry(next);
-      for (const geometry of old) geometry?.dispose();
+      const old = mesh.geometry;
+      mesh.geometry = cardGeometry(next);
+      old.dispose();
       for (const [part, positions, quads] of [
         [seams, next.seams, true],
         [outline, next.outline, false],
@@ -500,35 +418,13 @@ export function createStage(
       fillStates();
       card.uniforms.uPencil.value.set(palette.pencil);
       // The edge in graphite and the tip in copper, as the 2D's: tokens, never lit.
-      edges?.uGraphite.value.set(palette.muted);
-      tip?.run.material.color.set(palette.copper);
-      tip?.dot.material.color.set(palette.copper);
+      edges.uGraphite.value.set(palette.muted);
+      tip.run.material.color.set(palette.copper);
+      tip.dot.material.color.set(palette.copper);
       seams.material.color.set(palette.ink);
       outline.material.color.set(palette.ink);
       marks.material.color.set(tally ? palette.muted : palette.ink);
-      let gain = palette.dark ? DARK_GAIN : 1;
-      if (ghost) {
-        // The vellum (call 1): the colour that composites to the token over the film at α, solved
-        // per sRGB channel, C = (V − (1 − α) B) / α, from the tokens the page computes.
-        vellum.set(palette.vellum);
-        const [v, b] = [palette.vellum, palette.ground].map((token) =>
-          new Color(token).getRGB(new Color(), "srgb"),
-        );
-        const channel = (key: "r" | "g" | "b") =>
-          Math.min(
-            1,
-            Math.max(
-              0,
-              ((v?.[key] ?? 0) - (1 - GHOST_ALPHA) * (b?.[key] ?? 0)) /
-                GHOST_ALPHA,
-            ),
-          );
-        solved.setRGB(channel("r"), channel("g"), channel("b"), "srgb");
-        seams.material.color.set(palette.dark ? palette.muted : palette.pencil);
-        outline.material.color.set(palette.muted);
-        leads.material.color.set(palette.muted);
-        gain = palette.dark ? GHOST_DARK_GAIN : GHOST_GAIN;
-      }
+      const gain = palette.dark ? DARK_GAIN : 1;
       for (const light of [sky, fill, sun]) {
         light.color.set(palette.dark ? DARK_LIGHT : 0xffffff);
       }
@@ -547,7 +443,7 @@ export function createStage(
      * has it.
      */
     pencil(marks: PencilMarks | null) {
-      pencilled = edges ? marks : null;
+      pencilled = marks;
       const { hatch, edge } = pencilled ?? {};
       card.uniforms.uHatch.value.set(
         hatch?.scale ?? 0,
@@ -555,14 +451,12 @@ export function createStage(
         hatch?.half ?? 0,
       );
       fillStates();
-      if (edge) edges?.uEdge.value.set(edge.x0, edge.x1, edge.top, edge.bottom);
-      else edges?.uEdge.value.set(1e6, -1e6, -1e6, 1e6);
-      for (const [part, positions] of tip
-        ? ([
-            [tip.run, pencilled?.tip?.run],
-            [tip.dot, pencilled?.tip?.dot],
-          ] as const)
-        : []) {
+      if (edge) edges.uEdge.value.set(edge.x0, edge.x1, edge.top, edge.bottom);
+      else edges.uEdge.value.set(1e6, -1e6, -1e6, 1e6);
+      for (const [part, positions] of [
+        [tip.run, pencilled?.tip?.run],
+        [tip.dot, pencilled?.tip?.dot],
+      ] as const) {
         part.line.visible = Boolean(positions);
         if (!positions) continue;
         const old = part.line.geometry;
@@ -574,7 +468,7 @@ export function createStage(
     /** Compiles every program, the shadow's too, before frame 1 (S6; build note 5). */
     async compile(loft: Loft) {
       project(loft, 1);
-      shadow.visible = !ghost;
+      shadow.visible = true;
       await renderer.compileAsync(scene, camera);
     },
 
@@ -584,35 +478,15 @@ export function createStage(
       model.position.set(pose.x, pose.y, pose.z);
       model.rotation.set(rad(pose.pitch), rad(pose.yaw), 0, "YXZ");
       model.scale.setScalar(pose.s);
-      card.uniforms.uLit.value =
-        Math.min(1, e * 1.25) * (ghost ? GHOST_LIT : 1);
-      if (ghost) {
-        // Frame 1 is the 2D fill, opaque and unlit; the vellum turns translucent with the move.
-        tint.lerpColors(vellum, solved, e);
-        for (const state of card.uniforms.uStates.value) {
-          state.set(tint.r, tint.g, tint.b, 1);
-        }
-        const alpha = 1 + (GHOST_ALPHA - 1) * e;
-        card.material.opacity = alpha;
-        if (back) (back.material as MeshStandardMaterial).opacity = alpha;
-      }
+      card.uniforms.uLit.value = Math.min(1, e * 1.25);
       shadowMaterial.opacity = darkness * Math.min(1, e * 1.4);
-      shadow.visible = !ghost && e > 0;
+      shadow.visible = e > 0;
       renderer.render(scene, camera);
     },
 
-    /** The led-out numbers' leaders, as segment pairs in the model's frame; none hides them. */
-    lead(positions: Float32Array) {
-      leads.line.visible = positions.length > 0;
-      if (!positions.length) return;
-      const old = leads.line.geometry;
-      leads.line.geometry = lineGeometry(positions, true);
-      old.dispose();
-    },
-
     /**
-     * The ghost's ink marks, or /crew's ticks, as segment pairs in the model's frame; none hides
-     * them. A tick ends square, as the 2D's stroke: its quad alone, two triangles.
+     * /crew's ticks, as segment pairs in the model's frame; none hides them. A tick ends square, as
+     * the 2D's stroke: its quad alone, two triangles.
      */
     mark(positions: Float32Array) {
       marks.line.visible = positions.length > 0;
@@ -622,45 +496,10 @@ export function createStage(
       old.dispose();
     },
 
-    /**
-     * The plank under a point of the canvas, in CSS px from its top left, as the last frame drew
-     * it: its slot and side (1 near, −1 far), or null. A ray from the camera through the point,
-     * built by unprojecting it (`setFromCamera` would take the hand-set projection for
-     * orthographic), against the pick hull's faces, both of them.
-     */
-    pick(x: number, y: number) {
-      const at = (z: number) =>
-        new Vector3(2 * (x / width) - 1, 1 - 2 * (y / height), z).applyMatrix4(
-          camera.projectionMatrixInverse,
-        );
-      const near = at(-1);
-      ray.ray.origin.copy(near);
-      ray.ray.direction.copy(at(1).sub(near).normalize());
-      hits.length = 0;
-      const target = proxy ?? mesh;
-      ray.intersectObject(target, false, hits);
-      const hit = hits[0];
-      if (!hit?.face) return null;
-      const slot = target.geometry.getAttribute("slot");
-      // The hull is symmetric about z = 0: the hit's side is its sign in the model's frame.
-      const side = target.worldToLocal(hit.point.clone()).z < 0 ? -1 : 1;
-      return { slot: Math.round(slot.getX(hit.face.a)), side };
-    },
-
     dispose() {
       mesh.geometry.dispose();
-      back?.geometry.dispose();
-      (back?.material as MeshStandardMaterial | undefined)?.dispose();
-      proxy?.geometry.dispose();
-      (proxy?.material as MeshBasicMaterial | undefined)?.dispose();
       card.material.dispose();
-      for (const part of [
-        seams,
-        outline,
-        marks,
-        leads,
-        ...(tip ? [tip.run, tip.dot] : []),
-      ]) {
+      for (const part of [seams, outline, marks, tip.run, tip.dot]) {
         part.line.geometry.dispose();
         part.material.dispose();
       }

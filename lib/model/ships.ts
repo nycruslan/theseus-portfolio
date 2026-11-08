@@ -38,7 +38,6 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { PLANKS } from "@/lib/hull-layouts";
 import {
-  BOW,
   byWidth,
   DARK_GAIN,
   DARK_LIGHT,
@@ -48,12 +47,16 @@ import {
   GHOST_GAIN,
   GHOST_LIT,
   GHOST_OUTLINE_PX,
+  INSIDE_DARK,
+  INSIDE_LIGHT,
   LIFT_PX,
   MARK_PX,
   OUTLINE_PX,
+  PRESS_GROW,
   RISE_PX,
   ROLL,
   SEAM_PX,
+  SWAY,
   THESEUS_MARK_PX,
 } from "./calls";
 import {
@@ -62,6 +65,7 @@ import {
   type Hull,
   type Level,
   plankEdges,
+  plankOutline,
   type Ship,
   SIDE,
   seatFrame,
@@ -113,6 +117,8 @@ type Look = "theseus" | "ghost";
 const shipUniforms = () => ({
   uLit: { value: 0 },
   uGain: { value: 1 },
+  /** The Theseus's inside face, in shadow: what a gap shows. */
+  uInside: { value: new Color() },
   uStates: {
     value: Array.from({ length: STATES }, () => new Vector4(1, 1, 1, 1)),
   },
@@ -140,7 +146,10 @@ function shipMaterial(look: Look, side: Side, uniforms = shipUniforms()) {
   const alpha = blends
     ? "diffuseColor.a *= vState.a;\nif (diffuseColor.a < 0.002) discard;"
     : "if (vState.a < 0.5) discard;";
-  // The two looks' shaders differ in `alpha` only: the key keeps them apart in three's cache.
+  // The Theseus is closed, so its inside is in shadow: a gap shows the far side's inside face
+  // unlit by the sun and the fill, darker than any plank, and never at rest (Iris, section 7).
+  const inside = blends ? "" : "if (!gl_FrontFacing) outgoingLight = uInside;";
+  // The two looks' shaders differ in `alpha` and `inside`: the key keeps them apart in the cache.
   material.customProgramCacheKey = () => look;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -156,7 +165,7 @@ function shipMaterial(look: Look, side: Side, uniforms = shipUniforms()) {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "void main() {",
-        "uniform float uLit;\nuniform float uGain;\nvarying vec4 vState;\nvoid main() {",
+        "uniform float uLit;\nuniform float uGain;\nuniform vec3 uInside;\nvarying vec4 vState;\nvoid main() {",
       )
       .replace(
         "#include <color_fragment>",
@@ -164,7 +173,7 @@ function shipMaterial(look: Look, side: Side, uniforms = shipUniforms()) {
       )
       .replace(
         "#include <opaque_fragment>",
-        "outgoingLight = mix(flatColor, outgoingLight * uGain, uLit);\n#include <opaque_fragment>",
+        `outgoingLight = mix(flatColor, outgoingLight * uGain, uLit);\n${inside}\n#include <opaque_fragment>`,
       );
   };
   return { material, uniforms };
@@ -299,6 +308,8 @@ type Path = {
   to: Vector3;
   /** The cubic carry, its first point the lift's top. */
   bezier: [Vector3, Vector3, Vector3, Vector3];
+  /** The carry's sway toward the bow at its middle, world px along x, on a sin envelope. */
+  sway: number;
   /** The outward normal in the world and in the model's frame; the lift's length L, world px. */
   normal: Vector3;
   local: Vector3;
@@ -310,6 +321,8 @@ type Path = {
   roll: number;
   /** The seat's edges in the model's frame: the ghost's own seams around it. */
   edges: Float32Array;
+  /** Its outline on the near side in the model's frame, for the numbers it hides. */
+  shape: Vector3[];
 };
 
 export type Ships = ReturnType<typeof createShips>;
@@ -596,6 +609,7 @@ export function createShips(
         at.normal,
         -at.lift * (1 - flight.lift),
       );
+      c.x += at.sway * Math.sin(Math.PI * flight.carry);
       q.slerpQuaternions(at.turns[0], at.turns[1], flight.carry);
       roll.setFromAxisAngle(at.axis, rad(ROLL) * at.roll * flight.roll);
       q.premultiply(roll);
@@ -625,13 +639,6 @@ export function createShips(
     const normal = local.clone().applyQuaternion(qT).normalize();
     const lift = byWidth(LIFT_PX, plan.drawing);
     const top = from.clone().addScaledVector(normal, lift);
-    // The bow toward the camera: at mid-carry the plank is BOW × its seated size on screen.
-    const seated = 1 - from.z * invD;
-    const zMid = invD > 0 ? (1 - seated / BOW) / invD : 0;
-    const bow = Math.max(
-      0,
-      (8 * zMid - 4 * top.z - 4 * to.z - 3 * normal.z * lift) / 6,
-    );
     const axis = new Vector3(1, 0, 0).applyQuaternion(qT).normalize();
     // The roll turns the outer face up to the light: the sign that raises the normal.
     const roll = new Vector3().crossVectors(axis, normal).y >= 0 ? 1 : -1;
@@ -644,13 +651,11 @@ export function createShips(
       to,
       bezier: [
         top,
-        top.clone().add(new Vector3(0, 0, bow)),
-        to
-          .clone()
-          .addScaledVector(normal, lift)
-          .add(new Vector3(0, 0, bow)),
+        top.clone(),
+        to.clone().addScaledVector(normal, lift),
         to.clone(),
       ],
+      sway: 0,
       normal,
       local,
       lift,
@@ -659,44 +664,86 @@ export function createShips(
       axis,
       roll,
       edges,
+      shape: plankOutline(built.level, plan.seat).map(
+        (point) => new Vector3(...point),
+      ),
     };
     if (plan.kind !== "carry") return at;
-    // The rise over the lift point, at most RISE on screen, and the plank's top never above the
-    // Theseus's box (the canvas's top): top strakes go straight out and down.
-    const rise = byWidth(RISE_PX, plan.drawing);
+    // The carry's shape on screen (Iris, sections 4 and 7): it bows toward the camera, growing to
+    // at most PRESS_GROW × its seated length; it sways toward the bow by SWAY × the drawing's width; it
+    // rises at most RISE over the lift point. Each is solved in turn, by bisection on its largest
+    // that keeps the plank inside the canvas, its top under the Theseus's box's.
     const corners: Vector3[] = [];
-    for (let i = 0; i + 2 < edges.length; i += 24) {
+    for (let i = 0; i + 2 < edges.length; i += 6) {
       corners.push(new Vector3(edges[i], edges[i + 1], edges[i + 2]));
     }
     const p = new Vector3();
-    const fits = (up: number) => {
-      at.bezier[1].copy(top).add(new Vector3(0, up, bow));
-      const y0 = screen(top)[1] ?? 0;
+    /** The plank's screen extent at carry s; s < 0 is its seat on the Theseus, unlifted. */
+    const extent = (s: number) => {
+      const m = flierMatrix(at, {
+        lift: s < 0 ? 0 : 1,
+        carry: Math.max(0, s),
+        roll: s < 0 ? 0 : Math.sin(Math.PI * s),
+        morph: 0,
+        alpha: 1,
+      });
+      let [l, r, t] = [Infinity, -Infinity, Infinity];
+      for (const corner of corners) {
+        const [x = 0, y = 0] = screen(p.copy(corner).applyMatrix4(m));
+        [l, r, t] = [Math.min(l, x), Math.max(r, x), Math.min(t, y)];
+      }
+      return { l, r, t };
+    };
+    const seated = extent(-1);
+    const length = seated.r - seated.l;
+    const y0 = screen(top)[1] ?? 0;
+    const rise = byWidth(RISE_PX, plan.drawing);
+    /** Whether the carry, as it stands, keeps every bound. */
+    const fits = () => {
       for (let i = 0; i <= 24; i++) {
         const s = i / 24;
-        if (y0 - (screen(bezier(at.bezier, s, p))[1] ?? 0) > rise) return false;
-        const m = flierMatrix(at, {
-          lift: 1,
-          carry: s,
-          roll: Math.sin(Math.PI * s),
-          morph: 0,
-          alpha: 1,
-        });
-        for (const corner of corners) {
-          if ((screen(p.copy(corner).applyMatrix4(m))[1] ?? 0) < 1)
-            return false;
+        const { l, r, t } = extent(s);
+        const [, y = 0] = screen(bezier(at.bezier, s, p));
+        if (
+          r - l > PRESS_GROW * length ||
+          l < 1 ||
+          r > width - 1 ||
+          t < 1 ||
+          y0 - y > rise
+        ) {
+          return false;
         }
       }
       return true;
     };
-    let [lo, hi] = [0, 4 * rise];
-    if (!fits(0)) hi = 0;
-    for (let i = 0; i < 16 && hi > 0; i++) {
-      const mid = (lo + hi) / 2;
-      if (fits(mid)) lo = mid;
-      else hi = mid;
-    }
-    at.bezier[1].copy(top).add(new Vector3(0, lo, bow));
+    /** The largest of a shape's settings up to `most` that fits, set by `apply`. */
+    const largest = (most: number, apply: (v: number) => void) => {
+      let [lo, hi] = [0, most];
+      apply(0);
+      if (!fits()) hi = 0;
+      for (let i = 0; i < 14 && hi > 0; i++) {
+        const mid = (lo + hi) / 2;
+        apply(mid);
+        if (fits()) lo = mid;
+        else hi = mid;
+      }
+      apply(lo);
+    };
+    const [b1, b2] = [at.bezier[1], at.bezier[2]];
+    const bowed = (z: number) => {
+      b1.z = top.z + z;
+      b2.z = to.z + normal.z * lift + z;
+    };
+    // The bow: a plank lifted z toward the camera grows by 1 / (1 − z / D).
+    largest(invD > 0 ? 0.25 / invD : 0, bowed);
+    // The sway, SWAY of the drawing on screen at mid-carry, where the bow scales it by 1 / (1 − z / D).
+    const sway = SWAY * plan.drawing * (1 - bezier(at.bezier, 0.5, p).z * invD);
+    largest(sway, (v) => {
+      at.sway = v;
+    });
+    largest(4 * rise, (v) => {
+      b1.y = top.y + v;
+    });
     return at;
   };
 
@@ -864,6 +911,10 @@ export function createShips(
       sky.groundColor.set(palette.dark ? palette.ground : GROUND_LIGHT);
       fill.intensity = FILL * gain;
       sun.intensity = SUN * gain;
+      const inside = card.uniforms.uInside.value;
+      if (palette.dark) {
+        inside.set(palette.ground).lerp(tokens.old, INSIDE_DARK);
+      } else inside.set(INSIDE_LIGHT);
       states(step);
     },
 
@@ -948,6 +999,20 @@ export function createShips(
         .applyMatrix4(flierMatrix(path, flight));
       const [x1 = 0, y1 = 0] = screen(at);
       return { dx: x1 - x0, dy: y1 - y0, alpha: flight.alpha };
+    },
+
+    /**
+     * The leaving plank's outline on screen at the beat, in CSS px from the canvas's top left, or
+     * null when the flight doesn't draw it: what it hides of the numbers under it.
+     */
+    over() {
+      const flight = now?.flier;
+      if (!path || !flight) return null;
+      const m = flierMatrix(path, flight);
+      return path.shape.map(
+        (point) =>
+          screen(work.a.copy(point).applyMatrix4(m)) as [number, number],
+      );
     },
 
     /** Compiles every program before frame 1, the press's planks' too. */

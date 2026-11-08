@@ -148,10 +148,25 @@ export const MORPH: readonly [number, number] = [0.4, 0.9];
 /** The lift's height L, and how far the carry may rise over the lift point, at 390 and 1440. */
 export const LIFT_PX: readonly [number, number] = [6, 14];
 export const RISE_PX: readonly [number, number] = [6, 16];
-/** The carry's bow toward the camera: its seated length × at most this at mid-carry. */
-export const BOW = 1.05;
+/**
+ * The carry's bow toward the camera: its length on screen at most this × its seated length (Iris,
+ * section 7: 1.06, less a margin for her measure, its gap's ends).
+ */
+export const PRESS_GROW = 1.05;
+/**
+ * The carry's sway toward the bow, screen right, the way Next points: this × the drawing's width at
+ * mid-carry, on a sin envelope over the path (Iris, section 7: 27 px at 1440, 11 at 390).
+ */
+export const SWAY = 0.03;
 /** Its roll about its long axis at mid-carry, in degrees, outer face up to the light. */
 export const ROLL = 6;
+/**
+ * The Theseus's inside, which a gap shows while a press moves its plank (Iris, section 7): in
+ * shadow, about Y 0.28 in light; in dark, this share of the way from the film to the original
+ * planks' token, below the darkest plank and above the ground.
+ */
+export const INSIDE_LIGHT = "#8c9491";
+export const INSIDE_DARK = 0.55;
 /** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
 const PRESS_WIDTHS: readonly [number, number] = [358, 900];
 

@@ -570,24 +570,6 @@ function start(
     apply(measure());
   };
 
-  /** Every line the settled frame draws but the leaders: the numbers clear them all. */
-  const drawn = () => {
-    const record = ghost?.current
-      ? plankEdges(sheet.level, ghost.current, 1)
-      : new Float32Array(0);
-    const parts = [hull?.seams, hull?.outline, record];
-    const all = new Float32Array(
-      parts.reduce((n, part) => n + (part?.length ?? 0), 0),
-    );
-    let at = 0;
-    for (const part of parts) {
-      if (!part) continue;
-      all.set(part, at);
-      at += part.length;
-    }
-    return all;
-  };
-
   /**
    * The lines a ship's numbers clear at rest on the Log: its seams the step shows (the ghost's
    * seats', or all the Theseus's), its outline and the record's mark.
@@ -673,17 +655,6 @@ function start(
   const draw = (e: number) => {
     if (ships) return drawShips(e);
     if (!stage || !loft) return;
-    // The leaders ride with their numbers, so they are laid before the frame is drawn.
-    if (numbers) {
-      const lines = numbers.leaders(e, matchMedia(THREE_VIEWS).matches);
-      const all: number[] = [];
-      for (const { points } of lines) {
-        for (let i = 1; i < points.length; i++) {
-          all.push(...(points[i - 1] ?? []), ...(points[i] ?? []));
-        }
-      }
-      stage.lead(new Float32Array(all));
-    }
     stage.draw(e, loft);
     // /crew's one test hook beside data-state: the ticks this frame drew (its contract, "At rest").
     if (crew) host.dataset.marks = String(marked);
@@ -694,15 +665,6 @@ function start(
         e,
         true,
         () => new Float32Array(0),
-      );
-    }
-    if (fit && numbers) {
-      numbers.place(
-        loft,
-        fit.drawing / GHOST.box[2],
-        e,
-        matchMedia(THREE_VIEWS).matches,
-        drawn,
       );
     }
   };
@@ -971,13 +933,6 @@ function start(
     touch: boolean;
     target: Target | null;
   } | null = null;
-  const marks = new Map<string, Float32Array>();
-  const edges = ({ seat, side }: Target) => {
-    const key = `${sheet.level.stations}:${seat}:${side}`;
-    const found = marks.get(key) ?? plankEdges(sheet.level, seat, side);
-    marks.set(key, found);
-    return found;
-  };
   const same = (a: Target | null | undefined, b: Target | null | undefined) =>
     a?.seat === b?.seat && a?.side === b?.side;
   /** The ink marks: the record's plank, and the one under the pointer or the finger. */
@@ -986,19 +941,8 @@ function start(
       ? { seat: ghost.current, side: 1 }
       : undefined;
     const lit = press?.touch ? press.target : hovered;
-    // On the Log the scene inks the step's record seat itself, on both ships (`show`).
-    if (ships) return ships.hover(same(lit, record) ? null : lit);
-    if (!stage || !ghost) return;
-    const parts = [record, same(lit, record) ? undefined : lit]
-      .filter((target): target is Target => Boolean(target))
-      .map(edges);
-    const all = new Float32Array(parts.reduce((n, part) => n + part.length, 0));
-    let at = 0;
-    for (const part of parts) {
-      all.set(part, at);
-      at += part.length;
-    }
-    stage.mark(all);
+    // The scene inks the step's record seat itself, on both ships (`show`).
+    ships?.hover(same(lit, record) ? null : lit);
   }
   const resting = () => state === "settled" || state === "still";
   /** The plank under a point of the viewport, as the settled frame draws it. */
@@ -1027,11 +971,9 @@ function start(
     }
     const page = ghost;
     // The Log's pick hull has every seat: the first hit the step shows is the plank.
-    const hit = ships
-      ? ships.pick(x - r.left, y - r.top, (slot) =>
-          page.numbers.has(PLANKS[slot]?.id ?? ""),
-        )
-      : stage?.pick(x - r.left, y - r.top);
+    const hit = ships?.pick(x - r.left, y - r.top, (slot) =>
+      page.numbers.has(PLANKS[slot]?.id ?? ""),
+    );
     const seat = hit ? PLANKS[hit.slot]?.id : undefined;
     return hit && seat && ghost.numbers.has(seat)
       ? { seat, side: hit.side }
@@ -1158,7 +1100,58 @@ function start(
     rider: { span: HTMLElement; x: string; y: string; clone: boolean } | null;
     /** Scroll lands it only from its first frame: the words' swap may scroll the page itself. */
     scrolls: boolean;
+    /** The numbers the flying plank can pass over: their middles on the canvas, and if hidden. */
+    under: { span: HTMLElement; x: number; y: number; hidden: boolean }[];
   } | null = null;
+
+  /** Whether (x, y) is inside a polygon (even-odd). */
+  const inside = (shape: readonly [number, number][], x: number, y: number) => {
+    let found = false;
+    for (let i = 0, j = shape.length - 1; i < shape.length; j = i++) {
+      const [xi = 0, yi = 0] = shape[i] ?? [];
+      const [xj = 0, yj = 0] = shape[j] ?? [];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+        found = !found;
+      }
+    }
+    return found;
+  };
+
+  /**
+   * The numbers a press's flight can hide, both drawings' but its seat's and the one riding it:
+   * each one's middle on the canvas, read once at the start, since at rest no number moves.
+   */
+  const underFlight = (rider: HTMLElement | undefined) => {
+    const r = canvas.getBoundingClientRect();
+    return [...(ghost?.labels ?? []), ...(theseus?.labels ?? [])]
+      .map(({ span }) => ({ span, box: span.getBoundingClientRect() }))
+      .filter(
+        ({ span, box }) =>
+          span !== rider && box.width > 0 && span.style.visibility !== "hidden",
+      )
+      .map(({ span, box }) => ({
+        span,
+        x: box.left + box.width / 2 - r.left,
+        y: box.top + box.height / 2 - r.top,
+        hidden: false,
+      }));
+  };
+
+  /**
+   * A number whose middle is inside the flying plank's outline is under it, and hidden, a hard cut
+   * as occlusion is (Iris, section 7): the numbers paint above the canvas.
+   */
+  const occlude = () => {
+    const p = pressing;
+    if (!p || !ships) return;
+    const shape = ships.over();
+    for (const each of p.under) {
+      const under = Boolean(shape && inside(shape, each.x, each.y));
+      if (under === each.hidden) continue;
+      each.hidden = under;
+      each.span.style.visibility = under ? "hidden" : "";
+    }
+  };
 
   /** The step the drawings show: the Theseus's seated planks, the ghost's seats, the record's. */
   const readStep = (): Step => ({
@@ -1285,6 +1278,7 @@ function start(
     pressing.at = ms;
     ships.beat(ms);
     drawShips(1);
+    occlude();
   };
 
   /**
@@ -1312,6 +1306,9 @@ function start(
     ships.show(p.to);
     showing = p.to;
     if (p.rider && !p.rider.clone) p.rider.span.style.opacity = "0";
+    for (const each of p.under) {
+      if (each.hidden) each.span.style.visibility = "";
+    }
     delete host.dataset.press;
     delete host.dataset.pressKind;
     p.done();
@@ -1410,9 +1407,13 @@ function start(
             length,
             at: back ? length : 0,
             done,
-            rider: hideNumbers(plan, back, hi),
+            rider: null,
             scrolls: false,
+            under: [],
           };
+          const p = pressing;
+          p.rider = hideNumbers(plan, back, hi);
+          p.under = underFlight(p.rider?.span);
           last = now;
           slow = 0;
           stall = 0;
@@ -1531,7 +1532,7 @@ function start(
     hull = hullAt(sheet.level);
     await pause();
     if (!alive) return;
-    stage = createStage(canvas, hull, false, undefined, Boolean(crew));
+    stage = createStage(canvas, hull, Boolean(crew));
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     await pause();
