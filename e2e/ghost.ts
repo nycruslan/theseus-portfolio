@@ -288,12 +288,18 @@ export type Scan = {
  * run on screen (the near side: the far side's inside shows above the near sheer), with a
  * neighbour of the same seat on all four sides, nearest that run's centre; each is then checked on
  * its own with a hover. A seat with no such point is missing from the map, and the caller asserts
- * all 22. The pointer ends off the canvas.
+ * all 22. The pointer ends off the canvas. `area` is the box scanned, the canvas's unless given:
+ * since Yc (sprint 55) the canvas holds the Theseus too, so a read of the ghost alone scans
+ * [data-ghost]'s box.
  */
-export async function scanSeats(run: ModelRun, step: number): Promise<Scan> {
+export async function scanSeats(
+  run: ModelRun,
+  step: number,
+  area?: Box,
+): Promise<Scan> {
   const { page } = run;
-  const canvas = await box(page, "[data-model] canvas");
-  expect(canvas, "the canvas's box, for the scan").not.toBeNull();
+  const canvas = area ?? (await box(page, "[data-model] canvas"));
+  expect(canvas, "the box to scan").not.toBeNull();
   const c = canvas as Box;
   const xs: number[] = [];
   const ys: number[] = [];

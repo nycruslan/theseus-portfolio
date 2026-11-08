@@ -643,7 +643,7 @@ async function numbersAt(
 }
 
 for (const url of PAGES) {
-  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935, from 0.84 on the stern sliver 5.0, and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the number spans at rest read the page's ghost (GHOST on /log, GHOST_AT(13) on /log/13), each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700, the canvas changing from /log's only there and on the seats the step leaves gaps`, async ({
+  test(`B5.19 Vellum, numbered by the 2D rule, nothing copper, on ${url}: settled, each plank sampled clear of its lines and number reads Iris's band (light OKLab L 0.85 to 0.935, from 0.84 on the stern sliver 5.0, and under the film's; dark 0.42 to 0.50 and at most --card's + 0.005; a and b within 0.01 of --vellum's); the number spans at rest read the page's ghost (GHOST on /log, GHOST_AT(13) on /log/13), each on its plank with a transform, at least 10 px from 768, 4.5:1 on what it sits on and 2 px clear of every other at 768, 1024, 1280 and 1440, hidden below 768; no canvas pixel within ΔE 10 of --accent at frame 1, mid-move, settled, hovered or on the record's mark; on /log/13 one seat marked, sprint 13's, its number 700, the ghost changing from /log's only there and on the seats the step leaves gaps; the ghost read over [data-ghost]'s box, since it shares the canvas with the Theseus (Yc)`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
@@ -663,20 +663,22 @@ for (const url of PAGES) {
       let gapCells: [number, number, string][] = [];
       if (record) {
         const log = await settledOn(browser, PAGES[0], size);
+        const logGhost = whole((await ghostBox(log.page)) as Box);
         if (gaps.length > 0) {
-          gapCells = (await scanSeats(log, stepAt(size.width))).grid.filter(
-            ([, , s]) => gaps.includes(s),
-          );
+          gapCells = (
+            await scanSeats(log, stepAt(size.width), logGhost)
+          ).grid.filter(([, , s]) => gaps.includes(s));
         }
         await log.page.mouse.move(1, 1);
         await pause(200);
-        plain = (
-          await canvasAlone(log.page, whole((await canvasBox(log.page)) as Box))
-        ).image;
+        plain = (await canvasAlone(log.page, logGhost)).image;
         await log.close();
       }
       const run = await settledOn(browser, url, size);
-      const scan = await scanSeats(run, stepAt(size.width));
+      // The ghost's own box (Yc, sprint 55): the canvas holds the Theseus's opaque card too, which
+      // would take the coverage's fill levels and, between steps, change pixels by design.
+      const ghostClip = whole((await ghostBox(run.page)) as Box);
+      const scan = await scanSeats(run, stepAt(size.width), ghostClip);
       expect
         .soft(
           seats.filter((s) => !scan.points.has(s)),
@@ -684,12 +686,12 @@ for (const url of PAGES) {
         )
         .toEqual([]);
       const box = whole((await canvasBox(run.page)) as Box);
-      // Each plank's own vellum, from the canvas's coverage (geometry, the same in both schemes).
-      const lit = await canvasAlone(run.page, box);
+      // Each plank's own vellum, from the ghost's coverage (geometry, the same in both schemes).
+      const lit = await canvasAlone(run.page, ghostClip);
       const vellumCells = plankCells(
         scan.grid,
         lit.alpha,
-        box,
+        ghostClip,
         stepAt(size.width),
       );
       for (const scheme of ["light", "dark"] as const) {
@@ -770,23 +772,24 @@ for (const url of PAGES) {
           await pause(300);
         }
         if (plain && scheme === "light") {
-          // One seat marked: what the record's canvas changes from /log's is on its seat alone.
+          // One seat marked: what the record's ghost changes from /log's is on its seat alone.
           const seat = markedSeat(MARKED);
+          const marked = (await canvasAlone(run.page, ghostClip)).image;
           const own = [
             ...scan.grid.filter(([, , s]) => s === seat),
             ...gapCells,
           ];
-          const w = Math.min(plain.width, settled.image.width);
-          const h = Math.min(plain.height, settled.image.height);
+          const w = Math.min(plain.width, marked.width);
+          const h = Math.min(plain.height, marked.height);
           expect
             .soft(
-              [settled.image.width, settled.image.height],
-              `the canvas's size against /log's, ${where}`,
+              [marked.width, marked.height],
+              `the ghost's box against /log's, ${where}`,
             )
             .toEqual([plain.width, plain.height]);
           const d = channelDelta(
             crop(plain, 0, 0, w, h),
-            crop(settled.image, 0, 0, w, h),
+            crop(marked, 0, 0, w, h),
           );
           const reach = stepAt(size.width) + 4;
           let changed = 0;
@@ -796,7 +799,7 @@ for (const url of PAGES) {
             for (let x = 0; x < w; x++) {
               if ((d[y * w + x] ?? 0) <= 24) continue;
               changed++;
-              const [px, py] = [box.x + x, box.y + y];
+              const [px, py] = [ghostClip.x + x, ghostClip.y + y];
               if (
                 !own.some(
                   ([gx, gy]) =>
@@ -834,13 +837,13 @@ for (const url of PAGES) {
           let onGap = 0;
           if (left.length > 0 && gaps.length > 0) {
             const log = await settledOn(browser, PAGES[0], size);
-            const logBox = whole((await canvasBox(log.page)) as Box);
+            const logBox = whole((await ghostBox(log.page)) as Box);
             for (const [x, y] of left) {
               if (
                 await pickNear(
                   log.page,
-                  logBox.x + x - box.x,
-                  logBox.y + y - box.y,
+                  logBox.x + x - ghostClip.x,
+                  logBox.y + y - ghostClip.y,
                   gaps,
                 )
               ) {
@@ -873,15 +876,15 @@ for (const url of PAGES) {
           note(
             testInfo,
             "mark",
-            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
+            `${where}: ${changed} ghost pixels differ from /log's by more than 24 levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
           );
           expect
-            .soft(changed, `canvas pixels the record's mark changes, ${where}`)
+            .soft(changed, `ghost pixels the record's mark changes, ${where}`)
             .toBeGreaterThan(0);
           expect
             .soft(
               stray,
-              `pixels the record's canvas changes away from seat ${seat} (sprint ${MARKED}'s) and the step's gaps (${gaps.join(", ")}), ${where}`,
+              `pixels the record's ghost changes away from seat ${seat} (sprint ${MARKED}'s) and the step's gaps (${gaps.join(", ")}), ${where}`,
             )
             .toBe(0);
         }
