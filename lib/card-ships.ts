@@ -11,9 +11,9 @@ import { LIGHT, LIGHT_LINES } from "./site";
 // The Log's two ships as a step's card draws them (app/log/[n]/opengraph-image.tsx;
 // .crew/sprint/54/contract.md, "The drawings"): the page's Off drawing, the same path strings in the
 // light tokens, since the card's renderer (satori) draws no WebGL and no CSS. Each ship is one SVG,
-// handed over as a data URI for an <img>, with its plank numbers placed beside it in the card's
-// pixels, to be set as text in the site's face: an SVG's own text would need fonts the image
-// renderer doesn't have.
+// handed over as a data URI for its box's background, with its plank numbers placed beside it in
+// the card's pixels, to be set as text in the site's face: an SVG's own text would need fonts the
+// image renderer doesn't have.
 
 type Ship = "ghost" | "theseus";
 
