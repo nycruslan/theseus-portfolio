@@ -1,0 +1,48 @@
+{
+ "sprint": 56,
+ "pr": 122,
+ "goal": "Hold a step and riffle through the ships, stopping at sprint 23",
+ "goalFrom": "roadmap",
+ "size": "M",
+ "outcome": "merged",
+ "fixRounds": 1,
+ "minutes": 275,
+ "agents": [
+  { "role": "creative-engineer", "model": "opus", "tokens": 500035, "minutes": 128 },
+  { "role": "engineer", "model": "opus", "tokens": 1099389, "minutes": 140 },
+  { "role": "qa-engineer", "model": "opus", "tokens": 741070, "minutes": 174 },
+  { "role": "design-director", "model": "opus", "tokens": 335502, "minutes": 120 }
+ ],
+ "lens": { "runs": 2, "tokens": 8101011, "important": 0, "actedOn": 3, "nits": 5 },
+ "wentWrong": [
+  {
+   "what": "One of the test runs ran three seconds past its time limit, so the build stopped",
+   "evidence": "CI's e2e shard 2 of 4 hit its 20-minute cap 3 s after its 96th test passed on 7b2d154: the split by test count puts every heavy Log spec in one shard. Probe halved log-riffle's own time (517 to 255.5 s, no expect dropped) and the shard ran 18 min 56 s on dea9fe1"
+  },
+  {
+   "what": "A click held on a step link left the keyboard's focus ring showing",
+   "evidence": "Iris measured :focus-visible true with a 2 px outline after a mouse press on /log/13, where production's is false; Forge let the link take focus natively (de2ebc7)"
+  },
+  {
+   "what": "After a riffle on a slow network, a tap could jump back several steps",
+   "evidence": "Lens traced a tap on Next stepping by the held record's href (/log/15) from step 18; Forge's a0ecff0 steps from the target, and Y23's late-page check is red on 7b2d154"
+  }
+ ],
+ "proposals": [
+  {
+   "change": "Split the e2e shards by time, not count, or add a fifth (ci.yml, playwright.config.ts): the Log's 3D specs all fall in shard 2",
+   "moves": "the slowest shard's time against its 20-minute cap (18 min 56 s on dea9fe1, the others 6 to 11 min)"
+  },
+  {
+   "change": "Cache Bun in the lens workflow so a GitHub release outage doesn't stop the review (carried from sprint 55)",
+   "moves": "lens runs that die at setup"
+  }
+ ],
+ "followUps": [
+  { "who": "Forge", "what": "Lens's nit on dea9fe1: Off during a riffle's first paced step with its page late leaves a mixed page (yard.ts:526); its fix and a red-first case are in the lens summary" },
+  { "who": "Forge", "what": "Iris: let the count line into 23 change on the knock, not at the step's start" },
+  { "who": "Quill", "what": "Iris: nothing tells a visitor they can hold; a quiet hint needs copy" },
+  { "who": "Pixel", "what": "INP during a riffle: cache the first press's arc per seat, defer the press-start layout read, and Forge's page parse (decision 11)" },
+  { "who": "Iris", "what": "Judge the riffle's 32 ms knock and 80 ms hurry on a real GPU and phone, and Pixel's 50 ms still floor" }
+ ]
+}

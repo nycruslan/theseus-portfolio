@@ -57,10 +57,15 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   clause. The chunk grew 9.7 KB, over the plan's 4 to 7 KB. Left open, as Lens's nits for Yd:
   prefetch after a press's own page arrives (`yard.ts:178`), restore the drawings' numbers on an
   early teardown (`mount.ts:1225`), two stale comments, and the caption under the canvas at rest.)
-- [ ] Yd (M; Pixel leads): hold to riffle, stopping at 23, 45 and the newest; Home, End and Escape;
-  the hand-off to Crew at the newest step (Y19 to Y23).
+- [x] Yd (M; Pixel leads): hold to riffle, stopping at 23, 45 and the newest; Home, End and Escape;
+  the hand-off to Crew at the newest step (Y20 to Y24, since Yc took Y19). (Sprint 56, PR #122, one
+  fix round for a CI shard over its cap. Lens: ship on dea9fe1, accepting B5.25's and B5.6's
+  rewrites. Iris: ship, 8.3. The chunk grew 2,611 B. Left open: Lens's nit on Off during a riffle's
+  first paced step with its page late (`yard.ts:526`), the count line into 23 on the knock, a hint
+  that a step can be held (Quill's copy), three INP cuts (`.crew/sprint/56/decisions.md` 11), and
+  the shard split by time, the owner's `ci.yml`.)
 - [ ] Ye (S): the door from `/`, one plain link on the revision block's count line, only if it
-  fits from 320 to 1440 (Y24 to Y26).
+  fits from 320 to 1440 (Y25 to Y27).
 - After the demo, if the yard earns it: the record in the motion (fix rounds as bounces, sprint 16
   struck), the fleet at 45, and optional sound. Each has a question to settle first (`plan.md`).
 - **The owner's calls, and none blocks the work:**
