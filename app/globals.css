@@ -993,6 +993,56 @@ main:has(> [data-model]) {
 }
 
 /*
+ * The Theseus in 3D on the Log (lib/model/ships.ts; .crew/sprint/55/contract.md): the ghost's
+ * canvas lies over both ships, so the Theseus's drawing takes the ghost's rules above. Its numbers
+ * paint over the canvas, and while the model has a state they ride their planks on the chunk's
+ * offsets; from the first moving frame its svg goes, faded out under reduced motion. It comes
+ * before the model's layer in main, hence `~`. The caption between the two drawings stays under
+ * the canvas, so a flying plank passes over it, as it does over the sheet.
+ */
+.log-theseus:has(~ [data-model]) .plan-plank {
+  z-index: 1;
+}
+
+@media screen and (forced-colors: none) {
+  .log-theseus:has(~ [data-model][data-state]) .plan-plank {
+    transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
+  }
+}
+
+@media screen and (forced-colors: none) and (
+    prefers-reduced-motion: no-preference
+  ) {
+  .log-theseus:has(
+      ~ [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    visibility: hidden;
+  }
+}
+
+@media screen and (forced-colors: none) and (prefers-reduced-motion: reduce) {
+  .log-theseus:has(~ [data-model]) svg {
+    transition: opacity 240ms linear;
+  }
+
+  .log-theseus:has(
+      ~ [data-model]:is(
+          [data-state="lofting"],
+          [data-state="settled"],
+          [data-state="still"]
+        )
+    )
+    svg {
+    opacity: 0;
+  }
+}
+
+/*
  * The hull on /crew (lib/model/; .crew/sprint/36/contract.md, "The hull on /crew"; notes-iris.md):
  * the model's layer after /crew's detail drawing, under the sheet's rules above, which hollow the
  * drawing from the first moving frame and hide the tip. Here the tally's ticks go with the tip, and
