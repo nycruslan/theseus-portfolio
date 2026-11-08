@@ -1118,6 +1118,8 @@ function start(
      */
     window: [number, number];
     span: number;
+    /** It draws the carry: a quick step's knock or lift alone doesn't, nor solves its arc. */
+    carries: boolean;
     /** It lands with the record's marks: Yc's press and a riffle's stop; a paced step doesn't. */
     marks: boolean;
     /** The beat drawn last, in ms into the press played forward. */
@@ -1441,7 +1443,7 @@ function start(
       stall = 0;
       step(below(ratio));
       if (loft && theseusLoft) {
-        ships?.press(p.plan, { theseus: theseusLoft, ghost: loft });
+        ships?.press(p.plan, { theseus: theseusLoft, ghost: loft }, p.carries);
       }
     } else if (ratio <= 1 && stall >= 6) {
       finish(false);
@@ -1530,11 +1532,11 @@ function start(
     press = null;
     delete host.dataset.pick;
     canvas.style.cursor = "";
-    ships.press(plan, { theseus: theseusLoft, ghost: loft });
-    tag(hi);
-    const length = ships.length(plan);
     const quick =
       pace !== undefined && plan.kind !== "fade" && pace < KNOCK_PACE;
+    ships.press(plan, { theseus: theseusLoft, ghost: loft }, !quick);
+    tag(hi);
+    const length = ships.length(plan);
     const window: [number, number] = quick
       ? knockWindow(plan.kind, plan.narrow, back)
       : [0, length];
@@ -1559,6 +1561,7 @@ function start(
       length,
       window,
       span,
+      carries: !quick,
       marks: pace === undefined,
       at: back ? window[1] : window[0],
       done,

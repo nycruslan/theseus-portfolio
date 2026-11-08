@@ -666,7 +666,7 @@ export function createShips(
   };
 
   /** Solves the flight once the hulls are settled (Iris, section 4, "Arc"). */
-  const solve = (plan: Plan): Path => {
+  const solve = (plan: Plan, carries: boolean): Path => {
     const slot = slotOf(plan.seat);
     const frame = seatFrame(plan.seat);
     const centre = new Vector3(...frame.centre);
@@ -712,7 +712,8 @@ export function createShips(
         (point) => new Vector3(...point),
       ),
     };
-    if (plan.kind !== "carry") return at;
+    // A riffle's quick step plays the knock or the lift alone, and never draws the carry.
+    if (plan.kind !== "carry" || !carries) return at;
     // The carry's shape on screen (Iris, sections 4 and 7): it bows toward the camera, growing to
     // at most PRESS_GROW × its seated length; it sways toward the bow by SWAY × the drawing's width; it
     // rises at most RISE over the lift point. Each is solved in turn, by bisection on its largest
@@ -1010,7 +1011,7 @@ export function createShips(
      * A press starts, over the settled hulls: its flight is solved, its seat's planks are given
      * their draws, the marks and the hover leave both ships (Iris, section 6). Null ends it.
      */
-    press(plan: Plan | null, lofts?: Lofts) {
+    press(plan: Plan | null, lofts?: Lofts, carries = true) {
       if (!plan || !lofts) {
         path = null;
         now = null;
@@ -1024,7 +1025,7 @@ export function createShips(
       project(lofts.ghost, 1);
       place(theseus, lofts.theseus.at(1).pose, lofts.theseus, "theseus");
       place(ghost, lofts.ghost.at(1).pose, lofts.ghost, "ghost");
-      path = solve(plan);
+      path = solve(plan, carries);
       rest = null;
       now = null;
       const slot = path.slot;
