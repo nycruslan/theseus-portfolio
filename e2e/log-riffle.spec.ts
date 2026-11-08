@@ -59,6 +59,16 @@ const FASTEST = 80;
 const CALM_GAP = 400;
 /** The clock moved between reads while held: two frames, about a key's autorepeat. */
 const CHUNK = 2 * ONE_FRAME;
+/**
+ * The clock's step while a riffle runs and nothing waits on a step to let go: fewer round trips,
+ * about a quarter less real time at 390 (sprint 56's fix round), each step still timed to the ms
+ * by the recorder; a held key repeats at this rate, and a held pointer steps twice as far.
+ */
+const RIFFLING = 100;
+/** The clock's step once a riffle has stopped and landed, and after a release (`ride`). */
+const IDLE = 250;
+/** The same while a key is held: its autorepeat keeps coming. */
+const IDLE_KEY = 100;
 /** A held key's autorepeat starts after this long, as an OS's does. */
 const REPEAT_AFTER = 500;
 /** How long a press stays held past its last step, to show a stop holds while held. */
@@ -219,7 +229,7 @@ async function restOn(run: ModelRun, url: string) {
   await run.page.mouse.move(2, 2);
   await focusMain(run.page);
   await run.step(1000);
-  await pause(500);
+  await pause(200);
   await tagDocument(run.page);
 }
 
@@ -411,7 +421,26 @@ async function ride(
   await hold.down();
   let now = before;
   for (;;) {
-    await run.step(CHUNK);
+    // Once the riffle has stopped and its plank landed, the clock runs in IDLE ms at a time: at rest
+    // it draws nothing, the recorder still times any step to the ms, and a held key still repeats
+    // (every IDLE_KEY ms). A release still comes a CHUNK after a step, under the fastest gap.
+    const resting =
+      !release &&
+      !realPace &&
+      now.steps.length - before.steps.length >= enough &&
+      now.press === null;
+    const free = !release && !realPace && !during;
+    await run.step(
+      resting
+        ? hold.repeat
+          ? IDLE_KEY
+          : IDLE
+        : free
+          ? hold.repeat
+            ? RIFFLING
+            : 2 * RIFFLING
+          : CHUNK,
+    );
     now = await readRiffle(page);
     const clock = now.now - t0;
     if (hold.repeat && clock >= REPEAT_AFTER) await hold.repeat();
@@ -431,7 +460,8 @@ async function ride(
   const atStop = await readRiffle(page);
   await hold.up();
   if (afterUp) await afterUp();
-  for (let t = 0; t < after; t += CHUNK) await run.step(CHUNK);
+  for (let t = 0; t < after; t += IDLE)
+    await run.step(Math.min(IDLE, after - t));
   await pause(200);
   const end = await readRiffle(page);
   const rel = <T extends { t: number }>(list: T[]) =>
@@ -506,99 +536,141 @@ const Y20_RIFFLES = [
   { from: 30, by: -1 },
 ] as const;
 
-const Y20_RUNS: {
+type Phase = {
   label: string;
-  options: ModelOptions;
   floor: number;
   riffles: readonly (typeof Y20_RIFFLES)[number][];
-}[] = [
+  /** A quick press after the riffles. */
+  quick: boolean;
+  /** Sets the phase's mode up on the run's page, before its first load. */
+  enter?: (run: ModelRun) => Promise<unknown>;
+};
+
+/**
+ * Each test's phases share one context. Every riffle's clock is SwiftShader frames, which cost
+ * about half as much below 768 px (40 x 3 levels) as at 1440, so the timing checks run at 390 x 844;
+ * the pace and stops are the controller's, the same at every width, and Y23 holds a Full riffle's
+ * draws, triangles and words at 1440 too. Calm and reduced motion with no mode stored read the same
+ * floor, so they share a context: reduced motion first, nothing stored, then Calm stored with the
+ * emulation off (sprint 56's fix round on CI's 20-minute shard).
+ */
+const Y20_RUNS: { label: string; options: ModelOptions; phases: Phase[] }[] = [
   {
-    label: "Full at 1440 x 900",
-    options: { ...DESKTOP },
-    floor: FASTEST,
-    riffles: Y20_RIFFLES,
+    label: "Full at 390 x 844",
+    options: { ...PHONE },
+    phases: [
+      {
+        label: "Full at 390 x 844",
+        floor: FASTEST,
+        riffles: Y20_RIFFLES,
+        quick: true,
+      },
+    ],
   },
   {
-    label: "Calm stored, at 390 x 844",
-    options: { ...PHONE, stored: "calm" },
-    floor: CALM_GAP,
-    riffles: Y20_RIFFLES,
-  },
-  {
-    label: "reduced motion with no mode stored, at 1440 x 900",
-    options: { ...DESKTOP, reducedMotion: "reduce" },
-    floor: CALM_GAP,
-    riffles: [Y20_RIFFLES[0]],
+    label: "reduced motion with no mode stored, then Calm stored, at 390 x 844",
+    options: { ...PHONE, reducedMotion: "reduce" },
+    phases: [
+      {
+        label: "reduced motion with no mode stored, at 390 x 844",
+        floor: CALM_GAP,
+        // The floor alone: four gaps, where any eased pace already breaks it at the second.
+        riffles: [Y20_RIFFLES[2]],
+        quick: false,
+      },
+      {
+        label: "Calm stored, at 390 x 844",
+        floor: CALM_GAP,
+        riffles: Y20_RIFFLES,
+        quick: true,
+        enter: async (run) => {
+          await run.page.emulateMedia({ reducedMotion: "no-preference" });
+          await run.page.evaluate(() =>
+            localStorage.setItem("theseus:motion", "calm"),
+          );
+        },
+      },
+    ],
   },
 ];
 
-const riffleWords = Y20_RIFFLES.map(
-  ({ from, by }) =>
-    `${by > 0 ? "Next" : "Previous"} from /log/${from} stops at /log/${stopFrom(from, by)}`,
-).join(", ");
+const phaseWords = ({ label, floor, riffles, quick }: Phase) =>
+  `${label}: gaps never below ${floor} ms${floor === FASTEST ? `, reaching ${FASTEST} ms (within a frame) on the riffle from /log/30` : ""}; ${riffles
+    .map(
+      ({ from, by }) =>
+        `${by > 0 ? "Next" : "Previous"} from /log/${from} stops at /log/${stopFrom(from, by)}`,
+    )
+    .join(", ")}${quick ? "; a quick press (100 ms) is exactly one step" : ""}`;
 
-for (const { label, options, floor, riffles } of Y20_RUNS) {
-  const all = riffles.length === Y20_RIFFLES.length;
-  test(`Y20 The riffle on the clock, ${label}: holding a step link steps once at once, then, held past ${HOLD} ms, steps with gaps that start at ${HOLD} ms, never grow (a frame's slack) and never fall below ${floor} ms${floor === FASTEST ? `, reaching ${FASTEST} ms (within a frame) on the riffle from /log/30` : ""}; ${all ? riffleWords : `Next from /log/13 stops at /log/${stopFrom(13, 1)}`}, each still held ${HELD_PAST} ms past its stop with no step more, every step one plank of the merged order (data-press's seats), none after the release; ${all ? "a quick press (100 ms) is exactly one step; " : ""}no console errors`, async ({
+for (const { label, options, phases } of Y20_RUNS) {
+  test(`Y20 The riffle on the clock, ${label}: holding a step link steps once at once, then, held past ${HOLD} ms, steps with gaps that start at ${HOLD} ms and never grow (a frame's slack), each riffle still held ${HELD_PAST} ms past its stop with no step more, every step one plank of the merged order (data-press's seats), none after the release; ${phases.map(phaseWords).join("; then ")}; no console errors`, async ({
     browser,
   }, testInfo) => {
-    test.setTimeout(all ? 360_000 : 180_000);
+    test.setTimeout(360_000);
     const run = await riffleRun(browser, options);
-    for (const { from, by, ...rest } of riffles) {
-      const fastest = "fastest" in rest && rest.fastest;
-      const to = stopFrom(from, by);
-      const want = seatsBetween(from, to);
-      const where = `${by > 0 ? "Next" : "Previous"} held from /log/${from}, ${label}`;
-      await restOn(run, recordOf(from));
-      const hold = await pointerHold(run.page, by > 0 ? "next" : "previous");
-      const r = await ride(run, hold, { enough: want.length });
-      note(testInfo, "riffle", `${where}: ${story(r)}. ${SWIFTSHADER}.`);
-      expect
-        .soft(
-          r.held.map((s) => s.seat),
-          `the steps while held, one plank each in the merged order, stopping at /log/${to}: ${where}`,
-        )
-        .toEqual(want);
-      expect
-        .soft(
-          r.after.map((s) => s.seat),
-          `steps after the release (the click that ends a held press does nothing more), ${where}`,
-        )
-        .toEqual([]);
-      expect
-        .soft(paceBreaks(r, floor), `the pace's breaks, ${where}`)
-        .toEqual([]);
-      if (fastest && floor === FASTEST) {
+    for (const phase of phases) {
+      const { label, floor, riffles, quick } = phase;
+      if (phase.enter) await phase.enter(run);
+      for (const { from, by, ...rest } of riffles) {
+        const fastest = "fastest" in rest && rest.fastest;
+        const to = stopFrom(from, by);
+        const want = seatsBetween(from, to);
+        const where = `${by > 0 ? "Next" : "Previous"} held from /log/${from}, ${label}`;
+        await restOn(run, recordOf(from));
+        const hold = await pointerHold(run.page, by > 0 ? "next" : "previous");
+        const r = await ride(run, hold, { enough: want.length });
+        note(testInfo, "riffle", `${where}: ${story(r)}. ${SWIFTSHADER}.`);
         expect
           .soft(
-            Math.min(...gapsOf(r)),
-            `the shortest gap, ms, ${where}: the riffle reaches ${FASTEST} ms`,
+            r.held.map((s) => s.seat),
+            `the steps while held, one plank each in the merged order, stopping at /log/${to}: ${where}`,
           )
-          .toBeLessThanOrEqual(FASTEST + ONE_FRAME);
+          .toEqual(want);
+        expect
+          .soft(
+            r.after.map((s) => s.seat),
+            `steps after the release (the click that ends a held press does nothing more), ${where}`,
+          )
+          .toEqual([]);
+        expect
+          .soft(paceBreaks(r, floor), `the pace's breaks, ${where}`)
+          .toEqual([]);
+        if (fastest && floor === FASTEST) {
+          expect
+            .soft(
+              Math.min(...gapsOf(r)),
+              `the shortest gap, ms, ${where}: the riffle reaches ${FASTEST} ms`,
+            )
+            .toBeLessThanOrEqual(FASTEST + ONE_FRAME);
+        }
+        const landed = await settleOn(run, recordOf(to));
+        expect
+          .soft(landed.path, `the step the riffle stopped on, ${where}`)
+          .toBe(recordOf(to));
       }
-      const landed = await settleOn(run, recordOf(to));
-      expect
-        .soft(landed.path, `the step the riffle stopped on, ${where}`)
-        .toBe(recordOf(to));
-    }
-    if (all) {
-      // A quick press: down, 100 ms of clock, up.
-      const at = stepOfPath((await readSafe(run.page)).path);
-      const next = stepsOn(at, 1);
-      const where = `a quick press of Next on /log/${at}, ${label}`;
-      await run.page.mouse.move(2, 2);
-      await run.step(1000);
-      const hold = await pointerHold(run.page, "next");
-      const r = await ride(run, hold, { release: (_, clock) => clock >= 100 });
-      note(testInfo, "quick press", `${where}: ${story(r)}`);
-      expect
-        .soft(
-          [...r.held, ...r.after].map((s) => s.seat),
-          `the steps of ${where}: exactly one`,
-        )
-        .toEqual(seatsBetween(at, next));
-      const landed = await settleOn(run, recordOf(next));
-      expect.soft(landed.path, `the step after ${where}`).toBe(recordOf(next));
+      if (quick) {
+        // A quick press: down, 100 ms of clock, up.
+        const at = stepOfPath((await readSafe(run.page)).path);
+        const next = stepsOn(at, 1);
+        const where = `a quick press of Next on /log/${at}, ${label}`;
+        await run.page.mouse.move(2, 2);
+        await run.step(1000);
+        const hold = await pointerHold(run.page, "next");
+        const r = await ride(run, hold, {
+          release: (_, clock) => clock >= 100,
+        });
+        note(testInfo, "quick press", `${where}: ${story(r)}`);
+        expect
+          .soft(
+            [...r.held, ...r.after].map((s) => s.seat),
+            `the steps of ${where}: exactly one`,
+          )
+          .toEqual(seatsBetween(at, next));
+        const landed = await settleOn(run, recordOf(next));
+        expect
+          .soft(landed.path, `the step after ${where}`)
+          .toBe(recordOf(next));
+      }
     }
     expect.soft(run.errors, `console errors, ${label}`).toEqual([]);
     await run.close();
@@ -690,11 +762,12 @@ test(`Y20 The riffle by touch, Full at 390 x 844: a finger held still on Next fr
 // ---------------------------------------------------------------------------------------------
 // Y21: keys
 
-test(`Y21 Keys, Full at 1440 x 900 on the clock: holding → from /log/13 (with autorepeat) riffles as holding Next does, stopping at /log/${stopFrom(13, 1)} while held; holding ← riffles back as Previous does; keyup, a pointer release and Escape (with the pointer or the key still down), and (Iris's addition 2) the mouse leaving the held link, a pointercancel, the window's blur and the page going hidden each stop a riffle with no step after; a held Enter on Next steps once; Home and End on a focused step link go to the first (/log/${STEPS[0]}) and newest (/log/${NEWEST_STEP}) steps as one jump (no data-press), the URL replaced, history.length unchanged, the live region naming the step and the words the server's; Home and End with focus on main scroll the page and step nothing; in an input, held →, Home and End step nothing`, async ({
+test(`Y21 Keys, Full at 390 x 844 on the clock: holding → from /log/13 (with autorepeat) riffles as holding Next does, stopping at /log/${stopFrom(13, 1)} while held; holding ← riffles back as Previous does; keyup, a pointer release and Escape (with the pointer or the key still down), and (Iris's addition 2) the mouse leaving the held link, a pointercancel, the window's blur and the page going hidden each stop a riffle with no step after; a held Enter on Next steps once; Home and End on a focused step link go to the first (/log/${STEPS[0]}) and newest (/log/${NEWEST_STEP}) steps as one jump (no data-press), the URL replaced, history.length unchanged, the live region naming the step and the words the server's; Home and End with focus on main scroll the page and step nothing; in an input, held →, Home and End step nothing`, async ({
   browser,
 }, testInfo) => {
   test.setTimeout(360_000);
-  const run = await riffleRun(browser, { ...DESKTOP });
+  // At 390, where a riffle's frames cost half what they do at 1440 (Y20's note).
+  const run = await riffleRun(browser, { ...PHONE });
   const page = run.page;
   await restOn(run, recordOf(13));
   const length = await page.evaluate(() => history.length);
@@ -1016,7 +1089,9 @@ test(`Y22 The hand-off: on /log and the newest step's /log/${NEWEST_STEP}, with 
     const run = await openModel(browser, { ...DESKTOP, ...options });
     for (const path of pages) {
       await run.goto(path);
-      if (!options.noScript) await pause(1000);
+      // Full and Calm read once the model rests, hydrated; Off and no script are the server's.
+      if (options.stored === "off" || options.noScript) await pause(300);
+      else await run.waitFor([...REST], FIRST);
       // With scripts off page.evaluate still reads the DOM.
       const found = await handOffs(run.page);
       expect
@@ -1033,12 +1108,17 @@ test(`Y22 The hand-off: on /log and the newest step's /log/${NEWEST_STEP}, with 
   const crew = await run.page.request.get("/crew");
   expect.soft(crew.status(), "status of /crew").toBe(200);
   const carrying: string[] = [];
-  for (const n of STEPS) {
-    if (n === NEWEST_STEP) continue;
-    const response = await run.page.request.get(recordOf(n));
-    expect.soft(response.status(), `status of ${recordOf(n)}`).toBe(200);
-    if ((await handOffs(run.page, await response.text())).length > 0)
-      carrying.push(recordOf(n));
+  // The pages are prerendered: asked for side by side, read in order.
+  const others = STEPS.filter((n) => n !== NEWEST_STEP);
+  const answers = await Promise.all(
+    others.map(async (n) => {
+      const response = await run.page.request.get(recordOf(n));
+      return { n, status: response.status(), html: await response.text() };
+    }),
+  );
+  for (const { n, status, html } of answers) {
+    expect.soft(status, `status of ${recordOf(n)}`).toBe(200);
+    if ((await handOffs(run.page, html)).length > 0) carrying.push(recordOf(n));
   }
   expect
     .soft(carrying, `steps before the newest whose server HTML has the link`)
@@ -1052,7 +1132,7 @@ test(`Y22 The hand-off: on /log and the newest step's /log/${NEWEST_STEP}, with 
     const press = await openModel(browser, { ...DESKTOP, ...options });
     await press.goto(recordOf(before));
     await press.waitFor([...REST], FIRST);
-    await pause(1500);
+    await pause(500);
     await tagDocument(press.page);
     expect
       .soft(await handOffs(press.page), `the link before the press, ${where}`)
@@ -1323,6 +1403,130 @@ for (const { label, size, from, partway } of Y23_RUNS) {
   });
 }
 
+/** The step whose page is held back in Y23's late-page check: the fourth from /log/13. */
+const LATE = stepsOn(13, 4);
+
+/** The shown motion control's button, pressed with the mouse at its centre (the clock paused). */
+async function pressMode(page: Page, mode: string) {
+  const at = await page.evaluate((mode) => {
+    const button = [
+      ...document.querySelectorAll<HTMLElement>("[data-motion] button"),
+    ].find(
+      (b) => b.getClientRects().length > 0 && b.textContent?.trim() === mode,
+    );
+    const r = button?.getBoundingClientRect();
+    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+  }, mode);
+  expect(at, `the shown ${mode} button`).not.toBeNull();
+  await page.mouse.click(at?.x ?? 0, at?.y ?? 0);
+}
+
+test(`Y23 A step's page late (Lens's two nits on #122), Calm stored at 390 x 844 on the clock, /log/${LATE}'s page held back from the page's fetches: Next held from /log/13 and let go a frame into /log/${LATE}, then Enter on the focused step link, steps on from /log/${LATE} to /log/${stepsOn(LATE, 1)} (not by the held record's link), the URL, words and drawings the server's for it once its page comes; → held from /log/13 and Off pressed with /log/${LATE} in flight and its page held leaves /log/${stepsOn(LATE, -1)} whole: its URL and the server's words and drawings`, async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  const run = await riffleRun(browser, { ...PHONE, stored: "calm" });
+  const page = run.page;
+  // The late page: the controller's fetches of it wait until the check lets them through.
+  let letThrough: () => void = () => {};
+  let gate = new Promise<void>((done) => {
+    letThrough = done;
+  });
+  await page.route(
+    (url) => url.pathname === recordOf(LATE),
+    async (route) => {
+      if (route.request().resourceType() === "fetch") await gate;
+      await route.continue().catch(() => {});
+    },
+  );
+  const server = async (path: string) =>
+    readWords(page, await (await page.request.get(path)).text());
+
+  // 1. Let go a frame into the late step, then Enter.
+  {
+    const to = stepsOn(LATE, 1);
+    const where = `Next held from /log/13, let go a frame into /log/${LATE} with its page held, then Enter`;
+    await restOn(run, recordOf(13));
+    const r = await ride(run, await pointerHold(page, "next"), {
+      release: (held) => held >= 4,
+      stop: () => run.step(ONE_FRAME),
+    });
+    note(testInfo, "late page, Enter", `${where}: ${story(r)}`);
+    expect
+      .soft(
+        r.held.map((s) => s.seat),
+        `the steps until the release, to /log/${LATE}: ${where}`,
+      )
+      .toEqual(seatsBetween(13, LATE));
+    const focused = await page.evaluate(
+      () => document.activeElement?.getAttribute("data-step") ?? null,
+    );
+    expect
+      .soft(focused, `a step link focused before Enter, ${where}`)
+      .toBe("next");
+    await page.keyboard.press("Enter");
+    await run.step(1000);
+    letThrough();
+    const landed = await settleOn(run, recordOf(to));
+    expect
+      .soft(
+        { path: landed.path, doc: landed.doc },
+        `the step Enter went to, on the same document, ${where}`,
+      )
+      .toEqual({ path: recordOf(to), doc: 1 });
+    expect
+      .soft(
+        await readWords(page),
+        `the words and drawings against the server's /log/${to}, ${where}`,
+      )
+      .toEqual(await server(recordOf(to)));
+  }
+
+  // 2. Off while → is held, the late step in flight with its page held.
+  {
+    const whole = stepsOn(LATE, -1);
+    const where = `→ held from /log/13, Off pressed with /log/${LATE} in flight and its page held`;
+    gate = new Promise<void>((done) => {
+      letThrough = done;
+    });
+    await restOn(run, recordOf(13));
+    const r = await ride(run, keyHold(page, "ArrowRight"), {
+      release: (held) => held >= 4,
+      stop: async () => {
+        await run.step(ONE_FRAME);
+        await pressMode(page, "Off");
+        await pause(500);
+        await run.step(500);
+        await pause(300);
+      },
+      after: 500,
+    });
+    note(testInfo, "late page, Off", `${where}: ${story(r)}`);
+    expect
+      .soft(
+        r.held.map((s) => s.seat),
+        `the steps until Off, to /log/${LATE}: ${where}`,
+      )
+      .toEqual(seatsBetween(13, LATE));
+    const now = await readSafe(page);
+    expect
+      .soft(
+        { path: now.path, doc: now.doc },
+        `the step left whole on the same document, ${where}`,
+      )
+      .toEqual({ path: recordOf(whole), doc: 1 });
+    expect
+      .soft(
+        await readWords(page),
+        `the words and drawings against the server's /log/${whole}, ${where}`,
+      )
+      .toEqual(await server(recordOf(whole)));
+    letThrough();
+  }
+  expect.soft(run.errors, "console errors").toEqual([]);
+  await run.close();
+});
+
 // ---------------------------------------------------------------------------------------------
 // Y24: INP and budgets, reported
 
@@ -1344,7 +1548,7 @@ function recordEvents() {
   } as PerformanceObserverInit);
 }
 
-test(`Y24 INP and budgets, reported (not gated, as B3.9's isn't), Full at 1440 x 900 at 4x CPU in real time: Next held 3 s from /log/13, then → held 2 s with autorepeat; the riffle's INP (the longest interaction) and each input's are reported; a riffle must have happened (two steps or more while held) for the number to mean anything; the 3D chunk is one file of at most 250,000 B gzip -9, its delta reported against Yc's; the loader's 0 B is B2.10's and B5.10's, unedited`, async ({
+test(`Y24 INP and budgets, reported (not gated, as B3.9's isn't), Full at 1440 x 900 at 4x CPU in real time: Next held 3 s from /log/13, then Home on a step link and → held 2 s with autorepeat from the first step; the riffle's INP (the longest interaction) and each input's are reported; a riffle must have happened (two steps or more while held) for the number to mean anything; the 3D chunk is one file of at most 250,000 B gzip -9, its delta reported against Yc's; the loader's 0 B is B2.10's and B5.10's, unedited`, async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1369,7 +1573,7 @@ test(`Y24 INP and budgets, reported (not gated, as B3.9's isn't), Full at 1440 x
     }
     const atUp = await readRiffle(run.page);
     await hold.up();
-    await pause(2500);
+    await pause(1500);
     holds.push({
       name: hold.name,
       held: ms,
@@ -1378,6 +1582,18 @@ test(`Y24 INP and budgets, reported (not gated, as B3.9's isn't), Full at 1440 x
   };
   await timed(await pointerHold(run.page, "next"), 3000);
   await run.page.mouse.move(2, 2);
+  // The key hold starts from the first step, whatever step the mouse's riffle stopped on under 4x
+  // CPU: from 22 a press lands on chapter 23, which never riffles (Forge's traces, sprint 56's fix
+  // round). Home on a focused step link is Y21's one jump.
+  await run.page.evaluate(() =>
+    document.querySelector<HTMLElement>(".record a[data-step]")?.focus(),
+  );
+  await run.page.keyboard.press("Home");
+  const first = recordOf(STEPS[0] ?? 1);
+  const end = Date.now() + 20_000;
+  while (Date.now() < end && (await readRiffle(run.page)).path !== first)
+    await pause(100);
+  await pause(1000);
   await focusMain(run.page);
   await timed(keyHold(run.page, "ArrowRight"), 2000);
 
