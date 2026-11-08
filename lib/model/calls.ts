@@ -179,21 +179,21 @@ export const ROLL = 6;
 export const INSIDE_LIGHT = "#8c9491";
 export const INSIDE_DARK = 0.55;
 
-// The riffle (.crew/sprint/56/contract.md, settled point 2): a held press steps faster and faster,
-// a flip book riffled, the gaps easing from 400 ms to 80. Pixel's curve until Iris's call
-// (riffle-iris.md): each gap a fixed share shorter than the one before, so the riffle speeds up
-// evenly to the ear's beat, flooring after six gaps (1.3 s), so a chapter of 22 steps plays in
-// about 2.5 s with most of it at the floor.
+// The riffle (.crew/sprint/56/riffle-iris.md, Iris's calls; contract.md, settled point 2): a held
+// press steps faster and faster, a flip book riffled. Each gap is a fixed share of the one before,
+// since tempo is heard in ratios, from 400 ms to the 80 ms floor on the sixth gap, 1,163 ms into
+// the hold (section 1). One constant a call, as the loft's are.
 
 /** The first gap, the hold's own 400 ms; the floor; each gap's share of the one before. */
-export const RIFFLE_FIRST = 400;
-export const RIFFLE_FLOOR = 80;
-export const RIFFLE_RATIO = 0.75;
+const RIFFLE_FIRST = 400;
+const RIFFLE_FLOOR = 80;
+const RIFFLE_RATIO = 0.725;
 
 /**
- * The ms between a hold's step n and step n + 1, n = 0 being the press's own step: in Full 400,
- * 300, 225, 169, 127, 95, then 80; in Calm, and under reduced motion with no mode stored, 400
- * every gap. Whole ms, so a timer and a check's clock agree.
+ * The ms between the starts of a hold's step n and step n + 1, n = 0 being the press's own step
+ * (Iris's gap(k) at k = n + 1): in Full 400, 290, 210, 152, 111, then 80; in Calm, and under
+ * reduced motion with no mode stored, 400 every gap. Whole ms, so a timer and a check's clock
+ * agree. The controller (lib/model/yard.ts) passes it to `go` as the step's pace.
  */
 export const riffleGap = (n: number, calm: boolean) =>
   calm
@@ -201,11 +201,17 @@ export const riffleGap = (n: number, calm: boolean) =>
     : Math.max(RIFFLE_FLOOR, Math.round(RIFFLE_FIRST * RIFFLE_RATIO ** n));
 
 /**
- * A riffle step's motion takes this share of its pace, at most the press's own length: the rest
- * is a still page, the step at rest, for a frame or more before the next step lifts its plank
- * (16 ms of 80, 80 of 400). Every frame of it is a frame of the press, sampled sparser.
+ * Inside a step (Iris, section 2). From KNOCK_PACE up, the step flies: Yc's press on a faster
+ * clock, every beat fitted into PACE_FILL of the pace, then still, so each page reads; below it a
+ * carry would cross 234 px in three frames, a smear, so the step plays its last beat alone: a cut
+ * to Yc's knock, the new card L proud at α 1, driven home over KNOCK_DRIVE ms on the knock's
+ * cubic ease-in. A plank still moving when the next step comes hurries home in at most HURRY ms,
+ * the rest of its beats on a faster clock: nothing teleports.
  */
 export const PACE_FILL = 0.8;
+export const KNOCK_PACE = 150;
+export const KNOCK_DRIVE = 32;
+export const HURRY = 80;
 /** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
 const PRESS_WIDTHS: readonly [number, number] = [358, 900];
 
