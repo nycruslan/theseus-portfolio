@@ -1175,9 +1175,34 @@ function start(
         a?.ghost.has(id) === b.ghost.has(id),
     );
 
+  /**
+   * Frames left in which a scroll is the page's own: the controller swaps the step's words, and
+   * scroll anchoring may then move the page, its scroll event a frame after the layout.
+   */
+  let quiet = 0;
+  const reworded = ghost
+    ? new MutationObserver((records) => {
+        const words = records.some((record) => {
+          const at =
+            record.target instanceof Element
+              ? record.target
+              : record.target.parentElement;
+          return !at?.closest("[data-ghost], [data-theseus], [data-model]");
+        });
+        if (words) quiet = 2;
+      })
+    : null;
+  if (host.parentElement) {
+    reworded?.observe(host.parentElement, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+  }
+
   /** Any input lands a moving plank at once (the contract; Iris, section 6). */
   const pressInput = (event: Event) => {
-    if (event.type === "scroll" && !pressing?.scrolls) return;
+    if (event.type === "scroll" && (!pressing?.scrolls || quiet > 0)) return;
     finish();
   };
   const pressListen = (active: boolean) => {
@@ -1188,10 +1213,18 @@ function start(
     }
   };
 
-  /** The numbers on both ships at the press's seat, which leave at its start (Iris, section 6). */
-  const atSeat = (seat: string) =>
-    [...(ghost?.labels ?? []), ...(theseus?.labels ?? [])]
-      .filter((label) => label.seat === seat)
+  /**
+   * The numbers at the press's seat that leave at its start (Iris, section 6): the Theseus's, and
+   * the ghost's where the press changes the ghost (steps 1 to 23); from 24 its number stays.
+   */
+  const atSeat = (plan: Plan) =>
+    [
+      ...(plan.lo.ghost.has(plan.seat) === plan.hi.ghost.has(plan.seat)
+        ? []
+        : (ghost?.labels ?? [])),
+      ...(theseus?.labels ?? []),
+    ]
+      .filter((label) => label.seat === plan.seat)
       .map((label) => label.span);
 
   /**
@@ -1201,7 +1234,7 @@ function start(
    */
   const hideNumbers = (plan: Plan, back: boolean, hi: number) => {
     const own = theseus?.labels.find((label) => label.seat === plan.seat)?.span;
-    for (const span of atSeat(plan.seat)) span.style.visibility = "hidden";
+    for (const span of atSeat(plan)) span.style.visibility = "hidden";
     // The plank that leaves forward is the step before's: an original has no number.
     const holder = steps[hi - ORDER.length];
     if (!own || !plan.lo.seated.has(plan.seat) || holder === undefined) {
@@ -1288,8 +1321,9 @@ function start(
     raf = 0;
     const p = pressing;
     if (!p || !alive) return;
-    // From its first frame a scroll lands it too.
+    // From its first frame a scroll lands it too, but for a scroll the words' swap made.
     p.scrolls = true;
+    if (quiet > 0) quiet--;
     const t = Math.max(0, now - p.begin);
     if (t >= p.length) return finish();
     // The loft's quality rule: three frames over 22 ms step the ratio down a rung; at 1, six over
@@ -1424,7 +1458,7 @@ function start(
     theseusNumbers = riders(theseus);
     if (pressing) {
       // Mid-press, the drawing is a step behind the hulls: its seat's numbers leave too.
-      for (const span of atSeat(pressing.plan.seat)) {
+      for (const span of atSeat(pressing.plan)) {
         span.style.visibility = "hidden";
       }
       return;
@@ -1461,6 +1495,7 @@ function start(
     unyard?.();
     finish(false);
     swaps?.disconnect();
+    reworded?.disconnect();
     alive = false;
     cancelAnimationFrame(raf);
     cancelAnimationFrame(crossing);

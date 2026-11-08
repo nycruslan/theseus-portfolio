@@ -153,7 +153,7 @@ export const BOW = 1.05;
 /** Its roll about its long axis at mid-carry, in degrees, outer face up to the light. */
 export const ROLL = 6;
 /** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
-export const PRESS_WIDTHS: readonly [number, number] = [358, 900];
+const PRESS_WIDTHS: readonly [number, number] = [358, 900];
 
 /** A length Iris gave at 390 and 1440, at a drawing `width` CSS px wide. */
 export const byWidth = (

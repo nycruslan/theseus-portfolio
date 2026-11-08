@@ -333,8 +333,9 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
   return () => {
     // Torn down mid-flight (Off pressed, or the page hidden): the page is the step's at once if
     // its words are up, and stays the step before if they aren't.
-    if (alive && flight?.fresh) settle(flight, flight.fresh);
+    const up = alive ? flight : null;
     alive = false;
+    if (up?.fresh) settle(up, up.fresh);
     rested.disconnect();
     doc.removeEventListener("click", click);
     doc.removeEventListener("keydown", key);
