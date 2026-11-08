@@ -68,25 +68,25 @@ export function place([x, y, z]: Vec3, pose: Pose): Vec3 {
   return [pose.x + pose.s * x2, pose.y + pose.s * y1, pose.z + pose.s * z2];
 }
 
-/** A world point on the canvas, in CSS px from its top left, with the camera at 1/D = invD. */
-function project([x, y, z]: Vec3, width: number, height: number, invD: number) {
+/**
+ * A world point on the canvas, in CSS px from its top left, with the camera at 1/D = invD, looking
+ * from (cx, cy): the canvas's centre, or on the Log a ship's own drawing's (makeLoft).
+ */
+function project([x, y, z]: Vec3, cx: number, cy: number, invD: number) {
   const k = 1 / (1 - z * invD);
-  return [
-    width / 2 + (x - width / 2) * k,
-    height / 2 - (y + height / 2) * k,
-  ] as const;
+  return [cx + (x - cx) * k, cy - (y + cy) * k] as const;
 }
 
 function framed(
   points: Vec3[],
   pose: Pose,
-  width: number,
-  height: number,
+  cx: number,
+  cy: number,
   invD: number,
 ) {
   let [top, bottom, left, right] = [Infinity, -Infinity, Infinity, -Infinity];
   for (const p of points) {
-    const [sx, sy] = project(place(p, pose), width, height, invD);
+    const [sx, sy] = project(place(p, pose), cx, cy, invD);
     top = Math.min(top, sy);
     bottom = Math.max(bottom, sy);
     left = Math.min(left, sx);
@@ -204,6 +204,12 @@ export function makeLoft(
 ) {
   const { width, height, ratio = 1 } = frame;
   const margin = EDGE + 0.5 / ratio;
+  // Where the camera looks from: the canvas's centre, or on the Log the ship's own drawing's, so
+  // each ship is seen on its own line of sight as the ghost was on a canvas of its own (Iris's
+  // twins, press-iris.md, section 0); lib/model/ships.ts shears each ship into the one camera.
+  const [cx, cy] = frame.box
+    ? [frame.box.left + frame.drawing / 2, frame.box.top + frame.box.height / 2]
+    : [width / 2, height / 2];
   // The box the model turns in place inside: its drawing's, or the canvas.
   const room = frame.box?.height ?? height;
   const middle = (frame.box?.top ?? 0) + room / 2;
@@ -215,21 +221,15 @@ export function makeLoft(
   const worldPose = (screen: Screen, s: number, invD: number): Pose => {
     const k = 1 - screen.lift * invD;
     return {
-      x: width / 2 + (screen.cx - width / 2) * k,
-      y: -(height / 2 + (screen.cy - height / 2) * k),
+      x: cx + (screen.cx - cx) * k,
+      y: -(cy + (screen.cy - cy) * k),
       z: screen.lift,
       yaw: screen.yaw,
       pitch: screen.pitch,
       s,
     };
   };
-  const registered = framed(
-    points,
-    worldPose(from, scale, 0),
-    width,
-    height,
-    0,
-  );
+  const registered = framed(points, worldPose(from, scale, 0), cx, cy, 0);
   const target = registered[settle.hold];
 
   const solve = (e: number) => {
@@ -244,13 +244,7 @@ export function makeLoft(
     const want = target * (1 + settle.grow * settle.curve(e));
     let s = scale;
     for (let i = 0; i < 4; i++) {
-      const box = framed(
-        points,
-        worldPose(screen, s, invD),
-        width,
-        height,
-        invD,
-      );
+      const box = framed(points, worldPose(screen, s, invD), cx, cy, invD);
       s *= want / box[settle.hold];
       // The ghost turns in place inside the box its canvas lies on: never taller than the canvas
       // less a margin on each side, so the outline's ink covers no edge row (0.9% of its length at
@@ -285,8 +279,8 @@ export function makeLoft(
           from.cy - crew.focus[1] * scale,
         ];
         return {
-          x: width / 2 + (fx - width / 2) * k - r[0],
-          y: -(height / 2 + (fy - height / 2) * k) - r[1],
+          x: cx + (fx - cx) * k - r[0],
+          y: -(cy + (fy - cy) * k) - r[1],
           z,
           yaw,
           pitch,
@@ -298,8 +292,7 @@ export function makeLoft(
   const crewScale = (e: number) => {
     let s = scale;
     for (let i = 0; i < 4 && crewAt; i++) {
-      s *=
-        target / framed(points, crewAt(e, s), width, height, e / lens).height;
+      s *= target / framed(points, crewAt(e, s), cx, cy, e / lens).height;
     }
     return s;
   };
@@ -343,10 +336,12 @@ export function makeLoft(
      * left: the frame stage.ts draws, without reading the GPU. */
     screen: (points: readonly Vec3[], e: number) => {
       const { pose, invD } = at(e);
-      return points.map((p) => project(place(p, pose), width, height, invD));
+      return points.map((p) => project(place(p, pose), cx, cy, invD));
     },
     /** The move's length in ms. */
     duration: crew ? CREW_DURATION : settle.duration,
+    /** Where the camera looks from, CSS px from the canvas's top left. */
+    centre: [cx, cy] as const,
     /** The scale of the drawing: what the shadow's texels follow. */
     scale,
     /** The camera's nearest distance D (1/D peaks at 1/lens): the depth range must stay in

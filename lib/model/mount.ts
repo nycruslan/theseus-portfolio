@@ -432,12 +432,16 @@ function start(
     // = 71.333 reads back 71.328 at 390, over the 1.5 cap: B5.23).
     const css = (n: number) =>
       ghost || crew ? Math.ceil((n / ratio) * 64) / 64 : n / ratio;
-    // On the Log each ship registers on its own drawing in the canvas, and turns inside it.
+    // On the Log each ship registers on its own drawing in the canvas, and turns inside it. Chromium
+    // composites a canvas on whole device pixels, and a ship lies where it would have put a canvas
+    // of its own on that drawing, so frame 1 registers as the ghost's own canvas did: drawn at its
+    // drawing's fractional place, the ghost on /log/13 read 1.12 px off its 2D at 1440 (Y12).
     const g = sheet.drawing.getBoundingClientRect();
     const t = theseusDrawing?.getBoundingClientRect();
+    const device = (n: number) => Math.round(n * devicePixelRatio);
     const within = (r: DOMRect) => ({
-      left: r.left - p.left,
-      top: r.top - p.top,
+      left: (device(r.left) - device(p.left)) / devicePixelRatio,
+      top: (device(r.top) - device(p.top)) / devicePixelRatio,
       height: r.height,
     });
     return {

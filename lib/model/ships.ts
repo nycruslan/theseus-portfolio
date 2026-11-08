@@ -16,6 +16,7 @@ import {
   Color,
   DirectionalLight,
   DoubleSide,
+  Euler,
   FrontSide,
   Group,
   HemisphereLight,
@@ -317,6 +318,8 @@ type Path = {
   /** Each ship's turn and scale; the roll's axis and sign. */
   turns: [Quaternion, Quaternion];
   scales: [number, number];
+  /** Each ship's shear (`place`): the flight goes from the Theseus's to the ghost's. */
+  shears: [[number, number], [number, number]];
   axis: Vector3;
   roll: number;
   /** The seat's edges in the model's frame: the ghost's own seams around it. */
@@ -514,12 +517,37 @@ export function createShips(
     }
   };
 
-  const place = (group: Group, pose: Pose) => {
-    group.position.set(pose.x, pose.y, pose.z);
-    group.rotation.set(rad(pose.pitch), rad(pose.yaw), 0, "YXZ");
-    group.scale.setScalar(pose.s);
-    group.updateMatrixWorld();
+  /**
+   * Each ship's pose without its shear, and the shear: the camera looks from the canvas's centre,
+   * but each ship is seen from its own drawing's (makeLoft's centre), as the ghost was on a canvas
+   * of its own, so the twins match (Iris, section 0). That view is the one camera's with the ship's
+   * points moved by x += a z and y += b z, an affine shear that is 0 at frame 1.
+   */
+  const bare = { theseus: new Matrix4(), ghost: new Matrix4() };
+  const shears = {
+    theseus: [0, 0] as [number, number],
+    ghost: [0, 0] as [number, number],
   };
+  const shear = new Matrix4();
+  const euler = new Euler();
+  const place = (group: Group, pose: Pose, loft: Loft, ship: Look) => {
+    const [cx, cy] = loft.centre;
+    const [a, b] = [-(cx - width / 2) * invD, (cy - height / 2) * invD];
+    shears[ship] = [a, b];
+    bare[ship].compose(
+      work.c.set(pose.x, pose.y, pose.z),
+      work.q.setFromEuler(euler.set(rad(pose.pitch), rad(pose.yaw), 0, "YXZ")),
+      work.scale.setScalar(pose.s),
+    );
+    shear.set(1, 0, a, 0, 0, 1, b, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    group.matrixAutoUpdate = false;
+    group.matrix.multiplyMatrices(shear, bare[ship]);
+    group.updateMatrixWorld(true);
+  };
+
+  /** A point moved by a shear, in place. */
+  const sheared = (p: Vector3, [a, b]: readonly [number, number]) =>
+    p.set(p.x + a * p.z, p.y + b * p.z, p.z);
 
   /** Sets the camera for eased progress e, as the sheet's (lib/model/stage.ts, `project`). */
   const project = (loft: Loft, e: number) => {
@@ -620,7 +648,16 @@ export function createShips(
     const s = at.scales[0] + (at.scales[1] - at.scales[0]) * flight.carry;
     m.compose(c, q, scale.setScalar(s));
     undo.makeTranslation(-at.centre.x, -at.centre.y, -at.centre.z);
-    return shift.multiplyMatrices(m, undo);
+    // Seen from the Theseus's line of sight at lift-off and the ghost's at touchdown.
+    const [a, b] = shearAt(at, flight.carry);
+    shear.set(1, 0, a, 0, 0, 1, b, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    return shift.multiplyMatrices(m, undo).premultiply(shear);
+  };
+
+  /** The flight's shear at carry s, between the two ships'. */
+  const shearAt = (at: Path, s: number): [number, number] => {
+    const [[a0, b0], [a1, b1]] = at.shears;
+    return [a0 + (a1 - a0) * s, b0 + (b1 - b0) * s];
   };
 
   /** Solves the flight once the hulls are settled (Iris, section 4, "Arc"). */
@@ -632,10 +669,11 @@ export function createShips(
     const [pT, pG] = [new Vector3(), new Vector3()];
     const [qT, qG] = [new Quaternion(), new Quaternion()];
     const [sT, sG] = [new Vector3(), new Vector3()];
-    theseus.matrixWorld.decompose(pT, qT, sT);
-    ghost.matrixWorld.decompose(pG, qG, sG);
-    const from = centre.clone().applyMatrix4(theseus.matrixWorld);
-    const to = centre.clone().applyMatrix4(ghost.matrixWorld);
+    // The path runs in the ships' world before their shears: the flight shears itself.
+    bare.theseus.decompose(pT, qT, sT);
+    bare.ghost.decompose(pG, qG, sG);
+    const from = centre.clone().applyMatrix4(bare.theseus);
+    const to = centre.clone().applyMatrix4(bare.ghost);
     const normal = local.clone().applyQuaternion(qT).normalize();
     const lift = byWidth(LIFT_PX, plan.drawing);
     const top = from.clone().addScaledVector(normal, lift);
@@ -661,6 +699,7 @@ export function createShips(
       lift,
       turns: [qT, qG],
       scales: [sT.x, sG.x],
+      shears: [[...shears.theseus], [...shears.ghost]],
       axis,
       roll,
       edges,
@@ -694,18 +733,22 @@ export function createShips(
       }
       return { l, r, t };
     };
-    const seated = extent(-1);
-    const length = seated.r - seated.l;
-    const y0 = screen(top)[1] ?? 0;
+    // The plank's seated length on each ship: its growth is measured against their blend.
+    const [start, end] = [extent(-1), extent(1)];
+    const seated = (s: number) =>
+      start.r - start.l + (end.r - end.l - (start.r - start.l)) * s;
+    const y0 = screen(sheared(top.clone(), at.shears[0]))[1] ?? 0;
     const rise = byWidth(RISE_PX, plan.drawing);
     /** Whether the carry, as it stands, keeps every bound. */
     const fits = () => {
       for (let i = 0; i <= 24; i++) {
         const s = i / 24;
         const { l, r, t } = extent(s);
-        const [, y = 0] = screen(bezier(at.bezier, s, p));
+        const [, y = 0] = screen(
+          sheared(bezier(at.bezier, s, p), shearAt(at, s)),
+        );
         if (
-          r - l > PRESS_GROW * length ||
+          r - l > PRESS_GROW * seated(s) ||
           l < 1 ||
           r > width - 1 ||
           t < 1 ||
@@ -734,13 +777,23 @@ export function createShips(
       b1.z = top.z + z;
       b2.z = to.z + normal.z * lift + z;
     };
-    // The bow: a plank lifted z toward the camera grows by 1 / (1 − z / D).
-    largest(invD > 0 ? 0.25 / invD : 0, bowed);
-    // The sway, SWAY of the drawing on screen at mid-carry, where the bow scales it by 1 / (1 − z / D).
-    const sway = SWAY * plan.drawing * (1 - bezier(at.bezier, 0.5, p).z * invD);
-    largest(sway, (v) => {
+    // The sway first, bounded by the canvas alone: SWAY of the drawing on screen at mid-carry,
+    // where the plank's depth scales it by 1 / (1 − z / D) and the bow by about PRESS_GROW. Solved
+    // after the bow, which spends the growth to its last hundredth of a pixel, the sway found none
+    // left: moving a plank whose ends stand at different depths changes its length on screen.
+    const middle = () => {
+      const { l, r } = extent(0.5);
+      return (l + r) / 2;
+    };
+    const straight = middle();
+    at.sway = 1;
+    const perPx = middle() - straight;
+    at.sway = 0;
+    largest(perPx > 0 ? (SWAY * plan.drawing) / perPx / PRESS_GROW : 0, (v) => {
       at.sway = v;
     });
+    // The bow: a plank lifted z toward the camera grows by 1 / (1 − z / D).
+    largest(invD > 0 ? 0.25 / invD : 0, bowed);
     largest(4 * rise, (v) => {
       b1.y = top.y + v;
     });
@@ -954,8 +1007,8 @@ export function createShips(
       }
       // The flight is solved on the settled hulls, under the settled camera.
       project(lofts.ghost, 1);
-      place(theseus, lofts.theseus.at(1).pose);
-      place(ghost, lofts.ghost.at(1).pose);
+      place(theseus, lofts.theseus.at(1).pose, lofts.theseus, "theseus");
+      place(ghost, lofts.ghost.at(1).pose, lofts.ghost, "ghost");
       path = solve(plan);
       rest = null;
       now = null;
@@ -993,7 +1046,9 @@ export function createShips(
     flown() {
       const flight = now?.flier;
       if (!path || !flight) return null;
-      const [x0 = 0, y0 = 0] = screen(path.from);
+      const [x0 = 0, y0 = 0] = screen(
+        sheared(work.a.copy(path.from), path.shears[0]),
+      );
       const at = work.a
         .copy(path.centre)
         .applyMatrix4(flierMatrix(path, flight));
@@ -1028,8 +1083,8 @@ export function createShips(
     /** Draws one frame at eased progress e of the open move; a press draws at e = 1. */
     draw(e: number, lofts: Lofts) {
       project(lofts.ghost, e);
-      place(theseus, lofts.theseus.at(e).pose);
-      place(ghost, lofts.ghost.at(e).pose);
+      place(theseus, lofts.theseus.at(e).pose, lofts.theseus, "theseus");
+      place(ghost, lofts.ghost.at(e).pose, lofts.ghost, "ghost");
       const lit = Math.min(1, e * 1.25);
       card.uniforms.uLit.value = lit;
       near.uniforms.uLit.value = lit * GHOST_LIT;
