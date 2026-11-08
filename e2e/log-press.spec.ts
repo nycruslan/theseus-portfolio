@@ -30,7 +30,6 @@ import {
   pixel,
 } from "./pixels";
 import {
-  MERGED,
   NEWEST_STEP,
   neighbours,
   PLANK_IDS,
@@ -40,6 +39,24 @@ import {
   stepIndex,
 } from "./retros";
 import { type ModelOptions, type ModelRun, openModel } from "./webgl";
+import {
+  changed,
+  framesOver,
+  goalOf,
+  LIVE,
+  landedOn,
+  linkAt,
+  type PressRead,
+  readPress,
+  readSafe,
+  readWords,
+  sameLiveNode,
+  sameSize,
+  shoot,
+  sum,
+  THESEUS,
+  tagDocument,
+} from "./yard";
 
 // Sprint 55, Yc: the press in 3D (.crew/sprint/55/contract.md, Y12 to Y18). On /log and /log/n, in
 // Full and Calm, the Theseus (`[data-theseus]`) joins the ghost (`[data-ghost]`) in the one canvas
@@ -55,9 +72,7 @@ import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 // before a press, R = a fresh Calm load of the step pressed to, D = where B and R differ: the change
 // a press must make, and Calm must make nowhere else. Every GPU number is SwiftShader's floor.
 
-const THESEUS = "[data-theseus]";
 const GHOST_HULL = DRAWING;
-const LIVE = "[data-yard-live]";
 const CANVAS_SEL = "[data-model] canvas";
 /** The site's fade, ms: Calm's press (the contract, "The outcome"). */
 const FADE = 240;
@@ -100,85 +115,11 @@ const PHONE: Size = { width: 390, height: 844 };
 // ---------------------------------------------------------------------------------------------
 // Readers
 
-/** What the press loop reads each step, in one round trip; doc is null on a new document. */
-function readPress(page: Page) {
-  return page.evaluate((live) => {
-    const w = window as Window & {
-      __probeDoc?: number;
-      __gl?: { frames: unknown[] };
-    };
-    const model = document.querySelector("[data-model]");
-    return {
-      doc: w.__probeDoc ?? null,
-      press: model?.getAttribute("data-press") ?? null,
-      kind: model?.getAttribute("data-press-kind") ?? null,
-      state: model?.getAttribute("data-state") ?? null,
-      path: location.pathname,
-      frames: w.__gl?.frames.length ?? 0,
-      t: performance.now(),
-      live: document.querySelector(live)?.textContent ?? null,
-    };
-  }, LIVE);
-}
-type PressRead = Awaited<ReturnType<typeof readPress>>;
-
-/** readPress, retried while a navigation tears the page's context down mid-read. */
-async function readSafe(page: Page): Promise<PressRead> {
-  for (let i = 0; ; i++) {
-    try {
-      return await readPress(page);
-    } catch (error) {
-      if (i >= 50) throw error;
-      await pause(200);
-    }
-  }
-}
-
-/** Tags this document and its live region, so a navigation or a swapped-out region shows. */
-function tagDocument(page: Page) {
-  return page.evaluate((live) => {
-    (window as Window & { __probeDoc?: number }).__probeDoc = 1;
-    const region = document.querySelector(live) as
-      | (Element & { __probeLive?: number })
-      | null;
-    if (region) region.__probeLive = 1;
-  }, LIVE);
-}
-
-/** Whether the live region now is the node tagged before the presses. */
-function sameLiveNode(page: Page) {
-  return page.evaluate(
-    (live) =>
-      (
-        document.querySelector(live) as
-          | (Element & { __probeLive?: number })
-          | null
-      )?.__probeLive === 1,
-    LIVE,
-  );
-}
-
 /** The canvas's box, grown to whole CSS px. */
 async function canvasClip(page: Page) {
   const b = await canvasBox(page);
   expect(b, `${CANVAS_SEL}'s box`).not.toBeNull();
   return whole(b as Box);
-}
-
-/** The canvas alone over `clip`, with the pointer kept off it. */
-async function shoot(page: Page, clip: Box) {
-  return (await canvasAlone(page, clip)).image;
-}
-
-/** A shown step link's centre. */
-function linkAt(page: Page, kind: string) {
-  return page.evaluate((css) => {
-    const a = [...document.querySelectorAll(css)].find(
-      (el) => el.getClientRects().length > 0,
-    );
-    const r = a?.getBoundingClientRect();
-    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
-  }, `a[data-step="${kind}"]`);
 }
 
 /** A press of a step link with the mouse at its centre, as a visitor clicks it. */
@@ -230,23 +171,6 @@ function setHidden(page: Page, hidden: boolean) {
 
 // ---------------------------------------------------------------------------------------------
 // Pixels
-
-/** Where two images of one size differ by more than LEVELS in any channel: 1, else 0. */
-function changed(a: Image, b: Image) {
-  const n = a.width * a.height;
-  const m = new Uint8Array(n);
-  for (let i = 0; i < n; i++)
-    for (let c = 0; c < 4; c++)
-      if (
-        Math.abs((a.data[i * 4 + c] ?? 0) - (b.data[i * 4 + c] ?? 0)) > LEVELS
-      ) {
-        m[i] = 1;
-        break;
-      }
-  return m;
-}
-
-const sum = (m: Uint8Array) => m.reduce((s, v) => s + v, 0);
 
 /** A mask grown (or, with `erode`, shrunk) by r px, a square at a time: max (min) by rows, then columns. */
 function morph(m: Uint8Array, w: number, h: number, r: number, erode = false) {
@@ -300,9 +224,6 @@ function between(shot: Image, b: Image, r: Image) {
   }
   return strong ? mid / strong : 0;
 }
-
-const sameSize = (a: Image, b: Image) =>
-  a.width === b.width && a.height === b.height;
 
 // ---------------------------------------------------------------------------------------------
 // Pages
@@ -449,21 +370,6 @@ async function pressOn(
 /** The flight's story for a note: what it saw and how long it took. */
 const told = (f: Flight) =>
   `same document ${f.sameDocument}, started ${f.started}, landed ${f.landed} after ${f.took.toFixed(0)} ms of clock, seats ${JSON.stringify(f.seats)}, kinds ${JSON.stringify(f.kinds)}, ${f.frames.length} frames, ${f.shots.length} shots`;
-
-/** Frames drawn while the clock runs `ms`, with `during` done first. */
-async function framesOver(
-  run: ModelRun,
-  ms: number,
-  during?: () => Promise<unknown>,
-) {
-  const before = (await run.frames()).length;
-  if (during) await during();
-  // The page's own observers (intersection, visibility) answer in real time, then the clock runs.
-  await pause(200);
-  await run.step(ms);
-  await pause(200);
-  return (await run.frames()).length - before;
-}
 
 // ---------------------------------------------------------------------------------------------
 // Y12
@@ -1164,94 +1070,6 @@ test("Y15 Any input lands the plank, at 1440 x 900 in Full: during a flight from
 
 // ---------------------------------------------------------------------------------------------
 // Y16 and Y17: the step's words
-
-/**
- * The step's words and drawings as a document has them: the record, the captions, the count, the
- * question, the step links, the table's open row, the title, and both drawings' planks and numbers.
- * Runs on the page's own document, or on `html` parsed in it (the server's).
- */
-function readWords(page: Page, html?: string) {
-  return page.evaluate(
-    ({ html, record, theseus, ghost }) => {
-      const doc = html
-        ? new DOMParser().parseFromString(html, "text/html")
-        : document;
-      const squash = (el: Element | null | undefined) =>
-        (el?.textContent ?? "").replace(/\s+/g, " ").trim();
-      const nameOf = (a: Element) => {
-        const label = a.getAttribute("aria-label");
-        if (label) return label.replace(/\s+/g, " ").trim();
-        const copy = a.cloneNode(true) as Element;
-        for (const hidden of copy.querySelectorAll('[aria-hidden="true"]'))
-          hidden.remove();
-        return squash(copy);
-      };
-      const section = doc.querySelector(record);
-      const planks = (css: string) =>
-        [...doc.querySelectorAll(`${css} path[data-plank]`)].map((p) =>
-          [
-            p.getAttribute("data-plank"),
-            p.getAttribute("data-sprint"),
-            p.getAttribute("class"),
-            p.hasAttribute("data-current") ? "current" : "",
-          ].join(" "),
-        );
-      const numbers = (css: string) =>
-        [...doc.querySelectorAll(`${css} .plan-plank`)].map(
-          (s) =>
-            `${squash(s)}${s.classList.contains("plan-current") ? " current" : ""}`,
-        );
-      return {
-        title: doc.title,
-        record: {
-          count: doc.querySelectorAll(record).length,
-          h2: squash(section?.querySelector("h2")),
-          text: squash(section),
-          links: [...(section?.querySelectorAll("a") ?? [])].map(
-            (a) => `${a.getAttribute("href")} ${nameOf(a)}`,
-          ),
-        },
-        ghostCaption: squash(doc.querySelector("[data-ghost-caption]")),
-        count: squash(doc.querySelector("[data-ghost-count]")),
-        theseusCaption: squash(doc.querySelector("[data-theseus-caption]")),
-        question: [...doc.querySelectorAll("p[data-yard-question]")].map(
-          squash,
-        ),
-        steps: [...doc.querySelectorAll("a[data-step]")].map(
-          (a) =>
-            `${a.getAttribute("data-step")} ${a.getAttribute("href")} ${nameOf(a)}`,
-        ),
-        open: [
-          ...doc.querySelectorAll(
-            'section[aria-labelledby="every-revision"] a[aria-current]',
-          ),
-        ].map(
-          (a) => `${a.getAttribute("href")} ${a.getAttribute("aria-current")}`,
-        ),
-        theseus: { planks: planks(theseus), numbers: numbers(theseus) },
-        ghost: { planks: planks(ghost), numbers: numbers(ghost) },
-      };
-    },
-    { html, record: RECORD, theseus: THESEUS, ghost: GHOST_HULL },
-  );
-}
-
-/** Waits in real time for a press to land on `target`: the URL, data-press gone, the region written. */
-async function landedOn(page: Page, target: string, timeout = 20_000) {
-  const end = Date.now() + timeout;
-  let now = await readSafe(page);
-  while (Date.now() < end) {
-    if (now.doc === null) return now;
-    if (now.path === target && !now.press && (now.live ?? "") !== "")
-      return now;
-    await pause(50);
-    now = await readSafe(page);
-  }
-  return now;
-}
-
-const goalOf = (n: number) =>
-  MERGED.find((e) => e.sprint === n)?.goal ?? `(no goal for ${n})`;
 
 test("Y16 The step's page, from the server, without a navigation: in Calm at 1440, presses from /log/13 to 14 and back, then from /log/22 to 23 (the question appears) and 24 (it goes), each keep the document and history.length and set location.pathname to the step's; the record, both captions, the count, the question, the step links, the table's open row, the title and both drawings' planks and numbers equal the server's HTML for that step; with Off stored, Next is a document navigation that grows history; when the step's fetch fails, Next navigates to it; in Full on the clock at 390 x 844 and 1440 x 900, Next from /log/22 to 23, its frames played from 700 ms after the click, shifts no layout without recent input from the press to 1 s after it lands (Iris's review, must 1)", async ({
   browser,
