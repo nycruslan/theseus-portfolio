@@ -15,7 +15,13 @@ import {
   PLANKS,
   WIDE,
 } from "@/lib/hull-layouts";
-import { DURATION, ease, GHOST_OUTLINE_PX, OUTLINE_PX } from "./calls";
+import {
+  DURATION,
+  ease,
+  GHOST_OUTLINE_PX,
+  OUTLINE_PX,
+  PACE_FILL,
+} from "./calls";
 import {
   type CrewState,
   crewMove,
@@ -1087,7 +1093,9 @@ function start(
     back: boolean;
     to: Step;
     begin: number;
+    /** The press's own length in ms, its beats' clock; `span`, the ms it plays in (a riffle's less). */
     length: number;
+    span: number;
     /** The beat drawn last, in ms into the press played forward. */
     at: number;
     done: () => void;
@@ -1188,9 +1196,14 @@ function start(
     });
   }
 
-  /** Any input lands a moving plank at once (the contract; Iris, section 6). */
+  /**
+   * Any input lands a moving plank at once (the contract; Iris, section 6), but a held key's
+   * repeats: they are the press that started it, still down, and a held ← or → riffles
+   * (.crew/sprint/56/contract.md), its repeats every 30 ms or so, which would cut each step short.
+   */
   const pressInput = (event: Event) => {
     if (event.type === "scroll" && (!pressing?.scrolls || quiet > 0)) return;
+    if (event instanceof KeyboardEvent && event.repeat) return;
     finish();
   };
   const pressListen = (active: boolean) => {
@@ -1216,6 +1229,29 @@ function start(
       .map((label) => label.span);
 
   /**
+   * The numbers a step back brought home, copies in the drawing until the step's own drawing
+   * replaces it; a riffle back with its pages late leaves one a step.
+   */
+  const clones = new Set<HTMLElement>();
+
+  /**
+   * Torn down before the step's page came (Lens's nit on Yc): the drawings are the page again, the
+   * step before's, so every number the presses hid or faded is back and their copies go. Their
+   * places are the drawing's own once `unpick` clears the offsets.
+   */
+  const unhide = () => {
+    for (const clone of clones) clone.remove();
+    clones.clear();
+    for (const { span } of [
+      ...(ghost?.labels ?? []),
+      ...(theseus?.labels ?? []),
+    ]) {
+      span.style.removeProperty("visibility");
+      span.style.removeProperty("opacity");
+    }
+  };
+
+  /**
    * The press's numbers: every one at its seat hidden, but on steps 24 to 51 the card plank's that
    * leaves, which rides it and fades (Iris, section 1). Played back, that number is the plank's
    * coming home, which the drawing doesn't hold yet: a copy of the seat's span, renumbered.
@@ -1232,6 +1268,7 @@ function start(
     if (back) {
       span.textContent = String(holder);
       own.after(span);
+      clones.add(span);
     }
     span.style.visibility = "";
     return {
@@ -1317,7 +1354,7 @@ function start(
     p.scrolls = true;
     if (quiet > 0) quiet--;
     const t = Math.max(0, now - p.begin);
-    if (t >= p.length) return finish();
+    if (t >= p.span) return finish();
     // The loft's quality rule: three frames over 22 ms step the ratio down a rung; at 1, six over
     // 33.4 ms land the plank, the frame then still.
     const interval = now - last;
@@ -1335,18 +1372,23 @@ function start(
       finish(false);
       return rest("still");
     }
-    pressFrame(p.back ? p.length - t : t);
+    // A riffle's step plays the press's beats faster: the same frames, sampled sparser.
+    const ms = (t * p.length) / p.span;
+    pressFrame(p.back ? p.length - ms : ms);
     raf = requestAnimationFrame(pressTick);
   };
 
   /**
    * The controller's press (lib/model/yard.ts): `go` moves the hulls from one step to the next,
-   * `land` lands a moving plank at once.
+   * `land` lands a moving plank at once. With `pace`, a riffle's step (.crew/sprint/56/): the
+   * press's beats play in PACE_FILL of it, never slower than the press itself, so Calm's 240 ms
+   * fade keeps its length inside 400 and Full's flight shortens with the gap, down to 64 ms at
+   * 80; its landed frame is the step's, as a press's is.
    */
   const makePress: MakePress = (list) => {
     steps = list;
     return {
-      go(from, to) {
+      go(from: number, to: number, pace?: number) {
         finish();
         const target = stepAt(to);
         if (!alive) return Promise.resolve();
@@ -1392,6 +1434,10 @@ function start(
         host.dataset.press = plan.seat;
         host.dataset.pressKind = plan.kind === "fade" ? "fade" : "fly";
         const length = ships.length(plan);
+        const span =
+          pace === undefined
+            ? length
+            : Math.max(1, Math.min(length, Math.round(pace * PACE_FILL)));
         return new Promise<void>((done) => {
           const now = performance.now();
           pressing = {
@@ -1400,6 +1446,7 @@ function start(
             to: target,
             begin: now,
             length,
+            span,
             at: back ? length : 0,
             done,
             rider: null,
@@ -1439,6 +1486,8 @@ function start(
     }
     numbers?.clear();
     theseusNumbers?.clear();
+    // The copies left with the drawing they were in.
+    clones.clear();
     wide = g;
     narrow = g;
     theseusDrawing = t;
@@ -1490,6 +1539,7 @@ function start(
     // plank lands, unseen, and `go` resolves.
     unyard?.();
     finish(false);
+    unhide();
     swaps?.disconnect();
     reworded?.disconnect();
     alive = false;
