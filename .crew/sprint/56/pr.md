@@ -16,7 +16,7 @@ On `/log/n` in Full and Calm, holding a step link (mouse, touch, or ← and →)
 - The whole e2e suite, locally on 5956bb8: **384 passed**, 0 failed, 0 flaky (37.7 min on one machine).
 - Y20 to Y24 (`e2e/log-riffle.spec.ts`) were red on 3f578f9 for the contract's reasons and pass now.
 - **Y24, reported and not gated:** INP 1,000 ms at 4x CPU on SwiftShader in real time (the mouse hold's pointerdown to pointerup; keydowns 272 to 528 ms). Pixel's profile puts the 3D chunk's script at about 14 ms a step at 1x; the rest is software GL. Three further cuts are follow-ups (decision 11).
-- **The 3D chunk:** 167,238 B gzip -9, +2,682 B on Yc's 164,556, 82,762 B under the cap. The loader adds 0 B (B2.10 and B5.10 unedited).
+- **The 3D chunk:** 167,238 B gzip -9, +2,611 B on Yc's merged 164,627 (Y24's baseline), 82,762 B under the cap. The loader adds 0 B (B2.10 and B5.10 unedited).
 - **While riffling** (Pixel): at most 6 draws, 26,697 triangles at 1440 and 10,397 at 390; 0 frames at rest after a stop or release; the settled canvas 0 px off a cold load.
 - **Iris: `Verdict: ship`, 8.3/10, no musts open** (her one must, a mouse press leaving the focus ring, is fixed in de2ebc7). axe 0 serious or critical; 320 px reflow clean; no layout shift without input in any riffle.
 

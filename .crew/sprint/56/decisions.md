@@ -59,3 +59,10 @@
     SwiftShader, where the GL work is software; the 3D chunk's script is about 14 ms a step at 1x.
     Pixel's three further cuts (the first press's arc, the press-start layout read, the page parse)
     are follow-ups for the next sprint on the yard.
+12. **One fix round after Lens's ship on 7b2d154**, because CI's e2e shard 2 of 4 hit its 20-minute
+    cap 3 s after its last test passed (96 of 96 green). The shards split by test count, so the heavy
+    Log specs all fall in shard 2 (log-model 688 s, log-riffle 326 s, log-press 296 s of test time on
+    2 workers). Probe cuts log-riffle's own time without dropping a clause. Since the push re-reviews
+    anyway, Forge takes Lens's two real nits with it (a stale step link after a late page; a mixed page
+    on Off mid-riffle). Nit 3 is accepted: Home or End one step from its end flies one press, which
+    is one plank. More shards, or a split by time, is `ci.yml`'s, an owner path, proposed in the retro.
