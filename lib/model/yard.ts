@@ -256,7 +256,11 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
   let target = at;
   /** The latest step, until it has landed with its page. */
   let flight: Flight | null = null;
-  /** A riffle's last step, landed in passing, while the riffle runs on. */
+  /**
+   * A riffle's last step landed in passing with its page, whose drawings and count are up: kept
+   * until a step settles whole, so a riffle that ends, or a teardown, before the next step's page
+   * has come puts this step up whole rather than leave a page of two steps (Lens's nit on #122).
+   */
   let passed: Flight | null = null;
   /** A press landed while still held: its URL and name wait to see if it riffles. */
   let pending: { flown: Flight; fresh: Document } | null = null;
@@ -359,6 +363,7 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
 
   /** A step landed for good, with its page: its words if a riffle held them back, its name. */
   const rest = (flown: Flight, fresh: Document) => {
+    passed = null;
     if (!flown.worded) {
       flown.worded = true;
       words(fresh);
@@ -378,13 +383,14 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
   /** The landed step's drawings; then, unless a newer step is on, its count or its words. */
   const settle = (flown: Flight, fresh: Document) => {
     swap(doc, fresh, DRAWINGS);
+    // Overtaken or not, the page's drawings are this step's now.
+    if (flown.passing) passed = flown;
     if (flight !== flown) return;
     flight = null;
     if (flown.passing) {
       // The count line follows the hulls too: from 1 to 22 and from 24 on it keeps one height at
       // every width (Iris measured it), and a riffle never passes 23, so it moves nothing.
       swap(doc, fresh, [COUNT]);
-      passed = flown;
       return;
     }
     rest(flown, fresh);
@@ -470,7 +476,6 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     const before = flight;
     const from = target;
     target = to;
-    passed = null;
     pending = null;
     if (live) live.textContent = "";
     const flown: Flight = {
@@ -661,7 +666,12 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     if (x < left || x > right || y < top || y > bottom) release();
   };
 
-  // Enter, a tap, and any click the controller didn't take at its pointerdown: one step, as Yc.
+  /**
+   * Enter, a tap, and any click the controller didn't take at its pointerdown: one step, from the
+   * step the latest press goes to, as the mouse and the keys step. Never by the link's href: a
+   * riffle released before its step's page has come leaves the record it started from up, its
+   * links pointing near the start (Lens's nit on #122). The href is the page's without the model.
+   */
   const click = (event: MouseEvent) => {
     if (claimed && event.detail > 0) {
       claimed = false;
@@ -677,10 +687,11 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
       return;
     }
     const link = event.target.closest<HTMLAnchorElement>(STEP_LINK);
-    const sprint = link ? stepOf(link.pathname) : undefined;
-    const to = sprint === undefined ? -1 : steps.indexOf(sprint);
-    if (to < 0) return;
+    if (!link) return;
     event.preventDefault();
+    const to = target + (link.dataset.step === "next" ? 1 : -1);
+    // Past the first or the newest step there is nothing to step to.
+    if (steps[to] === undefined) return;
     release();
     step(to);
   };
@@ -780,7 +791,8 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     down = null;
     drop();
     // Torn down mid-flight or mid-riffle (Off pressed, or the page hidden): the page is the
-    // step's at once, words and all, if its page has come, and stays the step before if not.
+    // step's at once, words and all, if its page has come. If not, it is the riffle's last step
+    // whose drawings are up, whole, or else stays the step before.
     if (alive) {
       const up = flight;
       const stood = passed;
@@ -789,7 +801,7 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
       if (up?.fresh) {
         up.passing = false;
         settle(up, up.fresh);
-      } else if (!up && stood?.fresh) {
+      } else if (stood?.fresh) {
         rest(stood, stood.fresh);
       } else if (ready) {
         announce(ready.flown, ready.fresh);
