@@ -656,13 +656,14 @@ export async function press(page: Page, label: string) {
   await page.mouse.click(at?.x ?? 0, at?.y ?? 0);
 }
 
-/** A point on a plank, by hover: the canvas's centre, else the first along its middle row. */
+/**
+ * A point on a plank, by hover: the ghost's centre, else the first along its middle row. Since Yc
+ * (sprint 55) the canvas holds the Theseus too and its middle row is the caption between the
+ * hulls, so the walk is [data-ghost]'s box, where the ghost's planks lie.
+ */
 export async function aPlank(run: ModelRun) {
-  const c = await run.page.evaluate((canvas) => {
-    const r = document.querySelector(canvas)?.getBoundingClientRect();
-    return r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null;
-  }, CANVAS);
-  expect(c, "the canvas's box").not.toBeNull();
+  const c = await ghostBox(run.page);
+  expect(c, "[data-ghost]'s box").not.toBeNull();
   const b = c as Box;
   for (const dy of [0, 4, -4, 8, -8])
     for (let x = b.x + b.width / 2; x < b.x + b.width - 2; x += 6) {
