@@ -42,6 +42,8 @@
      (`riffle-iris.md`, section 4). Y7 stays unedited, and holds the build to her placement.
    - Not kept reds either: Y13, Y14, Y15 and Y17 went red because the bare hold landed every press
      on its release, so a quick click never flew. Iris's rule is that a release lands the plank
-     only in a riffle, and a quick press plays Yc's flight. Probe reruns them on a corrected mutant
-     and names any red that remains.
+     only in a riffle, and a quick press plays Yc's flight. On a corrected mutant (that rule, and
+     the link on its own row under the head, as Iris places it) log-press, log-yard, log-control,
+     log-record, log-model, log-pick and log-riffle ran 64 of 64 green, Y7 and the two rewrites
+     among them: no further kept red.
    - The words are one constant, `YARD_WORDS.handOff` in `e2e/log.ts`, which Y22 reads too.
