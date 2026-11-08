@@ -23,3 +23,25 @@
    accepted, the touch one with a reading of Y20: under touch, "steps once at once" means at a tap's
    release or once the finger has held still 400 ms, never at pointerdown, since a scroll that
    starts on a step link must not step the yard.
+7. **The contract mutant's kept reds, named before the build** (Probe). The mutant: on a scratch
+   build of 3f578f9, the hand-off link as server HTML on `/log` (in `.log-start`, after Start
+   again) and in the newest record, and a bare hold in `yard.ts` (a pointer or key hold riffling
+   at a ratio pace with the chapter stops, Escape, Home and End, a cancelled contextmenu, and touch
+   per Iris's addition 1). The kept suite that could see it (every `e2e/log*.spec.ts`, keel-ways,
+   keyboard, one-site, plain-words, read, sheet, crew-model-off, invariants, content, crew-bar and
+   not-found: 219 tests) found two reds by design, both the new link, rewritten for Lens to accept:
+   - **B5.25** (`e2e/log-control.spec.ts`), `/log`'s Tab order: the hand-off is a new stop right
+     after Start again, before the key's `/crew#keel` (Iris's placement). Rewrite: the expected
+     order gains `/crew` there, and the title says so. No stop is dropped.
+   - **B5.6** (`e2e/log-record.spec.ts`), each record's links: on the newest record the list
+     gains `/crew`, named "Watch the crew build the next one on Crew". Rewrite: where there is no
+     Next, the wanted links hold the hand-off, with its count of 1 and its name checked as the
+     record's other links are.
+   - Not a kept red: Y7's overflow on the newest `/log/55` at 320, 390 and 1024 (16 to 48 px) came
+     from the mutant putting the link in Next's slot, which Iris rules out because it doesn't fit
+     (`riffle-iris.md`, section 4). Y7 stays unedited, and holds the build to her placement.
+   - Not kept reds either: Y13, Y14, Y15 and Y17 went red because the bare hold landed every press
+     on its release, so a quick click never flew. Iris's rule is that a release lands the plank
+     only in a riffle, and a quick press plays Yc's flight. Probe reruns them on a corrected mutant
+     and names any red that remains.
+   - The words are one constant, `YARD_WORDS.handOff` in `e2e/log.ts`, which Y22 reads too.

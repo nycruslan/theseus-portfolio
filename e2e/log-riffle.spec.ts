@@ -6,7 +6,7 @@ import {
   test,
 } from "@playwright/test";
 import { canvasBox } from "./ghost";
-import { LOG, recordOf } from "./log";
+import { LOG, recordOf, YARD_WORDS } from "./log";
 import {
   type Box,
   FIRST,
@@ -976,7 +976,7 @@ test(`Y21 Keys, Full at 1440 x 900 on the clock: holding → from /log/13 (with 
 // ---------------------------------------------------------------------------------------------
 // Y22: the hand-off
 
-const HAND_OFF = "Watch the crew build the next one on Crew";
+const HAND_OFF = YARD_WORDS.handOff;
 
 /** The links named HAND_OFF in a document (the page's, or `html` parsed), their hrefs and shown. */
 function handOffs(page: Page, html?: string) {

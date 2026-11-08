@@ -176,4 +176,6 @@ export const YARD_WORDS = {
       ? `The Theseus today, after sprint ${n}`
       : `The Theseus after sprint ${n}`,
   question: "The ghost hull is whole again. Which one is the Theseus?",
+  /** Yd's hand-off, on /log and the newest record, to /crew (.crew/sprint/56/contract.md, point 6). */
+  handOff: "Watch the crew build the next one on Crew",
 };
