@@ -48,6 +48,7 @@ import { type Frame, type Loft, makeLoft } from "./loft";
 import { type Pencil, pencilMarks, readPencil } from "./pencil";
 import { bakeShadow } from "./shadow";
 import { createStage, type Palette, type Stage } from "./stage";
+import { type MakePress, startYard } from "./yard";
 
 type State = "landed" | "lofting" | "settled" | "still";
 type Rest = "settled" | "still";
@@ -203,6 +204,9 @@ function start(
   const ghost: GhostPage | undefined = ghostDrawing
     ? readGhost(ghostDrawing)
     : undefined;
+  // Until Pixel's flight is integrated (.crew/sprint/55/contract.md), a press that lands at once.
+  const instant: MakePress = () => ({ go: () => Promise.resolve(), land() {} });
+  const yard = ghost ? startYard(document, instant) : undefined;
   // /crew's detail drawings (.crew/sprint/36/contract.md, "The hull on /crew"): `.plan-wide` and
   // `.plan-narrow` too, told apart by the plan's `data-focus`. What they show changes with each
   // told answer, so it is read again whenever the drawing changes (`sync`).
@@ -898,6 +902,7 @@ function start(
   document.addEventListener("visibilitychange", shown);
 
   function stop() {
+    yard?.();
     alive = false;
     cancelAnimationFrame(raf);
     cancelAnimationFrame(crossing);
