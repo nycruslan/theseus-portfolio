@@ -178,6 +178,34 @@ export const ROLL = 6;
  */
 export const INSIDE_LIGHT = "#8c9491";
 export const INSIDE_DARK = 0.55;
+
+// The riffle (.crew/sprint/56/contract.md, settled point 2): a held press steps faster and faster,
+// a flip book riffled, the gaps easing from 400 ms to 80. Pixel's curve until Iris's call
+// (riffle-iris.md): each gap a fixed share shorter than the one before, so the riffle speeds up
+// evenly to the ear's beat, flooring after six gaps (1.3 s), so a chapter of 22 steps plays in
+// about 2.5 s with most of it at the floor.
+
+/** The first gap, the hold's own 400 ms; the floor; each gap's share of the one before. */
+export const RIFFLE_FIRST = 400;
+export const RIFFLE_FLOOR = 80;
+export const RIFFLE_RATIO = 0.75;
+
+/**
+ * The ms between a hold's step n and step n + 1, n = 0 being the press's own step: in Full 400,
+ * 300, 225, 169, 127, 95, then 80; in Calm, and under reduced motion with no mode stored, 400
+ * every gap. Whole ms, so a timer and a check's clock agree.
+ */
+export const riffleGap = (n: number, calm: boolean) =>
+  calm
+    ? RIFFLE_FIRST
+    : Math.max(RIFFLE_FLOOR, Math.round(RIFFLE_FIRST * RIFFLE_RATIO ** n));
+
+/**
+ * A riffle step's motion takes this share of its pace, at most the press's own length: the rest
+ * is a still page, the step at rest, for a frame or more before the next step lifts its plank
+ * (16 ms of 80, 80 of 400). Every frame of it is a frame of the press, sampled sparser.
+ */
+export const PACE_FILL = 0.8;
 /** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
 const PRESS_WIDTHS: readonly [number, number] = [358, 900];
 
