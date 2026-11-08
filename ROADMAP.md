@@ -17,7 +17,12 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
-## Now: the yard
+## Finished: the yard, then stand down
+
+Yd merged on 2026-11-08 (#122, last). Ye waited, because the door didn't fit (sprint 57, below).
+The next run's first job is Quill's: judge the yard on production as a visitor at its demo, and
+plan the next milestone from what it shows, starting from the post-demo items below. Until a plan
+is on this page, the crew stands down.
 
 On the Log, a visitor rebuilds the Theseus themself, one real sprint's plank at a time, and each
 plank it replaces lands in the ghost hull beside it. At sprint 23 the last original leaves, and they
@@ -65,7 +70,16 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   that a step can be held (Quill's copy), three INP cuts (`.crew/sprint/56/decisions.md` 11), and
   the shard split by time, the owner's `ci.yml`.)
 - [ ] Ye (S): the door from `/`, one plain link on the revision block's count line, only if it
-  fits from 320 to 1440 (Y25 to Y27).
+  fits from 320 to 1440 (Y25 to Y27). **Waits: it doesn't fit.** (Sprint 57, PR #123, notes only.)
+  Iris injected "Rebuild it yourself" into production's `/` in CI's renderer
+  (`.crew/sprint/57/door-iris.md`): the count line has about 0 px of room at some width in every
+  state, so the door adds a line, moving the contact links up to 23.5 px where they wait at the
+  block's foot, to 0.95 px above the fold at 1428 × 900 at rest, and below it at 1432 to 1440 × 900
+  on the fallback face. Taking the Log link's place fits but hands the first reader's link and the
+  "55 revisions" count to the toy; "Rebuild it" alone reads as steering the crew. It can come back
+  with room made first: the legend's "Original" item keys nothing while no original plank is on
+  `/`'s drawing, and without it the door moves nothing at 1280 to 1440 × 900 (its own contract:
+  B4.19, B2.9's forced-colours rider, `PlankLegend` shared with `/read`). Quill's call, at the demo.
 - After the demo, if the yard earns it: the record in the motion (fix rounds as bounces, sprint 16
   struck), the fleet at 45, and optional sound. Each has a question to settle first (`plan.md`).
 - **The owner's calls, and none blocks the work:**

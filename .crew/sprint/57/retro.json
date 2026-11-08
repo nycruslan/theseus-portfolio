@@ -1,0 +1,29 @@
+{
+ "sprint": 57,
+ "pr": 123,
+ "goal": "Measured a front-page link into the yard; it didn't fit, so it waits",
+ "goalFrom": "roadmap",
+ "size": "S",
+ "outcome": "merged, notes only: the door waits",
+ "fixRounds": 0,
+ "minutes": 45,
+ "agents": [
+  { "role": "design-director", "model": "opus", "tokens": 271164, "minutes": 26 }
+ ],
+ "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+ "wentWrong": [
+  {
+   "what": "The front page has no room for one more link without moving the contact links",
+   "evidence": "Iris's injection on production in CI's renderer: the count line's room falls to about 0 px at 651, 768, 892, 1203 and 1408 wide, and the door left 0.95 px of fold at 1428 x 900 at rest (.crew/sprint/57/door-iris.md)"
+  },
+  {
+   "what": "Production served a stale copy of the front page during one measurement",
+   "evidence": "One of Iris's sweeps read no pencil row while the crew was live, so every later run checked the served state first (.crew/sprint/57/door-iris.md)"
+  }
+ ],
+ "proposals": [],
+ "followUps": [
+  { "who": "Quill", "what": "Judge the yard on production at its demo and plan the next milestone, including whether to make room for the door by dropping the legend's Original item at 0 original" },
+  { "who": "Iris", "what": "Compact MEMORY.md: it is at 23.8 KB of its 25 KB limit" }
+ ]
+}
