@@ -1337,6 +1337,22 @@ function start(
   };
 
   /**
+   * The step's seat and kind on the layer, the one hook for checks and CSS: set when a step starts,
+   * which for a step asked for during a hurry is when it was asked, so its pace is kept to the
+   * controller's clock; written only on a change, since every write is a record to an observer.
+   */
+  const tag = (hi: number) => {
+    const seat = ORDER[hi % ORDER.length] ?? "";
+    const kind = open === "settled" ? "fade" : "fly";
+    if (host.dataset.press !== seat) host.dataset.press = seat;
+    if (host.dataset.pressKind !== kind) host.dataset.pressKind = kind;
+  };
+  const untag = () => {
+    delete host.dataset.press;
+    delete host.dataset.pressKind;
+  };
+
+  /**
    * The marks a riffle's paced steps left off: an unpaced landing brings them back, or `land` when
    * the riffle ends between steps (Iris, riffle-iris.md, section 2, "Marks and copper").
    */
@@ -1372,8 +1388,8 @@ function start(
     for (const each of p.under) {
       if (each.hidden) each.span.style.visibility = "";
     }
-    delete host.dataset.press;
-    delete host.dataset.pressKind;
+    // A step asked for behind it has started already: its seat stays on the layer.
+    if (!p.next) untag();
     p.done();
     return p.next;
   }
@@ -1446,6 +1462,7 @@ function start(
     p.span = Math.max(1, Math.min(HURRY, rate > 0 ? left / rate : 0));
     p.begin = next.asked;
     p.next = next;
+    tag(Math.max(next.from, next.to));
   };
 
   /**
@@ -1475,6 +1492,7 @@ function start(
       !theseusLoft ||
       !fit
     ) {
+      untag();
       return done();
     }
     // A moving loft lands first: play starts only from rest (B3.1).
@@ -1482,6 +1500,7 @@ function start(
     showing = target;
     // A jump, or a page nobody sees: the step at once, drawn when it can be seen.
     if (Math.abs(to - from) !== 1 || document.hidden || !near()) {
+      untag();
       ships.show(target);
       unmarked = false;
       redraw();
@@ -1504,8 +1523,7 @@ function start(
     delete host.dataset.pick;
     canvas.style.cursor = "";
     ships.press(plan, { theseus: theseusLoft, ghost: loft });
-    host.dataset.press = plan.seat;
-    host.dataset.pressKind = plan.kind === "fade" ? "fade" : "fly";
+    tag(hi);
     const length = ships.length(plan);
     const quick =
       pace !== undefined && plan.kind !== "fade" && pace < KNOCK_PACE;
