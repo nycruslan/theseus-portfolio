@@ -24,6 +24,7 @@ import {
   KNOCK_PACE,
   OUTLINE_PX,
   PACE_FILL,
+  STILL,
 } from "./calls";
 import {
   type CrewState,
@@ -1413,8 +1414,6 @@ function start(
     // From its first frame a scroll lands it too, but for a scroll the words' swap made.
     p.scrolls = true;
     if (quiet > 0) quiet--;
-    // A riffle's step starts its clock on its first frame, which is then its first beat: a quick
-    // step's cut to the knock is seen whole.
     if (Number.isNaN(p.begin)) p.begin = now;
     const t = Math.max(0, now - p.begin);
     if (t >= p.span) {
@@ -1469,8 +1468,9 @@ function start(
    * One step's move from `from` to `to`, `hurried` ms after the controller asked for it; `done`
    * once its plank has landed, or at once for a jump, a page nobody sees, or hulls not yet drawn.
    * With `pace`, a riffle's step (Iris, riffle-iris.md, section 2): from KNOCK_PACE up it flies,
-   * Yc's press fitted into PACE_FILL of the pace less the hurry before it, never slower than the
-   * press; below, its knock alone in KNOCK_DRIVE ms; Calm's fade keeps its 240 ms inside 400.
+   * Yc's press fitted into PACE_FILL of the pace (leaving STILL at least) less the hurry before
+   * it, never slower than the press; below, its knock alone in KNOCK_DRIVE ms; Calm's fade keeps
+   * its 240 ms inside 400.
    * Without, Yc's press, whole.
    */
   function play(
@@ -1537,14 +1537,16 @@ function start(
           ? KNOCK_DRIVE
           : Math.max(
               KNOCK_DRIVE,
-              Math.min(length, Math.round(pace * PACE_FILL) - hurried),
+              Math.min(length, Math.round(pace * PACE_FILL), pace - STILL) -
+                hurried,
             );
     const now = performance.now();
     pressing = {
       plan,
       back,
       to: target,
-      begin: pace === undefined ? now : Number.NaN,
+      // A quick step's clock starts on its first frame, so its cut to the knock is seen whole.
+      begin: quick ? Number.NaN : now,
       length,
       window,
       span,

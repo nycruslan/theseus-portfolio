@@ -209,6 +209,12 @@ export const riffleGap = (n: number, calm: boolean) =>
  * the rest of its beats on a faster clock: nothing teleports.
  */
 export const PACE_FILL = 0.8;
+/**
+ * The still page's least, in ms: two frames at 60 Hz, as Iris asks, and the frame a landing
+ * waits for, since a step lands on the first frame past its span. At 152 ms its flight is then
+ * 102 ms, where 0.8 alone left 30 ms, which a late frame cut to 9 (the stand-in's riffle).
+ */
+export const STILL = 50;
 export const KNOCK_PACE = 150;
 export const KNOCK_DRIVE = 32;
 export const HURRY = 80;
