@@ -3,7 +3,7 @@ import { LENGTH } from "../lib/half-model";
 import { GHOST as LAYOUT } from "../lib/hull-layouts";
 import { MOTION } from "./helpers";
 import { entryOf, RECORD } from "./log";
-import { type Box, CANVAS, MODEL, pause, whole } from "./model";
+import { type Box, MODEL, pause, whole } from "./model";
 import { coverage, decodePng, deltaE, type Image, pixel } from "./pixels";
 import { GHOST, GHOST_AT } from "./retros";
 import type { ModelRun } from "./webgl";
