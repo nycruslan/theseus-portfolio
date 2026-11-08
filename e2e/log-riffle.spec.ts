@@ -1223,7 +1223,9 @@ for (const { label, size, from, partway } of Y23_RUNS) {
         )
         .toBeLessThanOrEqual(1);
     } else {
-      const landing = r.ends.filter((t) => lastStep && t >= lastStep.t).at(0);
+      // The stop's own landing: the first after its start. The step before it lands in the same
+      // task the stop starts (land, then go), at the stop's start time.
+      const landing = r.ends.filter((t) => lastStep && t > lastStep.t).at(0);
       expect
         .soft(landing, `the stop's step landed while held, ${where}`)
         .toBeDefined();
