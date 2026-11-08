@@ -1228,7 +1228,8 @@ function start(
   const pressInput = (event: Event) => {
     if (event.type === "scroll" && (!pressing?.scrolls || quiet > 0)) return;
     if (event instanceof KeyboardEvent && event.repeat) return;
-    finish();
+    // Escape ends a riffle anywhere (the contract, point 4): it lands with the marks, one frame.
+    finish(true, event instanceof KeyboardEvent && event.key === "Escape");
   };
   const pressListen = (active: boolean) => {
     for (const type of INPUTS) {
@@ -1397,13 +1398,16 @@ function start(
 
   /**
    * Lands the press at once (`land`, any input, a hidden page, a teardown), and a step asked for
-   * behind it with it, whose plank never left: one frame, the last step's. Idempotent, and
-   * nothing at rest.
+   * behind it with it, whose plank never left: one frame, the last step's. With `mark`, the riffle
+   * has ended (`land`), and the step lands with the record's marks whatever its pace. Idempotent,
+   * and nothing at rest.
    */
-  function finish(draw = true) {
+  function finish(draw = true, mark = false) {
+    if (pressing && mark) pressing.marks = true;
     const next = landing(draw && !pressing?.next);
     if (!next) return;
     play(next.from, next.to, next.pace, 0, next.done);
+    if (pressing && mark) pressing.marks = true;
     landing(draw);
   }
 
@@ -1589,7 +1593,7 @@ function start(
           play(from, to, pace, 0, done);
         }),
       land() {
-        if (pressing) return finish();
+        if (pressing) return finish(true, true);
         // The riffle ended between its steps: the record's marks come back, one frame.
         if (!unmarked || !ships || !showing) return;
         unmarked = false;
