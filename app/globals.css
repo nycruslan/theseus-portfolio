@@ -998,7 +998,9 @@ main:has(> [data-model]) {
  * paint over the canvas, and while the model has a state they ride their planks on the chunk's
  * offsets; from the first moving frame its svg goes, faded out under reduced motion. It comes
  * before the model's layer in main, hence `~`. The caption between the two drawings stays under
- * the canvas, so a flying plank passes over it, as it does over the sheet.
+ * the canvas while a plank flies, so it passes over it, as it does over the sheet; at rest, when
+ * the canvas takes the pointer, the caption sits over it, so its text can be selected and its
+ * menu is the page's, not the canvas's image (Lens's nit on #121).
  */
 .log-theseus:has(~ [data-model]) .plan-plank {
   z-index: 1;
@@ -1007,6 +1009,16 @@ main:has(> [data-model]) {
 @media screen and (forced-colors: none) {
   .log-theseus:has(~ [data-model][data-state]) .plan-plank {
     transform: translate(var(--ghost-x, 0px), var(--ghost-y, 0px));
+  }
+
+  .log-theseus:has(
+      ~ [data-model]:is([data-state="settled"], [data-state="still"]):not(
+          [data-press]
+        )
+    )
+    .log-theseus-caption {
+    position: relative;
+    z-index: 1;
   }
 }
 
@@ -1919,10 +1931,22 @@ main:has(> [data-model]) {
 
 /* Start again, on /log under the count line, looks like Read as page (components/foot.tsx): ink,
    a 1 px underline 6 px off, 2 px hovered, a 44 px target, 24 from 1024. Never copper, the site's
-   ring (Y4). */
+   ring (Y4). The hand-off to the live crew follows it, the same link (Iris's calls,
+   .crew/sprint/56/riffle-iris.md, section 4): each on its own row below 768, one row 32 px apart
+   from it. At 320 the hand-off takes two lines, balanced, where nowrap would overflow. */
 .log-start {
   order: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-top: 2px;
+}
+
+@media (width >= 48rem) {
+  .log-start {
+    flex-flow: row wrap;
+    column-gap: 32px;
+  }
 }
 
 .log-start a {
@@ -1947,6 +1971,11 @@ main:has(> [data-model]) {
   .log-start a {
     min-height: 24px;
   }
+}
+
+.log-start [data-hand-off] {
+  white-space: normal;
+  text-wrap: balance;
 }
 
 /* The lines figure (.crew/sprint/32/contract.md; notes-iris.md, section 3): under a 1 px ink rule
@@ -2358,7 +2387,8 @@ main:has(> [data-model]) {
    below 1024 and 24 from it (Y4). An arrow is drawn 4 px off its word; as an inline-block it is
    left out of the underline. */
 .record-close,
-.record-steps a {
+.record-steps a,
+.record-hand-off a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -2366,6 +2396,35 @@ main:has(> [data-model]) {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* While the model plays the step links (lib/model/yard.ts), a press held on one riffles: it shows
+   no callout or selection (the menu the controller cancels), and the held link keeps its hover
+   state, a hold of → included, which teaches the keys (Iris's calls, .crew/sprint/56/
+   riffle-iris.md, additions 4 and 5). Off keeps the browser's. */
+:where(.log:has(> [data-model][data-yard])) .record-steps [data-step] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.record-steps a[data-held] {
+  text-decoration-thickness: 2px;
+}
+
+/* The hand-off at the newest step (components/log-record.tsx): its own row under ← Sprint n, at
+   its end, in the step links' type, underlined as Start again is (Iris's calls, section 4). One
+   line from 320 to 1440; were it ever longer, it would wrap, balanced, rather than overflow. */
+.record-hand-off {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.record-hand-off a {
+  white-space: normal;
+  text-align: end;
+  text-wrap: balance;
+  text-underline-offset: 6px;
 }
 
 .step-arrow {
@@ -2488,7 +2547,8 @@ main:has(> [data-model]) {
   }
 
   .record-close,
-  .record-steps a {
+  .record-steps a,
+  .record-hand-off a {
     min-height: 24px;
   }
 }
