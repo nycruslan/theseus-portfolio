@@ -34,7 +34,9 @@ const WORDS = [
 const DRAWINGS = ["[data-theseus]", "[data-ghost]"];
 /**
  * The 22nd merge's question, on its step alone, right after the count line. It leaves with the
- * words and arrives with the plank: it is the payoff, and lands with the last original (Iris).
+ * words and shows with the plank: it is the payoff, and lands with the last original (Iris). Its
+ * space is taken with the words, unseen, since a block arriving with the knock, past the press's
+ * 500 ms of input, shifts the page (.crew/sprint/55/review-iris.md, must 1).
  */
 const QUESTION = "[data-yard-question]";
 const COUNT = "[data-ghost-count]";
@@ -185,6 +187,12 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     const focused = focusIn(record);
     swap(doc, fresh, WORDS);
     doc.querySelector(QUESTION)?.remove();
+    const asked = fresh.querySelector(QUESTION);
+    if (asked) {
+      const held = doc.importNode(asked, true);
+      if (held instanceof HTMLElement) held.style.visibility = "hidden";
+      doc.querySelector(COUNT)?.after(held);
+    }
     const row = fresh.querySelector(OPEN_ROW);
     doc.querySelector(OPEN_ROW)?.removeAttribute("aria-current");
     if (row) {
@@ -200,15 +208,18 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     refocus(record, focused);
   };
 
-  /** The landed step's drawings, question and URL; then its name, unless a newer press is on. */
+  /**
+   * The landed step's drawings and URL; then, unless a newer press is on (whose words may already
+   * be up), its question shown and its name.
+   */
   const settle = (flown: Flight, fresh: Document) => {
     swap(doc, fresh, DRAWINGS);
-    const asked = fresh.querySelector(QUESTION);
-    if (asked) doc.querySelector(COUNT)?.after(doc.importNode(asked, true));
     // Through Next's own hook on replaceState, so its router holds the URL the page shows.
     view.history.replaceState(null, "", `/log/${flown.sprint}`);
     if (flight !== flown) return;
     flight = null;
+    // The server's markup again: the question has no style of its own.
+    doc.querySelector(QUESTION)?.removeAttribute("style");
     const goal = fresh.getElementById("record")?.textContent ?? "";
     if (live) live.textContent = `Revision ${flown.sprint}: ${goal}`;
     prefetch();
