@@ -61,6 +61,21 @@ const CANVAS_SEL = "[data-model] canvas";
 const FADE = 240;
 /** Pixel's flight is at most 1.2 s from go to landed; a press not landed within 3 s of clock fails. */
 const LANDS_BY = 3000;
+/**
+ * Y13 to Y15's bounds, tuned on Pixel's first flight (sprint 55, 87fce76 at 0504e60, SwiftShader)
+ * against P, the seat's 2D plank area, and D, where B and R differ. Measured: 13 to 14 at 1440
+ * (P 5,626) changes at most 1.15 P outside D in a frame and |B - R| + 0.18 P in all; at 390 (P 890)
+ * 1.2 P and under |B - R|; 40 to 41 at 1440 (P 6,449) 0.71 P and |B - R| + 0.75 P. Every landed
+ * canvas matched R to the pixel (0 of 371,700 and 66,946).
+ */
+/** It flies: some frame changes at least this many plank areas outside D (measured 0.71 to 1.2). */
+const FLIES = 0.25;
+/** One plank: no frame changes more than this many plank areas outside D (a second doubles it). */
+const ONE_PLANK_AWAY = 1.75;
+/** Not a hull: no frame changes more than |B - R| plus this many plank areas, plus 0.2%. */
+const ONE_PLANK_TOTAL = 1.5;
+/** The step's canvas: at most this share of pixels off R by more than 8 levels (measured 0). */
+const OFF_R = 0.0001;
 /** One animation frame on the clock: "within one frame". */
 const ONE_FRAME = Math.ceil(FRAME);
 /** A pixel changed: any channel, alpha included, more than 8 levels (B5.18's fills). */
@@ -753,7 +768,7 @@ for (const { from, size } of Y13_PRESSES) {
   const seat = SEAT_OF.get(to) ?? "(no seat)";
   // Steps 1 to 23 (k up to 22): the original that leaves lands on the ghost's seat.
   const original = stepIndex(to) <= PLANK_IDS.length;
-  test(`Y13 Full flies one plank, /log/${from} to /log/${to} at ${size.width} x ${size.height}: a press of Next stays on the page, sets data-press "${seat}" of kind fly, draws 3 frames or more and lands within 3 s of clock; at some frame it changes a quarter of seat ${seat}'s plank area or more outside D (where B and R differ, grown 3 px), at no frame more than |B - R| plus 3 plank areas plus 0.2% of the canvas; once landed the canvas is R's (at most 0.1% of pixels off by 8 levels) and 0 frames are drawn over 2 s${original ? `, and a hover inside the ghost's change picks seat ${seat}` : ""}`, async ({
+  test(`Y13 Full flies one plank, /log/${from} to /log/${to} at ${size.width} x ${size.height}: a press of Next stays on the page, sets data-press "${seat}" of kind fly, draws 3 frames or more and lands within 3 s of clock; at some frame it changes a quarter of seat ${seat}'s plank area or more outside D (where B and R differ, grown 3 px), at no frame more than 1.75 plank areas outside D, nor more than |B - R| plus 1.5 plank areas plus 0.2% of the canvas in all; once landed the canvas is R's (at most 0.01% of pixels off by 8 levels) and 0 frames are drawn over 2 s${original ? `, and a hover inside the ghost's change picks seat ${seat}` : ""}`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(240_000);
@@ -803,7 +818,8 @@ for (const { from, size } of Y13_PRESSES) {
     const end = changed(b, ref.image);
     const grown = morph(end, b.width, b.height, 3);
     const base = sum(end);
-    const cap = base + 3 * area + 0.002 * n;
+    const cap = base + ONE_PLANK_TOTAL * area + 0.002 * n;
+    const away = ONE_PLANK_AWAY * area;
     const reads = flight.shots.map(({ t, image }) => {
       const m = changed(b, image);
       return { t, total: sum(m), away: outside(m, grown) };
@@ -820,15 +836,23 @@ for (const { from, size } of Y13_PRESSES) {
     expect
       .soft(
         Math.max(0, ...reads.map((r) => r.away)),
-        `the most pixels a frame changes outside D, against a quarter of the plank (${(area / 4).toFixed(0)}): it flies, ${where}`,
+        `the most pixels a frame changes outside D, against a quarter of the plank (${(FLIES * area).toFixed(0)}): it flies, ${where}`,
       )
-      .toBeGreaterThanOrEqual(area / 4);
+      .toBeGreaterThanOrEqual(FLIES * area);
+    expect
+      .soft(
+        reads
+          .filter((r) => r.away > away)
+          .map((r) => `${r.t.toFixed(0)} ms: ${r.away}`),
+        `frames changing more than one plank outside D (${away.toFixed(0)} px, ${ONE_PLANK_AWAY} plank areas), ${where}`,
+      )
+      .toEqual([]);
     expect
       .soft(
         reads
           .filter((r) => r.total > cap)
           .map((r) => `${r.t.toFixed(0)} ms: ${r.total}`),
-        `frames changing more than one plank's worth (${cap.toFixed(0)} px), ${where}`,
+        `frames changing more than |B - R| and one plank's worth (${cap.toFixed(0)} px), ${where}`,
       )
       .toEqual([]);
 
@@ -847,7 +871,7 @@ for (const { from, size } of Y13_PRESSES) {
     );
     expect
       .soft(off, `pixels off R's canvas once landed, ${where}`)
-      .toBeLessThanOrEqual(0.001 * n);
+      .toBeLessThanOrEqual(OFF_R * n);
 
     if (original) {
       // The ghost's seat: the change's interior, below the Theseus's box, picks the seat.
@@ -993,7 +1017,7 @@ for (const { label, options, size } of Y14_RUNS) {
         sum(changed(after, ref.image)),
         `pixels off R's canvas once landed, ${where}`,
       )
-      .toBeLessThanOrEqual(0.001 * b.width * b.height);
+      .toBeLessThanOrEqual(OFF_R * b.width * b.height);
     expect
       .soft([...ref.errors, ...run.errors], `console errors, ${where}`)
       .toEqual([]);
@@ -1004,7 +1028,7 @@ for (const { label, options, size } of Y14_RUNS) {
 // ---------------------------------------------------------------------------------------------
 // Y15
 
-test("Y15 Any input lands the plank, at 1440 x 900 in Full: during a flight from /log/13 to 14, back to 13 and on to 14, a key (Tab), a mouse press on the canvas off the hull and a scroll each land it within one frame (data-press gone, the URL the step's, at most 1 frame drawn), then 0 frames over 1 s, the canvas the step's fresh Calm load's (at most 0.1% of pixels off by 8 levels), no record opened; B on /log/13 is its Calm load's too", async ({
+test("Y15 Any input lands the plank, at 1440 x 900 in Full: during a flight from /log/13 to 14, back to 13 and on to 14, a key (Tab), a mouse press on the canvas off the hull and a scroll each land it within one frame (data-press gone, the URL the step's, at most 1 frame drawn), then 0 frames over 1 s, the canvas the step's fresh Calm load's (at most 0.01% of pixels off by 8 levels), no record opened; B on /log/13 is its Calm load's too", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(240_000);
@@ -1030,7 +1054,7 @@ test("Y15 Any input lands the plank, at 1440 x 900 in Full: during a flight from
   );
   expect
     .soft(own, `B against /log/${a}'s Calm load, pixels off`)
-    .toBeLessThanOrEqual(0.001 * n);
+    .toBeLessThanOrEqual(OFF_R * n);
 
   const inputs: {
     name: string;
@@ -1124,7 +1148,7 @@ test("Y15 Any input lands the plank, at 1440 x 900 in Full: during a flight from
     );
     expect
       .soft(off, `pixels off ${target}'s settled canvas, ${where}`)
-      .toBeLessThanOrEqual(0.001 * n);
+      .toBeLessThanOrEqual(OFF_R * n);
     expect
       .soft(run.context.pages().length, `pages open after ${where}`)
       .toBe(pages);
