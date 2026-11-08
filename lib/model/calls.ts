@@ -114,6 +114,17 @@ export const GHOST_GAIN = 1.35;
 export const GHOST_DARK_GAIN = 1.6;
 
 /**
+ * The Log's Theseus in the dark scheme: its lit mix and its lamp's gain, set by its numbers, which
+ * `/`'s model doesn't carry (`/` keeps × DARK_GAIN). At `/`'s × 4 its upper strakes read Y 0.375
+ * under numbers whose ink is Y 0.809, 2.1:1 (review-iris.md, must 2); every numbered plank's ground
+ * must be at or under Y 0.14, 4.5:1. Here the brightest reads 0.126, 4.88:1, at 1440 and 1024 on
+ * /log/13, 23 and 40. The flat token in the mix keeps the originals' keel strakes above the page's
+ * ground (Y 0.016 against 0.009), where the gain alone sank them under it.
+ */
+export const THESEUS_DARK_LIT = 0.8;
+export const THESEUS_DARK_GAIN = 1.4;
+
+/**
  * The seats whose numbers the 3D leads out aft, as the 2D leads out 5.0's, from 768 px: 3.0's "8",
  * where the turned stern leaves its plank no place to clear the outline (Iris's decision on must 2,
  * .crew/sprint/33/early-look-iris.md). Each goes at its lift's mid-depth, LEAD_OUT units aft of its

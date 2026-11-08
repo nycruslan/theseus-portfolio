@@ -58,6 +58,8 @@ import {
   ROLL,
   SEAM_PX,
   SWAY,
+  THESEUS_DARK_GAIN,
+  THESEUS_DARK_LIT,
   THESEUS_MARK_PX,
 } from "./calls";
 import {
@@ -472,6 +474,9 @@ export function createShips(
     vellum: new Color(),
     solved: new Color(),
     ghostGain: GHOST_GAIN,
+    /** The Theseus's lit mix and gain: `/`'s in light, its numbers' in dark (THESEUS_DARK_GAIN). */
+    theseusLit: 1,
+    theseusGain: 1,
   };
   const tint = new Color();
   const mixed = new Color();
@@ -855,8 +860,10 @@ export function createShips(
       mixed.lerpColors(lo, tokens.solved, m);
       fly.uniforms.uStates.value[slot]?.set(mixed.r, mixed.g, mixed.b, 1);
       fly.material.opacity = (1 + (GHOST_ALPHA - 1) * m) * flight.alpha;
-      fly.uniforms.uLit.value = 1 + (GHOST_LIT - 1) * m;
-      fly.uniforms.uGain.value = 1 + (tokens.ghostGain - 1) * m;
+      fly.uniforms.uLit.value =
+        tokens.theseusLit + (GHOST_LIT - tokens.theseusLit) * m;
+      fly.uniforms.uGain.value =
+        tokens.theseusGain + (tokens.ghostGain - tokens.theseusGain) * m;
       seams.uniforms.uMats.value[2]?.copy(flier.matrix);
       ink[2]?.lerpColors(tokens.ink, tokens.seam, m);
       widths[2] =
@@ -877,8 +884,8 @@ export function createShips(
       into.matrixWorldNeedsUpdate = true;
       knock.uniforms.uStates.value[slot]?.set(hi.r, hi.g, hi.b, 1);
       knock.material.opacity = knocking.alpha;
-      knock.uniforms.uLit.value = 1;
-      knock.uniforms.uGain.value = 1;
+      knock.uniforms.uLit.value = tokens.theseusLit;
+      knock.uniforms.uGain.value = tokens.theseusGain;
       into.updateMatrixWorld();
       seams.uniforms.uMats.value[3]?.copy(into.matrixWorld);
       widths[3] = knocking.alpha >= 0.5 ? SEAM_PX * ratio : 0;
@@ -943,6 +950,10 @@ export function createShips(
         ? GHOST_DARK_GAIN / DARK_GAIN
         : GHOST_GAIN;
       near.uniforms.uGain.value = tokens.ghostGain;
+      // The Log's Theseus carries numbers, so in dark its lamp is set by them, not by `/`'s look.
+      tokens.theseusLit = palette.dark ? THESEUS_DARK_LIT : 1;
+      tokens.theseusGain = palette.dark ? THESEUS_DARK_GAIN / DARK_GAIN : 1;
+      card.uniforms.uGain.value = tokens.theseusGain;
       const s = seams.uniforms.uColors.value;
       const c = caps.uniforms.uColors.value;
       s[0]?.copy(tokens.ink);
@@ -1021,15 +1032,19 @@ export function createShips(
     },
 
     /**
-     * The press `ms` into it played forward; at 0 and at its length the hulls are its two steps at
-     * rest, as a cold load of that step draws them: its marks land, the press's edges go.
+     * The press `ms` into it played forward. Landed (`landed`, at 0 or its length), the hulls are
+     * that step at rest, as a cold load of it draws them: its marks land, the press's edges go. A
+     * frame in flight is never at rest, its first at 0 included, so the marks that left at the
+     * press's start stay gone on it (Iris's could, review-iris.md).
      */
-    beat(ms: number) {
+    beat(ms: number, landed = false) {
       if (!path) return;
       const length = pressLength(path.plan.kind, path.plan.narrow);
       const was = rest;
-      rest = ms <= 0 ? "lo" : ms >= length ? "hi" : null;
-      now = rest ? null : beat(path.plan.kind, path.plan.narrow, ms);
+      rest = landed ? (ms <= 0 ? "lo" : "hi") : null;
+      now = rest
+        ? null
+        : beat(path.plan.kind, path.plan.narrow, Math.min(length, ms));
       if (rest === was) return;
       marked = rest ? { current: path.plan[rest].current } : {};
       recap();
@@ -1086,7 +1101,7 @@ export function createShips(
       place(theseus, lofts.theseus.at(e).pose, lofts.theseus, "theseus");
       place(ghost, lofts.ghost.at(e).pose, lofts.ghost, "ghost");
       const lit = Math.min(1, e * 1.25);
-      card.uniforms.uLit.value = lit;
+      card.uniforms.uLit.value = lit * tokens.theseusLit;
       near.uniforms.uLit.value = lit * GHOST_LIT;
       const alpha = 1 + (GHOST_ALPHA - 1) * e;
       near.material.opacity = alpha;

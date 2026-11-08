@@ -1289,7 +1289,7 @@ function start(
     pressListen(false);
     const end = p.back ? 0 : p.length;
     p.at = end;
-    ships.beat(end);
+    ships.beat(end, true);
     // The frame is the step's at the cap, as a still frame is (`rest`).
     if (ratio < cap) step(cap);
     if (draw && !document.hidden && near()) {
