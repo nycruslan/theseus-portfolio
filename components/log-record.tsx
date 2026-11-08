@@ -39,6 +39,21 @@ function plankWords(seat: string, holders: readonly number[], sprint: number) {
     .join(" ");
 }
 
+/**
+ * The hand-off to the live crew (.crew/sprint/56/contract.md, settled point 6; Iris's calls,
+ * riffle-iris.md, section 4): past the newest step the next plank is the one the crew is building
+ * now. Server HTML on /log and the newest record, so it is there in Off and with no script, and a
+ * press onto the newest step brings it with the record's words. One string, so the server's HTML
+ * holds the phrase whole. Plain: no arrow, since it leaves the yard rather than stepping it.
+ */
+export function HandOff() {
+  return (
+    <a href="/crew" data-hand-off="">
+      {"Watch the crew build the next one on Crew"}
+    </a>
+  );
+}
+
 /** One term of the record's list and its detail. */
 type Pair = { term: string; detail: ReactNode; names?: boolean };
 
@@ -132,6 +147,14 @@ export function LogRecord({
           )}
         </div>
       </div>
+      {/* At the newest step, on its own row under ← Sprint n, end-aligned: past the last step the
+        way on is the live crew. Its own row, not Next's slot, which it doesn't fit, and one row
+        below a finger still tapping Next (Iris's calls, section 4). */}
+      {next === undefined ? (
+        <p className="record-hand-off">
+          <HandOff />
+        </p>
+      ) : null}
       <h2 id="record">{entry.goal}</h2>
       <dl>
         {pairs.map(({ term, detail, names }) => (

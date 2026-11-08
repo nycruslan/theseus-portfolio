@@ -2,7 +2,7 @@ import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { Foot } from "@/components/foot";
 import { LinesPlan } from "@/components/lines-plan";
-import { LogRecord } from "@/components/log-record";
+import { HandOff, LogRecord } from "@/components/log-record";
 import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
@@ -193,13 +193,15 @@ export function Log({ entries, open }: LogProps) {
           <p aria-live="polite" data-yard-live="" className="sr-only" />
         </div>
 
-        {/* On /log, the first step: after the row in the DOM, so Tab reaches Read as page and the
-          control first, and under the ghost from 1024. */}
+        {/* On /log, the two ways out of today: back to the first step, or on to the live crew
+          (Iris's calls, .crew/sprint/56/riffle-iris.md, section 4). After the row in the DOM, so
+          Tab reaches Read as page and the control first, and under the ghost from 1024. */}
         {record ? null : (
           <p className="log-start">
             <a href={`/log/${merged[0]}`} data-step="start">
               {`Start again from sprint ${merged[0]}`}
             </a>
+            <HandOff />
           </p>
         )}
 
@@ -223,8 +225,10 @@ export function Log({ entries, open }: LogProps) {
           current={seat?.[0]}
           className="log-ghost"
         />
-        {/* The ghost in 3D: the 3D chunk reads its seats and numbers off the drawing right before
-          it, so the two can't disagree. The loader is /'s, unchanged. */}
+        {/* Both ships in 3D, in one canvas over both drawings: the 3D chunk reads the ghost's
+          seats and numbers off the drawing right before it, and the Theseus's off
+          `[data-theseus]`, so neither can disagree with its drawing. The loader is /'s,
+          unchanged. */}
         <Model seated={[]} />
 
         <section aria-labelledby="every-revision" className="log-revs">

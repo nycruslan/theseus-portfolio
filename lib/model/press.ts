@@ -70,6 +70,22 @@ export function pressLength(kind: Kind, narrow: boolean) {
 }
 
 /**
+ * The part of a press a riffle's quick step plays, in ms of the press played forward (Iris,
+ * riffle-iris.md, section 2, "The knock alone"): forward, from the knock with the new card at α 1
+ * and L proud, its fade-in done, to its end; back, the press's last beat played backwards, the
+ * lift, so the leaving plank stands L off its seat and drives home. Calm has no knock.
+ */
+export function knockWindow(
+  kind: Kind,
+  narrow: boolean,
+  back: boolean,
+): [number, number] {
+  if (kind === "fade") return [0, CALM_FADE];
+  const length = pressLength(kind, narrow);
+  return back ? [0, PRESS_LIFT] : [length - PRESS_KNOCK + KNOCK_FADE, length];
+}
+
+/**
  * The beat `ms` into a press played forward, strictly inside it: at 0 and at its length the hulls
  * are the two steps at rest, which the scene draws as such.
  */

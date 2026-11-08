@@ -473,9 +473,10 @@ test.describe("B5.6 A record per revision", () => {
         ...(previous
           ? [{ href: recordOf(previous), name: YARD_WORDS.previous(previous) }]
           : []),
+        // At the newest step, Yd's hand-off to /crew (.crew/sprint/56/decisions.md).
         ...(next
           ? [{ href: recordOf(next), name: YARD_WORDS.next(next) }]
-          : []),
+          : [{ href: "/crew", name: YARD_WORDS.handOff }]),
       ];
       const links = (await readRecord(page)).links
         .map((link) => link.href)
