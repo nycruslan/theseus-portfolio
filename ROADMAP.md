@@ -38,7 +38,7 @@ the lazily loaded 3D chunk, with WebGLRenderer and GLSL only.
 Quill's plan is `.crew/sprint/52/plan.md`, and Ya's contract is `first-contract.md`. The yard serves
 belief 2 (the toy is the crew's record: who drew, checked, tested and approved each plank) and
 principle 2 (every plank that moves is a real merge). It lives in the brief's archive moment, so
-`/`'s first screen doesn't change until Ye. The checks are Y1 onward, numbered across the
+`/`'s first screen doesn't change while Ye waits (sprint 57). The checks are Y1 onward, numbered across the
 milestone. No sprint needs an owner answer to start, touches an owner path or edits `content/`.
 
 - [x] Sprint 52 (L, notes only; the owner's goal): Iris's research, three directions on the canvas
@@ -79,7 +79,9 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   "55 revisions" count to the toy; "Rebuild it" alone reads as steering the crew. It can come back
   with room made first: the legend's "Original" item keys nothing while no original plank is on
   `/`'s drawing, and without it the door moves nothing at 1280 to 1440 × 900 (its own contract:
-  B4.19, B2.9's forced-colours rider, `PlankLegend` shared with `/read`). Quill's call, at the demo.
+  B4.19, B2.9's forced-colours rider, `PlankLegend` shared with `/read`). It's the same open item as
+  the legend's "Original" left waiting under "the proof in five seconds" (#84's loosened check, and
+  B4b's note on B1.2's words), so Quill takes them as one at the demo.
 - After the demo, if the yard earns it: the record in the motion (fix rounds as bounces, sprint 16
   struck), the fleet at 45, and optional sound. Each has a question to settle first (`plan.md`).
 - **The owner's calls, and none blocks the work:**
@@ -88,7 +90,7 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   - a visitor tally at 23: recommended no tally;
   - #101's pick, still open under "Finished: the record you can check".
 - Out of scope, and why:
-  - `/` before Ye, since the five-second read comes first.
+  - `/` while Ye waits, since the five-second read comes first.
   - New public retro fields and a step 0 page, since every step must be a real merge.
   - The live feed on /log.
   - A timeline slider, drag, a free camera or physics, since the brief wants named viewpoints.

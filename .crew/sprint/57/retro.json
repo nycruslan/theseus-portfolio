@@ -4,13 +4,24 @@
  "goal": "Measured a front-page link into the yard; it didn't fit, so it waits",
  "goalFrom": "roadmap",
  "size": "S",
- "outcome": "merged, notes only: the door waits",
+ "outcome": "merged, notes only: Lens ship on d407a9d, its two roadmap nits fixed in the close-out; the door waits",
  "fixRounds": 0,
  "minutes": 45,
  "agents": [
-  { "role": "design-director", "model": "opus", "tokens": 271164, "minutes": 26 }
+  {
+   "role": "design-director",
+   "model": "opus",
+   "tokens": 271164,
+   "minutes": 26
+  }
  ],
- "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+ "lens": {
+  "runs": 1,
+  "tokens": 232619,
+  "important": 0,
+  "actedOn": 2,
+  "nits": 2
+ },
  "wentWrong": [
   {
    "what": "The front page has no room for one more link without moving the contact links",
@@ -23,7 +34,13 @@
  ],
  "proposals": [],
  "followUps": [
-  { "who": "Quill", "what": "Judge the yard on production at its demo and plan the next milestone, including whether to make room for the door by dropping the legend's Original item at 0 original" },
-  { "who": "Iris", "what": "Compact MEMORY.md: it is at 23.8 KB of its 25 KB limit" }
+  {
+   "who": "Quill",
+   "what": "Judge the yard on production at its demo and plan the next milestone, including whether to make room for the door by dropping the legend's Original item at 0 original"
+  },
+  {
+   "who": "Iris",
+   "what": "Compact MEMORY.md: it is at 23.8 KB of its 25 KB limit"
+  }
  ]
 }
