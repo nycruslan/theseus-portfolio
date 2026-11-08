@@ -167,7 +167,7 @@ nav > [data-motion] {
    row. Here, as /crew sets it at the drawing's foot, it borrows 12 px of the drawing's own margin,
    and paints over the model's layer, which lies on the drawing's box. The sheet hangs it from the
    bar at the drawing's head ("The sheet on a phone window"), the Log at the header's end
-   (`.log > .foot`). */
+   (`.log-side > .foot`). */
 .foot {
   position: relative;
   display: flex;
@@ -678,24 +678,36 @@ nav > [data-motion] {
   stroke-width: 0.75px;
 }
 
-/* On a record, the seat its sprint took: an ink edge and a bolder number, the fill unchanged. The
-   plank is drawn last, so its edge is whole. */
-[data-ghost] path[data-current] {
+/*
+ * The Theseus beside it (LinesPlan view="theseus"; .crew/sprint/52/first-contract.md): the ghost's
+ * profile at the ghost's size with every plank, seated on the card and original in grey as / draws
+ * them, each seated one numbered by the sprint that last seated it. Its lettering, and its current
+ * seat on a step, are the ghost's, by the rules below; its outline is the sheet's ink, since it is
+ * the ship that sails. Inert like the lines plan, and never read by the 3D chunk.
+ */
+
+/* On a record, the seat its sprint took: an ink edge and a bolder number, the fill unchanged; the
+   Theseus's edge is heavier, since its neighbours' are ink too. The plank is drawn last, so its
+   edge is whole. */
+:is([data-ghost], [data-theseus]) path[data-current] {
   stroke: var(--foreground);
   stroke-width: 1.4px;
 }
 
-.plan-view.plan-ghost > .plan-plank {
+[data-theseus] path[data-current] {
+  stroke-width: 2px;
+}
+
+.plan-view:is(.plan-ghost, .plan-theseus) > .plan-plank {
   font-size: var(--step-xs);
 }
 
-.plan-view.plan-ghost > .plan-current {
+.plan-view:is(.plan-ghost, .plan-theseus) > .plan-current {
   font-weight: 700;
 }
 
 @media (width < 48rem) {
-  [data-ghost] .plan-plank,
-  [data-ghost] .ln-leader {
+  :is([data-ghost], [data-theseus]) :is(.plan-plank, .ln-leader) {
     display: none;
   }
 }
@@ -704,20 +716,21 @@ nav > [data-motion] {
    for 13 px. From 1024 it shares the row with the header, 13.5 px lifts at 1024, and drops to 11
    until 1280. */
 @media (48rem <= width < 64rem) {
-  .plan-view.plan-ghost > .plan-plank {
+  .plan-view:is(.plan-ghost, .plan-theseus) > .plan-plank {
     font-size: var(--step-sm);
   }
 }
 
 @media (width >= 80rem) {
-  .plan-view.plan-ghost > .plan-plank {
+  .plan-view:is(.plan-ghost, .plan-theseus) > .plan-plank {
     font-size: var(--step-sm);
   }
 }
 
 /* Forced colours drop the vellum: each plank is its edge in the system's text colour on the
    system's ground, 1 px so it shows, the current one's 2.5 px. `.plan` already keeps the system's
-   colours from being forced over these, and sets every line and number in CanvasText. */
+   colours from being forced over these, and sets every line and number in CanvasText, and the
+   Theseus's seated and original fills. */
 @media (forced-colors: active) {
   .plan .plank-ghost {
     fill: Canvas;
@@ -725,11 +738,11 @@ nav > [data-motion] {
   }
 
   [data-ghost] .ln-outline,
-  [data-ghost] path[data-current] {
+  :is([data-ghost], [data-theseus]) path[data-current] {
     stroke: CanvasText;
   }
 
-  [data-ghost] path[data-current] {
+  :is([data-ghost], [data-theseus]) path[data-current] {
     stroke-width: 2.5px;
   }
 }
@@ -921,7 +934,7 @@ main:has(> [data-model]) {
 /* The layer takes the ghost's flex and grid order: items paint in order-modified document order,
    so at order 0 it would paint under the drawing (spike-pixel.md, section 5). */
 .log-ghost + [data-model] {
-  order: 2;
+  order: 3;
 }
 
 [data-ghost]:has(+ [data-model]) .plan-plank {
@@ -1771,13 +1784,15 @@ main:has(> [data-model]) {
 
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
- * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3). Below 1024 px one column:
- * the h1, the drawing, the caption, the count line, the lines figure, the row of Read as page and
- * the motion control, the record when one is open, then Every revision, its 2 px rule edge to edge as the facts' are.
- * The drawing follows the header in the DOM and is set after the h1 here; it is hidden from
- * assistive tech, so the reading order is the DOM's. From 1024 the sheet's inset box as a
- * two-column grid: the drawing beside the header, then Every revision beside the record, or across
- * both columns on /log. Nothing here moves: the ghost's 3D is the model layer's (above).
+ * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3; the yard's steps,
+ * .crew/sprint/53/placement.md). Below 1024 px one column: the h1, the Theseus and its caption,
+ * the ghost, its caption, the count line, the question or Start again, the lines figure, the row
+ * of Read as page and the motion control, the record when one is open, then Every revision, its
+ * 2 px rule edge to edge as the facts' are. The drawings follow the header in the DOM and are set
+ * after the h1 here; they are hidden from assistive tech, so the reading order is the DOM's. From
+ * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
+ * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
+ * the model layer's (above).
  */
 .log {
   display: flex;
@@ -1785,6 +1800,7 @@ main:has(> [data-model]) {
   padding: 0 16px;
 }
 
+.log-side,
 .log-head {
   display: contents;
 }
@@ -1799,9 +1815,26 @@ main:has(> [data-model]) {
   letter-spacing: -0.01em;
 }
 
-.log-ghost {
-  order: 2;
+/* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
+   phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
+   the count line and the question, Start again, the lines figure, the record, Every revision. The
+   DOM keeps the reading order, header first; only the drawings, hidden from assistive tech, and
+   the row move up. The Theseus over the ghost: two drawings at one size, the Theseus's caption
+   under it in the header's type, one line at every width, 6 px from its drawing and 14 from the
+   ghost. */
+.log-theseus {
+  order: 3;
   margin-top: 16px;
+}
+
+.log-theseus-caption {
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.log-ghost {
+  order: 3;
+  margin-top: 14px;
 }
 
 .log-head p {
@@ -1811,21 +1844,65 @@ main:has(> [data-model]) {
 }
 
 [data-ghost-caption] {
-  order: 3;
+  order: 4;
   margin-top: 14px;
 }
 
 [data-ghost-count] {
-  order: 4;
+  order: 5;
   margin-top: 8px;
   color: var(--muted);
+}
+
+/* The 22nd merge's question, in the count line's slot: the body face, a step up, in ink, so it
+   doesn't stack a third condensed block against the h1 and the lines figure. It out-ranks
+   `.log-head p`. */
+.log-head .log-question {
+  order: 5;
+  margin-top: 12px;
+  font-size: var(--step-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+/* Start again, on /log under the count line, looks like Read as page (components/foot.tsx): ink,
+   a 1 px underline 6 px off, 2 px hovered, a 44 px target, 24 from 1024. Never copper, the site's
+   ring (Y4). */
+.log-start {
+  order: 6;
+  margin-top: 2px;
+}
+
+.log-start a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+
+@media (hover: hover) {
+  .log-start a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+@media (width >= 64rem) {
+  .log-start a {
+    min-height: 24px;
+  }
 }
 
 /* The lines figure (.crew/sprint/32/contract.md; notes-iris.md, section 3): under a 1 px ink rule
    after the count line, the figure in the display face as the frame sets it, the header's second
    voice after "Log", and the rest of the sentence under it in graphite. */
 .log-lines {
-  order: 4;
+  order: 7;
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--foreground);
@@ -1855,23 +1932,22 @@ main:has(> [data-model]) {
 }
 
 /* Read as page and the motion control below 768 px (components/log.tsx says why here): the foot's
-   44 px row, 12 px under the lines figure's last line, Read as page at the left and the group at
-   the right, on the Log's own 16 px text edge. It takes the count line's and the figure's order,
-   so the DOM sets the three in reading order. The drawing's-foot margins and 16 px of padding
-   (`.foot`) would pull it into the figure and double the Log's gutter. */
-.log > .foot {
-  order: 4;
+   44 px row, 12 px under the h1, at the drawings' head as on /, Read as page at the left and the
+   group at the right, on the Log's own 16 px text edge. The drawing's-foot margins and 16 px of
+   padding (`.foot`) would double the Log's gutter. */
+.log-side > .foot {
+  order: 2;
   margin: 12px 0 0;
   padding: 0;
 }
 
 .record {
-  order: 5;
+  order: 8;
   margin-top: 24px;
 }
 
 .log-revs {
-  order: 6;
+  order: 9;
   margin: 24px -16px 0;
   padding: 14px 16px 32px;
   border-top: 2px solid var(--foreground);
@@ -2093,20 +2169,36 @@ main:has(> [data-model]) {
     padding-block: 4px;
   }
 
+  /* The ghost's row is the flexible one, so where the header outgrows the two drawings its slack
+     falls under the ghost, never between the ships. */
   .log {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto 1fr;
     column-gap: 40px;
     margin: 0 16px;
     padding: 0;
   }
 
-  /* The header's text edge is the record box's below it; the drawing's transom stands on the
-     sheet's 40 px text edge, centred on the header's height. */
-  .log-head {
+  /* The right column is the header, then the record: one item, so the drawings' height moves
+     neither, and its height, which varies by step, moves neither drawing: the drawings' rows are
+     the drawings' own, and the ghost's, the flexible one, takes any slack under the ghost. On /log
+     it spans the drawings' rows and Every revision runs under both columns; on a record it runs
+     down beside Every revision too. */
+  .log-side {
     display: block;
     grid-column: 2;
-    grid-row: 1;
+    grid-row: 1 / 3;
+  }
+
+  .log-open .log-side {
+    grid-row: 1 / 4;
+  }
+
+  /* The header's text edge is the record box's below it; the drawings' transoms stand on the
+     sheet's 40 px text edge, the Theseus over the ghost. */
+  .log-head {
+    display: block;
     padding: 32px 24px 0;
   }
 
@@ -2114,29 +2206,47 @@ main:has(> [data-model]) {
     margin-top: 0;
   }
 
-  .log-ghost {
+  .log-theseus {
     grid-column: 1;
     grid-row: 1;
-    align-self: center;
     margin: 32px 0 0 24px;
   }
 
-  .record {
-    grid-column: 2;
+  .log-ghost {
+    grid-column: 1;
     grid-row: 2;
     align-self: start;
+    margin: 24px 0 0 24px;
+  }
+
+  /* The model's layer is the drawings' rows: it clips to its grid area, so the canvas it lays on
+     the ghost must lie inside it. */
+  .log-ghost + [data-model] {
+    grid-area: 1 / 1 / 3 / -1;
+  }
+
+  .record {
     margin-top: 40px;
+  }
+
+  /* On /log, Start again under the ghost, and Every revision under it. */
+  .log-start {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 16px 0 0 24px;
   }
 
   .log-revs {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 4;
     margin: 40px 0 0;
     padding: 18px 24px 40px;
   }
 
+  /* On a record, Every revision beside the record, in the row under the drawings. */
   .log-open .log-revs {
     grid-column: 1;
+    grid-row: 3;
     padding-right: 0;
   }
 }
@@ -2173,10 +2283,11 @@ main:has(> [data-model]) {
   }
 }
 
+/* The number at the left, the steps at the right (.crew/sprint/53/placement.md): in one row they
+   cost nothing above the h2, 283 px at their widest against 310 at 1024 and 324 at 390. */
 .record-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
 }
 
@@ -2186,12 +2297,54 @@ main:has(> [data-model]) {
   font-variant-numeric: tabular-nums;
 }
 
-.record-close {
+.record-steps {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+}
+
+/* Close and the steps: ink underlined (`.record a`), never copper, the site's ring, 44 px tall
+   below 1024 and 24 from it (Y4). An arrow is drawn 4 px off its word; as an inline-block it is
+   left out of the underline. */
+.record-close,
+.record-steps a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   font-size: var(--step-sm);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.step-arrow {
+  display: inline-block;
+}
+
+[data-step="previous"] .step-arrow {
+  margin-right: 4px;
+}
+
+[data-step="next"] .step-arrow {
+  margin-left: 4px;
+}
+
+/* Below 360 the four don't fit one row: the steps take their own, previous at the left and next
+   at the right, alone or not. */
+@media (width < 22.5rem) {
+  .record-top {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .record-steps {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .record-steps [data-step="next"] {
+    margin-left: auto;
+  }
 }
 
 /* `pretty`, not `balance`: a goal that runs past two lines keeps its lines full at 390, where balance
@@ -2262,24 +2415,15 @@ main:has(> [data-model]) {
   background: var(--muted);
 }
 
-/* Earlier at the left, later at the right, the later one at the right when it is alone too. */
+/* Close at the foot's right, under its rule. */
 .record-foot {
   display: flex;
-  justify-content: space-between;
   margin-top: 20px;
   padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
 
-.record-foot a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.record-next {
+.record-foot .record-close {
   margin-left: auto;
 }
 
@@ -2293,7 +2437,7 @@ main:has(> [data-model]) {
   }
 
   .record-close,
-  .record-foot a {
+  .record-steps a {
     min-height: 24px;
   }
 }

@@ -101,14 +101,36 @@ export function LogRecord({
 
   return (
     <section aria-labelledby="record" className="record">
-      {/* The revision's number, and Close back to the Log at the row's right. Plain links, no
-        boxes (.crew/sprint/30/notes-iris.md, section 2.3); the one list in the record is what
-        went wrong. */}
+      {/* The revision's number, and at the row's right the steps either side of it by merged
+        order, each left out at its end: the record's head, in the first screen, so a visitor
+        steps through the yard from it (.crew/sprint/52/first-contract.md, Y4; .crew/sprint/53/
+        placement.md, Iris's words). Plain links, no boxes (.crew/sprint/30/notes-iris.md, section
+        2.3); the arrows are drawn, not read. The one list in the record is what went wrong. */}
       <div className="record-top">
         <p className="record-rev">Rev {sprint}</p>
-        <a href="/log" className="record-close">
-          Close<span className="sr-only"> revision {sprint}</span>
-        </a>
+        {/* Each link's words are one span, so its arrow, an inline-block inside it, is left out
+          of the underline, which a flex link would carry onto every child. */}
+        <div className="record-steps">
+          {previous === undefined ? null : (
+            <a href={`/log/${previous}`} data-step="previous">
+              <span aria-hidden="true">
+                <span className="step-arrow">←</span>
+                {`Sprint ${previous}`}
+              </span>
+              <span className="sr-only">{`Back to sprint ${previous}`}</span>
+            </a>
+          )}
+          {next === undefined ? null : (
+            <a href={`/log/${next}`} data-step="next">
+              <span>
+                {`Seat sprint ${next}'s plank`}
+                <span aria-hidden="true" className="step-arrow">
+                  →
+                </span>
+              </span>
+            </a>
+          )}
+        </div>
       </div>
       <h2 id="record">{entry.goal}</h2>
       <dl>
@@ -129,16 +151,11 @@ export function LogRecord({
           </ul>
         </>
       ) : null}
-      {/* Earlier at the left, later at the right, by merged order; each left out at its end. */}
+      {/* Close back to the Log, at the foot's right. */}
       <div className="record-foot">
-        {previous === undefined ? null : (
-          <a href={`/log/${previous}`}>Rev {previous}</a>
-        )}
-        {next === undefined ? null : (
-          <a href={`/log/${next}`} className="record-next">
-            Rev {next}
-          </a>
-        )}
+        <a href="/log" className="record-close">
+          Close<span className="sr-only"> revision {sprint}</span>
+        </a>
       </div>
     </section>
   );

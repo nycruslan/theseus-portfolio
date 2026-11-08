@@ -22,6 +22,7 @@ import {
   tokenRgba,
   VALID,
   WRONG,
+  YARD_WORDS,
 } from "./log";
 import {
   MERGED,
@@ -470,9 +471,11 @@ test.describe("B5.6 A record per revision", () => {
       const wanted = [
         { href: LOG, name: `Close revision ${n}` },
         ...(previous
-          ? [{ href: recordOf(previous), name: `Rev ${previous}` }]
+          ? [{ href: recordOf(previous), name: YARD_WORDS.previous(previous) }]
           : []),
-        ...(next ? [{ href: recordOf(next), name: `Rev ${next}` }] : []),
+        ...(next
+          ? [{ href: recordOf(next), name: YARD_WORDS.next(next) }]
+          : []),
       ];
       const links = (await readRecord(page)).links
         .map((link) => link.href)

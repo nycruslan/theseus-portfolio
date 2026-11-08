@@ -40,11 +40,11 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   and the yard recommended; Pixel's headroom; Quill's plan and Ya's contract (Y1 to Y8). (PR #118.)
   Left open before Ya: Iris's placement and words; before Yc, Pixel's draw and triangle counts for
   two hulls (9 draws against 8, about 50k triangles against 30k on desktop; `plan.md`).
-- [ ] Ya (M): every step is a page. `/log/n` draws the Theseus and the ghost as they stood after
+- [x] Ya (M): every step is a page. `/log/n` draws the Theseus and the ghost as they stood after
   sprint n, the record's previous and next become the step links in its head, `/log` gets Start
   again, and the 22nd merge asks which one is the Theseus. No script, every mode, the 3D ghost
   following its step. Pixel runs Yc's two-hull spike alongside. Y1 to Y8; it starts with Iris's
-  placement call.
+  placement call. (Sprint 53, PR #119. Lens: ship on 040baac. Yc's spike is `.crew/sprint/53/spike-pixel.md`. Left open, as Lens's nits: the stale layout comments in `app/globals.css`, `foot.tsx` and `bar.tsx`, and Y8's script bytes reported before and after.)
 - [ ] Yb (S): a card and a title for every step: both ships at n, the sprint's line, and the
   question at 23 (Y9 to Y11).
 - [ ] Yc (M; Pixel leads): the press in 3D. The Theseus joins the ghost in one canvas; a press lifts

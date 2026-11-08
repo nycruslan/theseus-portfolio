@@ -7,6 +7,7 @@ import {
   linesPlans,
   type LinesPlan as Plan,
   pagePlan,
+  theseusPlan,
 } from "@/lib/lines-plan";
 
 /** The sprint in progress on the sheet's drawing (lib/live-layer.ts). */
@@ -23,7 +24,10 @@ type Pencil = { seat: string; sprint: number; live: boolean };
 // On /read's narrow column, the profile and half-breadth plan alone, numbered from 768 px. On the
 // Log, the ghost hull (.crew/sprint/29/b5-first-contract.md; .crew/sprint/30/notes-iris.md): the
 // profile alone, with only the originals the crew has taken out, in vellum, each numbered by its
-// first holder; `current` marks the seat a record's sprint took.
+// first holder; `current` marks the seat a record's sprint took. Beside it the Theseus, the same
+// profile with every plank, as / draws a seated or an original one (.crew/sprint/52/
+// first-contract.md). It is `[data-theseus]`, never `[data-plan]` or `[data-ghost]`, so the 3D
+// chunk, which reads those, never reads it.
 export function LinesPlan({
   seats,
   view = "sheet",
@@ -32,8 +36,8 @@ export function LinesPlan({
   className = "",
 }: {
   seats: ReadonlyMap<string, number>;
-  view?: "sheet" | "page" | "ghost";
-  /** The ghost's seat to mark, on a record. */
+  view?: "sheet" | "page" | "ghost" | "theseus";
+  /** The Log's seat to mark, on a record. */
   current?: string;
   /** The sheet's sprint in progress. */
   pencil?: Pencil | null;
@@ -43,6 +47,17 @@ export function LinesPlan({
     return (
       <div data-ghost="" aria-hidden="true" className={`plan ${className}`}>
         <Drawing plan={ghostPlan(seats)} id="plan-ghost" current={current} />
+      </div>
+    );
+  }
+  if (view === "theseus") {
+    return (
+      <div data-theseus="" aria-hidden="true" className={`plan ${className}`}>
+        <Drawing
+          plan={theseusPlan(seats)}
+          id="plan-theseus"
+          current={current}
+        />
       </div>
     );
   }
@@ -171,6 +186,8 @@ function Drawing({
 }) {
   const { lines } = plan;
   const ghost = id === "plan-ghost";
+  // The Log's ships are the profile alone.
+  const alone = ghost || id === "plan-theseus";
   // The current plank, or the one in pencil, goes last, so its edge paints over its neighbours'
   // where they share one.
   const last = current ?? pencil?.seat;
@@ -227,9 +244,9 @@ function Drawing({
             </pattern>
           ) : null}
         </defs>
-        {/* Construction first: the planks cover it where it crosses the hull. The ghost is the
-          profile alone, with none. */}
-        {ghost ? null : (
+        {/* Construction first: the planks cover it where it crosses the hull. The Log's ships are
+          the profile alone, with none. */}
+        {alone ? null : (
           <>
             <path className="ln-construction" d={lines.construction} />
             <path className="ln-waterline" d={lines.waterlines} />
@@ -275,7 +292,7 @@ function Drawing({
             );
           })}
         </g>
-        {ghost ? null : (
+        {alone ? null : (
           <>
             <path className="ln-section" d={lines.sections} />
             <path className="ln-deck" d={lines.deck} />

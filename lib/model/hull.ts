@@ -247,33 +247,36 @@ function seamLines(
 ) {
   const out: number[] = [];
   const on = (x: number, y: number, side: number) => surface(x, y, side).p;
-  // The ghost's seats: a seam is drawn only beside a plank it has, so a gap leaves none.
-  const beside = (k: number, x: number) =>
-    PLANKS.some(
+  // The ghost's seats: seam k runs only beside a plank it has, from that plank's butt to its butt,
+  // so a gap leaves none. Whole station spans would run a seam past a plank's end into the gap
+  // beside it, 2 to 3 px at 1440, off the 2D's edge (B5.18 on a partial step). With every seat,
+  // the one run is the whole seam, drawn as the sheet draws it.
+  const runs = (k: number, a: number, b: number) => {
+    if (!seats) return [[a, b]];
+    const spans = PLANKS.filter(
       (plank) =>
-        seats?.has(plank.id) &&
-        lift(plank) === k &&
-        x >= plank.x0 &&
-        x <= plank.x1,
-    );
+        seats.has(plank.id) && (lift(plank) === k - 1 || lift(plank) === k),
+    )
+      .map((plank) => [Math.max(plank.x0, a), Math.min(plank.x1, b)])
+      .filter(([x0 = 0, x1 = 0]) => x1 > x0)
+      .sort((p, q) => (p[0] ?? 0) - (q[0] ?? 0));
+    const joined: number[][] = [];
+    for (const [x0 = 0, x1 = 0] of spans) {
+      const last = joined.at(-1);
+      if (last && x0 <= (last[1] ?? 0)) last[1] = Math.max(last[1] ?? 0, x1);
+      else joined.push([x0, x1]);
+    }
+    return joined;
+  };
   for (let k = 1; k < BUTTS.length; k++) {
     const y = seamDepth(k);
     const [a, b] = ends(y);
-    const xs = stationsIn(stations, a, b);
     for (const side of [1, -1]) {
-      if (!seats) {
+      for (const [x0 = 0, x1 = 0] of runs(k, a, b)) {
         segments(
-          xs.map((x) => on(x, y, side)),
+          stationsIn(stations, x0, x1).map((x) => on(x, y, side)),
           out,
         );
-        continue;
-      }
-      for (let i = 0; i < xs.length - 1; i++) {
-        const [x0, x1] = [xs[i] ?? 0, xs[i + 1] ?? 0];
-        const mid = (x0 + x1) / 2;
-        if (beside(k - 1, mid) || beside(k, mid)) {
-          segments([on(x0, y, side), on(x1, y, side)], out);
-        }
       }
     }
   }

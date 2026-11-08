@@ -104,12 +104,32 @@ export function seatHolders(merged: readonly number[]): Map<string, number[]> {
  * replaced twice keeps the older number, so the ghost is the original ship reassembled from what the
  * crew removed (contract, "The ghost hull"), where the sheet's label is the newest.
  */
-export function ghostPlanks(merged: readonly number[]): Map<string, number> {
+function ghostPlanks(merged: readonly number[]): Map<string, number> {
   const ghost = new Map<string, number>();
   for (const [id, [first]] of seatHolders(merged)) {
     if (first !== undefined) ghost.set(id, first);
   }
   return ghost;
+}
+
+/** The yard's two ships after one step: `k` merges seated, each ship's numbers by seat. */
+export type Ships = {
+  k: number;
+  /** Each seat's last holder; a seat missing from the map shows its original. */
+  theseus: Map<string, number>;
+  /** Each seat's first holder; a seat missing from the map is a gap. */
+  ghost: Map<string, number>;
+};
+
+/**
+ * The ships as they stood after step `sprint` (.crew/sprint/52/first-contract.md, "The rule, word
+ * for word"): the steps are the merged sprints in ascending order, and after the i-th the first i
+ * have seated their planks, so k is i. With no step, the newest: every merged sprint.
+ */
+export function shipsAt(merged: readonly number[], sprint?: number): Ships {
+  const k = sprint === undefined ? merged.length : merged.indexOf(sprint) + 1;
+  const seated = merged.slice(0, k);
+  return { k, theseus: seatPlanks(seated), ghost: ghostPlanks(seated) };
 }
 
 // --- Path strings ---------------------------------------------------------------------------
@@ -260,8 +280,11 @@ const SEAMS = Array.from({ length: BUTTS.length - 1 }, (_, i) =>
 
 /** What one pass draws beside the layout and the seats. */
 type Pass = {
-  /** The Log's ghost: the profile alone, only the planks in `seats`. */
-  ghost?: boolean;
+  /**
+   * One of the Log's two ships, each the profile alone: the ghost draws only the planks in
+   * `seats`, the Theseus every plank, an original where `seats` has none.
+   */
+  ship?: "ghost" | "theseus";
   /** The seat of the sprint in progress, whose number `seats` carries: it gets the tip. */
   pencil?: string;
   /**
@@ -321,16 +344,18 @@ function marksOf(
 }
 
 /**
- * Draws one layout. The ghost pass draws the profile alone, the outline, the planks in `seats`,
- * each numbered, and its leader, and leaves a gap where a seat has none (.crew/sprint/30/
- * notes-iris.md, section 1.1); otherwise a plank missing from `seats` is drawn as an original.
+ * Draws one layout. A ship's pass draws the profile alone, the outline, its planks, each seated one
+ * numbered, and its leader; the ghost leaves a gap where a seat has none (.crew/sprint/30/
+ * notes-iris.md, section 1.1), and otherwise a plank missing from `seats` is drawn as an original.
  */
 function draw(
   layout: Layout,
   seats: ReadonlyMap<string, number>,
-  { ghost = false, pencil, focus }: Pass = {},
+  { ship, pencil, focus }: Pass = {},
 ): LinesPlan {
   const { box, ox, oy, s, hbY, body } = layout;
+  const alone = ship !== undefined;
+  const ghost = ship === "ghost";
   const crew = focus !== undefined;
   const P = (x: number, y: number): Point => [ox + x * s, oy + y * s];
   const outside = ([x, y]: Point) =>
@@ -362,7 +387,7 @@ function draw(
 
   // The profile's construction. Stations 0 to 10 run down through the half-breadth plan too, or,
   // on /crew's detail, which has none, to just past the base line.
-  if (!ghost) {
+  if (!alone) {
     drawProfile(layout, crew ? oy + BASE * s + 4 : hbY + 6, lines, letter);
   }
 
@@ -379,10 +404,10 @@ function draw(
   const tally = crew && pencil ? tallyOf(pencil) : null;
   const drawn = ghost ? PLANKS.filter((plank) => seats.has(plank.id)) : PLANKS;
   const planks = drawn.map((plank): PlankShape => {
-    // The deck lift's box starts above the hull for the outline to cut. The ghost's box hugs the
+    // The deck lift's box starts above the hull for the outline to cut. A ship's box hugs the
     // hull, so there it starts at the hull's top, the bow tip (y = 0): the cut plank is the same,
     // and the path stays inside the drawing.
-    const [x0, y0] = P(plank.x0, ghost ? Math.max(plank.yTop, 0) : plank.yTop);
+    const [x0, y0] = P(plank.x0, alone ? Math.max(plank.yTop, 0) : plank.yTop);
     const [x1, y1] = P(plank.x1, plank.yBot);
     const sprint = seats.get(plank.id);
     const focused = plank.id === focus;
@@ -400,7 +425,7 @@ function draw(
     };
   });
 
-  if (!ghost && !crew) {
+  if (!alone && !crew) {
     drawHalfBreadth(layout, lines, letter);
     if (body) drawBody(body, lines, letter);
   }
@@ -551,5 +576,13 @@ export function pagePlan(seats: ReadonlyMap<string, number>) {
  * `ghostPlanks` (.crew/sprint/30/notes-iris.md, section 1).
  */
 export function ghostPlan(seats: ReadonlyMap<string, number>) {
-  return draw(GHOST, seats, { ghost: true });
+  return draw(GHOST, seats, { ship: "ghost" });
+}
+
+/**
+ * The Log's Theseus (.crew/sprint/52/first-contract.md): the ghost's profile and size with every
+ * plank, each seat's last holder numbered and the rest originals, from `seatPlanks`.
+ */
+export function theseusPlan(seats: ReadonlyMap<string, number>) {
+  return draw(GHOST, seats, { ship: "theseus" });
 }
