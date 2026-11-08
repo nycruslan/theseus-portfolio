@@ -1465,6 +1465,8 @@ function start(
     p.span = Math.max(1, Math.min(HURRY, rate > 0 ? left / rate : 0));
     p.begin = next.asked;
     p.next = next;
+    // It is the riffle's first page now: the marks stay off until the stop (Iris, section 2).
+    p.marks = false;
     tag(Math.max(next.from, next.to));
   };
 
