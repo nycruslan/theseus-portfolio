@@ -165,6 +165,20 @@ function refocus(region: Element | null, was: ReturnType<typeof focusIn>) {
   });
 }
 
+/**
+ * The next task, after the input event in hand has finished with its default actions. A message,
+ * not a timer, so a paused clock (Playwright's, in the checks) doesn't hold it.
+ */
+const nextTask = () =>
+  new Promise<void>((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+
 /** Typing in a field owns its arrow keys. */
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -439,9 +453,15 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
    * One step. A press lands a moving plank first and flies once that has settled, as in Yc. A
    * riffle's step calls `go` on the riffle's clock, and the 3D hurries a moving plank home itself;
    * `pace` is the gap to the next step, and the step onto a chapter has none, so it plays the
-   * whole press (Iris's calls, section 3). Returns whether it stepped.
+   * whole press (Iris's calls, section 3). Its words wait for `input` when it is given. Returns
+   * whether it stepped.
    */
-  const step = (to: number, riffling = false, pace?: number) => {
+  const step = (
+    to: number,
+    riffling = false,
+    pace?: number,
+    input?: Promise<void>,
+  ) => {
     const sprint = steps[to];
     if (!alive || sprint === undefined || to === target) return false;
     const before = flight;
@@ -476,8 +496,9 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
         .catch(failed)
         .then(landed);
     }
-    page(sprint).then(
-      (fresh) => arrived(flown, fresh),
+    const fetched = page(sprint);
+    Promise.all([fetched, input]).then(
+      ([fresh]) => arrived(flown, fresh),
       () => {},
     );
     return true;
@@ -510,12 +531,19 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     ahead(now.by);
   };
 
-  /** A press that may be held: one step at once, and still down at 400 ms, the riffle. */
-  const hold = (by: 1 | -1, source: Pick<Held, "pointer" | "key">) => {
+  /**
+   * A press that may be held: one step at once, and still down at 400 ms, the riffle. Its words
+   * wait for `input` when it is given.
+   */
+  const hold = (
+    by: 1 | -1,
+    source: Pick<Held, "pointer" | "key">,
+    input?: Promise<void>,
+  ) => {
     release();
     const to = target + by;
     // A press onto a chapter never riffles (Iris, section 3).
-    if (!step(to) || isStop(to)) return;
+    if (!step(to, false, undefined, input) || isStop(to)) return;
     held = {
       by,
       n: 0,
@@ -576,11 +604,12 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     link.addEventListener("pointerup", lift);
     link.addEventListener("pointercancel", lift);
     if (mouse) {
-      // No drag image and no selection; focus is the controller's, where a click would put it.
-      event.preventDefault();
-      link.focus({ preventScroll: true });
+      // The hulls move at once; the words wait for the press's own mousedown to focus the link,
+      // with no ring, as Yc's click does, so `words` moves focus to its replacement still without
+      // one. Replaced first, the link's focus falls to main, and focusing it by script shows the
+      // ring (Iris's review). The drag image is `drag`'s, the selection CSS's.
       claimed = true;
-      hold(by, { pointer: id });
+      hold(by, { pointer: id }, nextTask());
       return;
     }
     down.timer = view.setTimeout(() => {
