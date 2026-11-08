@@ -23,3 +23,14 @@
    and record reads, and B5.20's and B5.23's plank helpers, read over `[data-ghost]`'s box (B5.23's
    ≤ 8 draws unedited). Retired: Y6's "the Theseus's planks still painted" in Full and Calm,
    because the 2D Theseus beside a 3D ghost is gone; Y12 checks the Theseus where it is now drawn.
+7. **Integrated at 87fce76** (Pixel's `pixel/55` merged, carrying Forge's controller and Probe's
+   rewrites): `pnpm verify` passes. Pixel's suite on his head: 126 of 127 Log and model checks,
+   every Y12 to Y18 among them; the one red is B5.19's stray clause on `/log/13` at 1440, 2 edge
+   pixels, which Probe settles (a named rewrite only if variant B still fails with it).
+8. **The chunk grew 9,585 B gzip, over the plan's 4 to 7 KB estimate** and far under the
+   250,000 B cap (164,556 B). Accepted: the estimate predates the per-ship lines of sight, the
+   device-pixel snapping Y12 needed and the stable number placement; the loader adds 0 B.
+9. **Number placement depends only on each number's own plank and the pose** (Iris's call, built
+   by Pixel). Production already moved untouched numbers between cold loads of neighbouring steps
+   (the ghost's 6, x 504 on `/log/13` against 414 on `/log/14`); here they hold, so numbers sit a
+   little differently from production.
