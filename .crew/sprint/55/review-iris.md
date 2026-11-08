@@ -122,3 +122,32 @@ The frames, JSON logs and scripts are in
 - **Draws, triangles and frames at rest.** I didn't count them; that's Probe's Y13 and Y18 (my
   build ran `pnpm build` only, not the e2e suite).
 - **Chrome.** These are Chromium headless shell frames, so type texture isn't judged here.
+
+## Second round: 5fd7621, reviewed at da4d694
+
+Verdict: ship, 8.3/10. Both musts are fixed, and no new must. Craft goes from 7 to 8:
+(2 × 8 + 2 × 9 + 8 + 8) / 6 = 8.3.
+
+I reviewed a production build of `sprint/55-the-press` at da4d694 (5fd7621 plus Atlas's
+decisions), on :3361, since stopped.
+
+- **Must 1 holds: no shift.** In a real-time Full press from `/log/22` to 23 at 390, there's no
+  layout shift without recent input, and the question is on the page.
+- **Must 2 holds: the dark numbers pass.** On `/log/13`, dark, 1440, the six numbers I measured
+  before now read 4.88 (6), 4.96 (12), 5.42 (3), 6.43 (2), 7.73 (9) and 8.76 (13), against
+  2.09 to 6.30.
+- **Light is unchanged.** On `/log/13` at 1440, the drawings' band matches the first round's
+  build exactly: 0 of 1,692,000 px differ.
+- **No console errors** on 13, 23 and 40 at 1440, or on 13 at 1024.
+- **The darker dark Theseus: accept.** It now reads as production's dark 2D card does: slate card,
+  near-black originals, the light ink outline. In dark the two hulls sit closer in value, and the
+  Theseus holds apart by being opaque against the ghost's see-through vellum. On `/log/23` that
+  closeness suits the question. `/` keeps its × 4.
+- **The gap's inside in dark: keep `INSIDE_DARK`.** In the 380 ms frame it measures Y 0.017, in
+  a cooler rgb 27, 37, 41, against Y 0.025 for the original beside it. The far side's seams show
+  through it, so it reads as a hole. Any lower would meet the page's ground (Y 0.009) and read as
+  see-through to the sheet.
+- **The record's 13 at 1024 dark: accept, as sprint 33's keel touch.** The digits fill the keel
+  strake and their tops meet the record's 2 px mark, but at 4x they read cleanly.
+  - Leading the record's own number out would pull the eye off the plank the record is about.
+  - Sizing it down would break the numbers' one size.
