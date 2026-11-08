@@ -436,11 +436,17 @@ function start(
     const g = sheet.drawing.getBoundingClientRect();
     const t = theseusDrawing?.getBoundingClientRect();
     const device = (n: number) => Math.round(n * devicePixelRatio);
-    const within = (r: DOMRect) => ({
-      left: (device(r.left) - device(p.left)) / devicePixelRatio,
-      top: (device(r.top) - device(p.top)) / devicePixelRatio,
-      height: r.height,
-    });
+    // A ship turns inside the part of its drawing the canvas holds: whole buffer rows can stop the
+    // canvas up to half a row short of the lower drawing's bottom, and the ghost's keel then inked
+    // the last row (0.67 at 1440 × 900, DPR 1: B5.18's edge clause). Frame 1 reads only the top.
+    const within = (r: DOMRect) => {
+      const top = (device(r.top) - device(p.top)) / devicePixelRatio;
+      return {
+        left: (device(r.left) - device(p.left)) / devicePixelRatio,
+        top,
+        height: Math.min(r.height, css(buffer[1]) - top),
+      };
+    };
     return {
       left: p.left - h.left,
       top: p.top - h.top,

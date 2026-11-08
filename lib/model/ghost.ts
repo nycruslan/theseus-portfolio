@@ -11,6 +11,7 @@ import {
   ledOut,
   numberX,
   numberY,
+  ORDER,
   PENCIL,
   PLANKS,
 } from "@/lib/hull-layouts";
@@ -371,27 +372,35 @@ export function riders(
   let widths: number[] = [];
 
   /**
-   * One number's box at two digits, regular weight, and its digits' ink insets: every number is
-   * placed at this size, so none moves with another's digits or with the record's bold one.
+   * A number's box and its digits' ink insets by its count of digits, at the record's bold weight.
+   * The figures are tabular, so every number with as many digits is as wide, and a seat keeps its
+   * first holder's number on every step: each seat's box is the same on every step, holds the
+   * record's bold number, and moves no other number with the record.
    */
-  const twoDigits = () => {
-    const span =
-      labels.find(({ span }) => !span.classList.contains("plan-current"))
-        ?.span ?? labels[0]?.span;
-    const none = { l: 0, r: 0, t: 0, b: 0 };
-    if (!span?.parentElement) return { w: 0, h: 0, inset: none };
-    const probe = span.cloneNode(false) as HTMLElement;
-    probe.classList.remove("plan-current", "plan-end");
-    probe.textContent = "88";
-    probe.style.visibility = "hidden";
-    span.parentElement.append(probe);
-    const size = {
-      w: probe.offsetWidth,
-      h: probe.offsetHeight,
-      inset: inkInsets(probe),
+  const bySize = () => {
+    const span = labels[0]?.span;
+    const parent = span?.parentElement;
+    const none = { w: 0, h: 0, inset: { l: 0, r: 0, t: 0, b: 0 } };
+    if (!span || !parent) return () => none;
+    const sizes = new Map<number, typeof none>();
+    return (digits: number) => {
+      const known = sizes.get(digits);
+      if (known) return known;
+      const probe = span.cloneNode(false) as HTMLElement;
+      probe.classList.remove("plan-end");
+      probe.classList.add("plan-current");
+      probe.textContent = "8".repeat(digits);
+      probe.style.visibility = "hidden";
+      parent.append(probe);
+      const size = {
+        w: probe.offsetWidth,
+        h: probe.offsetHeight,
+        inset: inkInsets(probe),
+      };
+      probe.remove();
+      sizes.set(digits, size);
+      return size;
     };
-    probe.remove();
-    return size;
   };
 
   /** A number's point (its box's anchor) and its plank's projected depth there, at x and e. */
@@ -544,7 +553,7 @@ export function riders(
     }
     // Every seat's number, as the 2D numbers it: the drawing's own, and the step's others where the
     // 2D would set them once their seats are filled (Iris, press-iris.md 7, "Second look"). Each is
-    // placed as if all were drawn, at one box's size, two digits', so a number's place depends only
+    // placed as if all were drawn, at its seat's box (`bySize`), so a number's place depends only
     // on its own plank and the pose: a step changes no number but its own seat's, and cold loads of
     // two steps agree. The seats a step doesn't number stand in, placed but never shown.
     const drawnSeats = new Set(labels.map((label) => label.seat));
@@ -552,6 +561,15 @@ export function riders(
       ...labels,
       ...PLANKS.filter((plank) => !drawnSeats.has(plank.id)).map(standIn),
     ];
+    // A stand-in's number is its seat's first holder to come, with as many digits as the seat's
+    // place in ORDER counts: sprints 1 to 9 each took a seat, in ORDER's first nine.
+    const size = bySize();
+    const sizes = spots.map((spot, i) =>
+      size(
+        labels[i]?.span.textContent?.trim().length ||
+          String(ORDER.indexOf(spot.seat ?? "") + 1).length,
+      ),
+    );
     const spotPlanks = spots.map((spot) =>
       PLANKS.find((plank) => plank.id === spot.seat),
     );
@@ -584,10 +602,10 @@ export function riders(
     };
     type Place = { x: number; box: Box; score: number; d: number };
     widths = labels.map(({ span }) => span.offsetWidth);
-    const { w, h, inset } = twoDigits();
     /** Each number's places along its plank, with how clear each is of the plank's lines. */
     const places = spots.map((label, i): Place[] => {
       const plank = spotPlanks[i];
+      const { w, h, inset } = sizes[i] ?? size(2);
       const boxAt = ([x, y]: Point): Box =>
         label.end
           ? { l: x - w, r: x, t: y - h / 2, b: y + h / 2 }
@@ -674,12 +692,15 @@ export function riders(
      * Of a number's places 2 px clear of the others, nearest the 2D's place: the first clear of the
      * lines; where none is, the first, so the number keeps its plank's middle and touches a line
      * (Iris accepts the stern's and keel's touches; review-iris.md, the decision on the touches).
+     * Where no place is clear of the others, the 2D's place, held so the others make way.
      */
     const choose = (i: number, others: readonly Box[]) => {
       const open = (places[i] ?? [])
         .filter((place) => others.every((other) => apart(place.box, other)))
         .sort((a, b) => a.d - b.d);
-      return open.find((place) => place.score >= ink) ?? open[0];
+      return (
+        open.find((place) => place.score >= ink) ?? open[0] ?? places[i]?.[0]
+      );
     };
     // The hardest first, the planks whose clearest place is least clear (the keel's and the
     // stern's), so the roomier ones make way; then each again with all the others set.
