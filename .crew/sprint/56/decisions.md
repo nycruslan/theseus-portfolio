@@ -16,3 +16,10 @@
 5. **The hand-off link is server HTML** on `/log` and the newest record, so it is there in Off and
    with no script, and a press reaches it by Yc's swap of the server's words, with no new client
    markup.
+6. **Iris's riffle calls are built as written** (`riffle-iris.md`): the pace gap(k) =
+   max(80, round(400 × 0.725^(k−1))); a chapter step plays Yc's whole press; during a riffle only
+   the Theseus caption and count follow, and the record, URL, title and live region change once, at
+   the stop or release (stricter than contract point 5, which allowed more). Her five additions are
+   accepted, the touch one with a reading of Y20: under touch, "steps once at once" means at a tap's
+   release or once the finger has held still 400 ms, never at pointerdown, since a scroll that
+   starts on a step link must not step the yard.
