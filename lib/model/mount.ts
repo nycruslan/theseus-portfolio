@@ -15,7 +15,7 @@ import {
   PLANKS,
   WIDE,
 } from "@/lib/hull-layouts";
-import { DURATION, ease } from "./calls";
+import { DURATION, ease, GHOST_OUTLINE_PX, OUTLINE_PX } from "./calls";
 import {
   type CrewState,
   crewMove,
@@ -36,7 +36,6 @@ import {
   riders,
 } from "./ghost";
 import {
-  ALWAYS,
   buildHull,
   buildShip,
   DESKTOP,
@@ -45,13 +44,11 @@ import {
   type Level,
   PHONE,
   PICK,
-  plankEdges,
   type Ship,
-  SIDE,
   YARD_DESKTOP,
   YARD_PHONE,
 } from "./hull";
-import { type Frame, type Loft, makeLoft } from "./loft";
+import { EDGE, type Frame, type Loft, makeLoft } from "./loft";
 import { type Pencil, pencilMarks, readPencil } from "./pencil";
 import { bakeShadow } from "./shadow";
 import { createShips, type Plan, type Ships, type Step } from "./ships";
@@ -520,6 +517,9 @@ function start(
         ...next,
         drawing: next.theseus?.drawing ?? next.drawing,
         box: next.theseus,
+        // Its outline is the sheet's 1.6 px, heavier than the ghost's 1.4 that EDGE allows for:
+        // held at its drawing's length, its bow's ink took half the canvas's top row (Y12).
+        edge: EDGE + (OUTLINE_PX - GHOST_OUTLINE_PX) / 2,
       },
       level.theseus.points,
       GHOST,
@@ -575,30 +575,15 @@ function start(
   };
 
   /**
-   * The lines a ship's numbers clear at rest on the Log: its seams the step shows (the ghost's
-   * seats', or all the Theseus's), its outline and the record's mark.
+   * The lines a ship's numbers clear at rest on the Log: all its seams, whichever seats the step
+   * fills, and its outline; not the record's mark, which moves each step and lies on seams anyway.
+   * A number's place then depends only on its own plank and the pose (Iris, press-iris.md 7).
    */
-  const linesOf = (ship: Ship | undefined, page: GhostPage | undefined) => {
+  const linesOf = (ship: Ship | undefined) => {
     if (!ship) return new Float32Array(0);
-    const has = (tag: number) =>
-      tag === ALWAYS ||
-      page?.hull.seats.has(PLANKS[tag >= SIDE ? tag - SIDE : tag]?.id ?? "");
-    const kept: number[] = [];
-    const { seams, tags } = ship;
-    for (let i = 0; i < seams.length / 6; i++) {
-      if (tags && !has(tags[2 * i] ?? 0) && !has(tags[2 * i + 1] ?? 0))
-        continue;
-      for (let j = 0; j < 6; j++) kept.push(seams[6 * i + j] ?? 0);
-    }
-    const record = page?.current
-      ? plankEdges(sheet.level, page.current, 1)
-      : new Float32Array(0);
-    const all = new Float32Array(
-      kept.length + ship.outline.length + record.length,
-    );
-    all.set(kept);
-    all.set(ship.outline, kept.length);
-    all.set(record, kept.length + ship.outline.length);
+    const all = new Float32Array(ship.seams.length + ship.outline.length);
+    all.set(ship.seams);
+    all.set(ship.outline, ship.seams.length);
     return all;
   };
 
@@ -626,7 +611,7 @@ function start(
       fit.drawing / GHOST.box[2],
       e,
       shown,
-      () => linesOf(yard?.ghost, ghost),
+      () => linesOf(yard?.ghost),
       at(fit.box),
     );
     theseusNumbers?.place(
@@ -634,7 +619,7 @@ function start(
       (fit.theseus?.drawing ?? fit.drawing) / GHOST.box[2],
       e,
       shown,
-      () => linesOf(yard?.theseus, theseus),
+      () => linesOf(yard?.theseus),
       at(fit.theseus),
     );
   };

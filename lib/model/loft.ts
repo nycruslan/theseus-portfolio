@@ -53,7 +53,7 @@ const STANDOFF = 76;
  * so its first and last buffer rows are the edge rows, and the outline's ink must cover under half
  * of them (B5.18, where at 390 it covered 54% of the top row).
  */
-const EDGE = 0.95;
+export const EDGE = 0.95;
 /** Samples of the solved loft; the frame loop interpolates between them. */
 const SAMPLES = 48;
 
@@ -114,6 +114,8 @@ export type Frame = {
    * The model registers on it and turns in place inside it, while the camera stays the canvas's.
    */
   box?: { left: number; top: number; height: number };
+  /** What a turn in place keeps clear of its box's edge besides half a buffer row; EDGE if none. */
+  edge?: number;
 };
 
 /** Where the model settles on one drawing: its offset in the drawing's units, its turn in
@@ -203,7 +205,7 @@ export function makeLoft(
   crew?: Crew,
 ) {
   const { width, height, ratio = 1 } = frame;
-  const margin = EDGE + 0.5 / ratio;
+  const margin = (frame.edge ?? EDGE) + 0.5 / ratio;
   // Where the camera looks from: the canvas's centre, or on the Log the ship's own drawing's, so
   // each ship is seen on its own line of sight as the ghost was on a canvas of its own (Iris's
   // twins, press-iris.md, section 0); lib/model/ships.ts shears each ship into the one camera.
