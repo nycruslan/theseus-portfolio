@@ -211,6 +211,8 @@ type Held = {
   by: 1 | -1;
   n: number;
   timer: number;
+  /** When the next step is due, on the page's clock (`performance.now()`). */
+  due: number;
   /** What holds it, so only its own release ends it. */
   pointer?: number;
   key?: string;
@@ -507,7 +509,9 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
   /** The riffle's next step, on the pace's clock. */
   const tick = () => {
     const now = held;
-    if (!alive || !now) return;
+    // Nothing follows the step onto a chapter, held or not.
+    if (!alive || !now || now.stopping) return;
+    view.clearTimeout(now.timer);
     const to = target + now.by;
     if (steps[to] === undefined) return release();
     now.n += 1;
@@ -527,8 +531,25 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     }
     const gap = riffleGap(now.n, calm());
     step(to, true, gap);
-    now.timer = view.setTimeout(tick, gap);
+    later(now, gap);
     ahead(now.by);
+  };
+
+  /** The hold's next step in `ms`, counted from now, so a late step never brings a burst. */
+  const later = (now: Held, ms: number) => {
+    now.due = view.performance.now() + ms;
+    now.timer = view.setTimeout(tick, ms);
+  };
+
+  /**
+   * A held key's own repeats step the riffle once its step is due: on a busy main thread the
+   * browser runs input before timers, so the repeats alone would starve the timer (4x CPU, Y24).
+   * The pace stays the controller's, never the OS's.
+   */
+  const repeated = (event: KeyboardEvent) => {
+    if (held?.key !== event.key) return;
+    event.preventDefault();
+    if (view.performance.now() >= held.due) tick();
   };
 
   /**
@@ -547,11 +568,13 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     held = {
       by,
       n: 0,
-      timer: view.setTimeout(tick, HOLD_MS),
+      timer: 0,
+      due: 0,
       link: null,
       stopping: false,
       ...source,
     };
+    later(held, HOLD_MS);
   };
 
   /** A pointer is up or cancelled: a touch's wait ends, and a hold it made is released. */
@@ -690,14 +713,10 @@ export function startYard(doc: Document, makePress: MakePress): () => void {
     if (event.defaultPrevented || chorded(event)) return;
     if (event.key === "Escape") return release();
     if (linkKey(event)) return;
+    if (event.repeat) return repeated(event);
     const by =
       event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
-    if (
-      !by ||
-      event.repeat ||
-      typing(event.target) ||
-      steps[target + by] === undefined
-    ) {
+    if (!by || typing(event.target) || steps[target + by] === undefined) {
       return;
     }
     event.preventDefault();
