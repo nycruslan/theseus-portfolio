@@ -162,3 +162,20 @@ These are from Pixel's frames: 1440, /log/13 → 14 at seat 2.1, /log/40 → 41,
 **To verify on a production build:** the 41 → knock frame showed no new number. The caption was
 still 40, so the swap hadn't landed on the slow dev server. With prefetch, the number has to
 arrive on the knock frame.
+
+**Second look (16b9121, frames h-* and g-*):**
+
+All five changes hold.
+- **The gap.** Its inside measures Y 0.288 (rgb 140, 148, 145) against neighbours at 0.43 to
+  0.53. The far side's seams show through it, which reads as a real hole.
+- **The arc.** It sways 19 px right of the seat at mid-carry: 27 px of sway less the shear.
+- **Growth** measures 1.05×.
+- **Numbers under the plank** are hidden while it passes.
+- **The twins** now hold one length, seat over seat at the same x.
+
+One left, and it's mine to keep: **the ghost's 6 jumps 48 px at the knock** (h-560 → h-after), on
+a seat the press didn't touch. The 2D sets it at 48.52% on both /log/13 and /log/14, so it's the
+3D placement reacting to the newly filled seat.
+- A step is a flip-book frame: only the pressed seat's numbers may change.
+- Make each number's place depend only on its own plank and the pose, so cold loads of
+  neighbouring steps agree too.
