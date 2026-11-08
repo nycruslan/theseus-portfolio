@@ -666,7 +666,7 @@ export function createShips(
   };
 
   /** Solves the flight once the hulls are settled (Iris, section 4, "Arc"). */
-  const solve = (plan: Plan): Path => {
+  const solve = (plan: Plan, carries: boolean): Path => {
     const slot = slotOf(plan.seat);
     const frame = seatFrame(plan.seat);
     const centre = new Vector3(...frame.centre);
@@ -712,7 +712,8 @@ export function createShips(
         (point) => new Vector3(...point),
       ),
     };
-    if (plan.kind !== "carry") return at;
+    // A riffle's quick step plays the knock or the lift alone, and never draws the carry.
+    if (plan.kind !== "carry" || !carries) return at;
     // The carry's shape on screen (Iris, sections 4 and 7): it bows toward the camera, growing to
     // at most PRESS_GROW × its seated length; it sways toward the bow by SWAY × the drawing's width; it
     // rises at most RISE over the lift point. Each is solved in turn, by bisection on its largest
@@ -982,11 +983,15 @@ export function createShips(
       states(step);
     },
 
-    /** The step the hulls show at rest, and its record's mark on both ships. */
-    show(next: Step) {
+    /**
+     * The step the hulls show at rest, and its record's mark on both ships, unless `mark` is false:
+     * a riffle's paced step lands without it, which comes back at the stop (Iris, riffle-iris.md,
+     * section 2, "Marks and copper").
+     */
+    show(next: Step, mark = true) {
       step = next;
       states(next);
-      marked = { ...marked, current: next.current };
+      marked = { ...marked, current: mark ? next.current : undefined };
       recap();
     },
 
@@ -1006,7 +1011,7 @@ export function createShips(
      * A press starts, over the settled hulls: its flight is solved, its seat's planks are given
      * their draws, the marks and the hover leave both ships (Iris, section 6). Null ends it.
      */
-    press(plan: Plan | null, lofts?: Lofts) {
+    press(plan: Plan | null, lofts?: Lofts, carries = true) {
       if (!plan || !lofts) {
         path = null;
         now = null;
@@ -1020,7 +1025,7 @@ export function createShips(
       project(lofts.ghost, 1);
       place(theseus, lofts.theseus.at(1).pose, lofts.theseus, "theseus");
       place(ghost, lofts.ghost.at(1).pose, lofts.ghost, "ghost");
-      path = solve(plan);
+      path = solve(plan, carries);
       rest = null;
       now = null;
       const slot = path.slot;
@@ -1035,9 +1040,10 @@ export function createShips(
      * The press `ms` into it played forward. Landed (`landed`, at 0 or its length), the hulls are
      * that step at rest, as a cold load of it draws them: its marks land, the press's edges go. A
      * frame in flight is never at rest, its first at 0 included, so the marks that left at the
-     * press's start stay gone on it (Iris's could, review-iris.md).
+     * press's start stay gone on it (Iris's could, review-iris.md). A riffle's paced step lands
+     * with no mark (`mark` false).
      */
-    beat(ms: number, landed = false) {
+    beat(ms: number, landed = false, mark = true) {
       if (!path) return;
       const length = pressLength(path.plan.kind, path.plan.narrow);
       const was = rest;
@@ -1046,7 +1052,7 @@ export function createShips(
         ? null
         : beat(path.plan.kind, path.plan.narrow, Math.min(length, ms));
       if (rest === was) return;
-      marked = rest ? { current: path.plan[rest].current } : {};
+      marked = rest && mark ? { current: path.plan[rest].current } : {};
       recap();
       reseam(rest ? undefined : path.edges);
     },

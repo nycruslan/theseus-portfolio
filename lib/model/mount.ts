@@ -15,7 +15,17 @@ import {
   PLANKS,
   WIDE,
 } from "@/lib/hull-layouts";
-import { DURATION, ease, GHOST_OUTLINE_PX, OUTLINE_PX } from "./calls";
+import {
+  DURATION,
+  ease,
+  GHOST_OUTLINE_PX,
+  HURRY,
+  KNOCK_DRIVE,
+  KNOCK_PACE,
+  OUTLINE_PX,
+  PACE_FILL,
+  STILL,
+} from "./calls";
 import {
   type CrewState,
   crewMove,
@@ -50,6 +60,7 @@ import {
 } from "./hull";
 import { EDGE, type Frame, type Loft, makeLoft } from "./loft";
 import { type Pencil, pencilMarks, readPencil } from "./pencil";
+import { knockWindow } from "./press";
 import { bakeShadow } from "./shadow";
 import { createShips, type Plan, type Ships, type Step } from "./ships";
 import { createStage, type Palette, type Stage } from "./stage";
@@ -1081,16 +1092,41 @@ function start(
   let steps: readonly number[] = [];
   /** The step the hulls show at rest, read off the drawings or flown to. */
   let showing: Step | null = null;
+  /** A step the controller asked for while a plank still moved: it plays once that one is home. */
+  type Next = {
+    from: number;
+    to: number;
+    pace: number | undefined;
+    /** When it was asked for: its plank keeps to the pace from then. */
+    asked: number;
+    done: () => void;
+  };
   /** The press in progress: its plan, which way it plays, and how it ends. */
   let pressing: {
     plan: Plan;
     back: boolean;
+    /** The later of its two steps, as the controller indexes them. */
+    hi: number;
     to: Step;
+    /** When its clock started; NaN until its first frame, for a riffle's step (`begin`). */
     begin: number;
+    /** The press's own length in ms, its beats' clock. */
     length: number;
+    /**
+     * The part of the press it plays, in ms of it played forward (all of it, or a quick step's
+     * knock), and the ms it plays that part in: a riffle's step plays it faster.
+     */
+    window: [number, number];
+    span: number;
+    /** It draws the carry: a quick step's knock or lift alone doesn't, nor solves its arc. */
+    carries: boolean;
+    /** It lands with the record's marks: Yc's press and a riffle's stop; a paced step doesn't. */
+    marks: boolean;
     /** The beat drawn last, in ms into the press played forward. */
     at: number;
     done: () => void;
+    /** The step asked for behind it, while it hurries home. */
+    next: Next | null;
     /** The leaving number on steps 24 to 51: a card plank's, riding it and fading with it. */
     rider: { span: HTMLElement; x: string; y: string; clone: boolean } | null;
     /** Scroll lands it only from its first frame: the words' swap may scroll the page itself. */
@@ -1188,10 +1224,16 @@ function start(
     });
   }
 
-  /** Any input lands a moving plank at once (the contract; Iris, section 6). */
+  /**
+   * Any input lands a moving plank at once (the contract; Iris, section 6), but a held key's
+   * repeats: they are the press that started it, still down, and a held ← or → riffles
+   * (.crew/sprint/56/contract.md), its repeats every 30 ms or so, which would cut each step short.
+   */
   const pressInput = (event: Event) => {
     if (event.type === "scroll" && (!pressing?.scrolls || quiet > 0)) return;
-    finish();
+    if (event instanceof KeyboardEvent && event.repeat) return;
+    // Escape ends a riffle anywhere (the contract, point 4): it lands with the marks, one frame.
+    finish(true, event instanceof KeyboardEvent && event.key === "Escape");
   };
   const pressListen = (active: boolean) => {
     for (const type of INPUTS) {
@@ -1216,6 +1258,29 @@ function start(
       .map((label) => label.span);
 
   /**
+   * The numbers a step back brought home, copies in the drawing until the step's own drawing
+   * replaces it; a riffle back with its pages late leaves one a step.
+   */
+  const clones = new Set<HTMLElement>();
+
+  /**
+   * Torn down before the step's page came (Lens's nit on Yc): the drawings are the page again, the
+   * step before's, so every number the presses hid or faded is back and their copies go. Their
+   * places are the drawing's own once `unpick` clears the offsets.
+   */
+  const unhide = () => {
+    for (const clone of clones) clone.remove();
+    clones.clear();
+    for (const { span } of [
+      ...(ghost?.labels ?? []),
+      ...(theseus?.labels ?? []),
+    ]) {
+      span.style.removeProperty("visibility");
+      span.style.removeProperty("opacity");
+    }
+  };
+
+  /**
    * The press's numbers: every one at its seat hidden, but on steps 24 to 51 the card plank's that
    * leaves, which rides it and fades (Iris, section 1). Played back, that number is the plank's
    * coming home, which the drawing doesn't hold yet: a copy of the seat's span, renumbered.
@@ -1232,6 +1297,7 @@ function start(
     if (back) {
       span.textContent = String(holder);
       own.after(span);
+      clones.add(span);
     }
     span.style.visibility = "";
     return {
@@ -1277,19 +1343,42 @@ function start(
   };
 
   /**
-   * Lands the press at once (`land`), or at its end: the step's frame, a cold load's, drawn once,
-   * or left for the next redraw when nobody can see it (`draw` false, or a hidden page). Then
-   * `go` resolves. Idempotent, and nothing at rest.
+   * The step's seat and kind on the layer, the one hook for checks and CSS: set when a step starts,
+   * which for a step asked for during a hurry is when it was asked, so its pace is kept to the
+   * controller's clock; written only on a change, since every write is a record to an observer.
    */
-  function finish(draw = true) {
+  const tag = (hi: number) => {
+    const seat = ORDER[hi % ORDER.length] ?? "";
+    const kind = open === "settled" ? "fade" : "fly";
+    if (host.dataset.press !== seat) host.dataset.press = seat;
+    if (host.dataset.pressKind !== kind) host.dataset.pressKind = kind;
+  };
+  const untag = () => {
+    delete host.dataset.press;
+    delete host.dataset.pressKind;
+  };
+
+  /**
+   * The marks a riffle's paced steps left off: an unpaced landing brings them back, or `land` when
+   * the riffle ends between steps (Iris, riffle-iris.md, section 2, "Marks and copper").
+   */
+  let unmarked = false;
+
+  /**
+   * Lands the press at its end: the step's frame, drawn once, or left for the next redraw when
+   * nobody can see it (`draw` false, or a hidden page); a cold load's frame, but for a riffle's
+   * paced step, whose marks wait for the stop. Then its `go` resolves. Returns the step asked for
+   * behind it, if any.
+   */
+  function landing(draw: boolean): Next | null {
     const p = pressing;
-    if (!p || !ships) return;
+    if (!p || !ships) return null;
     cancelAnimationFrame(raf);
     raf = 0;
     pressListen(false);
     const end = p.back ? 0 : p.length;
     p.at = end;
-    ships.beat(end, true);
+    ships.beat(end, true, p.marks);
     // The frame is the step's at the cap, as a still frame is (`rest`).
     if (ratio < cap) step(cap);
     if (draw && !document.hidden && near()) {
@@ -1298,15 +1387,32 @@ function start(
     } else pending = true;
     pressing = null;
     ships.press(null);
-    ships.show(p.to);
+    ships.show(p.to, p.marks);
+    unmarked = !p.marks;
     showing = p.to;
     if (p.rider && !p.rider.clone) p.rider.span.style.opacity = "0";
     for (const each of p.under) {
       if (each.hidden) each.span.style.visibility = "";
     }
-    delete host.dataset.press;
-    delete host.dataset.pressKind;
+    // A step asked for behind it has started already: its seat stays on the layer.
+    if (!p.next) untag();
     p.done();
+    return p.next;
+  }
+
+  /**
+   * Lands the press at once (`land`, any input, a hidden page, a teardown), and a step asked for
+   * behind it with it, whose plank never left: one frame, the last step's. With `mark`, the riffle
+   * has ended (`land`), and the step lands with the record's marks whatever its pace. Idempotent,
+   * and nothing at rest.
+   */
+  function finish(draw = true, mark = false) {
+    if (pressing && mark) pressing.marks = true;
+    const next = landing(draw && !pressing?.next);
+    if (!next) return;
+    play(next.from, next.to, next.pace, 0, next.done);
+    if (pressing && mark) pressing.marks = true;
+    landing(draw);
   }
 
   const pressTick = (now: number) => {
@@ -1316,8 +1422,16 @@ function start(
     // From its first frame a scroll lands it too, but for a scroll the words' swap made.
     p.scrolls = true;
     if (quiet > 0) quiet--;
+    if (Number.isNaN(p.begin)) p.begin = now;
     const t = Math.max(0, now - p.begin);
-    if (t >= p.length) return finish();
+    if (t >= p.span) {
+      // Home: its frame now, and the step asked for behind it from the next frame.
+      const next = landing(true);
+      if (next) {
+        play(next.from, next.to, next.pace, now - next.asked, next.done);
+      }
+      return;
+    }
     // The loft's quality rule: three frames over 22 ms step the ratio down a rung; at 1, six over
     // 33.4 ms land the plank, the frame then still.
     const interval = now - last;
@@ -1329,94 +1443,171 @@ function start(
       stall = 0;
       step(below(ratio));
       if (loft && theseusLoft) {
-        ships?.press(p.plan, { theseus: theseusLoft, ghost: loft });
+        ships?.press(p.plan, { theseus: theseusLoft, ghost: loft }, p.carries);
       }
     } else if (ratio <= 1 && stall >= 6) {
       finish(false);
       return rest("still");
     }
-    pressFrame(p.back ? p.length - t : t);
+    // The part it plays, on its own clock: a riffle's step plays the press's frames faster.
+    const [a, b] = p.window;
+    const u = t / p.span;
+    pressFrame(p.back ? b - (b - a) * u : a + (b - a) * u);
     raf = requestAnimationFrame(pressTick);
   };
 
   /**
+   * A step asked for while a plank still moves, a riffle's, whose clock doesn't wait: the plank
+   * hurries home, the rest of its beats in at most HURRY ms on a faster clock, never a jump from
+   * mid-air (Iris, section 2, "The first plank hurries"); the step plays once it is home.
+   */
+  const hurry = (p: NonNullable<typeof pressing>, next: Next) => {
+    const [a, b] = p.window;
+    const left = p.back ? p.at - a : b - p.at;
+    const rate = (b - a) / p.span;
+    p.window = p.back ? [a, p.at] : [p.at, b];
+    p.span = Math.max(1, Math.min(HURRY, rate > 0 ? left / rate : 0));
+    p.begin = next.asked;
+    p.next = next;
+    // It is the riffle's first page now: the marks stay off until the stop (Iris, section 2).
+    p.marks = false;
+    tag(Math.max(next.from, next.to));
+  };
+
+  /**
+   * One step's move from `from` to `to`, `hurried` ms after the controller asked for it; `done`
+   * once its plank has landed, or at once for a jump, a page nobody sees, or hulls not yet drawn.
+   * With `pace`, a riffle's step (Iris, riffle-iris.md, section 2): from KNOCK_PACE up it flies,
+   * Yc's press fitted into PACE_FILL of the pace (leaving STILL at least) less the hurry before
+   * it, never slower than the press; below, its knock alone in KNOCK_DRIVE ms; Calm's fade keeps
+   * its 240 ms inside 400.
+   * Without, Yc's press, whole.
+   */
+  function play(
+    from: number,
+    to: number,
+    pace: number | undefined,
+    hurried: number,
+    done: () => void,
+  ) {
+    const target = stepAt(to);
+    // Not drawn yet: frame 1 reads the drawing the controller swaps in once this resolves.
+    if (
+      !alive ||
+      !ships ||
+      !built ||
+      blank ||
+      !state ||
+      !loft ||
+      !theseusLoft ||
+      !fit
+    ) {
+      untag();
+      return done();
+    }
+    // A moving loft lands first: play starts only from rest (B3.1).
+    if (moving()) rest("settled");
+    showing = target;
+    // A jump, or a page nobody sees: the step at once, drawn when it can be seen.
+    if (Math.abs(to - from) !== 1 || document.hidden || !near()) {
+      untag();
+      ships.show(target);
+      unmarked = false;
+      redraw();
+      return done();
+    }
+    const hi = Math.max(from, to);
+    const back = to < from;
+    const plan: Plan = {
+      seat: ORDER[hi % ORDER.length] ?? "",
+      lo: stepAt(hi - 1),
+      hi: stepAt(hi),
+      kind: open === "settled" ? "fade" : hi < ORDER.length ? "carry" : "crew",
+      narrow: sheet === sheets.narrow,
+      drawing: fit.drawing,
+    };
+    // Hover is off, and the record's marks leave both ships, at the press's start: its first
+    // frame draws that, so nothing is drawn now.
+    hovered = null;
+    press = null;
+    delete host.dataset.pick;
+    canvas.style.cursor = "";
+    const quick =
+      pace !== undefined && plan.kind !== "fade" && pace < KNOCK_PACE;
+    ships.press(plan, { theseus: theseusLoft, ghost: loft }, !quick);
+    tag(hi);
+    const length = ships.length(plan);
+    const window: [number, number] = quick
+      ? knockWindow(plan.kind, plan.narrow, back)
+      : [0, length];
+    const span =
+      pace === undefined
+        ? length
+        : quick
+          ? KNOCK_DRIVE
+          : Math.max(
+              KNOCK_DRIVE,
+              Math.min(length, Math.round(pace * PACE_FILL), pace - STILL) -
+                hurried,
+            );
+    const now = performance.now();
+    pressing = {
+      plan,
+      back,
+      hi,
+      to: target,
+      // A quick step's clock starts on its first frame, so its cut to the knock is seen whole.
+      begin: quick ? Number.NaN : now,
+      length,
+      window,
+      span,
+      carries: !quick,
+      marks: pace === undefined,
+      at: back ? window[1] : window[0],
+      done,
+      next: null,
+      rider: null,
+      scrolls: false,
+      under: [],
+    };
+    const p = pressing;
+    p.rider = hideNumbers(plan, back, hi);
+    p.under = underFlight(p.rider?.span);
+    last = now;
+    slow = 0;
+    stall = 0;
+    pressListen(true);
+    raf = requestAnimationFrame(pressTick);
+  }
+
+  /**
    * The controller's press (lib/model/yard.ts): `go` moves the hulls from one step to the next,
-   * `land` lands a moving plank at once.
+   * `land` lands a moving plank at once. A `go` while a plank still moves (a riffle's step, on
+   * its own clock) hurries that plank home first; an input has already landed it (`pressInput`).
    */
   const makePress: MakePress = (list) => {
     steps = list;
     return {
-      go(from, to) {
-        finish();
-        const target = stepAt(to);
-        if (!alive) return Promise.resolve();
-        // Not drawn yet: frame 1 reads the drawing the controller swaps in once this resolves.
-        if (
-          !ships ||
-          !built ||
-          blank ||
-          !state ||
-          !loft ||
-          !theseusLoft ||
-          !fit
-        ) {
-          return Promise.resolve();
-        }
-        // A moving loft lands first: play starts only from rest (B3.1).
-        if (moving()) rest("settled");
-        showing = target;
-        // A jump, or a page nobody sees: the step at once, drawn when it can be seen.
-        if (Math.abs(to - from) !== 1 || document.hidden || !near()) {
-          ships.show(target);
-          redraw();
-          return Promise.resolve();
-        }
-        const hi = Math.max(from, to);
-        const back = to < from;
-        const plan: Plan = {
-          seat: ORDER[hi % ORDER.length] ?? "",
-          lo: stepAt(hi - 1),
-          hi: stepAt(hi),
-          kind:
-            open === "settled" ? "fade" : hi < ORDER.length ? "carry" : "crew",
-          narrow: sheet === sheets.narrow,
-          drawing: fit.drawing,
-        };
-        // Hover is off, and the record's marks leave both ships, at the press's start: its first
-        // frame draws that, so nothing is drawn now.
-        hovered = null;
-        press = null;
-        delete host.dataset.pick;
-        canvas.style.cursor = "";
-        ships.press(plan, { theseus: theseusLoft, ghost: loft });
-        host.dataset.press = plan.seat;
-        host.dataset.pressKind = plan.kind === "fade" ? "fade" : "fly";
-        const length = ships.length(plan);
-        return new Promise<void>((done) => {
-          const now = performance.now();
-          pressing = {
-            plan,
-            back,
-            to: target,
-            begin: now,
-            length,
-            at: back ? length : 0,
-            done,
-            rider: null,
-            scrolls: false,
-            under: [],
-          };
+      go: (from: number, to: number, pace?: number) =>
+        new Promise<void>((done) => {
+          // Two steps asked for within one hurry: the waiting one lands at once with the moving.
+          if (pressing?.next) finish();
           const p = pressing;
-          p.rider = hideNumbers(plan, back, hi);
-          p.under = underFlight(p.rider?.span);
-          last = now;
-          slow = 0;
-          stall = 0;
-          pressListen(true);
-          raf = requestAnimationFrame(pressTick);
-        });
+          if (p && alive && Math.abs(to - from) === 1) {
+            hurry(p, { from, to, pace, asked: performance.now(), done });
+            return;
+          }
+          finish();
+          play(from, to, pace, 0, done);
+        }),
+      land() {
+        if (pressing) return finish(true, true);
+        // The riffle ended between its steps: the record's marks come back, one frame.
+        if (!unmarked || !ships || !showing) return;
+        unmarked = false;
+        ships.show(showing);
+        redraw();
       },
-      land: () => finish(),
     };
   };
 
@@ -1439,6 +1630,8 @@ function start(
     }
     numbers?.clear();
     theseusNumbers?.clear();
+    // The copies left with the drawing they were in.
+    clones.clear();
     wide = g;
     narrow = g;
     theseusDrawing = t;
@@ -1453,10 +1646,16 @@ function start(
     numbers = riders(ghost);
     theseusNumbers = riders(theseus);
     if (pressing) {
-      // Mid-press, the drawing is a step behind the hulls: its seat's numbers leave too.
-      for (const span of atSeat(pressing.plan)) {
-        span.style.visibility = "hidden";
-      }
+      // Mid-press, the drawing is the step the plank left, as at the press's start: a riffle's
+      // step after a hurry starts before the last one's drawing comes. Its numbers stand on the
+      // hulls as at rest, its seat's leave or ride the plank, and the leaders follow them.
+      const p = pressing;
+      placeNumbers(1);
+      led = "";
+      p.rider = hideNumbers(p.plan, p.back, p.hi);
+      p.under = underFlight(p.rider?.span);
+      ride();
+      occlude();
       return;
     }
     if (!ships) return;
@@ -1464,7 +1663,7 @@ function start(
     const changed = !sameStep(showing, drawn) || before !== leadsNow();
     showing = drawn;
     if (changed) {
-      ships.show(drawn);
+      ships.show(drawn, !unmarked);
       led = "";
     }
     if (!state) return;
@@ -1490,6 +1689,7 @@ function start(
     // plank lands, unseen, and `go` resolves.
     unyard?.();
     finish(false);
+    unhide();
     swaps?.disconnect();
     reworded?.disconnect();
     alive = false;

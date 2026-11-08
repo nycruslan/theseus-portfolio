@@ -178,6 +178,46 @@ export const ROLL = 6;
  */
 export const INSIDE_LIGHT = "#8c9491";
 export const INSIDE_DARK = 0.55;
+
+// The riffle (.crew/sprint/56/riffle-iris.md, Iris's calls; contract.md, settled point 2): a held
+// press steps faster and faster, a flip book riffled. Each gap is a fixed share of the one before,
+// since tempo is heard in ratios, from 400 ms to the 80 ms floor on the sixth gap, 1,163 ms into
+// the hold (section 1). One constant a call, as the loft's are.
+
+/** The first gap, the hold's own 400 ms; the floor; each gap's share of the one before. */
+const RIFFLE_FIRST = 400;
+const RIFFLE_FLOOR = 80;
+const RIFFLE_RATIO = 0.725;
+
+/**
+ * The ms between the starts of a hold's step n and step n + 1, n = 0 being the press's own step
+ * (Iris's gap(k) at k = n + 1): in Full 400, 290, 210, 152, 111, then 80; in Calm, and under
+ * reduced motion with no mode stored, 400 every gap. Whole ms, so a timer and a check's clock
+ * agree. The controller (lib/model/yard.ts) passes it to `go` as the step's pace.
+ */
+export const riffleGap = (n: number, calm: boolean) =>
+  calm
+    ? RIFFLE_FIRST
+    : Math.max(RIFFLE_FLOOR, Math.round(RIFFLE_FIRST * RIFFLE_RATIO ** n));
+
+/**
+ * Inside a step (Iris, section 2). From KNOCK_PACE up, the step flies: Yc's press on a faster
+ * clock, every beat fitted into PACE_FILL of the pace, then still, so each page reads; below it a
+ * carry would cross 234 px in three frames, a smear, so the step plays its last beat alone: a cut
+ * to Yc's knock, the new card L proud at α 1, driven home over KNOCK_DRIVE ms on the knock's
+ * cubic ease-in. A plank still moving when the next step comes hurries home in at most HURRY ms,
+ * the rest of its beats on a faster clock: nothing teleports.
+ */
+export const PACE_FILL = 0.8;
+/**
+ * The still page's least, in ms: two frames at 60 Hz, as Iris asks, and the frame a landing
+ * waits for, since a step lands on the first frame past its span. At 152 ms its flight is then
+ * 102 ms, where 0.8 alone left 30 ms, which a late frame cut to 9 (the stand-in's riffle).
+ */
+export const STILL = 50;
+export const KNOCK_PACE = 150;
+export const KNOCK_DRIVE = 32;
+export const HURRY = 80;
 /** The drawing's width at 390 × 844 and at 1440 × 900, where the lengths above are Iris's. */
 const PRESS_WIDTHS: readonly [number, number] = [358, 900];
 

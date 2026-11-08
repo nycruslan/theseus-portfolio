@@ -342,6 +342,40 @@ function reach(box: Box, [ax, ay]: Point, [bx, by]: Point) {
 }
 
 /**
+ * Settled numbers, by their pose and what they settled (`riders`' settle): a riffle swaps both
+ * drawings a step, up to twelve times a second, and each swap's numbers would solve again, 16 ms
+ * a step at 1x CPU at 1440. A number's place depends only on its own plank and the pose, so the
+ * same numbers on the same pose are where they were. The newest SETTLED are kept.
+ */
+const settledOn = new Map<string, Map<string, { x: number; home: boolean }>>();
+/** How far a drawn number's spot may be from its stand-in's and still be it, in hull units. */
+const ROUNDED = 0.05;
+/** A number's box and ink insets by its digits and the page's type for numbers (`bySize`). */
+const boxes = new Map<
+  string,
+  {
+    w: number;
+    h: number;
+    inset: { l: number; r: number; t: number; b: number };
+  }
+>();
+const SETTLED = 64;
+
+/**
+ * Points in the model's frame, in general position, whose settled projection fingerprints a pose:
+ * a quality step remakes the lofts, and the step back to the cap makes the same pose again.
+ */
+const POSE_PROBE: Vec3[] = [
+  [0, 0, 0],
+  [100, 0, 0],
+  [0, 40, 0],
+  [0, 0, 40],
+  [100, 40, 40],
+  [50, -20, -30],
+  [30, 10, 20],
+];
+
+/**
  * The numbers riding their planks: each span's offset from its place in the drawing to its point as
  * the frame draws it, in custom properties that app/globals.css applies only while the model has a
  * state. A number's point is the screen midpoint between its plank's projected top and bottom edges,
@@ -382,9 +416,13 @@ export function riders(
     const parent = span?.parentElement;
     const none = { w: 0, h: 0, inset: { l: 0, r: 0, t: 0, b: 0 } };
     if (!span || !parent) return () => none;
-    const sizes = new Map<number, typeof none>();
+    // The numbers' type as the page sets it: a box probed once serves each drawing swapped in
+    // after it, a riffle's a step, where each probe was a layout of the page.
+    const style = getComputedStyle(span);
+    const type = `${style.font}|${style.padding}|${style.letterSpacing}|${span.className}|${document.fonts.status}`;
     return (digits: number) => {
-      const known = sizes.get(digits);
+      const key = `${digits}|${type}`;
+      const known = boxes.get(key);
       if (known) return known;
       const probe = span.cloneNode(false) as HTMLElement;
       probe.classList.remove("plan-end");
@@ -398,7 +436,7 @@ export function riders(
         inset: inkInsets(probe),
       };
       probe.remove();
-      sizes.set(digits, size);
+      boxes.set(key, size);
       return size;
     };
   };
@@ -510,6 +548,89 @@ export function riders(
   };
 
   const settle = (loft: Loft, drawn: Float32Array) => {
+    // Every seat's number, as the 2D numbers it: the drawing's own, and the step's others where the
+    // 2D would set them once their seats are filled (Iris, press-iris.md 7, "Second look"). Each is
+    // placed as if all were drawn, at its seat's box (`bySize`), so a number's place depends only
+    // on its own plank and the pose: a step changes no number but its own seat's, and cold loads of
+    // two steps agree. The seats a step doesn't number stand in, placed but never shown.
+    const drawnSeats = new Set(labels.map((label) => label.seat));
+    const spots: Spot[] = [
+      ...labels,
+      ...PLANKS.filter((plank) => !drawnSeats.has(plank.id)).map(standIn),
+    ];
+    // A stand-in's number is its seat's first holder to come, with as many digits as the seat's
+    // place in ORDER counts: sprints 1 to 9 each took a seat, in ORDER's first nine.
+    const size = bySize();
+    const sizes = spots.map((spot, i) =>
+      size(
+        labels[i]?.span.textContent?.trim().length ||
+          String(ORDER.indexOf(spot.seat ?? "") + 1).length,
+      ),
+    );
+    widths = labels.map(({ span }) => span.offsetWidth);
+    // The same spots at the same sizes on this pose settle where they did: a riffle's step, whose
+    // drawings are new nodes, reuses its neighbour's places. A drawn number's spot is its seat's
+    // stand-in as the 2D rounds it (to 0.01% of the drawing: 0.03 hull units at most, about 0.1
+    // px), so it is keyed as the stand-in, and the steps 1 to 22, each numbering one seat more,
+    // share one solve. A number the solve set at its 2D place keeps its own (`home`).
+    const canon = (spot: Spot, i: number): Spot => {
+      const plank = i < labels.length ? planks[i] : undefined;
+      if (!plank) return spot;
+      const stand = standIn(plank);
+      const near = (a: readonly number[], b: readonly number[]) =>
+        Math.abs((a[0] ?? 0) - (b[0] ?? 0)) <= ROUNDED &&
+        Math.abs((a[1] ?? 0) - (b[1] ?? 0)) <= ROUNDED;
+      return stand.end === spot.end &&
+        stand.lead === spot.lead &&
+        near(spot.anchor, stand.anchor) &&
+        near(spot.out, stand.out) &&
+        near(spot.into, stand.into)
+        ? stand
+        : spot;
+    };
+    const key = [
+      loft.screen(POSE_PROBE, 1).flat(),
+      devicePixelRatio,
+      drawn.length,
+      // By seat: the drawn come first, so a step that numbers one more reorders them.
+      ...spots
+        .map((spot, i) => {
+          const c = canon(spot, i);
+          return `${c.seat}:${c.anchor}:${c.end}:${c.lead}:${c.out}:${c.into}:${sizes[i]?.w}:${sizes[i]?.h}:${Object.values(sizes[i]?.inset ?? {})}`;
+        })
+        .sort(),
+    ].join("|");
+    const found = settledOn.get(key);
+    if (found) {
+      return labels.map((label) => {
+        const place = found.get(label.seat ?? "");
+        return !place || place.home ? label.anchor[0] : place.x;
+      });
+    }
+    const xs = solve(loft, drawn, spots, sizes);
+    settledOn.set(
+      key,
+      new Map(
+        spots.map((spot, i) => {
+          const x = xs[i] ?? spot.anchor[0];
+          return [spot.seat ?? "", { x, home: x === spot.anchor[0] }];
+        }),
+      ),
+    );
+    for (const old of settledOn.keys()) {
+      if (settledOn.size <= SETTLED) break;
+      settledOn.delete(old);
+    }
+    return labels.map((label, i) => xs[i] ?? label.anchor[0]);
+  };
+
+  /** Every spot's settled x in hull units, clear of the lines `drawn` and of each other. */
+  const solve = (
+    loft: Loft,
+    drawn: Float32Array,
+    spots: readonly Spot[],
+    sizes: readonly { w: number; h: number; inset: Box }[],
+  ) => {
     // The clearances hold after each box is rounded to the device's pixels; a line's ink is
     // measured from its centre, so 1 px past the widest line's half (the outline's, 1.4 px).
     const round = 1 / devicePixelRatio;
@@ -551,25 +672,6 @@ export function riders(
       const [a, b] = [flat[i], flat[i + 1]];
       if (a && b) add(a, b);
     }
-    // Every seat's number, as the 2D numbers it: the drawing's own, and the step's others where the
-    // 2D would set them once their seats are filled (Iris, press-iris.md 7, "Second look"). Each is
-    // placed as if all were drawn, at its seat's box (`bySize`), so a number's place depends only
-    // on its own plank and the pose: a step changes no number but its own seat's, and cold loads of
-    // two steps agree. The seats a step doesn't number stand in, placed but never shown.
-    const drawnSeats = new Set(labels.map((label) => label.seat));
-    const spots: Spot[] = [
-      ...labels,
-      ...PLANKS.filter((plank) => !drawnSeats.has(plank.id)).map(standIn),
-    ];
-    // A stand-in's number is its seat's first holder to come, with as many digits as the seat's
-    // place in ORDER counts: sprints 1 to 9 each took a seat, in ORDER's first nine.
-    const size = bySize();
-    const sizes = spots.map((spot, i) =>
-      size(
-        labels[i]?.span.textContent?.trim().length ||
-          String(ORDER.indexOf(spot.seat ?? "") + 1).length,
-      ),
-    );
     const spotPlanks = spots.map((spot) =>
       PLANKS.find((plank) => plank.id === spot.seat),
     );
@@ -601,11 +703,14 @@ export function riders(
       return found;
     };
     type Place = { x: number; box: Box; score: number; d: number };
-    widths = labels.map(({ span }) => span.offsetWidth);
     /** Each number's places along its plank, with how clear each is of the plank's lines. */
     const places = spots.map((label, i): Place[] => {
       const plank = spotPlanks[i];
-      const { w, h, inset } = sizes[i] ?? size(2);
+      const {
+        w = 0,
+        h = 0,
+        inset = { l: 0, r: 0, t: 0, b: 0 },
+      } = sizes[i] ?? {};
       const boxAt = ([x, y]: Point): Box =>
         label.end
           ? { l: x - w, r: x, t: y - h / 2, b: y + h / 2 }
@@ -722,7 +827,7 @@ export function riders(
         chosen[i] = choose(i, boxes()) ?? mine;
       }
     }
-    return labels.map((label, i) => chosen[i]?.x ?? label.anchor[0]);
+    return spots.map((spot, i) => chosen[i]?.x ?? spot.anchor[0]);
   };
 
   return {
