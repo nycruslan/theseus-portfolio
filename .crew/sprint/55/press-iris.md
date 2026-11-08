@@ -126,3 +126,39 @@ flight's 468, is 29,695. Below 768 there's no room, so 40 × 3 has to hold.
   - On 22 → 23, Hobbes's question should arrive with the knock, not at press start. It's the
     payoff, and it must land with the last original. Y16 checks only the end state, so this
     changes no check.
+
+## 7. Early look at Pixel's build (`origin/pixel/55` at e209b03, his frames on Playwright's clock)
+
+These are from Pixel's frames: 1440, /log/13 → 14 at seat 2.1, /log/40 → 41, Previous, Calm and 390.
+
+**Holding:**
+- The twins and the reversal.
+- Calm's in-place fade.
+- The grey-to-vellum handover at touchdown.
+- The knock frame's marks on both ships.
+
+**Five changes:**
+
+1. **The gap reads white, not as a hole.** On the frame where the lift ends, the inside measures
+   Y 0.66, as bright as a lit card plank. Its neighbours measure Y 0.44 to 0.59. The hull is
+   closed, so its inside is in shadow.
+   - Draw the Theseus card's inside faces without the sun and fill: about Y 0.25 to 0.30 in light
+     (around rgb 140, 148, 145), and in dark a step below the darkest plank, above the ground.
+   - Inside faces never show at rest, so `/` and the settled Log don't change.
+2. **An arc, not a drop.** On low seats the lift points down, so lift and carry fall on one line.
+   - Don't add a minimum rise. Bow the carry toward the bow (screen right, the way Next's →
+     points) by 0.03 × the drawing's width at mid-carry: 27 px at 1440, 11 px at 390. Use a sin
+     envelope, clamped inside the canvas.
+   - Previous, being the reversal, comes back the same way.
+3. **Growth.** At mid-carry the plank measures 268 px against its 245 px gap, 1.09×. Ease the bow
+   toward the camera to at most 1.06×.
+4. **On steps 24 to 51 the ghost's number for the seat vanished.** In the /log/40 → 41 frames, 19
+   is gone from the ghost from the lift onward. The ghost changes nothing on 24 to 51. Only the
+   Theseus's leaving number rides and fades.
+5. **Numbers under the flying plank.** Hide any of the drawing's numbers and leaders while its
+   anchor is inside the plank's projected outline: a hard cut, as occlusion is. The caption and
+   page text stay on top.
+
+**To verify on a production build:** the 41 → knock frame showed no new number. The caption was
+still 40, so the swap hadn't landed on the slow dev server. With prefetch, the number has to
+arrive on the knock frame.
