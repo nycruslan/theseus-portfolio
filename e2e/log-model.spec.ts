@@ -663,22 +663,27 @@ for (const url of PAGES) {
       let gapCells: [number, number, string][] = [];
       if (record) {
         const log = await settledOn(browser, PAGES[0], size);
-        const logGhost = whole((await ghostBox(log.page)) as Box);
+        // The scan's grid starts at the ghost's own corner, as it did at the canvas's (the same
+        // point before Yc); only the shots take whole pixels.
+        const logArea = (await ghostBox(log.page)) as Box;
         if (gaps.length > 0) {
           gapCells = (
-            await scanSeats(log, stepAt(size.width), logGhost)
+            await scanSeats(log, stepAt(size.width), logArea)
           ).grid.filter(([, , s]) => gaps.includes(s));
         }
         await log.page.mouse.move(1, 1);
         await pause(200);
-        plain = (await canvasAlone(log.page, logGhost)).image;
+        plain = (await canvasAlone(log.page, whole(logArea))).image;
         await log.close();
       }
       const run = await settledOn(browser, url, size);
       // The ghost's own box (Yc, sprint 55): the canvas holds the Theseus's opaque card too, which
       // would take the coverage's fill levels and, between steps, change pixels by design.
-      const ghostClip = whole((await ghostBox(run.page)) as Box);
-      const scan = await scanSeats(run, stepAt(size.width), ghostClip);
+      // The scan's grid from the ghost's own corner, unrounded, as the canvas's was before Yc: at
+      // 390 the box's top is 307.9375, and a whole-pixel origin moved the 2 px grid by 0.94 px.
+      const ghostArea = (await ghostBox(run.page)) as Box;
+      const ghostClip = whole(ghostArea);
+      const scan = await scanSeats(run, stepAt(size.width), ghostArea);
       expect
         .soft(
           seats.filter((s) => !scan.points.has(s)),
