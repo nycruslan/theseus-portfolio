@@ -112,6 +112,29 @@ async function settledOn(browser: Browser, url: string, options: ModelOptions) {
 }
 
 /**
+ * Whether a real-mouse hover within `reach` CSS px of the pixel at (x, y), at 1 px steps nearest
+ * first, reads one of `seats` (B5.19's mark).
+ */
+async function pickNear(
+  page: Page,
+  x: number,
+  y: number,
+  seats: readonly string[],
+  reach = 4,
+) {
+  const steps = [0];
+  for (let d = 1; d <= reach; d++) steps.push(-d, d);
+  for (const dy of steps)
+    for (const dx of steps) {
+      await page.mouse.move(x + 0.5 + dx, y + 0.5 + dy);
+      await twoFrames(page);
+      const pick = await pickOf(page);
+      if (pick && seats.includes(pick)) return true;
+    }
+  return false;
+}
+
+/**
  * A point inside each 2D ghost plank, CSS px, `margin` units clear of its edges and of the hull's
  * outline, and 3 px clear of the numbers and the leader: where its fill reads alone.
  */
@@ -185,6 +208,9 @@ function plankPoints(page: Page, margin = 3) {
  * every step and only its planks follow the step's gaps (Pixel, lib/model/hull.ts outlineLines).
  * On /log, whose ghost is whole, the planks fill the hull, so this is the filled outline B3.1 reads
  * on `/`, the same measure as before Ya; on a record with gaps, the gaps are open in both.
+ * Its coverage is rounded to quarters, as the canvas's 4x MSAA has it, before the 50% cut: a
+ * 0.75 px seam the 2D covers at 0.44 reads 0.5 on the canvas, and beside a gap the raw cut flipped
+ * a whole row, 2.24 px at 390 x 844 DPR 1 (.crew/sprint/53/decisions.md, 10; Pixel's evidence).
  */
 async function outlineAlone(page: Page, clip: Box) {
   const handle = await page.addStyleTag({
@@ -196,7 +222,7 @@ ${DRAWING} path[data-plank] { visibility: visible !important; fill: #000 !import
   const png = await page.screenshot({ clip, omitBackground: true });
   await handle.evaluate((style) => (style as Element).remove());
   const image = decodePng(png);
-  return { image, alpha: coverage(image) };
+  return { image, alpha: coverage(image).map((a) => Math.round(a * 4) / 4) };
 }
 
 type Shot = {
@@ -762,8 +788,8 @@ for (const url of PAGES) {
             }
           // The grid is coarser than a plank where it tapers (6 px at 1440), so a pixel the grid
           // puts away from the seat is checked by hover: the mark's edges lie on the plank's own
-          // boundary, so a hover within 3 px of an edge pixel reads the seat, searched at 1 px steps
-          // (a plank tapers to 1 px). Up to 80 places.
+          // boundary, so a hover within 4 px of an edge pixel (the mark's round cap reaches past
+          // 3) reads the seat, searched at 1 px steps (a plank tapers to 1 px). Up to 80 places.
           const places = [
             ...new Map(
               strays.map(([x, y]) => [
@@ -773,21 +799,36 @@ for (const url of PAGES) {
             ).values(),
           ];
           const onEdge = new Set<string>();
+          const left: [number, number][] = [];
           for (const [x, y] of places.slice(0, 80)) {
-            let found = false;
-            for (const dy of [0, -1, 1, -2, 2, -3, 3]) {
-              for (const dx of [0, -1, 1, -2, 2, -3, 3]) {
-                await run.page.mouse.move(x + 0.5 + dx, y + 0.5 + dy);
-                await twoFrames(run.page);
-                if ((await pickOf(run.page)) === seat) found = true;
-                if (found) break;
-              }
-              if (found) break;
-            }
-            if (found) onEdge.add(`${Math.round(x / 2)},${Math.round(y / 2)}`);
+            if (await pickNear(run.page, x, y, seat ? [seat] : []))
+              onEdge.add(`${Math.round(x / 2)},${Math.round(y / 2)}`);
+            else left.push([x, y]);
           }
           await run.page.mouse.move(1, 1);
           await pause(300);
+          // A place left may lie on a gap seat's edge, where the record's canvas may change too
+          // (decision 10). The record picks no gap seat, so /log, settled on the same pose, is
+          // hovered at the same place on its own canvas, by the same 4 px search.
+          let onGap = 0;
+          if (left.length > 0 && gaps.length > 0) {
+            const log = await settledOn(browser, PAGES[0], size);
+            const logBox = whole((await canvasBox(log.page)) as Box);
+            for (const [x, y] of left) {
+              if (
+                await pickNear(
+                  log.page,
+                  logBox.x + x - box.x,
+                  logBox.y + y - box.y,
+                  gaps,
+                )
+              ) {
+                onEdge.add(`${Math.round(x / 2)},${Math.round(y / 2)}`);
+                onGap++;
+              }
+            }
+            await log.close();
+          }
           const away = strays.filter(
             ([x, y]) =>
               !onEdge.has(`${Math.round(x / 2)},${Math.round(y / 2)}`),
@@ -811,7 +852,7 @@ for (const url of PAGES) {
           note(
             testInfo,
             "mark",
-            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${stray} of them away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
+            `${where}: ${changed} canvas pixels differ from /log's by more than 24 levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
           );
           expect
             .soft(changed, `canvas pixels the record's mark changes, ${where}`)
