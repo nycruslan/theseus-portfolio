@@ -83,6 +83,8 @@ import { type ModelOptions, type ModelRun, openModel } from "./webgl";
 
 const SWIFTSHADER =
   "SwiftShader, headless Chromium's software WebGL: a floor, not a GPU's number";
+/** The Theseus's drawing, which shares the one canvas with the ghost since Yc (sprint 55). */
+const THESEUS = "[data-theseus]";
 /** Layout's precision: Chromium keeps lengths in 1/64 CSS px. */
 const LAYOUT = 1 / 64;
 /** Two animation frames on the clock: "within 2 frames". */
@@ -298,7 +300,9 @@ async function register(
 
 /**
  * B5.18's fit on a page at rest: where the layer mounts, one canvas, a whole buffer at the cap on
- * [data-ghost]'s box, and the settled hull inside it.
+ * the union of [data-theseus]'s and [data-ghost]'s boxes, and the settled hulls inside it. Since Yc
+ * (sprint 55) the one canvas holds both hulls, the Theseus over its drawing and the ghost over its
+ * own (.crew/sprint/55/contract.md, "Kept"; Lens accepted the rewrite from "on [data-ghost]'s box").
  */
 async function fitAt(
   run: ModelRun,
@@ -332,11 +336,28 @@ async function fitAt(
   const fit = await ghostFit(run.page);
   const [bw = 0, bh = 0] = fit.buffer ?? [];
   const [cw = 0, ch = 0] = fit.css ?? [];
-  const [gw = 0, gh = 0] = fit.ghost ?? [];
+  // The union of both drawings' boxes: the canvas's place since Yc.
+  const union = await run.page.evaluate(
+    (drawings) => {
+      const boxes = drawings.map((css) =>
+        document.querySelector(css)?.getBoundingClientRect(),
+      );
+      if (boxes.some((b) => !b)) return null;
+      const all = boxes as DOMRect[];
+      const left = Math.min(...all.map((b) => b.left));
+      const top = Math.min(...all.map((b) => b.top));
+      const right = Math.max(...all.map((b) => b.right));
+      const bottom = Math.max(...all.map((b) => b.bottom));
+      return { x: left, y: top, width: right - left, height: bottom - top };
+    },
+    [THESEUS, DRAWING],
+  );
+  expect(union, `[data-theseus] and [data-ghost], ${where}`).not.toBeNull();
+  const [uw, uh] = [union?.width ?? 0, union?.height ?? 0];
   note(
     testInfo,
     "canvas",
-    `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch}, [data-ghost] ${gw} x ${gh}, ratio ${ratio}`,
+    `${where}: buffer ${bw} x ${bh}, CSS ${cw} x ${ch} at ${fit.at?.join(", ")}, the drawings' union ${uw} x ${uh} at ${union?.x}, ${union?.y}, ratio ${ratio}`,
   );
   expect
     .soft(
@@ -354,17 +375,17 @@ async function fitAt(
     .toBe(true);
   expect
     .soft(
-      Math.max(Math.abs(cw - gw), Math.abs(ch - gh)),
-      `the canvas's CSS size against [data-ghost]'s box (px), ${where}`,
+      Math.max(Math.abs(cw - uw), Math.abs(ch - uh)),
+      `the canvas's CSS size against the union of [data-theseus]'s and [data-ghost]'s boxes (px), ${where}`,
     )
     .toBeLessThanOrEqual(1 / ratio + 1e-3);
   expect
     .soft(
       Math.max(
-        Math.abs((fit.at?.[0] ?? 0) - (fit.ghostAt?.[0] ?? -99)),
-        Math.abs((fit.at?.[1] ?? 0) - (fit.ghostAt?.[1] ?? -99)),
+        Math.abs((fit.at?.[0] ?? 0) - (union?.x ?? -99)),
+        Math.abs((fit.at?.[1] ?? 0) - (union?.y ?? -99)),
       ),
-      `the canvas's corner on [data-ghost]'s (px), ${where}`,
+      `the canvas's corner on the drawings' union's (px), ${where}`,
     )
     .toBeLessThanOrEqual(1 / ratio + 1e-3);
   const box = await canvasBox(run.page);
@@ -390,7 +411,7 @@ async function fitAt(
 }
 
 for (const url of PAGES) {
-  test(`B5.18 It stands on the Log, on ${url}: [data-model] follows [data-ghost] and comes to rest; frame 1 is registered on the 2D ghost within B3.1's bound (1.0 CSS px at DPR 2, 1.5 at DPR 1) with its planks' fills the Off page's within 8 levels; the canvas lies on the ghost's box in whole buffer pixels at 320, 390, 768, 1024 and 1440, and the settled hull is inside it; /read and the 404 have no [data-model] and request no WebGL context`, async ({
+  test(`B5.18 It stands on the Log, on ${url}: [data-model] follows [data-ghost] and comes to rest; frame 1 is registered on the 2D ghost within B3.1's bound (1.0 CSS px at DPR 2, 1.5 at DPR 1) with its planks' fills the Off page's within 8 levels; the canvas lies on the union of [data-theseus]'s and [data-ghost]'s boxes in whole buffer pixels at 320, 390, 768, 1024 and 1440, and the settled hulls are inside it; /read and the 404 have no [data-model] and request no WebGL context`, async ({
     browser,
   }, testInfo) => {
     test.setTimeout(900_000);
