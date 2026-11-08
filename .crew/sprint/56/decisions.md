@@ -47,3 +47,15 @@
      log-record, log-model, log-pick and log-riffle ran 64 of 64 green, Y7 and the two rewrites
      among them: no further kept red.
    - The words are one constant, `YARD_WORDS.handOff` in `e2e/log.ts`, which Y22 reads too.
+8. **Integrated at 5956bb8** (`pixel/56` at eed7250, carrying `forge/56` at acc9c9e, and Iris's memory):
+   `pnpm verify` passes. Iris reviewed this tree's product code and says ship, 8.3, no musts.
+9. **Pixel's 50 ms still floor is kept** inside paced steps (flights at 210 and 152 ms play 160 and
+   102 ms, not Iris's 168 and 122): it keeps the two still frames Iris asked for when a frame runs
+   late, and Iris's ship was on this build. She may retune it with the next sprint on the yard.
+10. **A touch hold doesn't block scrolling** (`touch-action` left at its default; Forge's question):
+    a finger that drifts during a hold scrolls the page and ends the riffle, which is Iris's rule
+    that a scroll must never step the yard, from the other side.
+11. **INP during a riffle is reported, not gated** (Y24, as B3.9): 712 to 1,344 ms at 4x CPU on
+    SwiftShader, where the GL work is software; the 3D chunk's script is about 14 ms a step at 1x.
+    Pixel's three further cuts (the first press's arc, the press-start layout read, the page parse)
+    are follow-ups for the next sprint on the yard.
