@@ -15,3 +15,11 @@
    landing instead of overlapping it. Her three asks of the controller are accepted: the motion
    starts within a frame and never waits for the step's HTML, Hobbes's question arrives with the
    landing, and focus stays on the pressed step link.
+5. **Y12 reads Calm as a fit, not a frame-1 registration** (Probe's question): Calm's first frame
+   is its settled one, so there is no frame 1 to register.
+6. **The contract mutant's kept reds, named before the build** (Probe, `8747d10`): a bare two-hull
+   canvas turns 11 kept tests red, all by design, because the canvas now spans both drawings.
+   Rewrites for Lens: B5.18's fit holds both drawings' boxes (its edge clause kept); B5.19's band
+   and record reads, and B5.20's and B5.23's plank helpers, read over `[data-ghost]`'s box (B5.23's
+   ≤ 8 draws unedited). Retired: Y6's "the Theseus's planks still painted" in Full and Calm,
+   because the 2D Theseus beside a 3D ghost is gone; Y12 checks the Theseus where it is now drawn.
