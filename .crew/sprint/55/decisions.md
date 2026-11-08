@@ -49,3 +49,11 @@
 12. **Iris's two musts are checks**: Y16 asserts no layout shift without recent input on 22→23 in
     Full (Forge's fix, `cad6134`, measured 0), and Y19 holds the Theseus's numbers at 4.5:1 in dark
     on `/log/13`, `/log/23` and `/log/40` at 1440 and 1024 (Pixel's fix in progress).
+13. **The Log's Theseus gets its own dark light** (Pixel, `5fd7621`, Iris's must 2): a lit mix of
+    0.8 and a lamp gain of 1.4 in place of `/`'s ×4, so every number reads at least 4.88:1 where
+    the worst read 2.07:1. Light is bit-identical, and `/` is untouched. +50 B gzip.
+14. **Y19 reads each number against the plank's fill it sits on**, leaving out the record's mark
+    and seam lines inside its box (Atlas). The record's 13 on `/log/13` at 1024 read 4.45:1 only
+    because its 12-row box at DPR 1 is half over the record's 2 px mark on a thin keel strake; the
+    card under its digits reads about 8.6:1. Y19 is new this sprint, so this refines its read, and
+    it must still fail the ×4 lamp. Iris rules on that number's placement as taste.
