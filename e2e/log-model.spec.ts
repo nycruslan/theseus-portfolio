@@ -114,6 +114,14 @@ async function settledOn(browser: Browser, url: string, options: ModelOptions) {
 }
 
 /**
+ * B5.19's mark: a hover within 5 CSS px of a changed pixel must read the seat. The mark's round cap
+ * reaches past 3 px, and the pick runs on the coarse 24 x 2 hull (PICK in lib/model/hull.ts), whose
+ * edge moved 0.25 px with Yc's two-hull build: the bow end of 6.1's mark at 1440, (761, 499) on
+ * /log/13, read 6.1 at 5 px and not at 4 (sprint 55, measured on pixel/55 at 2fd93f3; 4 before).
+ */
+const MARK_REACH = 5;
+
+/**
  * Whether a real-mouse hover within `reach` CSS px of the pixel at (x, y), at 1 px steps nearest
  * first, reads one of `seats` (B5.19's mark).
  */
@@ -122,7 +130,7 @@ async function pickNear(
   x: number,
   y: number,
   seats: readonly string[],
-  reach = 4,
+  reach = MARK_REACH,
 ) {
   const steps = [0];
   for (let d = 1; d <= reach; d++) steps.push(-d, d);
@@ -817,8 +825,8 @@ for (const url of PAGES) {
             }
           // The grid is coarser than a plank where it tapers (6 px at 1440), so a pixel the grid
           // puts away from the seat is checked by hover: the mark's edges lie on the plank's own
-          // boundary, so a hover within 4 px of an edge pixel (the mark's round cap reaches past
-          // 3) reads the seat, searched at 1 px steps (a plank tapers to 1 px). Up to 80 places.
+          // boundary, so a hover within MARK_REACH of an edge pixel reads the seat, searched at
+          // 1 px steps (a plank tapers to 1 px). Up to 80 places.
           const places = [
             ...new Map(
               strays.map(([x, y]) => [
@@ -838,7 +846,7 @@ for (const url of PAGES) {
           await pause(300);
           // A place left may lie on a gap seat's edge, where the record's canvas may change too
           // (decision 10). The record picks no gap seat, so /log, settled on the same pose, is
-          // hovered at the same place on its own canvas, by the same 4 px search.
+          // hovered at the same place on its own canvas, by the same search.
           let onGap = 0;
           if (left.length > 0 && gaps.length > 0) {
             const log = await settledOn(browser, PAGES[0], size);
