@@ -23,3 +23,13 @@
    under 0.85. Lowering the lit mix would flatten all 22 planks to win 0.003 L on one cell.
 8. **Yc's spike** (`spike-pixel.md`): two hulls fit at 7 to 8 draws with merged batches and lower
    levels, for about +1.6 KB of chunk. Yc's contract starts from it.
+9. **Pixel trims the 3D seams at a gap (fix round 1).** The rewritten B5.18 found seams running 2
+   to 3 px into a gap on partial steps, a real defect. `seamLines()` now runs each seam from butt to
+   butt of the seated planks beside it. It is bit-identical on /log and `/`, for +36 B gzip of chunk.
+10. **Two of B5.18's and B5.19's measures are made like for like.** These are Probe's clause changes,
+    on Pixel's evidence that the geometry agrees:
+    - B5.18 rounds the 2D silhouette's coverage to MSAA's quarter steps before the 50% cut. It still
+      fails the untrimmed build.
+    - B5.19's hover accepts a stray on a step's gap seat, and widens to 4 px for the mark's round
+      cap.
+    - Moving the 3D lines to suit the measure was refused.
