@@ -4,6 +4,7 @@ import { Log } from "@/components/log";
 import { profile } from "@/content/profile";
 import { openGraph } from "@/lib/metadata";
 import { readSprintLog } from "@/lib/sprint-log";
+import { STEP_CARD, stepCard } from "@/lib/step-card";
 
 // A record per merged sprint, /log/<n> (.crew/sprint/29/b5-first-contract.md): the Log with that
 // revision's record open. Every merged sprint is prerendered at build. Any other address, a closed
@@ -33,15 +34,30 @@ export async function generateMetadata({
   // So an unknown address takes the not-found page's title, not the site's.
   if (!found) notFound();
   const { sprint, goal } = found.entry;
-  const title = `Revision ${sprint} — Log — ${profile.name}`;
   const url = `/log/${sprint}`;
+  // The step's own card and its words (lib/step-card.ts). Next names a segment's card file with
+  // the file's one `alt`, so the step names its card here, with its own: Next then leaves the
+  // file's tags out, and twitter takes the image and its alt from openGraph.
+  const card = stepCard(found.entries, sprint);
+  const image = { url: `${url}/opengraph-image`, alt: card.alt, ...STEP_CARD };
   return {
-    title,
+    title: `Revision ${sprint} — Log — ${profile.name}`,
     description: goal,
     alternates: { canonical: url },
-    // Whole objects, as on /log; the card comes from this segment's own opengraph-image.
-    openGraph: { ...openGraph, type: "website", title, description: goal, url },
-    twitter: { card: "summary_large_image", title, description: goal },
+    // Whole objects, as on /log.
+    openGraph: {
+      ...openGraph,
+      type: "website",
+      title: card.title,
+      description: goal,
+      url,
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: card.title,
+      description: goal,
+    },
   };
 }
 

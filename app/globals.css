@@ -154,8 +154,8 @@ html {
  * edges make the dividers, the pressed one ink with film text. It has two slots, both in the
  * server's HTML at the group's size, so the buttons' arrival moves nothing: the bar's from 768 px,
  * and below it the foot's row, since the phone bar is full: hanging from the bar at the drawing's
- * head on the sheet, at the drawing's foot on /crew, at the header's end on the Log. Exactly one
- * is shown.
+ * head on the sheet, at the drawing's foot on /crew, under the h1 at the drawings' head on the Log.
+ * Exactly one is shown.
  * Without scripts both are empty. Neither is printed.
  */
 nav > [data-motion] {
@@ -166,8 +166,8 @@ nav > [data-motion] {
    Read as page at the left and, on a page with a model, the control at the right, in one 44 px
    row. Here, as /crew sets it at the drawing's foot, it borrows 12 px of the drawing's own margin,
    and paints over the model's layer, which lies on the drawing's box. The sheet hangs it from the
-   bar at the drawing's head ("The sheet on a phone window"), the Log at the header's end
-   (`.log-side > .foot`). */
+   bar at the drawing's head ("The sheet on a phone window"), the Log sets it under the h1 at the
+   drawings' head (`.log-side > .foot`). */
 .foot {
   position: relative;
   display: flex;
@@ -1785,11 +1785,12 @@ main:has(> [data-model]) {
 /*
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
  * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3; the yard's steps,
- * .crew/sprint/53/placement.md). Below 1024 px one column: the h1, the Theseus and its caption,
- * the ghost, its caption, the count line, the question or Start again, the lines figure, the row
- * of Read as page and the motion control, the record when one is open, then Every revision, its
- * 2 px rule edge to edge as the facts' are. The drawings follow the header in the DOM and are set
- * after the h1 here; they are hidden from assistive tech, so the reading order is the DOM's. From
+ * .crew/sprint/53/placement.md). Below 1024 px one column: the h1, the row of Read as page and the
+ * motion control (below 768), the Theseus and its caption, the ghost, its caption, the count line
+ * and the question, Start again, the lines figure, the record when one is open, then Every
+ * revision, its 2 px rule edge to edge as the facts' are. The row and the drawings follow the
+ * header in the DOM and are set after the h1 here; the drawings are hidden from assistive tech, so
+ * the reading order is the DOM's. From
  * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
  * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
  * the model layer's (above).

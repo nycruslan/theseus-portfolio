@@ -28,6 +28,18 @@ export const LIGHT = {
   rule: "#bfcac7",
 } as const;
 
+/**
+ * The light scheme's line and fill tokens (app/globals.css's --pencil, --card, --card-old and
+ * --vellum), for the drawings on a step's card (app/log/[n]/opengraph-image.tsx), which CSS can't
+ * reach. Apart from LIGHT, whose five keys the e2e checks pin; change them with the CSS.
+ */
+export const LIGHT_LINES = {
+  pencil: "#878d91",
+  card: "#fbfaf7",
+  cardOld: "#d9e0dc",
+  vellum: "#d7e2e1",
+} as const;
+
 export const DARK = {
   background: "#10191c",
   foreground: "#e2eae9",

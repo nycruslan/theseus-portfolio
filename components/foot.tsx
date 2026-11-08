@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 
-// The drawing's foot below 768 px (.crew/sprint/31/contract.md, "The bar"; rest-390.webp): the bar
+// The phone's row below 768 px (.crew/sprint/31/contract.md, "The bar"; rest-390.webp): the bar
 // holds four links there, so Read as page sits here at the left, underlined as it is in the bar, a
 // 44 px target, with the page's motion control, where it has one, at the right. From 768 px the bar
 // has room for both and the foot is gone, so exactly one Read as page and one control are ever
 // shown. Read as page precedes the control in the DOM, so Tab reaches it first, as the eye does.
 // /crew has both at the drawing's foot (.crew/sprint/36/contract.md); the sheet hangs them from
-// the bar at the drawing's head (.crew/sprint/44/placement.md); the Log and its records have both
-// at the header's end (components/log.tsx; .crew/sprint/33/).
+// the bar at the drawing's head (.crew/sprint/44/placement.md); the Log and its records set them
+// under the h1, at the drawings' head (components/log.tsx; .crew/sprint/53/placement.md, the
+// addendum).
 export function Foot({ control }: { control?: ReactNode }) {
   return (
     <div data-foot="" className="foot">

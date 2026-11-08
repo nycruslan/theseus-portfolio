@@ -45,8 +45,11 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   again, and the 22nd merge asks which one is the Theseus. No script, every mode, the 3D ghost
   following its step. Pixel runs Yc's two-hull spike alongside. Y1 to Y8; it starts with Iris's
   placement call. (Sprint 53, PR #119. Lens: ship on 040baac. Yc's spike is `.crew/sprint/53/spike-pixel.md`. Left open, as Lens's nits: the stale layout comments in `app/globals.css`, `foot.tsx` and `bar.tsx`, and Y8's script bytes reported before and after.)
-- [ ] Yb (S): a card and a title for every step: both ships at n, the sprint's line, and the
-  question at 23 (Y9 to Y11).
+- [x] Yb (S): a card and a title for every step: both ships at n, the sprint's line, and the
+  question at 23 (Y9 to Y11). (Sprint 54, PR #120. Lens: ship on 9a2958f. The foot names the
+  employer, and no card says "of N", `.crew/sprint/54/decisions.md`. Left open: a version query on
+  the step card's URL, the square crop, og:description repeating the goal, and Lens's nit on
+  Probe's memory.)
 - [ ] Yc (M; Pixel leads): the press in 3D. The Theseus joins the ghost in one canvas; a press lifts
   the leaving plank and seats the new one (Calm fades); the URL is replaced; ← and →; a live region
   (Y12 to Y18).

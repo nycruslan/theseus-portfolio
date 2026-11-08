@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
 import { ImageResponse } from "next/og";
 import { profile } from "@/content/profile";
-import { CARD_FONTS, cardText } from "@/lib/card";
+import { cardText } from "@/lib/card";
+import { cardFonts } from "@/lib/card-fonts";
 import { LIGHT } from "@/lib/site";
 
 // The card a shared link shows, generated at build time (.crew/sprint/41/contract.md, P15): the
@@ -18,21 +17,8 @@ export const alt = `${card.name}, ${card.lead}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Every face lib/card.ts names, read once. The folder is spelled in the call so the build traces
-// assets/fonts alone into the server code, which draws a record's card on request (/log/[n]): a
-// path wholly from a variable makes it trace, and ship, the whole project.
-const [regular, bold, condensedBold] = CARD_FONTS;
-const face = async (name: string, path: string, weight: 400 | 700) => ({
-  name,
-  data: await readFile(join(process.cwd(), "assets/fonts", basename(path))),
-  weight,
-  style: "normal" as const,
-});
-const fonts = await Promise.all([
-  face("Sofia Sans", regular, 400),
-  face("Sofia Sans", bold, 700),
-  face("Sofia Sans Extra Condensed", condensedBold, 700),
-]);
+// Every face lib/card.ts names, read once (lib/card-fonts.ts).
+const fonts = await cardFonts();
 
 export default function OpengraphImage() {
   return new ImageResponse(

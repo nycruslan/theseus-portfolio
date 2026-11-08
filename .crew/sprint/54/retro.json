@@ -1,0 +1,40 @@
+{
+ "sprint": 54,
+ "pr": 120,
+ "goal": "Every step of the record unfurls as itself when someone shares its link",
+ "goalFrom": "roadmap",
+ "size": "S",
+ "outcome": "merged",
+ "fixRounds": 0,
+ "minutes": 85,
+ "agents": [
+  { "role": "qa-engineer", "model": "opus", "tokens": 142684, "minutes": 46 },
+  { "role": "engineer", "model": "opus", "tokens": 387842, "minutes": 62 },
+  { "role": "design-director", "model": "opus", "tokens": 143702, "minutes": 11 }
+ ],
+ "lens": { "runs": 1, "tokens": 2094724, "important": 0, "actedOn": 0, "nits": 1 },
+ "wentWrong": [
+  {
+   "what": "The documented way to give each card its own alt prerendered no cards at all",
+   "evidence": "With generateImageMetadata, Next's generated params replaced the route's and never received n, so 0 of 52 cards prerendered; the alt moved to generateMetadata (decisions.md 7)"
+  },
+  {
+   "what": "A kept 3D check timed out under the machine's load",
+   "evidence": "B5.23 failed twice in Forge's first Log run, waiting 45 s for the model to settle, and passed in the final run of 117"
+  }
+ ],
+ "proposals": [
+  {
+   "change": "Have Probe's memory lines about a builder's mechanism wait for the builder's report before they're written",
+   "moves": "memory lines Lens finds contradicted by the sprint's own decisions (1 this sprint)"
+  }
+ ],
+ "followUps": [
+  { "who": "Probe", "what": "Lens's nit: correct qa-engineer/log.md lines 11 and 12 (the per-step alt goes through generateMetadata; the step cards' URLs carry no query)" },
+  { "who": "Forge", "what": "Give the step card's URL a version query, so a changed card reaches links a network already cached" },
+  { "who": "Iris", "what": "The square centre crop cuts the step card's headline, if small square thumbnails matter" },
+  { "who": "Quill", "what": "/log/n's og:description repeats the goal the og:title already carries (B5.8 pins it)" },
+  { "who": "Probe", "what": "A check that ties LIGHT_LINES in lib/site.ts to the CSS drawing tokens" },
+  { "who": "Pixel", "what": "Yc's contract starts from the two-hull spike (.crew/sprint/53/spike-pixel.md)" }
+ ]
+}

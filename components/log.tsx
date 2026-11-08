@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { Foot } from "@/components/foot";
@@ -7,6 +6,7 @@ import { LogRecord } from "@/components/log-record";
 import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
+import { countLine } from "@/lib/count-line";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatHolders, shipsAt } from "@/lib/lines-plan";
 import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
@@ -28,31 +28,18 @@ type LogProps = {
 };
 
 /**
- * The count line under the caption, after `k` merges (.crew/sprint/52/first-contract.md, "The
- * rule, word for word"). "sprint 23" never breaks, so a phone's line doesn't end on "sprint" with
- * the number alone below it.
+ * The count line under the caption (lib/count-line.ts), with each "sprint 23" kept on one line, so a
+ * phone's line doesn't end on "sprint" with the number alone below it.
  */
-function countLine(k: number, merged: readonly number[]): ReactNode {
-  const all = PLANKS.length;
-  if (k < all) {
-    const sailing = all - k;
-    return `${k} of ${all} original planks ${k === 1 ? "is" : "are"} out. ${
-      sailing === 1
-        ? "The gap is the 1 still sailing."
-        : `The gaps are the ${sailing} still sailing.`
-    }`;
-  }
-  const own = k - all;
-  const since =
-    own > 0
-      ? ` Since then the crew has replaced ${own} ${own === 1 ? "plank" : "planks"} of its own.`
-      : "";
-  return (
-    <>
-      {`All ${all} original planks are out: the last went with `}
-      <span className="whitespace-nowrap">{`sprint ${merged[all - 1]}`}</span>
-      {`.${since}`}
-    </>
+function CountLine({ text }: { text: string }) {
+  return text.split(/(sprint \d+)/).map((part, i) =>
+    i % 2 === 1 ? (
+      <span key={part} className="whitespace-nowrap">
+        {part}
+      </span>
+    ) : (
+      part || null
+    ),
   );
 }
 
@@ -172,7 +159,9 @@ export function Log({ entries, open }: LogProps) {
               The ghost hull: the original planks the crew has taken out, each
               numbered by the sprint that replaced it.
             </p>
-            <p data-ghost-count="">{countLine(ships.k, merged)}</p>
+            <p data-ghost-count="">
+              <CountLine text={countLine(ships.k, merged)} />
+            </p>
             {/* At the step where the last original leaves, and on no other page. One string, so
             the server's HTML holds the sentence whole. */}
             {record && ships.k === PLANKS.length ? (
