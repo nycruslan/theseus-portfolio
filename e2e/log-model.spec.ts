@@ -120,6 +120,13 @@ async function settledOn(browser: Browser, url: string, options: ModelOptions) {
  * /log/13, read 6.1 at 5 px and not at 4 (sprint 55, measured on pixel/55 at 2fd93f3; 4 before).
  */
 const MARK_REACH = 5;
+/**
+ * B5.19's mark: a pixel counts as changed from /log's beyond 32 levels. The step's far-side gaps
+ * show through the near vellum (α 0.7) and change it a little on any seat: at (387, 416) on /log/13
+ * at 1440, inside near plank 1.1 with no gap seat or 6.1 within 8 px of hover, 18 levels on main
+ * and 26 on Yc's build; an ink mark changes its pixels by far more (sprint 55; 24 before).
+ */
+const MARK_LEVELS = 32;
 
 /**
  * Whether a real-mouse hover within `reach` CSS px of the pixel at (x, y), at 1 px steps nearest
@@ -810,7 +817,7 @@ for (const url of PAGES) {
           const strays: [number, number][] = [];
           for (let y = 0; y < h; y++)
             for (let x = 0; x < w; x++) {
-              if ((d[y * w + x] ?? 0) <= 24) continue;
+              if ((d[y * w + x] ?? 0) <= MARK_LEVELS) continue;
               changed++;
               const [px, py] = [ghostClip.x + x, ghostClip.y + y];
               if (
@@ -889,7 +896,7 @@ for (const url of PAGES) {
           note(
             testInfo,
             "mark",
-            `${where}: ${changed} ghost pixels differ from /log's by more than 24 levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
+            `${where}: ${changed} ghost pixels differ from /log's by more than ${MARK_LEVELS} levels, ${strays.length} off the grid's cells, ${places.length} places, ${onGap} of them on a gap seat's edge by /log's hover; ${stray} away from seat ${seat}${stray ? ` (x ${Math.min(...xs)} to ${Math.max(...xs)}, y ${Math.min(...ys)} to ${Math.max(...ys)}; nearest seats ${nearest.join(", ")})` : ""}`,
           );
           expect
             .soft(changed, `ghost pixels the record's mark changes, ${where}`)
