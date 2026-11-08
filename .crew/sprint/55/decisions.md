@@ -10,3 +10,8 @@
 3. **The 3D and the controller meet at one written interface** (`Press`, `MakePress`, `startYard` in
    `lib/model/yard.ts`), so Pixel and Forge build in parallel on disjoint files; each keeps a
    stand-in for the other's side until Atlas integrates.
+4. **Iris's calls are built as she wrote them** (`press-iris.md`), including her two departures:
+   the Theseus on the Log settles at the ghost's turn with no shadow, and the knock follows the
+   landing instead of overlapping it. Her three asks of the controller are accepted: the motion
+   starts within a frame and never waits for the step's HTML, Hobbes's question arrives with the
+   landing, and focus stays on the pressed step link.
