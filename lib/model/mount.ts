@@ -1105,6 +1105,8 @@ function start(
   let pressing: {
     plan: Plan;
     back: boolean;
+    /** The later of its two steps, as the controller indexes them. */
+    hi: number;
     to: Step;
     /** When its clock started; NaN until its first frame, for a riffle's step (`begin`). */
     begin: number;
@@ -1550,6 +1552,7 @@ function start(
     pressing = {
       plan,
       back,
+      hi,
       to: target,
       // A quick step's clock starts on its first frame, so its cut to the knock is seen whole.
       begin: quick ? Number.NaN : now,
@@ -1640,10 +1643,16 @@ function start(
     numbers = riders(ghost);
     theseusNumbers = riders(theseus);
     if (pressing) {
-      // Mid-press, the drawing is a step behind the hulls: its seat's numbers leave too.
-      for (const span of atSeat(pressing.plan)) {
-        span.style.visibility = "hidden";
-      }
+      // Mid-press, the drawing is the step the plank left, as at the press's start: a riffle's
+      // step after a hurry starts before the last one's drawing comes. Its numbers stand on the
+      // hulls as at rest, its seat's leave or ride the plank, and the leaders follow them.
+      const p = pressing;
+      placeNumbers(1);
+      led = "";
+      p.rider = hideNumbers(p.plan, p.back, p.hi);
+      p.under = underFlight(p.rider?.span);
+      ride();
+      occlude();
       return;
     }
     if (!ships) return;
