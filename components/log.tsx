@@ -188,6 +188,9 @@ export function Log({ entries, open }: LogProps) {
               next={merged[at + 1]}
             />
           ) : null}
+          {/* In Full and Calm a step link keeps the page and moves one plank (lib/model/yard.ts),
+            and this names the step once its plank lands. Empty here, so a load says nothing. */}
+          <p aria-live="polite" data-yard-live="" className="sr-only" />
         </div>
 
         {/* On /log, the first step: after the row in the DOM, so Tab reaches Read as page and the
