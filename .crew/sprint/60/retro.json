@@ -1,0 +1,52 @@
+{
+ "sprint": 60,
+ "pr": 126,
+ "goal": "On the first page, a plain link now invites you to rebuild the ship",
+ "goalFrom": "roadmap",
+ "size": "M",
+ "outcome": "merged: Lens ship on 7b1acc5 with no findings, Iris ship at 7.8",
+ "fixRounds": 0,
+ "minutes": 75,
+ "agents": [
+  { "role": "design-director", "model": "opus", "tokens": 223035, "minutes": 20 },
+  { "role": "engineer", "model": "opus", "tokens": 192850, "minutes": 45 },
+  { "role": "qa-engineer", "model": "opus", "tokens": 279492, "minutes": 52 },
+  { "role": "design-director", "model": "opus", "tokens": 262504, "minutes": 7 }
+ ],
+ "lens": {
+  "runs": 1,
+  "tokens": 4138875,
+  "important": 0,
+  "actedOn": 0,
+  "nits": 0
+ },
+ "wentWrong": [
+  {
+   "what": "The checks and the build, written side by side, didn't type-check together at first",
+   "evidence": "e2e/home-door.spec.ts:191 cast the legend to a props type main's legend had; verify failed on e9355b2 and passed on aa34371 after Probe's one-line fix"
+  },
+  {
+   "what": "Two kept checks the plan didn't name went red on the change",
+   "evidence": "keyboard.spec.ts's ring test Tabbed only 25 stops and P17 read a row at 390 that no longer wraps (decisions 4 and 7); the contract mutant found both before review"
+  }
+ ],
+ "proposals": [],
+ "followUps": [
+  {
+   "who": "Forge",
+   "what": "Sprint 59's Log CSS follow-ups still wait for a sprint on the Log's CSS: the phone step row 4 px lower, the 20rem <= width < 48rem scope, the comments (.crew/sprint/59/retro.json)"
+  },
+  {
+   "who": "Pixel",
+   "what": "The step links' numbers kept with the caption during a press and a riffle (.crew/sprint/59/retro.json)"
+  },
+  {
+   "who": "Probe",
+   "what": "read.spec.ts's B2.6 Tab order went red once under load (Print not yet hydrated) and passed 3 of 3 alone: watch it"
+  },
+  {
+   "who": "Quill",
+   "what": "The milestone's demo on production: from /, does a visitor find the door while the first screen stays as it is (.crew/sprint/58/plan.md, The demo)"
+  }
+ ]
+}
