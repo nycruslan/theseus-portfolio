@@ -21,7 +21,12 @@
 
 ## Checks
 
-RESULTS
+- `e2e/home-door.spec.ts` (H8 to H10): red on main (H8 at "planks 22, replaced 22", H9 with no door, H10 at 1440 × 900 with no door); green on the integrated head. H10's sweep baseline is main's own figures, which match Iris's production numbers to 0.1 px (decisions 5). Replay sits on its ceiling at every width, so any replay drop over 0.5 px is red.
+- The contract mutant (Probe, decisions 1): the unedited suite, 400 tests, 391 passed and 9 red: the six H11 names, the two contract changes above, and one axe sweep that timed out at load 16–21 and passed on a re-run.
+- On the integrated head (aa34371): `pnpm verify` passes; home-door, keyboard, sheet, live-layer, plan, facts-scan and read: 56 passed, 1 red, read's B2.6 Tab order (Print not yet hydrated under load); alone it passed 3 of 3, and nothing here touches `/read`'s strip.
+- Budgets: no client code added to `/` (neither string is in `.next/static/chunks`; B2.10 unedited); CLS 0 at every window (Iris).
+- **Iris: ship, 7.8/10** (advice): the build matches her prototype to 0.05 px; axe 0 on `/` at six widths and `/read`, both schemes.
+- Not verified: Safari, Firefox, real Chrome (CI's shell only, the pessimistic one), forced colours beyond B2.9's rider, a real phone; CI's slowest shard time is read on this PR's run.
 
 ## Files
 
