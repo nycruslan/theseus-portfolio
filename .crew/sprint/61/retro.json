@@ -1,0 +1,66 @@
+{
+ "sprint": 61,
+ "pr": 127,
+ "goal": "Played the rebuilt yard as a visitor, and moved a phone's step links clear",
+ "goalFrom": "roadmap",
+ "size": "S",
+ "outcome": "merged: Lens ship on cb9f8d1 with no findings, 3 nits; the crew stands down",
+ "fixRounds": 0,
+ "minutes": 55,
+ "agents": [
+  {
+   "role": "product-owner",
+   "model": "opus",
+   "tokens": 183275,
+   "minutes": 18
+  },
+  {
+   "role": "engineer",
+   "model": "opus",
+   "tokens": 177263,
+   "minutes": 40
+  },
+  {
+   "role": "qa-engineer",
+   "model": "opus",
+   "tokens": 77475,
+   "minutes": 31
+  }
+ ],
+ "lens": {
+  "runs": 1,
+  "tokens": 177015,
+  "important": 0,
+  "actedOn": 1,
+  "nits": 3
+ },
+ "wentWrong": [
+  {
+   "what": "Without the placed layout, a very narrow window pushed the next step past its frame",
+   "evidence": "Forge at 300 px (16 px font) and 390 px (24 px font): Next 2 to 12 px past the record's frame until sprint 53's wrap rule came back (.crew/sprint/61/decisions.md 3)"
+  },
+  {
+   "what": "Two yard checks misread production while its feed was live or a step newer",
+   "evidence": "Quill's run of the unedited specs: H8 read the live legend as the default state, Y10 wanted sprint 60's merge date that only the branch had (.crew/sprint/61/demo.md)"
+  }
+ ],
+ "proposals": [],
+ "followUps": [
+  {
+   "who": "Probe",
+   "what": "A check of the step row's fallback below 20rem, at 319 px wide or a 24 px default font (Lens nit, app/globals.css:2529)"
+  },
+  {
+   "who": "Probe",
+   "what": "H8's deployed read assumes the feed's default state; guard it as K11 is (.crew/sprint/61/demo.md); and put log-hand.spec.ts:528's expect.soft back on one line"
+  },
+  {
+   "who": "Pixel",
+   "what": "The step links' numbers kept with the caption during a press and a riffle (.crew/sprint/59/retro.json)"
+  },
+  {
+   "who": "Quill",
+   "what": "At a 24 px default font the bar's Contact link and the revision table's headers overflow sideways at 360 to 390 wide (Forge, sprint 61)"
+  }
+ ]
+}
