@@ -2368,7 +2368,8 @@ main:has(> [data-model]) {
 
 /* The number at the left, the steps at the right (.crew/sprint/53/placement.md): in one row they
    cost nothing above the h2, 283 px at their widest against 310 at 1024. Below 768 the steps stand
-   under the ghost (below), and the row holds the number alone. */
+   under the ghost (below), and the row holds the number alone; below 20rem they stay here, on a
+   row of their own. */
 .record-top {
   display: flex;
   align-items: center;
@@ -2467,21 +2468,25 @@ main:has(> [data-model]) {
   }
 }
 
-/* Below 768 the step row stands under the ghost, the same on every step (.crew/sprint/59/
-   placement.md, section 1): absolutely in main, its offset the stack above it, every term fixed on
-   a step page: the h1 (20 + 0.95 of --step-2xl), the control row (12 + 44), the Theseus (16 + its
-   drawing), its one-line caption (6 + 1.45 of --step-base), the ghost (14 + its drawing). Each
+/* Below 768 the step row stands 4 px under the ghost, the same on every step (.crew/sprint/59/
+   placement.md, section 1; .crew/sprint/61/): absolutely in main, its offset the stack above it,
+   every term fixed on a step page: the h1 (20 + 0.95 of --step-2xl), the control row (12 + 44),
+   the Theseus (16 + its drawing), its one-line caption (6 + 1.45 of --step-base), the ghost (14 +
+   its drawing), then 4 px, so a focused link's ring (2 px at 2 px) clears the ghost's keel. Each
    drawing is 126/632 of the column, and a margin's percentage is main's padding box's width, so
    the column is 100% - 32px; `top` would read main's height. Change a term above and this changes
    with it (H1's sweep). The DOM keeps the links in the record's head, so the reading and Tab order
-   don't change. */
-@media screen and (width < 48rem) {
+   don't change. From 20rem only, 320 px at the default font: a media query's rem is the reader's
+   default font size, so a large one or heavy zoom, which could wrap the Theseus's caption the sum
+   holds to one line, keeps the steps in the record's head (the next rule). */
+@media screen and (20rem <= width < 48rem) {
   .log-open {
     position: relative;
-    /* The h1's line and the Theseus's caption's, then both drawings, then the six margins. */
+    /* The h1's line and the Theseus's caption's, then both drawings, then 116 px: the five
+       margins (20, 12, 16, 6, 14), the control row's 44 and the 4 px gap. */
     --yard-lines: calc(var(--step-2xl) * 0.95 + var(--step-base) * 1.45);
     --yard-drawings: calc((100% - 32px) * 252 / 632);
-    --yard-row: calc(112px + var(--yard-lines) + var(--yard-drawings));
+    --yard-row: calc(116px + var(--yard-lines) + var(--yard-drawings));
   }
 
   .log-open .record-steps {
@@ -2511,9 +2516,34 @@ main:has(> [data-model]) {
     text-align: start;
   }
 
-  /* The row (44), 4, the hint's line (14), 10. */
+  /* The gap (4), the row (44), 4, the hint's line (14), 10. */
   .log-open [data-ghost-caption] {
-    margin-top: 72px;
+    margin-top: 76px;
+  }
+}
+
+/* Below 20rem the steps stay in the record's head, where the number and both steps never fit one
+   row: the steps take their own, ← Sprint p at the left and Next at the right, alone or not, Next
+   under it where the two don't fit side by side; on the newest step the hint stands under ← Sprint
+   p, as it does when placed. */
+@media (width < 20rem) {
+  .record-top {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .record-steps {
+    flex-wrap: wrap;
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .record-steps [data-step="next"] {
+    margin-left: auto;
+  }
+
+  .record:not(:has([data-step="next"])) .record-hint {
+    text-align: start;
   }
 }
 
