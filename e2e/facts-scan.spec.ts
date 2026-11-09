@@ -501,7 +501,7 @@ test("P16 the text face's fallback: body's computed font-family names Sofia Sans
 
 const SIBLING_GAP = 18;
 
-test("P17 the two gaps: below 1024 each project link's row rule sits within 2 px of the 18 px every other entry leaves under its text; /read's figcaption row at 390 wraps with a 6 px row gap", async ({
+test("P17 the two gaps: below 1024 each project link's row rule sits within 2 px of the 18 px every other entry leaves under its text; /read's figcaption row at 320 wraps with a 6 px row gap", async ({
   page,
 }) => {
   for (const width of [390, 768]) {
@@ -567,7 +567,10 @@ test("P17 the two gaps: below 1024 each project link's row rule sits within 2 px
     }
   }
 
-  await page.setViewportSize({ width: 390, height: 844 });
+  // Sprint 60 (Hb, .crew/sprint/60/decisions.md, 4): with "Original" keyed only where an original
+  // plank is drawn, the count line and the legend share one line at 390, so the row is read at
+  // 320, where it still wraps, for the same gap.
+  await page.setViewportSize({ width: 320, height: 568 });
   expect((await page.goto("/read"))?.status(), "status of /read").toBe(200);
   await page.evaluate(() => document.fonts.ready);
   const caption = await page.evaluate(() => {
@@ -591,10 +594,10 @@ test("P17 the two gaps: below 1024 each project link's row rule sits within 2 px
     return lines.slice(1).map((line, i) => line.top - (lines[i]?.bottom ?? 0));
   });
   expect(caption, "a wrapping row in /read's ship figcaption").not.toBeNull();
-  expect(caption?.length ?? 0, "the row wraps at 390 px").toBeGreaterThan(0);
+  expect(caption?.length ?? 0, "the row wraps at 320 px").toBeGreaterThan(0);
   for (const gap of caption ?? []) {
     expect
-      .soft(gap, "the figcaption row's gap between its lines at 390 px")
+      .soft(gap, "the figcaption row's gap between its lines at 320 px")
       .toBeCloseTo(6, 0);
   }
 });

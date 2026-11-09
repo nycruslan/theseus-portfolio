@@ -15,7 +15,7 @@ import {
   rootTokens,
   SCHEMES,
 } from "./helpers";
-import { bioParts, MERGED, ROWS } from "./retros";
+import { bioParts, MERGED, ROWS, STEPS } from "./retros";
 
 // Sprint 22, B1: the sheet in 2D (.crew/sprint/22/contract.md). The page's checks B1.1 to B1.3,
 // B1.5 to B1.7, B1.10 and B1.11, one test per number, written before the build. The drawing's own
@@ -184,16 +184,15 @@ test("B1.2 the title block is the owner's words, verbatim, and the bio's last pa
       (el?.textContent ?? "").replace(/\s+/g, " ").trim();
     const header = document.querySelector("main > header");
     const h1 = header?.querySelector("h1") ?? null;
+    // Sprint 60 (H11): the legend by intent, the list whose item reads "Seated by a sprint".
     const legend =
-      [...document.querySelectorAll("body *")]
-        .filter(
-          (el) =>
-            !el.closest("svg") &&
-            !["MAIN", "BODY"].includes(el.tagName) &&
-            /\bseated\b/i.test(el.textContent ?? "") &&
-            /\boriginal\b/i.test(el.textContent ?? ""),
-        )
-        .at(-1) ?? null;
+      [...document.querySelectorAll("ul")].find(
+        (ul) =>
+          !ul.closest("svg") &&
+          [...ul.querySelectorAll(":scope > li")].some(
+            (li) => squashed(li) === "Seated by a sprint",
+          ),
+      ) ?? null;
     const section = document.querySelector(revisions);
     const follows = (el: Element | null) =>
       Boolean(
@@ -766,7 +765,7 @@ test("B2.3 the bar stays above the facts (B1.3, sprints 27 and 31): at 1024, wit
   }
 });
 
-test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros, the key's his rules to /crew#keel and one link to the Log, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
+test("B1.5 the revision block: Revisions, the caption, the six columns, five rows from the retros, the key's his rules to /crew#keel, one link to the Log and after it the door to the yard's first step, at every width; from 1024 px each description is one line with an ellipsis, the whole goal in its text", async ({
   page,
 }) => {
   const rows = async () => {
@@ -908,9 +907,11 @@ test("B1.5 the revision block: Revisions, the caption, the six columns, five row
         .toEqual([]);
     }
     // Sprint 48 (K9): the key under the rows links "his rules" to the keel, before the Log link.
+    // Sprint 60 (Hb, H11): the door follows the Log link, to the yard's first step.
     expect.soft(found.links, `its links at ${where}`).toEqual([
       { text: "his rules", href: "/crew#keel" },
       { text: `All ${N} revisions in the Log`, href: "/log" },
+      { text: "Rebuild it yourself", href: `/log/${STEPS[0]}` },
     ]);
     if (width === 320) {
       expect
@@ -1656,11 +1657,17 @@ test("B1.11 the tokens carry the new palette: the five keep their names, three n
     .toBeLessThan(sizes[1440]?.step ?? 0);
 });
 
-test("B2.9 riders: in forced colours an original plank and its swatch fill unlike a seated plank and its swatch, each unlike Canvas, on / and /read; and the folded revision table's labels show at 390", async ({
+// Sprint 60 (Hb, .crew/sprint/60/contract.md, H11): `/` and `/read` draw no original plank (22 of
+// 22 replaced) and their legends no longer key "Original", so the original plank's paint is read
+// where one is drawn, the Theseus on a step page before 23 (/log/13), against a seated plank there
+// and Canvas; `/` and `/read` keep the seated swatch and are checked to draw no original plank.
+// The original swatch's half (its fill unlike the seated swatch's and unlike Canvas) retires with
+// its item (decisions.md, 3).
+test("B2.9 riders: in forced colours an original plank fills unlike a seated plank and unlike Canvas where one is drawn (/log/13), / and /read draw none and keep the seated swatch and a seated plank unlike Canvas; and the folded revision table's labels show at 390", async ({
   page,
 }) => {
   await page.emulateMedia({ forcedColors: "active" });
-  for (const route of ["/", "/read"]) {
+  for (const route of ["/", "/read", "/log/13"]) {
     await open(page, 1440, 900, route);
     const seen = await page.evaluate(() => {
       const canvas = getComputedStyle(document.body).backgroundColor;
@@ -1682,15 +1689,14 @@ test("B2.9 riders: in forced colours an original plank and its swatch fill unlik
               : null,
         };
       };
-      const legend = [...document.querySelectorAll("body *")]
-        .filter(
-          (el) =>
-            !el.closest("svg") &&
-            el.querySelectorAll("li").length > 0 &&
-            /\bseated\b/i.test(el.textContent ?? "") &&
-            /\boriginal\b/i.test(el.textContent ?? ""),
-        )
-        .at(-1);
+      // The list keying "Seated by a sprint", outside any svg.
+      const legend = [...document.querySelectorAll("ul")].find(
+        (ul) =>
+          !ul.closest("svg") &&
+          [...ul.querySelectorAll(":scope > li")].some((li) =>
+            /\bseated\b/i.test(li.textContent ?? ""),
+          ),
+      );
       const swatchPaint = (word: RegExp) => {
         const li = [...(legend?.querySelectorAll("li") ?? [])].find((item) =>
           word.test(item.textContent ?? ""),
@@ -1707,65 +1713,68 @@ test("B2.9 riders: in forced colours an original plank and its swatch fill unlik
               : null,
         };
       };
+      // The page's drawing: the sheet's [data-plan] on / and /read, the Theseus on a step page.
+      const drawing =
+        document.querySelector("[data-plan]") ??
+        document.querySelector("[data-theseus]");
       return {
         active: matchMedia("(forced-colors: active)").matches,
         canvas,
+        drawn: Boolean(drawing),
+        originals: document.querySelectorAll(
+          ".plank-original, [data-plan] [data-plank]:not([data-sprint])",
+        ).length,
         seatedPlank: plankPaint(
-          document.querySelector("[data-plan] [data-plank][data-sprint]"),
+          drawing?.querySelector("[data-plank].plank-seated[data-sprint]") ??
+            drawing?.querySelector("[data-plank][data-sprint]") ??
+            null,
         ),
         originalPlank: plankPaint(
-          document.querySelector("[data-plan] [data-plank]:not([data-sprint])"),
+          drawing?.querySelector(".plank-original") ??
+            drawing?.querySelector("[data-plank]:not([data-sprint])") ??
+            null,
         ),
         seatedSwatch: swatchPaint(/\bseated\b/i),
-        originalSwatch: swatchPaint(/\boriginal\b/i),
       };
     });
     expect(seen.active, "forced colours are on").toBe(true);
-    expect
-      .soft(seen.seatedSwatch, `the seated swatch on ${route}`)
-      .not.toBeNull();
-    expect
-      .soft(seen.originalSwatch, `the original swatch on ${route}`)
-      .not.toBeNull();
+    expect.soft(seen.drawn, `a drawing on ${route}`).toBe(true);
     expect.soft(seen.seatedPlank, `a seated plank on ${route}`).not.toBeNull();
-    expect
-      .soft(
-        seen.originalSwatch?.fill,
-        `the original swatch's fill vs the seated swatch's, on ${route}`,
-      )
-      .not.toBe(seen.seatedSwatch?.fill);
     const shows = (paint: { fill: string; edge: string | null } | null) =>
       paint !== null &&
       (paint.fill !== seen.canvas ||
         (paint.edge !== null && paint.edge !== seen.canvas));
-    for (const [what, paint] of [
-      ["the seated swatch", seen.seatedSwatch],
-      ["the original swatch", seen.originalSwatch],
+    const step = route.startsWith("/log/");
+    const painted: [string, { fill: string; edge: string | null } | null][] = [
       ["a seated plank", seen.seatedPlank],
-      ...(seen.originalPlank
-        ? [["an original plank", seen.originalPlank] as const]
-        : []),
-    ] as const) {
+    ];
+    if (step) {
+      // Where an original plank is drawn: it reads unlike a seated plank, and unlike Canvas.
+      expect
+        .soft(seen.originalPlank, `an original plank on ${route}`)
+        .not.toBeNull();
+      expect
+        .soft(
+          seen.originalPlank?.fill,
+          `an original plank's fill vs a seated plank's, on ${route}`,
+        )
+        .not.toBe(seen.seatedPlank?.fill);
+      painted.push(["an original plank", seen.originalPlank]);
+    } else {
+      // Every plank on / and /read is seated: none original drawn, the seated swatch kept.
+      expect.soft(seen.originals, `original planks drawn on ${route}`).toBe(0);
+      expect
+        .soft(seen.seatedSwatch, `the seated swatch on ${route}`)
+        .not.toBeNull();
+      painted.push(["the seated swatch", seen.seatedSwatch]);
+    }
+    for (const [what, paint] of painted) {
       expect
         .soft(
           shows(paint),
           `${what} differs from Canvas in border or fill, on ${route}: ${JSON.stringify(paint)}`,
         )
         .toBe(true);
-    }
-    if (seen.originalPlank) {
-      expect
-        .soft(
-          seen.originalPlank.fill,
-          `an original plank's fill vs a seated plank's, on ${route}`,
-        )
-        .not.toBe(seen.seatedPlank?.fill);
-    } else {
-      // Every plank is seated once 22 sprints have merged: only the swatches are left to compare.
-      test.info().annotations.push({
-        type: "unchecked",
-        description: `${route}: no original plank to compare with a seated one`,
-      });
     }
   }
   await page.emulateMedia({ forcedColors: "none" });

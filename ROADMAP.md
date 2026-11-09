@@ -59,7 +59,13 @@ path or edits `content/`.
   next sprint on the Log CSS: the row 4 px lower so a focused Next's ring clears the keel, the
   placement scoped to `20rem <= width < 48rem` for large fonts, and the step links' numbers kept
   with the caption during a press and a riffle (`.crew/sprint/59/retro.json`).
-- [ ] Hb (M): the door, with the room made first. The legend's "Original" item shows only while an
+- [x] Hb (M), sprint 60: the door, with the room made first. (PR #126.) Iris's fit on production
+  (`.crew/sprint/60/fit.md`) met the waits-rule: no W pin moves the contact links except open at
+  1410–1440 × 900, which drops to live's place, as planned. Built as planned; H8 to H11 in
+  `e2e/home-door.spec.ts` and the named rewrites, plus two the plan missed (decisions 4 and 7).
+  Left open: the milestone's demo on production (Quill), and sprint 59's Log CSS follow-ups,
+  which ride with the next sprint on the Log's CSS.
+  The plan as written: The legend's "Original" item shows only while an
   original plank is on the drawing (on `/` and `/read`). Then "Rebuild it yourself" goes on the
   revision block's count line, to the first step (`.crew/sprint/57/door-iris.md`'s markup).
   - Its contract is written after Ha merges, from a fresh injection into production's DOM.

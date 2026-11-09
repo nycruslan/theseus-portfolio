@@ -228,8 +228,12 @@ export function revisionBlock(page: Page) {
     const block = document.querySelector(selector);
     const table = block?.querySelector("table");
     const rows = [...(block?.querySelectorAll("table tbody tr") ?? [])];
+    // Found by its first item, which always shows: "Original" shows only while an original plank
+    // is drawn (.crew/sprint/60/contract.md, H11).
     const legend = [...(block?.querySelectorAll("ul") ?? [])].find((ul) =>
-      /Original/.test(ul.textContent ?? ""),
+      [...ul.querySelectorAll(":scope > li")].some(
+        (li) => squash(li) === "Seated by a sprint",
+      ),
     );
     const rest = block?.querySelector("p[data-rest]");
     return {
