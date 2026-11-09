@@ -36,8 +36,9 @@ import { landedOn, linkAt, readSafe, tagDocument } from "./yard";
 // Start again invites a rebuild; a step page says how to play it (`[data-yard-hint]`, shown only
 // while the yard plays: `.log:has(> [data-model][data-yard])`); the first chapter step says why a
 // riffle stops there (`p[data-yard-chapter]`). The checks hold where the link is, never how it got
-// there, so they stand whatever Iris places (.crew/sprint/59/placement.md). Every word is
-// YARD_WORDS's (e2e/log.ts); every step and sprint comes from e2e/retros.ts.
+// there, so they stand whatever Iris places (.crew/sprint/59/placement.md), but for one guard of
+// her placement she asked for (the row's place is a sum). Every word is YARD_WORDS's (e2e/log.ts);
+// every step and sprint comes from e2e/retros.ts.
 //
 // Lean on purpose: the Log specs share CI's shard 2 (18 min 56 s of 20 on sprint 56), so each window
 // opens one page per mode and walks the steps in it, and every rule over every step reads the
@@ -512,6 +513,37 @@ test(`H1 The walk at 390 x 664: with scripts off, from /log/13 each press until 
   await run.close();
 });
 
+test(`H1 Iris's placement guard (.crew/sprint/59/placement.md, "For Probe"): on /log/${QUESTION_STEP} with scripts off, at every width from 320 to 767 (1 px steps, 664 tall), the step row's top is within 0.5 px of the ghost's bottom and the hint's bottom at or above the ghost's caption's top; a redesign that moves the row retires this guard, not H1`, async ({
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  const off = await scriptsOff(browser, PHONE);
+  expect(await off.go(recordOf(QUESTION_STEP ?? 23)), "status").toBe(200);
+  const away: string[] = [];
+  for (let width = 320; width <= 767; width++) {
+    await off.page.setViewportSize({ width, height: PHONE.height });
+    const r = await off.page.evaluate(
+      ({ hint, ghost }) => {
+        const box = (css: string) =>
+          document.querySelector(css)?.getBoundingClientRect() ?? null;
+        return {
+          row: box(".record-steps")?.top ?? Number.NaN,
+          ghost: box(ghost)?.bottom ?? Number.NaN,
+          hint: box(hint)?.bottom ?? Number.NaN,
+          caption: box("[data-ghost-caption]")?.top ?? Number.NaN,
+        };
+      },
+      { hint: HINT, ghost: GHOST_HULL },
+    );
+    if (!(Math.abs(r.row - r.ghost) <= 0.5) || !(r.hint <= r.caption + 0.5))
+      away.push(
+        `${width}: row ${r.row.toFixed(2)} against the ghost's foot ${r.ghost.toFixed(2)}; hint to ${r.hint.toFixed(2)}, caption from ${r.caption.toFixed(2)}`,
+      );
+  }
+  await off.context.close();
+  expect.soft(away, "widths where the row left the ghost's foot").toEqual([]);
+});
+
 // ---------------------------------------------------------------------------------------------
 // H2 The invitation
 
@@ -873,6 +905,7 @@ test(`H4 The chapter rule, in the server HTML: on every step whose merge count k
       continue;
     }
     expect.soft(line, here).toBe(YARD_WORDS.chapter(s));
+    expect.soft(line?.length, `${here}: characters`).toBeLessThanOrEqual(40);
     expect
       .soft(/undefined|NaN|null/.test(line ?? ""), `${here}: "${line}"`)
       .toBe(false);
@@ -936,8 +969,13 @@ test(`H4 The chapter in Full at 1440 x 900: Next held from /log/30 riffles to /l
     recordOf(CHAPTER_STEP),
   );
   const chapterWords = await server(page, CHAPTER_STEP);
-  expect
-    .soft(await shownChapters(), `the chapter line where the riffle stopped`)
+  // The line lands with the plank, as the question does (Atlas's call on Iris's placement), so
+  // each read waits up to 3 s for the landed page's words.
+  await expect
+    .poll(shownChapters, {
+      message: "the chapter line where the riffle stopped",
+      timeout: 3000,
+    })
     .toEqual(chapterWords.map((t) => [t, true]));
   expect.soft(chapterWords, "the server's chapter line").toHaveLength(1);
 
@@ -950,13 +988,13 @@ test(`H4 The chapter in Full at 1440 x 900: Next held from /log/30 riffles to /l
     const landed = await landedOn(page, recordOf(to));
     expect(landed.doc, `the press to /log/${to} kept the document`).toBe(1);
     expect(landed.path, `the press landed on /log/${to}`).toBe(recordOf(to));
-    await pause(300);
-    expect
-      .soft(
-        await shownChapters(),
-        `the chapter line after the press to /log/${to}: the server's`,
-      )
-      .toEqual((await server(page, to)).map((t) => [t, true]));
+    const want = (await server(page, to)).map((t) => [t, true]);
+    await expect
+      .poll(shownChapters, {
+        message: `the chapter line after the press to /log/${to}: the server's`,
+        timeout: 3000,
+      })
+      .toEqual(want);
   }
   expect.soft(run.errors, "console errors").toEqual([]);
   await run.close();

@@ -166,18 +166,18 @@ export const sameColor = (a: Rgba, b: Rgba) =>
  * caption and the question. Each is one line here. The caption has no contract hook: the checks
  * find it by its opening words and read it whole. Since Ha (sprint 59, .crew/sprint/58/
  * first-contract.md, H2 to H4) `/log`'s first link invites a rebuild, a step page says how to play
- * it (the hint) and the first chapter step says why a riffle stops there (the chapter line): the
- * contract's proposals until Iris's words land in .crew/sprint/59/placement.md.
+ * it (the hint) and the first chapter step says why a riffle stops there (the chapter line), in
+ * Iris's words (.crew/sprint/59/placement.md, section 2). Start again no longer names the first
+ * sprint, which the page it opens says; it stays a function of it so Y4 reads it unedited.
  */
 export const YARD_WORDS = {
   previous: (p: number) => `Back to sprint ${p}`,
   next: (q: number) => `Seat sprint ${q}'s plank`,
-  start: (first: number) => `Rebuild it yourself from sprint ${first}`,
+  start: (_first: number) => "Rebuild it yourself",
   /** `[data-yard-hint]`, shown while the yard plays the step links. */
   hint: "Hold to flip through the sprints",
   /** `p[data-yard-chapter]` on a chapter step, S the (k − 22)th merged sprint. */
-  chapter: (s: number) =>
-    `Every plank the crew laid by sprint ${s} is gone too.`,
+  chapter: (s: number) => `Every plank up to sprint ${s} is out too.`,
   caption: "The Theseus",
   captionAt: (n: number, today: boolean) =>
     today
