@@ -43,7 +43,7 @@ path or edits `content/`.
 
 - [x] Sprint 58 (S, notes only): Quill's demo of the yard on production (`close.md`), this plan,
   and Ha's contract (H1 to H7). (PR #124.)
-- [ ] Ha (M): the yard plays in a phone's window, and says how. It starts with Iris's placement and
+- [x] Ha (M), sprint 59: the yard plays in a phone's window, and says how. It starts with Iris's placement and
   words:
   - the step link wholly in the first screen at 390 × 664, 360 × 640 and 320 × 568 on every step,
     in every mode;
@@ -53,6 +53,12 @@ path or edits `content/`.
     by sprint 23 is gone too."
 
   0 B of loader, CLS 0, and nothing on `/`. Checks H1 to H7.
+  (PR #125.) Built to Iris's placement (b), the row under the ghost (`.crew/sprint/59/placement.md`):
+  next sits at 379–423 at 390 × 664, 351–395 at 320 × 568. Words: "Rebuild it yourself", "Hold to
+  flip through the sprints", "Every plank up to sprint 23 is out too." Left open, riding with the
+  next sprint on the Log CSS: the row 4 px lower so a focused Next's ring clears the keel, the
+  placement scoped to `20rem <= width < 48rem` for large fonts, and the step links' numbers kept
+  with the caption during a press and a riffle (`.crew/sprint/59/retro.json`).
 - [ ] Hb (M): the door, with the room made first. The legend's "Original" item shows only while an
   original plank is on the drawing (on `/` and `/read`). Then "Rebuild it yourself" goes on the
   revision block's count line, to the first step (`.crew/sprint/57/door-iris.md`'s markup).

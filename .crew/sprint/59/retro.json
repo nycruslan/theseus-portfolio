@@ -1,0 +1,52 @@
+{
+ "sprint": 59,
+ "pr": 125,
+ "goal": "On a phone, the button that rebuilds the ship now sits in the first screen",
+ "goalFrom": "roadmap",
+ "size": "M",
+ "outcome": "merged: Lens ship on dc57c5c with 4 nits, Iris ship at 8.0; the PR text's nit fixed in the close-out",
+ "fixRounds": 0,
+ "minutes": 120,
+ "agents": [
+  { "role": "design-director", "model": "opus", "tokens": 364183, "minutes": 38 },
+  { "role": "qa-engineer", "model": "opus", "tokens": 308647, "minutes": 78 },
+  { "role": "engineer", "model": "opus", "tokens": 247319, "minutes": 46 },
+  { "role": "design-director", "model": "opus", "tokens": 196464, "minutes": 24 }
+ ],
+ "lens": {
+  "runs": 2,
+  "tokens": 4088119,
+  "important": 0,
+  "actedOn": 1,
+  "nits": 4
+ },
+ "wentWrong": [
+  {
+   "what": "The first code review died before it started, on a failed download",
+   "evidence": "lens job 129039089761: setup-bun answered 504 three times; the download answered 200 twice from the session and the re-run shipped the same head"
+  },
+  {
+   "what": "A focused Next link's ring crosses the drawing's keel line on phones",
+   "evidence": "Iris's review of dc57c5c: the ring overlaps the ghost's keel outline by 2.06 to 2.87 px at 320 to 390 wide; Previous clears it"
+  }
+ ],
+ "proposals": [],
+ "followUps": [
+  {
+   "who": "Forge",
+   "what": "Lower the phone step row 4 px so a focused link's ring clears the keel (Iris's fix: --yard-row + 4 px, the ghost caption's margin 72 to 76 px), with Probe moving the H1 guard to 4 px"
+  },
+  {
+   "who": "Forge",
+   "what": "Scope the phone placement to (20rem <= width < 48rem) so a large default font or heavy zoom falls back to the in-flow row (Lens nit, globals.css:2484), and fix the 112 px comment's terms (globals.css:2481) and the hand-off comment"
+  },
+  {
+   "who": "Pixel",
+   "what": "Make the step links' numbers follow the caption during a press and a riffle, updated in place (Iris's follow-up 2, with a Y23 clause from Probe)"
+  },
+  {
+   "who": "Iris",
+   "what": "Bring over her review memory commit 4e461d3 on iris/59 with the next sprint"
+  }
+ ]
+}

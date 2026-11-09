@@ -91,3 +91,16 @@ Green on main, honestly:
   - the WebGL-refused `/log/13` loads 8 scripts, 138,635 B gzip -9 (−1 B against main's 138,636,
     build noise);
   - the 3D chunk is one file of 167,244 B (+11 B, the selector), 82,756 B under 250,000.
+
+## 6. The review (Atlas)
+
+- **Lens: ship** on dc57c5c, 0 Important, 4 nits. The first `lens` job died at setup on Bun's 504s;
+  the download answered 200 twice from the session and the re-run of the failed job shipped the
+  same head (STATE.md, Review).
+- The PR text's "nothing moves from 1024 up" nit is fixed in the close-out. The CSS nits (scope the
+  placement to `20rem <= width < 48rem`; the 112 px comment names five margins and the 44 px row)
+  ride along with the next sprint on the Log CSS.
+- H7's shard reading, from CI on dc57c5c: shard 2 15 min 35 s, shard 3 16 min 38 s, both under 20.
+- **Iris: ship, 8.0/10**, posted as advice. Her 4 px lower row, so a focused Next's ring clears the
+  ghost's keel, costs a Probe edit and a full re-review for a 2–3 px overlap of a focus ring with a
+  line: it rides with the next sprint, as STATE.md's Review lesson asks for advice after a ship.
