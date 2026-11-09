@@ -1,7 +1,9 @@
 // The drawing's key, shared by the revision block on / and the ship on /read so the two say the
 // same words (.crew/sprint/23/contract.md, B2.5): how many planks the crew has replaced, and the
-// two states the drawing's fills show. On / the legend names the pencil, and copper, only while
-// they are on the drawing (.crew/sprint/34/contract.md, "The legend").
+// states the drawing's fills show, each named only while it is on the drawing. "Seated by a
+// sprint" always; "Original" while a plank is still original, the count line's original number
+// above 0 (.crew/sprint/60/contract.md, "The legend"); on / the pencil, and copper, while the crew
+// draws them (.crew/sprint/34/contract.md, "The legend").
 
 export function PlankCount({
   planks,
@@ -20,9 +22,14 @@ export function PlankCount({
 // The space between the items keeps the list's text two words apart for anything that reads it
 // whole. With the pencil and copper items it can be wider than a phone, so it wraps.
 export function PlankLegend({
+  planks,
+  replaced,
   pencil = false,
   copper = false,
 }: {
+  /** The drawing's planks and how many the crew has replaced, the numbers its PlankCount reads. */
+  planks: number;
+  replaced: number;
   /** A plank is in pencil on the drawing. */
   pencil?: boolean;
   /** Its copper tip is on the drawing: the crew is live. */
@@ -33,11 +40,16 @@ export function PlankLegend({
       <li className="flex items-center gap-2">
         <span aria-hidden="true" className="swatch bg-card" />
         Seated by a sprint
-      </li>{" "}
-      <li className="flex items-center gap-2">
-        <span aria-hidden="true" className="swatch bg-card-old" />
-        Original
       </li>
+      {planks - replaced > 0 ? (
+        <>
+          {" "}
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="swatch bg-card-old" />
+            Original
+          </li>
+        </>
+      ) : null}
       {pencil ? (
         <>
           {" "}

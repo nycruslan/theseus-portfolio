@@ -159,7 +159,7 @@ export default function Read() {
             <figcaption>
               <div className="ship-key">
                 <PlankCount planks={PLANKS.length} replaced={replaced} />
-                <PlankLegend />
+                <PlankLegend planks={PLANKS.length} replaced={replaced} />
               </div>
               <p className="ship-note">
                 Each replaced plank is one merged sprint; all {entries.length}{" "}

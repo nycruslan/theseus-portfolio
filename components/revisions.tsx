@@ -10,6 +10,14 @@ const NONE = "—";
 const ROWS = 5;
 
 /**
+ * The foot row's links, the Log and the door into its yard, one string so the two stay alike word
+ * for word (.crew/sprint/60/contract.md, "The door"): ink, semibold, a 1 px underline 3 px out and
+ * 2 px on hover, at least 24 px tall.
+ */
+const FOOT_LINK =
+  "inline-flex min-h-6 items-center font-semibold text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2";
+
+/**
  * A row's cells after Rev and Description, by their column's head (contract, "Data rules"). The
  * first three hold the crew's names, which a page translator would otherwise turn into words. The
  * Log's table and records read the same cells (components/log.tsx), so the two can't disagree.
@@ -159,8 +167,9 @@ function PencilRow({ pencil }: { pencil: Pencil }) {
 
 // The sheet's revision block (.crew/sprint/22/contract.md, B1.5; notes-iris.md, section 8): the five
 // newest sprints on record as a drawing's revision table, who drew, checked, tested and approved
-// each, read from its retro at build time. The full record is the Log, one link away. On phones each
-// row folds under its number (app/globals.css, "The revision table"); the cells stay the same.
+// each, read from its retro at build time. The full record is the Log, one link away, and its yard,
+// where a visitor rebuilds the ship, one more. On phones each row folds under its number
+// (app/globals.css, "The revision table"); the cells stay the same.
 export function Revisions({
   entries,
   caption,
@@ -177,6 +186,9 @@ export function Revisions({
         .filter((entry) => entry.sprint !== pencil.sprint)
         .slice(0, ROWS - 1)
     : entries.slice(0, ROWS);
+  // The yard's first step: the sprint merged first, the oldest entry, which /log's own "Rebuild it
+  // yourself" opens too (components/log.tsx, `merged[0]`), so the two doors can't disagree.
+  const first = entries.at(-1)?.sprint;
   return (
     <section
       aria-labelledby="revisions"
@@ -241,21 +253,35 @@ export function Revisions({
         1024 to 1247 it takes two lines, split between its sentences (app/globals.css). */}
       <CrewKey className="rev-key text-step-sm text-muted" />
       {/* At the cell's foot from 1024 px, on the title block's Contact line, when the row is
-          taller than this block (the bottom row's minimum height, app/globals.css). */}
+          taller than this block (the bottom row's minimum height, app/globals.css). The door into
+          the yard follows the Log link, beside it or on the next line where the two don't fit
+          (.crew/sprint/60/contract.md, "The door"; .crew/sprint/57/door-iris.md): HTML alone, so
+          / ships no script for it, and Tab reaches it right after the Log link. Its room on the
+          line is the legend's Original item, left out while no plank on the drawing is original
+          (components/plank-key.tsx), so Contact's links stay where they were. */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-step-sm lg:mt-auto">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <PlankCount planks={planks} replaced={replaced} />
           <PlankLegend
+            planks={planks}
+            replaced={replaced}
             pencil={Boolean(pencil)}
             copper={Boolean(pencil?.live)}
           />
         </div>
-        <a
-          href="/log"
-          className="inline-flex min-h-6 items-center font-semibold text-foreground underline decoration-1 underline-offset-[3px] hover:decoration-2"
-        >
-          All {entries.length} revisions in the Log
-        </a>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+          <a href="/log" className={FOOT_LINK}>
+            All {entries.length} revisions in the Log
+          </a>
+          {first === undefined ? null : (
+            <>
+              {" "}
+              <a href={`/log/${first}`} className={FOOT_LINK}>
+                Rebuild it yourself
+              </a>
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
