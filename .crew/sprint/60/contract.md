@@ -43,7 +43,10 @@ path, no `content/`, no owner answer needed. Iris's fit, measured on production 
 - **H10 `/`'s first screen.** W1 to W17, B1.1, B4.22, P3 and P8 pass unedited. Plus a 1 px sweep of
   window widths 1380 to 1440 at 900 tall, in the default, open, resting and replay states, with the
   webfont and with fonts blocked: the Contact links' bottom is never lower than the figure Iris
-  measured for today at that width and state (`fit.md`), and always inside the first screen; "All
+  measured for today at that width and state (`fit.md`), except open, which may drop to today's
+  live state's place at that width and no lower (the plan's "in open moves only to the live
+  state's place"; Forge measured 7.2–7.9 px at 1410–1440, 874.2 at 1440, decisions.md); and it is
+  always inside the first screen; "All
   N revisions in the Log" is in the first screen at 1440 × 900.
 - **H11 The named rewrites, at their strength.** Each says what it pinned before and pins the new
   truth as tightly:
