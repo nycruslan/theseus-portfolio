@@ -1,0 +1,50 @@
+{
+ "sprint": 58,
+ "pr": 124,
+ "goal": "Played the yard on production as a visitor and planned what comes next",
+ "goalFrom": "roadmap",
+ "size": "S",
+ "outcome": "merged, notes only",
+ "fixRounds": 0,
+ "minutes": 45,
+ "agents": [
+  {
+   "role": "product-owner",
+   "model": "opus",
+   "tokens": 229814,
+   "minutes": 23
+  }
+ ],
+ "lens": {
+  "runs": 1,
+  "tokens": 0,
+  "important": 0,
+  "actedOn": 0,
+  "nits": 0
+ },
+ "wentWrong": [
+  {
+   "what": "On a phone, the button that rebuilds the ship sits below the first screen",
+   "evidence": "Quill's demo on production: at 390 x 664 the step link is cut by the fold on steps 1, 13, 45 and 57 and wholly below it on 23; at 360 x 640 and 320 x 568 it is below the fold on every step (.crew/sprint/58/close.md)"
+  },
+  {
+   "what": "The Log never says the ship can be rebuilt by hand, or that a step can be held",
+   "evidence": "Its only invitation is \"Start again from sprint 1\", and no step page mentions holding (.crew/sprint/58/close.md)"
+  }
+ ],
+ "proposals": [],
+ "followUps": [
+  {
+   "who": "Iris",
+   "what": "Ha starts with her call on where the step row goes on phones and the three pieces of wording (.crew/sprint/58/first-contract.md)"
+  },
+  {
+   "who": "Probe",
+   "what": "Write H1 to H7 as failing checks, after running the unchanged suite against a bare version of the change"
+  },
+  {
+   "who": "Iris",
+   "what": "Compact MEMORY.md, still near its 25 KB limit"
+  }
+ ]
+}
