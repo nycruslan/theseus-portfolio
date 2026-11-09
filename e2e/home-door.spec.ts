@@ -177,9 +177,14 @@ function legendRead(page: Page) {
   });
 }
 
-type LegendModule = {
-  PlankLegend?: (props: Record<string, unknown>) => unknown;
+/** PlankLegend's props as the contract words its rule, the count line's own names. */
+type LegendProps = {
+  planks: number;
+  replaced: number;
+  pencil?: boolean;
+  copper?: boolean;
 };
+type LegendModule = { PlankLegend?: (props: LegendProps) => unknown };
 
 test("H8 The legend keys only what's drawn: on / (default, live, open, resting) and /read, light and dark, no legend item reads Original while the count line reads 0 original and no .plank-original is drawn; Seated by a sprint first, live adding pencil and copper after it, open pencil only; and PlankLegend keys Original exactly when planks - replaced > 0", async ({
   page,
@@ -188,13 +193,17 @@ test("H8 The legend keys only what's drawn: on / (default, live, open, resting) 
   test.setTimeout(240_000);
   // The rule itself, where no fixture draws an original plank: rendered on the server with the
   // count line's props (decisions.md, 2).
-  const legend = (await import("../components/plank-key")) as LegendModule;
+  // Through unknown, so a legend whose props differ (main's took none of these) still loads and
+  // fails on what it renders, not on the spec's types.
+  const legend = (await import(
+    "../components/plank-key"
+  )) as unknown as LegendModule;
   expect(
     legend.PlankLegend,
     "PlankLegend in components/plank-key.tsx",
   ).toBeTruthy();
-  const render = (props: Record<string, unknown>) => {
-    const Legend = legend.PlankLegend as (p: Record<string, unknown>) => null;
+  const render = (props: LegendProps) => {
+    const Legend = legend.PlankLegend as (p: LegendProps) => null;
     const html = renderToStaticMarkup(createElement(Legend, props));
     return [...html.matchAll(/<li[^>]*>(.*?)<\/li>/g)].map((m) =>
       (m[1] ?? "").replace(/<[^>]+>/g, "").trim(),
