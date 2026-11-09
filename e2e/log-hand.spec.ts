@@ -374,7 +374,7 @@ function mainBoxes(page: Page, except: string) {
 
 for (const phone of PHONES) {
   const size = `${at(phone)}, ${phone.scheme}`;
-  test(`H1 The press in a phone's window, ${size}: with scripts off and in Full once [data-model] has data-yard, on ${H1_STEPS.map(recordOf).join(", ")} the step link to press (next; previous on the newest) is wholly in the first screen (top at or below the bar's bottom, bottom at or above innerHeight, scroll 0) and the tops of both drawings start in it; on /log/${QUESTION_STEP} the question is ${phone.width === 320 ? "started" : "wholly"} in it; on /log, Start again is wholly in it`, async ({
+  test(`H1 The press in a phone's window, ${size}: with scripts off and in Full once [data-model] has data-yard (on /log, which plays no steps, at rest), on ${H1_STEPS.map(recordOf).join(", ")} the step link to press (next; previous on the newest) is wholly in the first screen (top at or below the bar's bottom, bottom at or above innerHeight, scroll 0) and the tops of both drawings start in it; on /log/${QUESTION_STEP} the question ${phone.width === 320 ? "starts" : "is wholly"} in it; on /log, Start again is wholly in it`, async ({
     browser,
   }) => {
     test.setTimeout(120_000);
