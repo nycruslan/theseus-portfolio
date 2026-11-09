@@ -6,7 +6,7 @@ import { HandOff, LogRecord } from "@/components/log-record";
 import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
-import { countLine } from "@/lib/count-line";
+import { chapterLine, countLine } from "@/lib/count-line";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatHolders, shipsAt } from "@/lib/lines-plan";
 import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
@@ -28,10 +28,11 @@ type LogProps = {
 };
 
 /**
- * The count line under the caption (lib/count-line.ts), with each "sprint 23" kept on one line, so a
- * phone's line doesn't end on "sprint" with the number alone below it.
+ * A line of the header's words from lib/count-line.ts, the count line or the chapter line, with each
+ * "sprint 23" kept on one line, so a phone's line doesn't end on "sprint" with the number alone
+ * below it.
  */
-function CountLine({ text }: { text: string }) {
+function SprintWords({ text }: { text: string }) {
   return text.split(/(sprint \d+)/).map((part, i) =>
     i % 2 === 1 ? (
       <span key={part} className="whitespace-nowrap">
@@ -120,6 +121,7 @@ export function Log({ entries, open }: LogProps) {
   // Both ships as they stood after the record's step, or, on /log, as they stand today.
   const ships = shipsAt(merged, record?.sprint);
   const shown = record?.sprint ?? merged.at(-1);
+  const chapter = record ? chapterLine(ships.k, merged) : null;
   // The newest record is the one merged last: the lines figure's, and the year a date leaves out.
   const newest = latestMerge(entries);
   const year = newest ? utcYear(newest.mergedAt) : Number.NaN;
@@ -160,8 +162,16 @@ export function Log({ entries, open }: LogProps) {
               numbered by the sprint that replaced it.
             </p>
             <p data-ghost-count="">
-              <CountLine text={countLine(ships.k, merged)} />
+              <SprintWords text={countLine(ships.k, merged)} />
             </p>
+            {/* At a chapter step, where a riffle stops, why it stopped (.crew/sprint/59/
+            placement.md, section 3), in the question's slot and voice; never on /log, as the
+            question isn't. */}
+            {chapter ? (
+              <p data-yard-chapter="" className="log-chapter">
+                <SprintWords text={chapter} />
+              </p>
+            ) : null}
             {/* At the step where the last original leaves, and on no other page. One string, so
             the server's HTML holds the sentence whole. */}
             {record && ships.k === PLANKS.length ? (
@@ -193,13 +203,15 @@ export function Log({ entries, open }: LogProps) {
           <p aria-live="polite" data-yard-live="" className="sr-only" />
         </div>
 
-        {/* On /log, the two ways out of today: back to the first step, or on to the live crew
-          (Iris's calls, .crew/sprint/56/riffle-iris.md, section 4). After the row in the DOM, so
-          Tab reaches Read as page and the control first, and under the ghost from 1024. */}
+        {/* On /log, the two ways out of today: rebuild the ship from its first step, or on to the
+          live crew (Iris's calls, .crew/sprint/56/riffle-iris.md, section 4). The words of the door
+          planned for / (.crew/sprint/57/door-iris.md), so the two will say one thing; the step it
+          opens names its sprint (.crew/sprint/59/placement.md, section 2). After the row in the
+          DOM, so Tab reaches Read as page and the control first, and under the ghost from 1024. */}
         {record ? null : (
           <p className="log-start">
             <a href={`/log/${merged[0]}`} data-step="start">
-              {`Start again from sprint ${merged[0]}`}
+              {"Rebuild it yourself"}
             </a>
             <HandOff />
           </p>
