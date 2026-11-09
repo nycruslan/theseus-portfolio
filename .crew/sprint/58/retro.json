@@ -4,7 +4,7 @@
  "goal": "Played the yard on production as a visitor and planned what comes next",
  "goalFrom": "roadmap",
  "size": "S",
- "outcome": "merged, notes only",
+ "outcome": "merged, notes only: Lens ship on 552b74d, its nit on the walk's count fixed in the close-out",
  "fixRounds": 0,
  "minutes": 45,
  "agents": [
@@ -17,10 +17,10 @@
  ],
  "lens": {
   "runs": 1,
-  "tokens": 0,
+  "tokens": 199687,
   "important": 0,
-  "actedOn": 0,
-  "nits": 0
+  "actedOn": 1,
+  "nits": 1
  },
  "wentWrong": [
   {

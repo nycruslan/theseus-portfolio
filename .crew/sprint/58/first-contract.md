@@ -95,9 +95,9 @@ are **H1 to H7**. No owner path, no `content/`, no owner answer needed.
   - **What stays in view:** the tops of both drawings start in the first screen (Y5's clause, at
     these windows). On the question's step the question is wholly in it at 390 × 664 and 360 × 640,
     and starts in it at 320 × 568. On `/log`, Start again is wholly in it.
-  - **The walk:** at 390 × 664 with scripts off, from `/log/13`, each of the 10 presses to 23 finds
-    next wholly in view at scroll 0 before it's pressed. In Full, from `/log/13`, after each of the
-    10 presses next is still wholly in view, with no scroll in between.
+  - **The walk:** at 390 × 664 with scripts off, from `/log/13`, each press until `/log/23` finds
+    next wholly in view at scroll 0 before it's pressed. In Full, from `/log/13`, after each press
+    until `/log/23`, next is still wholly in view, with no scroll in between.
 - **H2 The invitation.** `/log`'s `a[data-step="start"]` reads Iris's words: the same link, target
   (`/log/<first merged>`), place and Tab order as today. The words live in `YARD_WORDS.start`
   (`e2e/log.ts`), which Y4 and B5.25 read, so Probe rewrites the constant and both keep their
