@@ -513,12 +513,17 @@ test(`H1 The walk at 390 x 664: with scripts off, from /log/13 each press until 
   await run.close();
 });
 
-test(`H1 Iris's placement guard (.crew/sprint/59/placement.md, "For Probe"): on /log/${QUESTION_STEP} with scripts off, at every width from 320 to 767 (1 px steps, 664 tall), the step row's top is within 0.5 px of the ghost's bottom and the hint's bottom at or above the ghost's caption's top; a redesign that moves the row retires this guard, not H1`, async ({
+/** The phone step row's gap under the ghost: a focused link's ring (2 px, set 2 px off) clears the keel (sprint 59's follow-up 1, .crew/sprint/59/retro.json). */
+const ROW_GAP = 4;
+
+test(`H1 Iris's placement guard (.crew/sprint/59/placement.md, "For Probe", moved to ${ROW_GAP} px by sprint 59's follow-up 1): on /log/${QUESTION_STEP} with scripts off, at every width from 320 to 767 (1 px steps, 664 tall), the step row's top is within 0.5 px of ${ROW_GAP} px below the ghost's bottom, a focused next's ring (its outline's width and offset, as computed) starts at or below the ghost's bottom, and the hint's bottom is at or above the ghost's caption's top; a redesign that moves the row retires this guard, not H1`, async ({
   browser,
 }) => {
   test.setTimeout(90_000);
   const off = await scriptsOff(browser, PHONE);
   expect(await off.go(recordOf(QUESTION_STEP ?? 23)), "status").toBe(200);
+  // Focused before the sweep, and held through it: the ring is the computed outline on :focus-visible.
+  await off.page.locator('.record-steps a[data-step="next"]').focus();
   const away: string[] = [];
   for (let width = 320; width <= 767; width++) {
     await off.page.setViewportSize({ width, height: PHONE.height });
@@ -526,22 +531,43 @@ test(`H1 Iris's placement guard (.crew/sprint/59/placement.md, "For Probe"): on 
       ({ hint, ghost }) => {
         const box = (css: string) =>
           document.querySelector(css)?.getBoundingClientRect() ?? null;
+        const next = document.querySelector<HTMLElement>(
+          '.record-steps a[data-step="next"]',
+        );
+        const style = next ? getComputedStyle(next) : null;
+        const shown = next?.matches(":focus-visible") === true;
+        // The ring's reach beyond the box: nothing when no outline is drawn.
+        const reach =
+          style && shown && style.outlineStyle !== "none"
+            ? Number.parseFloat(style.outlineWidth) +
+              Number.parseFloat(style.outlineOffset)
+            : Number.NaN;
         return {
           row: box(".record-steps")?.top ?? Number.NaN,
           ghost: box(ghost)?.bottom ?? Number.NaN,
+          ring: (next?.getBoundingClientRect().top ?? Number.NaN) - reach,
           hint: box(hint)?.bottom ?? Number.NaN,
           caption: box("[data-ghost-caption]")?.top ?? Number.NaN,
         };
       },
       { hint: HINT, ghost: GHOST_HULL },
     );
-    if (!(Math.abs(r.row - r.ghost) <= 0.5) || !(r.hint <= r.caption + 0.5))
+    if (
+      !(Math.abs(r.row - (r.ghost + ROW_GAP)) <= 0.5) ||
+      !(r.ring >= r.ghost - 0.5) ||
+      !(r.hint <= r.caption + 0.5)
+    )
       away.push(
-        `${width}: row ${r.row.toFixed(2)} against the ghost's foot ${r.ghost.toFixed(2)}; hint to ${r.hint.toFixed(2)}, caption from ${r.caption.toFixed(2)}`,
+        `${width}: row ${r.row.toFixed(2)} against the ghost's foot ${r.ghost.toFixed(2)} + ${ROW_GAP}; focused next's ring from ${r.ring.toFixed(2)}; hint to ${r.hint.toFixed(2)}, caption from ${r.caption.toFixed(2)}`,
       );
   }
   await off.context.close();
-  expect.soft(away, "widths where the row left the ghost's foot").toEqual([]);
+  expect
+    .soft(
+      away,
+      `widths where the row isn't ${ROW_GAP} px under the ghost's foot, the ring crosses it, or the hint meets the caption`,
+    )
+    .toEqual([]);
 });
 
 // ---------------------------------------------------------------------------------------------
