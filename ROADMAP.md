@@ -17,12 +17,83 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
-## Finished: the yard, then stand down
+## Now: the yard in hand
 
-Yd merged on 2026-11-08 (#122, last). Ye waited, because the door didn't fit (sprint 57, below).
-The next run's first job is Quill's: judge the yard on production as a visitor at its demo, and
-plan the next milestone from what it shows, starting from the post-demo items below. Until a plan
-is on this page, the crew stands down.
+A visitor who is sent a step of the yard can press it on their phone, and one who finds the Log can
+tell it's there to be played. The step links sit in the first screen of a phone's window. `/log`
+invites the visitor to rebuild the ship. A step page says that a step can be held. The riffle's
+stop at 45 says why it stopped. Then `/` opens the yard with one plain link, "Rebuild it yourself",
+in room made by dropping a legend item that keys nothing on `/`'s drawing.
+
+The yard's demo (`.crew/sprint/58/close.md`) found it truthful and built, but not yet in a visitor's
+hand:
+
+- In Safari's 390 × 664 window the step link is cut on every step and below the fold on 23. At
+  360 × 640 and 320 × 568 it is below the fold on every step, with scripts on and off. Y5 pinned
+  390 × 844, a screen.
+- `/log`'s only invitation is "Start again from sprint 1".
+- Nothing says a step can be held.
+- The riffle stops at 45 without saying why.
+
+Quill's plan is `.crew/sprint/58/plan.md`, and Ha's contract is `first-contract.md`. It serves
+belief 2 (a visitor who plays reads the crew's record) and belief 3 (a signature toy that says what
+it does). Ha doesn't touch `/`. Hb changes `/` only in room it makes first. The checks are H1
+onward, numbered across the milestone. No sprint needs an owner answer to start, touches an owner
+path or edits `content/`.
+
+- [x] Sprint 58 (S, notes only): Quill's demo of the yard on production (`close.md`), this plan,
+  and Ha's contract (H1 to H7). (PR #124.)
+- [ ] Ha (M): the yard plays in a phone's window, and says how. It starts with Iris's placement and
+  words:
+  - the step link wholly in the first screen at 390 × 664, 360 × 640 and 320 × 568 on every step,
+    in every mode;
+  - Start again's words ("Rebuild it yourself from sprint 1" proposed);
+  - a hold hint shown only where a hold riffles, keyed by CSS with no script;
+  - at every chapter after 23 (today 45), one line from a checked rule: "Every plank the crew laid
+    by sprint 23 is gone too."
+
+  0 B of loader, CLS 0, and nothing on `/`. Checks H1 to H7.
+- [ ] Hb (M): the door, with the room made first. The legend's "Original" item shows only while an
+  original plank is on the drawing (on `/` and `/read`). Then "Rebuild it yourself" goes on the
+  revision block's count line, to the first step (`.crew/sprint/57/door-iris.md`'s markup).
+  - Its contract is written after Ha merges, from a fresh injection into production's DOM.
+  - Planned checks H8 to H11: the legend, the door, `/`'s first screen with a 1 px sweep from 1380
+    to 1440 × 900 on both faces, and the named rewrites (B2.3, B1.5, B4.19, B2.9's rider and
+    `live-layer.ts`'s legend finder).
+  - It waits, and the milestone closes with Ha, if the contact links move at any window the W
+    checks pin.
+- **Then the crew stands down.** The fleet at 45, the record in the motion and sound wait with their
+  questions (`close.md`, "Left open"). No sprint opens until one of these happens:
+  - the owner sets a goal or answers a pick;
+  - a defect on production makes something the site says false, or hides a fact;
+  - the owner, having played the yard on his phone, wants more of it.
+- **The owner's calls, and none blocks the work:**
+  - the yard's direction (A, as built);
+  - the tally at 23 (no tally recommended);
+  - #101's pick;
+  - optional: play `/log/23` on his own phone in Safari, from the card in a message.
+- Out of scope, and why:
+  - the fleet, bounces and sound (above);
+  - the cards, the riffle's pace and the 3D's look, which the demo found sound;
+  - the display face's `display: optional`, which is Iris's to weigh, parked since sprint 42 (cold
+    loads still paint the fallback, `close.md`);
+  - owner paths and `content/`.
+
+## Finished: the yard
+
+Yd merged on 2026-11-08 (#122, last). Ye waited, because the door didn't fit (sprint 57, below), and
+moves to "the yard in hand" as Hb. Quill ran the demo on production in sprint 58
+(`.crew/sprint/58/close.md`):
+
+- Every step I read tells the truth: the count lines, the captions, the question on 23 alone, and
+  15 → 17.
+- The press flies in Full and fades in Calm and under reduced motion. In Off it's a navigation, and
+  Back walks back.
+- The riffle stops at 23, 45 and 57 while held, and Home and End jump.
+- The walk without script reaches 23 in 21 presses.
+- 23's card leads with the question. `/`'s first screen is unchanged.
+
+What it lacks is a way into a visitor's hand, above.
 
 On the Log, a visitor rebuilds the Theseus themself, one real sprint's plank at a time, and each
 plank it replaces lands in the ghost hull beside it. At sprint 23 the last original leaves, and they
@@ -81,9 +152,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   `/`'s drawing, and without it the door moves nothing at 1280 to 1440 × 900 (its own contract:
   B4.19, B2.9's forced-colours rider, `PlankLegend` shared with `/read`). It's the same open item as
   the legend's "Original" left waiting under "the proof in five seconds" (#84's loosened check, and
-  B4b's note on B1.2's words), so Quill takes them as one at the demo.
-- After the demo, if the yard earns it: the record in the motion (fix rounds as bounces, sprint 16
-  struck), the fleet at 45, and optional sound. Each has a question to settle first (`plan.md`).
+  B4b's note on B1.2's words), so Quill takes them as one at the demo. Taken as one: Hb, under
+  "the yard in hand".
+- [x] The demo (sprint 58, PR #124, notes only): Quill on production, `.crew/sprint/58/close.md`.
+  The yard holds; on a phone's window the press is out of reach, and the Log doesn't say it can be
+  played. The next milestone is "the yard in hand", above.
+- After the demo, not taken: the record in the motion (fix rounds as bounces, sprint 16 struck),
+  the fleet at 45, and optional sound. Each still has its question (`plan.md`), and the words at 45
+  in Ha give that stop its meaning (`.crew/sprint/58/plan.md`, "Why this, and not the rest").
 - **The owner's calls, and none blocks the work:**
   - the direction: A fits the brief as it stands, while B or C would be his change to
     `design/brief.md`;
