@@ -42,12 +42,13 @@ path, no `content/`, no owner answer needed. Iris's fit, measured on production 
   after the Log link and right before the first case study.
 - **H10 `/`'s first screen.** W1 to W17, B1.1, B4.22, P3 and P8 pass unedited. Plus a 1 px sweep of
   window widths 1380 to 1440 at 900 tall, in the default, open, resting and replay states, with the
-  webfont and with fonts blocked: the Contact links' bottom is never lower than the figure Iris
-  measured for today at that width and state (`fit.md`), except open, which may drop to today's
-  live state's place at that width and no lower (the plan's "in open moves only to the live
-  state's place"; Forge measured 7.2–7.9 px at 1410–1440, 874.2 at 1440, decisions.md); and it is
-  always inside the first screen; "All
-  N revisions in the Log" is in the first screen at 1440 × 900.
+  webfont and with fonts blocked: the Contact links' bottom is never lower than the lowest of
+  today's states at that width (`fit.md`, Iris's section 4.1; open drops 7.2–7.9 px to live's
+  place at 1410–1440 and no lower, as the plan said), and always inside the first screen. At
+  1440 × 900, in every state, "All N revisions in the Log" and the door are wholly inside the first
+  screen. Accepted, and not pinned: at 1205–1272 wide and 960 tall or more, default, resting and
+  replay drop 23.5 px, at least 94 px clear of the fold (`fit.md` 4.2); live and open rise 23.5 px
+  at some pins, since the freed line goes.
 - **H11 The named rewrites, at their strength.** Each says what it pinned before and pins the new
   truth as tightly:
   - B2.3 (`e2e/keyboard.spec.ts`): Contact's first link the 26th stop, the door between the Log
@@ -61,7 +62,11 @@ path, no `content/`, no owner answer needed. Iris's fit, measured on production 
     `/` and `/read`, and checks that neither draws an original plank. The swatch half retires
     with its item, and the PR names it as a retired check with this reason;
   - `e2e/live-layer.ts`'s legend finder: finds the list by "Seated by a sprint", not "Original";
-  - B4.49, if its Tab clause names "then the Log link" as the last before the case studies.
+  - B4.49, if its Tab clause names "then the Log link" as the last before the case studies;
+  - B2.5's legend length on `/` (`e2e/plan.spec.ts`, `toHaveLength(2)`), which becomes 1;
+  - B1.4 (`e2e/plan.spec.ts`) and B1.2's legend finder (`e2e/sheet.spec.ts`), which would pass only
+    through the count line's "0 original": rewritten to find the legend by intent (Iris, `fit.md`
+    4.5).
 
   Before the build, Probe runs the unedited suite on a scratch build with a bare version of the
   change (the item hidden, the door added), and names every red here as a decision. A red not on
