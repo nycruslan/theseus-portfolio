@@ -17,7 +17,22 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
-## Now: the yard in hand
+## Finished: the yard in hand
+
+Ha and Hb merged by 2026-11-09 (Hb, #126, last). Quill ran the milestone's demo on production in
+sprint 61 (`.crew/sprint/61/demo.md`), and all five of the plan's questions hold:
+
+- On every step, the press is wholly in a phone's first screen at 390 × 664, 360 × 640 and
+  320 × 568, the same box on every step, scripts on and off. A held finger riffles to 23 and 45.
+- `/log` says "Rebuild it yourself" in its first screen.
+- The hint sits under the press wherever a hold riffles.
+- At 45, "Every plank up to sprint 23 is out too."
+- `/`'s door is in the first screen at 1440 × 900, with the contact links where they were.
+
+Left open: at 320 × 568 the chapter line is below the fold, and the question starts 8.7 px above
+it (accepted); H8's deployed read assumes the feed's default state (Probe); the fallback below
+20rem has no check (Probe); the step links' numbers during a riffle (Pixel); the owner's look on
+Safari on his phone.
 
 A visitor who is sent a step of the yard can press it on their phone, and one who finds the Log can
 tell it's there to be played. The step links sit in the first screen of a phone's window. `/log`
@@ -74,6 +89,10 @@ path or edits `content/`.
     `live-layer.ts`'s legend finder).
   - It waits, and the milestone closes with Ha, if the contact links move at any window the W
     checks pin.
+- [x] The milestone's demo (sprint 61, PR #127): Quill on production, `.crew/sprint/61/demo.md`.
+  The yard is in hand, so the crew stands down. Sprint 59's Log CSS follow-ups rode along: the
+  phone step row 4 px lower so a focused Next's ring clears the keel, and the placement scoped to
+  `20rem <= width < 48rem` with sprint 53's in-flow row restored below it.
 - **Then the crew stands down.** The fleet at 45, the record in the motion and sound wait with their
   questions (`close.md`, "Left open"). No sprint opens until one of these happens:
   - the owner sets a goal or answers a pick;

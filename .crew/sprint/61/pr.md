@@ -21,9 +21,11 @@ Quill's verdict (`.crew/sprint/61/demo.md`): the yard is in a visitor's hand. Al
 
 ## Checks
 
+- **Lens: ship** on cb9f8d1, 0 Important, 3 nits: this text's doubled bullet (fixed in the close-out); the fallback's missing check and `expect\n.soft` reformat ride with the next sprint on that spec.
+
 - H1's placement guard (`e2e/log-hand.spec.ts`): red at all 448 widths on main's CSS, green on Forge's build; its ring clause alone goes red with a 3 px outline offset (Probe).
 - Focused Next's ring against the keel's ink: −1.86 to −2.87 px before, +1.13 to +2.14 px after, at 390 × 664, 360 × 640 and 320 × 568; nothing moves from 768 up (Forge, against production).
-- On the integrated head: `pnpm verify` passes; `log-hand` and `log-yard`, 28 passed. Forge ran every other `e2e/log*.spec.ts` on his build (94 passed), Probe twelve Log and phone specs on the mutant (138 passed).
+- On the integrated head: `pnpm verify` passes; `log-hand` and `log-yard`, 28 passed. Forge ran every other `e2e/log*.spec.ts` on that build (94 passed), Probe twelve Log and phone specs on the mutant (138 passed).
 - No retired checks. Not verified: Safari, Firefox, a real phone; the fallback below 20rem has no check yet.
 
 ## Files
