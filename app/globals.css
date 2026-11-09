@@ -1848,11 +1848,12 @@ main:has(> [data-model]) {
  * The log (components/log.tsx; .crew/sprint/29/b5-first-contract.md, the frames log-1440.webp and
  * log-390.webp; .crew/sprint/30/notes-iris.md, sections 1.2, 2 and 3; the yard's steps,
  * .crew/sprint/53/placement.md). Below 1024 px one column: the h1, the row of Read as page and the
- * motion control (below 768), the Theseus and its caption, the ghost, its caption, the count line
- * and the question, Start again, the lines figure, the record when one is open, then Every
- * revision, its 2 px rule edge to edge as the facts' are. The row and the drawings follow the
- * header in the DOM and are set after the h1 here; the drawings are hidden from assistive tech, so
- * the reading order is the DOM's. From
+ * motion control (below 768), the Theseus and its caption, the ghost, on a step page below 768 the
+ * step links and their hint under it (.crew/sprint/59/placement.md), the ghost's caption, the count
+ * line and the question or the chapter line, Start again, the lines figure, the record when one is
+ * open, then Every revision, its 2 px rule edge to edge as the facts' are. The row and the drawings
+ * follow the header in the DOM and are set after the h1 here; the drawings are hidden from
+ * assistive tech, so the reading order is the DOM's. From
  * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
  * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
  * the model layer's (above).
@@ -1880,11 +1881,13 @@ main:has(> [data-model]) {
 
 /* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
    phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
-   the count line and the question, Start again, the lines figure, the record, Every revision. The
-   DOM keeps the reading order, header first; only the drawings, hidden from assistive tech, and
-   the row move up. The Theseus over the ghost: two drawings at one size, the Theseus's caption
-   under it in the header's type, one line at every width, 6 px from its drawing and 14 from the
-   ghost. */
+   the count line and the question or the chapter line, Start again, the lines figure, the record,
+   Every revision. The DOM keeps the reading order, header first; only the drawings, hidden from
+   assistive tech, and the row move up, and below 768 the step links stand under the ghost by
+   position, not order (`.log-open .record-steps`). The Theseus over the ghost: two drawings at one
+   size, the Theseus's caption under it in the header's type, one line at every width, 6 px from
+   its drawing and 14 from the ghost. Below 768 these margins and the h1's are terms of the step
+   links' place (`--yard-row`): change one and change it. */
 .log-theseus {
   order: 3;
   margin-top: 16px;
@@ -1917,10 +1920,10 @@ main:has(> [data-model]) {
   color: var(--muted);
 }
 
-/* The 22nd merge's question, in the count line's slot: the body face, a step up, in ink, so it
-   doesn't stack a third condensed block against the h1 and the lines figure. It out-ranks
-   `.log-head p`. */
-.log-head .log-question {
+/* The 22nd merge's question and every chapter line: one slot, one voice (.crew/sprint/59/
+   placement.md, section 3), after the count line: the body face, a step up, in ink, so it doesn't
+   stack a third condensed block against the h1 and the lines figure. It out-ranks `.log-head p`. */
+.log-head :is(.log-question, .log-chapter) {
   order: 5;
   margin-top: 12px;
   font-size: var(--step-lg);
@@ -2364,7 +2367,8 @@ main:has(> [data-model]) {
 }
 
 /* The number at the left, the steps at the right (.crew/sprint/53/placement.md): in one row they
-   cost nothing above the h2, 283 px at their widest against 310 at 1024 and 324 at 390. */
+   cost nothing above the h2, 283 px at their widest against 310 at 1024. Below 768 the steps stand
+   under the ghost (below), and the row holds the number alone. */
 .record-top {
   display: flex;
   align-items: center;
@@ -2439,21 +2443,77 @@ main:has(> [data-model]) {
   margin-left: 4px;
 }
 
-/* Below 360 the four don't fit one row: the steps take their own, previous at the left and next
-   at the right, alone or not. */
-@media (width < 22.5rem) {
-  .record-top {
-    flex-wrap: wrap;
-    row-gap: 0;
+/* The hint, under the step links (.crew/sprint/59/placement.md, section 3): its line held in every
+   mode, shown only while the yard plays them, 4 px under their boxes so a focused link's ring
+   clears its ascenders. Visibility, never display: B5.6 (C5.2) holds a record to no display-none
+   element. */
+.record-hint {
+  margin-top: 4px;
+  font-size: var(--step-sm);
+  line-height: 14px;
+  color: var(--muted);
+  text-align: end;
+  text-wrap: balance;
+  visibility: hidden;
+}
+
+.log:has(> [data-model][data-yard]) .record-hint {
+  visibility: visible;
+}
+
+@media print {
+  .record-hint {
+    display: none;
+  }
+}
+
+/* Below 768 the step row stands under the ghost, the same on every step (.crew/sprint/59/
+   placement.md, section 1): absolutely in main, its offset the stack above it, every term fixed on
+   a step page: the h1 (20 + 0.95 of --step-2xl), the control row (12 + 44), the Theseus (16 + its
+   drawing), its one-line caption (6 + 1.45 of --step-base), the ghost (14 + its drawing). Each
+   drawing is 126/632 of the column, and a margin's percentage is main's padding box's width, so
+   the column is 100% - 32px; `top` would read main's height. Change a term above and this changes
+   with it (H1's sweep). The DOM keeps the links in the record's head, so the reading and Tab order
+   don't change. */
+@media screen and (width < 48rem) {
+  .log-open {
+    position: relative;
+    /* The h1's line and the Theseus's caption's, then both drawings, then the six margins. */
+    --yard-lines: calc(var(--step-2xl) * 0.95 + var(--step-base) * 1.45);
+    --yard-drawings: calc((100% - 32px) * 252 / 632);
+    --yard-row: calc(112px + var(--yard-lines) + var(--yard-drawings));
   }
 
-  .record-steps {
-    flex-basis: 100%;
+  .log-open .record-steps {
+    position: absolute;
+    top: 0;
+    right: 16px;
+    left: 16px;
+    z-index: 1;
+    margin: var(--yard-row) 0 0;
     justify-content: space-between;
   }
 
-  .record-steps [data-step="next"] {
+  .log-open .record-steps [data-step="next"] {
     margin-left: auto;
+  }
+
+  .log-open .record-hint {
+    position: absolute;
+    top: 0;
+    right: 16px;
+    left: 16px;
+    margin: calc(var(--yard-row) + 48px) 0 0;
+  }
+
+  /* On the newest step, with no Next, the hint stands under ← Sprint p. */
+  .log-open .record:not(:has([data-step="next"])) .record-hint {
+    text-align: start;
+  }
+
+  /* The row (44), 4, the hint's line (14), 10. */
+  .log-open [data-ghost-caption] {
+    margin-top: 72px;
   }
 }
 

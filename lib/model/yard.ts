@@ -48,11 +48,13 @@ const COUNT = "[data-ghost-count]";
  */
 const CAPTION = "[data-theseus-caption]";
 /**
- * The 22nd merge's question, on its step alone, right after the count line. It comes with the
- * words, its space taken unseen, and shows with the plank: it is the payoff, and lands with the
- * last original (Iris; .crew/sprint/55/review-iris.md, must 1).
+ * The 22nd merge's question, on its step alone, right after the count line, or a chapter step's
+ * line in the same slot; never both on one step, so the selector finds the one there is. It comes
+ * with the words, its space taken unseen, and shows with the plank: it is the payoff, and lands
+ * with the plank it names (Iris; .crew/sprint/55/review-iris.md, must 1; .crew/sprint/59/
+ * placement.md).
  */
-const QUESTION = "[data-yard-question]";
+const QUESTION = "[data-yard-question], [data-yard-chapter]";
 /**
  * The step's drawings and the Theseus's caption, swapped once the plank lands, so the page under
  * the canvas is the step's.

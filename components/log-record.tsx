@@ -119,8 +119,10 @@ export function LogRecord({
       {/* The revision's number, and at the row's right the steps either side of it by merged
         order, each left out at its end: the record's head, in the first screen, so a visitor
         steps through the yard from it (.crew/sprint/52/first-contract.md, Y4; .crew/sprint/53/
-        placement.md, Iris's words). Plain links, no boxes (.crew/sprint/30/notes-iris.md, section
-        2.3); the arrows are drawn, not read. The one list in the record is what went wrong. */}
+        placement.md, Iris's words). Below 768 CSS stands the steps under the ghost, the same on
+        every step, and the DOM keeps them here (.crew/sprint/59/placement.md). Plain links, no
+        boxes (.crew/sprint/30/notes-iris.md, section 2.3); the arrows are drawn, not read. The one
+        list in the record is what went wrong. */}
       <div className="record-top">
         <p className="record-rev">Rev {sprint}</p>
         {/* Each link's words are one span, so its arrow, an inline-block inside it, is left out
@@ -147,6 +149,12 @@ export function LogRecord({
           )}
         </div>
       </div>
+      {/* How to play the steps, under them: shown only while the model plays them, by CSS alone,
+        its line held in every mode so showing it moves nothing (.crew/sprint/59/placement.md,
+        section 3). Text only, never a Tab stop; one string, so the server's HTML holds it whole. */}
+      <p data-yard-hint="" className="record-hint">
+        {"Hold to flip through the sprints"}
+      </p>
       {/* At the newest step, on its own row under ← Sprint n, end-aligned: past the last step the
         way on is the live crew. Its own row, not Next's slot, which it doesn't fit, and one row
         below a finger still tapping Next (Iris's calls, section 4). */}
