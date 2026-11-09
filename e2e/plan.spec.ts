@@ -92,7 +92,7 @@ const over = (c: Rgba, ground: Rgb): Rgb =>
 
 // ---------------------------------------------------------------------------------------------
 
-test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by the retros, uncropped, legible lettering and an HTML legend", async ({
+test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by the retros, uncropped, legible lettering and an HTML legend keying Seated by a sprint, and Original only while an original plank is drawn", async ({
   browser,
   request,
 }) => {
@@ -285,23 +285,38 @@ test("B1.4 the lines plan: one inert drawing in the HTML, 22 planks seated by th
         !["MAIN", "BODY"].includes(el.tagName) &&
         el.getClientRects().length > 0,
     );
-    const legend = outside
-      .filter(
-        (el) =>
-          /\bseated\b/i.test(el.textContent ?? "") &&
-          /\boriginal\b/i.test(el.textContent ?? ""),
-      )
-      .at(-1);
+    // Sprint 60 (H11): the legend by intent, the list whose item reads "Seated by a sprint";
+    // "Original" is keyed only while an original plank is drawn, so it no longer finds it.
+    const legend = outside.find(
+      (el) =>
+        el.tagName === "UL" &&
+        [...el.querySelectorAll(":scope > li")].some(
+          (li) => squashed(li) === "Seated by a sprint",
+        ),
+    );
     const count = outside.filter((el) => squashed(el).includes(line)).at(-1);
     return {
       legend: legend ? squashed(legend) : null,
+      items: [...(legend?.querySelectorAll(":scope > li") ?? [])].map((li) =>
+        squashed(li),
+      ),
       count: count !== undefined,
     };
   }, `${PLANK_IDS.length} planks: ${REPLACED} replaced, ${ORIGINAL} original`);
   expect(
     words.legend,
-    "an HTML legend naming seated and original",
+    "an HTML legend keying Seated by a sprint",
   ).not.toBeNull();
+  expect
+    .soft(
+      words.items,
+      `the legend's items, Original only while the count line reads more than 0 original (${ORIGINAL})`,
+    )
+    .toEqual(
+      ORIGINAL > 0
+        ? ["Seated by a sprint", "Original"]
+        : ["Seated by a sprint"],
+    );
   expect
     .soft(words.legend ?? "", "the legend names no state B1 doesn't have")
     .not.toMatch(/pencil|copper|live|drawing now|in progress|running/i);
@@ -806,7 +821,7 @@ test("C9. Hard gates: axe is clean, nothing in the drawing is hit or focused, no
   expect(inside, "Tab stops inside the drawing").toEqual([]);
 });
 
-/** The ship's count line, its legend's two states and its Log link, as the route shows them. */
+/** The ship's count line, its legend's states and its Log link, as the route shows them. */
 function shipWords(page: Page) {
   return page.evaluate(() => {
     const squashed = (el: Element | null) =>
@@ -826,14 +841,14 @@ function shipWords(page: Page) {
         /\b\d+ planks: \d+ replaced, \d+ original\b/.test(squashed(el)),
       )
       .at(-1);
-    const legend = outside
-      .filter(
-        (el) =>
-          /\bseated\b/i.test(el.textContent ?? "") &&
-          /\boriginal\b/i.test(el.textContent ?? "") &&
-          el.querySelectorAll("li").length > 0,
-      )
-      .at(-1);
+    // Sprint 60 (H11): the list whose item reads "Seated by a sprint", by intent.
+    const legend = outside.find(
+      (el) =>
+        el.tagName === "UL" &&
+        [...el.querySelectorAll(":scope > li")].some(
+          (li) => squashed(li) === "Seated by a sprint",
+        ),
+    );
     return {
       count:
         squashed(count ?? null).match(
@@ -1009,7 +1024,10 @@ test("B2.5 the ship on /read: one inert drawing from the same component, 22 plan
   expect
     .soft(words.count, "the count line on /read, as / shows it")
     .toBe(homeWords.count);
-  expect.soft(homeWords.legend, "the legend's states on /").toHaveLength(2);
+  // Sprint 60 (H11): Seated alone while no original plank is drawn (22 of 22 replaced).
+  expect
+    .soft(homeWords.legend, "the legend's states on /")
+    .toHaveLength(ORIGINAL > 0 ? 2 : 1);
   expect
     .soft(words.legend, "the legend on /read, as / shows it")
     .toEqual(homeWords.legend);

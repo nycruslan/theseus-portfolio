@@ -15,6 +15,7 @@ import {
   SCHEMES,
   withLink,
 } from "./helpers";
+import { STEPS } from "./retros";
 
 // What stays true for a keyboard visitor (sprint 4): a skip link comes first and lands on main,
 // Tab visits every link in DOM order, each stop can be seen and shows one clear ring in a token
@@ -28,7 +29,9 @@ import {
 // holds on /log and a record too. Sprint 31 (.crew/sprint/31/contract.md, B4a): Crew follows Work
 // in the bar, so Contact's first link is the 16th stop and `tabUntil`'s bound is 16; B2.9's
 // forced-colours ring holds on /crew too. One site: Case studies, Ask AI and the five case studies
-// come first, so it was the 23rd stop and the bound 23. Live Studio makes them 24.
+// come first, so it was the 23rd stop and the bound 23. Live Studio makes them 24. Sprint 60 (Hb,
+// .crew/sprint/60/contract.md, H11): the door, "Rebuild it yourself", follows the revision block's
+// Log link, so Contact's first link is the 26th stop and `tabUntil`'s bound is 26.
 
 const SKIP = 'a[href="#main"]';
 const CONTACT = 'section[aria-labelledby="contact"]';
@@ -58,10 +61,10 @@ async function settled(page: Page) {
 
 /**
  * Presses Tab until the focused element matches `selector`, at most `max` times: B2.3's count of
- * stops up to Contact's first link (25 since sprint 48's key link), so every stop on / before it
- * is in reach.
+ * stops up to Contact's first link (26 since sprint 60's door), so every stop on / before it is
+ * in reach.
  */
-async function tabUntil(page: Page, selector: string, max = 25) {
+async function tabUntil(page: Page, selector: string, max = 26) {
   for (let presses = 0; presses < max; presses++) {
     await page.keyboard.press("Tab");
     const found = await page.evaluate(
@@ -492,7 +495,7 @@ test("forced colors keep exactly one ring", async ({ page }) => {
   expect(contact.width, "Contact link outline width").toBeGreaterThanOrEqual(2);
 });
 
-test("B2.3 on /, Contact's first link is the 25th Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, Live Studio, the 3 title-block links, the key's his rules (/crew#keel), the Log link, the 5 case studies, the project links, then it", async ({
+test("B2.3 on /, Contact's first link is the 26th Tab stop: skip, the 5 bar links, Full, Calm, Off, Case studies, Ask AI, Live Studio, the 3 title-block links, the key's his rules (/crew#keel), the Log link, the door (Rebuild it yourself), the 5 case studies, the project links, then it", async ({
   page,
 }) => {
   await page.goto("/");
@@ -512,12 +515,14 @@ test("B2.3 on /, Contact's first link is the 25th Tab stop: skip, the 5 bar link
     // Sprint 48 (K9): the revision key's "his rules", after the table and before the Log link.
     "/crew#keel",
     "/log",
+    // Sprint 60 (H11): the door, to the yard's first step, between the Log link and the studies.
+    `/log/${STEPS[0]}`,
     ...caseStudies.map((study) => `/work/${study.slug}`),
     ...withLink.map((project) => project.href ?? ""),
     profile.links[0]?.href ?? "",
   ];
   // tabUntil's bound: a further stop before Contact raises it, which is a harness change.
-  expect(expected, "the stops up to Contact's first link").toHaveLength(25);
+  expect(expected, "the stops up to Contact's first link").toHaveLength(26);
   const stops: string[] = [];
   for (let press = 0; press < expected.length; press++) {
     await page.keyboard.press("Tab");
@@ -531,13 +536,13 @@ test("B2.3 on /, Contact's first link is the 25th Tab stop: skip, the 5 bar link
       }, MOTION),
     );
   }
-  expect(stops, "the first 25 Tab stops on /").toEqual(expected);
+  expect(stops, "the first 26 Tab stops on /").toEqual(expected);
   expect(
     await page.evaluate(
       (sel) => document.activeElement?.matches(sel) ?? false,
       `${CONTACT} li:first-child a`,
     ),
-    "the 25th stop is Contact's first link",
+    "the 26th stop is Contact's first link",
   ).toBe(true);
 });
 

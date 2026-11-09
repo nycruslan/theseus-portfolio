@@ -910,7 +910,7 @@ test("B4.18 the rest line: on the resting fixture p[data-rest], the revision blo
   }
 });
 
-test("B4.19 the legend follows the drawing: live adds the pencil and copper items after Seated and Original, open the pencil item only, resting and down the two items as on the default server; the pencil swatch hatched with a dashed edge, the copper swatch painting --accent; their words In progress and Drawing now", async ({
+test("B4.19 the legend follows the drawing: live adds the pencil and copper items after Seated (Original keyed only where an original plank is drawn, none on /), open the pencil item only, resting and down the one item as on the default server; the pencil swatch hatched with a dashed edge, the copper swatch painting --accent; their words In progress and Drawing now", async ({
   page,
   crew,
 }) => {
@@ -919,8 +919,8 @@ test("B4.19 the legend follows the drawing: live adds the pencil and copper item
   const reference = (await revisionBlock(page)).legend;
   expect(
     reference.map((item) => item.key),
-    "the default server's legend: two items without data-key",
-  ).toEqual([null, null]);
+    "the default server's legend: one item without data-key, Seated by a sprint (sprint 60, H11)",
+  ).toEqual([null]);
   for (const shown of [
     await homeOn(crew, "home-live"),
     await homeOn(crew, "home-open"),
@@ -937,11 +937,9 @@ test("B4.19 the legend follows the drawing: live adds the pencil and copper item
           legend.map((item) => item.key),
           `the legend's items on ${at}`,
         )
-        .toEqual([null, null, ...shown.layer.keys]);
+        .toEqual([null, ...shown.layer.keys]);
       if (scheme === "light")
-        expect
-          .soft(legend.slice(0, 2), `Seated and Original on ${at}`)
-          .toEqual(reference);
+        expect.soft(legend.slice(0, 1), `Seated on ${at}`).toEqual(reference);
       const pencil = legend.find((item) => item.key === "pencil");
       if (shown.layer.keys.includes("pencil")) {
         expect
@@ -967,7 +965,7 @@ test("B4.19 the legend follows the drawing: live adds the pencil and copper item
       }
       expect
         .soft(
-          legend.slice(2).map((item) => item.text),
+          legend.slice(1).map((item) => item.text),
           `the added items' words on ${at}`,
         )
         .toEqual(
