@@ -4846,15 +4846,18 @@ a[data-replay]:not([data-ready]) {
   border-bottom: 3px solid var(--foreground);
 }
 
+/* Held or hovered, the bracket grows to 28 px from the frame's corner by a scale, not by its box:
+   a box growing up and left from the corner moved its top left 8 px, which Chromium logged as a
+   layout shift on hover (Iris's early look, sprint 64). */
 .trials-corner[data-dragging] .trials-bracket {
-  width: 28px;
-  height: 28px;
+  transform-origin: 100% 100%;
+  scale: 1.4;
 }
 
 @media (hover: hover) {
   .trials-corner:hover .trials-bracket {
-    width: 28px;
-    height: 28px;
+    transform-origin: 100% 100%;
+    scale: 1.4;
   }
 }
 
