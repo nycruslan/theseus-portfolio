@@ -1,24 +1,26 @@
 import type { NextConfig } from "next";
 
 // Inline scripts stay allowed: Next's static pages carry them, and nonces would make every page
-// render per request. `next dev` needs eval, so the policy applies to production builds only.
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self'",
-  "worker-src 'self' blob:",
-].join("; ");
+// render per request. `next dev` needs eval, so the policy applies to production builds only. No
+// page may be framed, but the trials' frame, by the site itself (`headers()` below).
+const contentSecurityPolicy = (frameAncestors: string) =>
+  [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    `frame-ancestors ${frameAncestors}`,
+    "form-action 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "worker-src 'self' blob:",
+  ].join("; ");
 
 // No Strict-Transport-Security: Vercel sends it, without binding every subdomain for two years.
 const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy("'none'") },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   {
@@ -67,7 +69,21 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return process.env.NODE_ENV === "production"
-      ? [{ source: "/:path*", headers: SECURITY_HEADERS }]
+      ? [
+          { source: "/:path*", headers: SECURITY_HEADERS },
+          // The trials page frames / at any window from this one address (.crew/sprint/63/
+          // decisions.md, 2), so it alone may be framed, and only by this site. A later rule's key
+          // overrides an earlier one's on the same path, so its other headers stay the site's.
+          {
+            source: "/trials/frame",
+            headers: [
+              {
+                key: "Content-Security-Policy",
+                value: contentSecurityPolicy("'self'"),
+              },
+            ],
+          },
+        ]
       : [];
   },
   experimental: {

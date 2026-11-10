@@ -40,12 +40,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
 
 - [x] Sprint 62 (L, notes only; the owner's goal): Iris's research, three directions on the canvas
   and A recommended; Pixel's headroom; Quill's plan and Ta's contract (T1 to T9). (PR #129.)
-- [ ] Ta (M): any window, as a page. The trials page frames `/` at the window in its address,
+- [x] Ta (M): any window, as a page. The trials page frames `/` at the window in its address,
   draws the waterline, gives the freeboard from a committed sweep and the record's answer, names
   each check that holds the window with its sprint and source, links the crew's windows, and takes
   any window in a plain form. No script. The frame's own address alone may be framed by the site.
-  The sweep's staleness check fails CI the day `/` moves. Pixel spikes Tb's live measure alongside,
-  in Chromium and WebKit. T1 to T9; it starts with Iris's placement and words.
+  The sweep's staleness check fails CI the day `/` moves. T1 to T9. (PR #130.) Left open: the
+  frame fetches `/`'s 465 KB of script and runs none, a cost Tb's frame answers by running it or
+  not fetching it; Pixel's live-measure spike moves to Tb; the bar's links are under 44 px below
+  1024 site-wide; Safari and Firefox at 390 × 664 are unchecked.
 - [ ] Tb (M): drag it, and send it. With script, sliders and the frame's corner resize it live, the
   freeboard measured from the frame and read by a polite live region, the address replaced on
   release; a card per window and Copy link. INP during a drag gated at 200 ms at 4x CPU. Planned
