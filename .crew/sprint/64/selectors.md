@@ -35,6 +35,10 @@ Atlas before building around it.
   Probe moves the mouse over the page and scrolls first: neither is a touch.
 - **At rest:** no `requestAnimationFrame` call from load to the first touch, nor from 1 s after a
   settle.
+- **Under the hand (T14, 4x CPU):** every Event Timing entry for a pointer event within 200 ms,
+  and no long animation frame over 200 ms during the drag. Chromium gives `pointermove` no Event
+  Timing entry, so the frames are how T14 sees the moves. A scratch mock that resized and measured
+  on every `pointermove` peaked at 265 ms on a loaded machine.
 - **The address:** `history.replaceState` to the settled window's address (`/trials` for 1440 ×
   900); `document.title` and `link[rel="canonical"]`'s href become the server's for that address.
 
