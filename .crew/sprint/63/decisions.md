@@ -38,7 +38,7 @@
    (knip takes `.crew/*.mjs` as script entries, as `merge-record.mjs` does), and T4's red names it.
    T8's target clause measures the trials page's own targets, those in `main`: the shared bar's
    links and the skip link fall short of 44 px below 1024 on every page of the site, which this
-   sprint doesn't touch, and B2.9's 24 px loop keeps holding them; widening them is a follow-up
+   sprint doesn't touch, and B2.9's 24 px loop holds the same bar on its nine routes; widening them is a follow-up
    for the bar. The redirects and 404s run in `proxy.ts`, the app's first proxy, since a page's
    `redirect()` doubled its Location on a cache miss and its `notFound()` dropped the 404's title.
    The sweep stores tenths rounded away from each kind's edge, so the kind never flips.
