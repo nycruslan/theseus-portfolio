@@ -24,3 +24,8 @@
    frame anything.
 7. **Open before the build, not blocking this merge:** Iris's placement and words for Ta; Pixel's
    live-measure spike in Chromium and WebKit alongside Ta, before Tb's contract.
+8. **Lens: ship on 25da8b2, three nits.** The two on Ta's contract are folded in before its build:
+   the no-script form posts to a route handler, `/trials/go`, that answers 303 to the window's
+   address (added to the address rules, T1 and T6), and T2's `main` equality compares with `/` in
+   the feed's down state, skipped with that reason under `PLAYWRIGHT_BASE_URL`. The third, on
+   Iris's moved memory lines, rides with her next memory edit.

@@ -16,6 +16,10 @@ address. Ta adds no script, and nothing on `/`, `/log` or `/crew` changes (`plan
   `/trials/<w>x<h>` (`^[1-9]\d*x[1-9]\d*$`) is 200 for a swept window. Any other window with
   320 ≤ w ≤ 1920 and 460 ≤ h ≤ 1100 answers 307 to the grid window `w' = 320 + 16·round((w − 320)
   / 16)`, `h' = 460 + 5·round((h − 460) / 5)`, halves rounding up. Anything else is the site's 404.
+  The form's action is a route handler, `/trials/go?w=<w>&h=<h>`, which answers 303 to the
+  window's address by the same rules (a swept window to itself, an off-grid one to its grid window),
+  and to `/trials` when either is missing or not a number. `/trials` itself reads no `searchParams`,
+  so it stays prerendered under `cacheComponents` (Lens's nit on #129).
 - **The freeboard.** On the frame's address as a top-level page at a viewport of w × h, with
   scripts off and `document.fonts.ready`: the contact links are the title block's (`main > header`)
   links to `profile.links`, as B1.1 reads them. The links' foot is the largest `bottom` of the
@@ -48,14 +52,18 @@ address. Ta adds no script, and nothing on `/`, `/log` or `/crew` changes (`plan
 - **T1 Every window is an address.** `/trials` and the swept windows are 200 with scripts on and
   off: all of `PINS`, the named windows, the grid's four corners and 50 grid windows from a fixed
   seed. 330 × 560 answers 307 to `/trials/336x560`; `/trials/1440x900` 308 to `/trials`; 319x568,
-  1921x900, 320x1101, 0320x568 and 320x568x2 are 404. Each window's title and description carry
+  1921x900, 320x1101, 0320x568 and 320x568x2 are 404. `/trials/go?w=1366&h=595` answers 303 to
+  `/trials/1366x595`, `?w=330&h=560` 303 to `/trials/336x560`, and `?w=abc` 303 to `/trials`. Each window's title and description carry
   its size and its verdict; its canonical is its own address. The sitemap lists `/trials` and no
   window page and not the frame's address; robots disallows neither.
 - **T2 The frame is the page, at the window.** In `main`, one `iframe` whose `sandbox` is exactly
   `allow-same-origin`, `inert`, titled with the window, its box sized in the server HTML. Read
   through the parent's `contentDocument`, scripts on and off: its document is w × h exactly
   (`clientWidth` w, `innerHeight` h), never scrolls and draws no scrollbar, and its `main` equals
-  the `main` of `/` from the same server, character for character (React's generated ids aside).
+  the `main` of `/` in the feed's down state from the same server, character for character
+  (React's generated ids aside). CI's suite server is the down state; under `PLAYWRIGHT_BASE_URL`
+  this clause is skipped with that reason, since a deployment's `/` renders the live feed (Lens's
+  nit on #129).
   The frame runs no script: no canvas in it, no request for the 3D chunk or `/api/crew`. Drawn, its
   box keeps w:h within 1 px and stays inside its column at every viewport from 320 to 1920.
 - **T3 The freeboard and the waterline.** `[data-freeboard]` shows the sweep's value for the
@@ -81,7 +89,7 @@ address. Ta adds no script, and nothing on `/`, `/log` or `/crew` changes (`plan
   the grid's limits, required) and a submit button. Each `PINS` window is one `a[data-window]` to
   its address, the shown one `aria-current="page"`. The walk, scripts off at 390 × 844: `/trials`,
   then 320 × 568's link (the gap shows), then 1366 and 595 in the form and submit (the near miss
-  shows), then Back lands on 320 × 568.
+  shows, at `/trials/1366x595`, through `/trials/go`'s 303), then Back lands on 320 × 568.
 - **T7 In the first screen.** At 1440 × 900, 390 × 664 and 320 × 568, light and dark, scripts
   off, the h1, the window's size and the freeboard with its verdict are wholly in the viewport,
   and the frame's top starts in it. At 1440 × 900 and 390 × 844 the waterline and the answer's
