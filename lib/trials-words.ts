@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { profile } from "@/content/profile";
-import { cardText } from "@/lib/card";
-import { openGraph } from "@/lib/metadata";
+// Relative, not `@/`: lib/trials-card.ts reads these words in Playwright's runner, which doesn't
+// map tsconfig's paths, so every value import here is relative (.crew/sprint/64/selectors.md).
+import { profile } from "../content/profile";
+import { openGraph } from "./metadata";
 import {
   addressOf,
   GAP,
@@ -13,8 +14,8 @@ import {
   rulesAt,
   sizeOf,
   type Win,
-} from "@/lib/trials";
-import { SWEEP_META, sweptAt } from "@/lib/trials-sweep";
+} from "./trials";
+import { SWEEP_META, sweptAt } from "./trials-sweep";
 
 // What the trials page says for a window, in Iris's words (.crew/sprint/63/words.md), from the
 // committed sweep and the crew's record (lib/trials.ts). Probe's checks quote the same words.
@@ -135,19 +136,21 @@ function headOf(trial: Trial) {
   };
 }
 
-// The site's card until the trials have their own (.crew/sprint/62/plan.md, call 4): a page that
-// sets openGraph replaces the layout's whole object, the card from app/opengraph-image.tsx with it.
-const card = cardText(profile);
-const SITE_CARD = {
-  url: "/opengraph-image",
-  width: 1200,
-  height: 630,
-  alt: `${card.name}, ${card.lead}`,
-  type: "image/png",
+/** A card as a page's tags name it (lib/trials-card.ts's trialCardImage). */
+type CardImage = {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+  type: string;
 };
 
-/** A window page's head: its own title, description and address, and the site's card. */
-export function trialsMetadata(trial: Trial): Metadata {
+/**
+ * A window page's head: its own title, description and address, and its own card. The page names
+ * the card here, with the window's alt, since a card file's `alt` is one string for every window;
+ * Next then leaves the file's tags out (memory, sprint 54).
+ */
+export function trialsMetadata(trial: Trial, card: CardImage): Metadata {
   const { title, description } = headOf(trial);
   const url = addressOf(trial.win);
   return {
@@ -160,13 +163,13 @@ export function trialsMetadata(trial: Trial): Metadata {
       title,
       description,
       url,
-      images: [SITE_CARD],
+      images: [card],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [SITE_CARD],
+      images: [card],
     },
   };
 }

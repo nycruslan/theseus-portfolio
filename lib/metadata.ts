@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { profile } from "@/content/profile";
+// Relative, not `@/`: lib/trials-card.ts reaches this module in Playwright's runner, which
+// doesn't map tsconfig's paths.
+import { profile } from "../content/profile";
 
 // Metadata the layout and the home page share. Next merges a page's metadata over its layout's one
 // key at a time, so a page that sets `openGraph` replaces the layout's whole object: the page spreads
