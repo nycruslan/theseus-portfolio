@@ -42,3 +42,9 @@
    for the bar. The redirects and 404s run in `proxy.ts`, the app's first proxy, since a page's
    `redirect()` doubled its Location on a cache miss and its `notFound()` dropped the 404's title.
    The sweep stores tenths rounded away from each kind's edge, so the kind never flips.
+10. **Iris's review: changes, 7.8, two lines of CSS taken now** (`review-iris.md`). The phones'
+    drawing gutter goes from 56 to 68 px so a deep sink's dimension clears "Waterline", and four
+    text blocks wrap pretty. The lead stays at 1.55 (the site's body line) and the floor at 280.
+    456 × 465 stays a named window, answering Sunk at −0.1 px: the page never says the named
+    windows are near misses, and three still are. Centring the phone windows at 1440 waits for
+    Tb's corner, which needs the anchor.
