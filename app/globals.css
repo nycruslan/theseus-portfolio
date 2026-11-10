@@ -4545,3 +4545,498 @@ a[data-replay]:not([data-ready]) {
     content: attr(data-address);
   }
 }
+
+/*
+ * The trials (components/trials.tsx; .crew/sprint/63/placement.md). Below 1024 px one column in
+ * reading order: the head, the readout, the drawing, the answer, the form, the crew's windows, the
+ * record. From 1024 the Log's inset box as two columns: the drawing on the left, sticky 32 px under
+ * the stuck bar, every row of the grid its area (so Chromium's sticky range is the spec's), and
+ * the rest on the right in the same order, the Log's 396 px. Nothing moves; no copper anywhere,
+ * not on a link, a ring, the current window or the sea (T8).
+ */
+.trials {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 48px;
+}
+
+.trials h1 {
+  margin-top: 20px;
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-2xl);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+.trials-dare {
+  margin-top: 10px;
+  font-size: var(--step-lg);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.trials-lead {
+  max-width: 62ch;
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* The readout: Window and Freeboard on one ink rule, the freeboard at the right, then the verdict
+   in ink and bold, since it binds (memory, sprint 47). */
+.trials-readout {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--foreground);
+}
+
+.trials-readout dl {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.trials-readout dl > div:last-child {
+  text-align: right;
+}
+
+.trials-readout dt {
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.trials-readout dd {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-entry);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.trials-verdict {
+  margin-top: 4px;
+  font-size: var(--step-lg);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/*
+ * The drawing (placement.md, section 3): the window drawn as a part is, with its dimensions, never
+ * larger than the window, never wider than the column less its gutters, never taller than the
+ * height budget that keeps the waterline in the first screen. All from the two numbers the server
+ * writes (--w, --h) and the links' place (--fa, the links' foot down the frame; --fs, the
+ * freeboard), so the box is in the server's HTML and nothing shifts. The page inside is laid out
+ * at the window's own size and scaled to the box: tan(atan2()) divides two lengths, and a browser
+ * without it shows the page's top left corner at full size, clipped to the same box. Every line
+ * is a border, so it holds in forced colours; the sea's hatching is decoration.
+ */
+.trials-figure {
+  container-type: inline-size;
+  margin-top: 18px;
+}
+
+.trials-drawing {
+  --gl: 20px;
+  --gr: 56px;
+  --gt: 22px;
+  --frame-max: max(280px, calc(100svh - 500px));
+  --fw: min(
+    calc(100cqi - var(--gl) - var(--gr)),
+    calc(var(--w) * 1px),
+    calc(var(--frame-max) * var(--w) / var(--h))
+  );
+  --fh: calc(var(--fw) * var(--h) / var(--w));
+  /* The waterline's height in the drawing, and how far a sinking window's links end under it. */
+  --foot: calc(var(--gt) + var(--fh));
+  --sunk: calc(var(--fh) * (var(--fa) + var(--fs) - 1));
+  position: relative;
+  width: calc(var(--gl) + var(--fw) + var(--gr));
+  height: calc(var(--foot) + max(14px, var(--sunk) + 6px));
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.trials-frame {
+  position: absolute;
+  top: var(--gt);
+  left: var(--gl);
+  width: var(--fw);
+  height: var(--fh);
+  overflow: hidden;
+  outline: 1px solid var(--foreground);
+}
+
+.trials-frame > iframe {
+  display: block;
+  width: calc(var(--w) * 1px);
+  height: calc(var(--h) * 1px);
+  border: 0;
+  transform-origin: 0 0;
+  scale: tan(atan2(var(--fw), calc(var(--w) * 1px)));
+}
+
+.trials-dim {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trials-dim::before {
+  position: absolute;
+  content: "";
+}
+
+/* The label breaks its line on a pad of film. */
+.trials-dim > span {
+  position: relative;
+  padding: 0 4px;
+  background: var(--background);
+}
+
+.trials-dim-w {
+  top: 0;
+  left: var(--gl);
+  width: var(--fw);
+  height: var(--gt);
+  border-inline: 1px solid var(--muted);
+}
+
+.trials-dim-w::before {
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 1px solid var(--muted);
+}
+
+.trials-dim-h {
+  top: var(--gt);
+  left: 0;
+  width: var(--gl);
+  height: var(--fh);
+  border-block: 1px solid var(--muted);
+}
+
+.trials-dim-h::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px solid var(--muted);
+}
+
+.trials-dim-h > span {
+  padding: 4px 0;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+}
+
+.trials-sea {
+  position: absolute;
+  top: calc(var(--foot) + 2px);
+  left: var(--gl);
+  width: var(--fw);
+  height: 12px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pencil) 0 1px,
+    transparent 1px 6px
+  );
+}
+
+.trials-waterline {
+  position: absolute;
+  top: var(--foot);
+  right: 0;
+  left: 0;
+  border-top: 2px solid var(--foreground);
+}
+
+/* The freeboard dimension at the frame's right edge, from the links' foot to the waterline, or
+   under it into the sea's gutter when the window sinks. Its box is exactly that length, so its
+   ticks and line are drawn inside it and never stretch it. */
+.trials-freeboard {
+  position: absolute;
+  top: calc(var(--gt) + var(--fh) * var(--fa));
+  left: calc(var(--gl) + var(--fw));
+  width: 14px;
+  height: calc(var(--fh) * var(--fs));
+}
+
+.trials-freeboard::before,
+.trials-freeboard::after {
+  position: absolute;
+  left: 0;
+  width: 14px;
+  content: "";
+}
+
+.trials-freeboard::before {
+  top: 0;
+  border-top: 1px solid var(--foreground);
+}
+
+.trials-freeboard::after {
+  bottom: 0;
+  border-bottom: 1px solid var(--foreground);
+}
+
+.trials-freeboard > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 10px;
+  border-left: 1px solid var(--foreground);
+}
+
+/* Always just above the waterline, and Waterline just under it at the right: they never meet. */
+.trials-freeboard-label {
+  position: absolute;
+  bottom: calc(100% - var(--foot) + 4px);
+  left: calc(var(--gl) + var(--fw) + 18px);
+  font-weight: 700;
+}
+
+.trials-waterline-label {
+  position: absolute;
+  top: calc(var(--foot) + 8px);
+  right: 0;
+  color: var(--muted);
+}
+
+.trials-figure figcaption {
+  max-width: 62ch;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.trials-answer {
+  max-width: 62ch;
+  margin-top: 16px;
+  line-height: 1.55;
+}
+
+.trials-section {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid var(--foreground);
+}
+
+.trials h2 {
+  font-family: var(--font-sofia-cond), sans-serif;
+  font-size: var(--step-xl);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.trials h3 {
+  margin-top: 14px;
+  font-size: var(--step-sm);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.trials-note {
+  max-width: 62ch;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+/* The form, in /ask's grammar: labels over the fields, a card-filled field in an ink frame, the ink
+   button; native validation keeps it to the grid's limits without script. */
+.trials-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.trials-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trials-field label {
+  font-size: var(--step-sm);
+  font-weight: 650;
+}
+
+.trials-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--step-sm);
+}
+
+.trials-field input {
+  width: calc(6.5ch + 22px);
+  min-height: 48px;
+  padding: 0 10px;
+  color: var(--foreground);
+  font-size: var(--step-base);
+  font-variant-numeric: tabular-nums;
+  background: var(--card);
+  border: 1px solid var(--foreground);
+  border-radius: 0;
+}
+
+.trials-submit {
+  min-height: 50px;
+  padding: 0 20px;
+  color: var(--background);
+  font-size: var(--step-base);
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--foreground);
+  border: 1px solid var(--foreground);
+}
+
+/* The crew's windows: plain ink links, the shown one bold, never boxed, since a boxed number on
+   this site is a plank (memory, sprint 47). */
+.trials-windows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.trials-window,
+.trials-rule-link {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.trials-window {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.trials-window[aria-current="page"] {
+  font-weight: 700;
+  text-decoration-line: none;
+}
+
+.trials-run summary {
+  display: list-item;
+  min-height: 44px;
+  padding-block: 10px;
+  cursor: pointer;
+}
+
+.trials-run .trials-windows {
+  gap: 0 14px;
+}
+
+.trials-run .trials-window {
+  justify-content: center;
+  min-width: 44px;
+}
+
+/* Each rule: its sentence the link to its test, one box and one ring, its sprint under it. */
+.trials-rules {
+  margin-top: 6px;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.trials-rules li {
+  padding: 10px 0;
+}
+
+.trials-rules li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.trials-rule-link {
+  display: block;
+  min-height: 44px;
+  padding-block: 3px;
+}
+
+.trials-rule-sprint {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  .trials-window:hover,
+  .trials-rule-link:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+@media (width >= 64rem) {
+  .trials {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24.75rem;
+    /* The figure spans every row; the last, flexible, takes whatever it is taller than the rest. */
+    grid-template-rows: repeat(6, auto) 1fr;
+    column-gap: 40px;
+    align-items: start;
+    margin-inline: 16px;
+    padding: 32px 24px 64px;
+  }
+
+  .trials > * {
+    grid-column: 2;
+  }
+
+  .trials > .trials-figure {
+    position: sticky;
+    top: 88px;
+    grid-row: 1 / -1;
+    grid-column: 1;
+    margin-top: 0;
+  }
+
+  .trials h1 {
+    margin-top: 0;
+  }
+
+  .trials-drawing {
+    --gl: 28px;
+    --gr: 80px;
+    --gt: 28px;
+    --frame-max: max(360px, calc(100svh - 204px));
+    font-size: var(--step-sm);
+  }
+
+  .trials-answer {
+    margin-top: 12px;
+  }
+
+  .trials-window,
+  .trials-run summary {
+    min-height: 28px;
+    font-size: var(--step-sm);
+  }
+
+  .trials-run summary {
+    padding-block: 4px;
+  }
+
+  .trials-rule-link {
+    min-height: 0;
+  }
+}
+
+@media (width >= 80rem) {
+  .trials {
+    column-gap: 64px;
+  }
+}
