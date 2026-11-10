@@ -36,9 +36,10 @@ the line under it.
 
 | What | Exact string |
 |---|---|
-| The size | `{size}` (`1366 × 625`) |
-| The freeboard's label | `Freeboard` |
-| `[data-freeboard]`'s whole text | the signed value, then ` px`: `+29.2 px`, `−6.2 px`, `+0.0 px` |
+| The size's label (a `dt`) | `Window` |
+| The size (its `dd`) | `{size}` (`1366 × 625`) |
+| The freeboard's label (a `dt`) | `Freeboard` |
+| `[data-freeboard]`'s whole text (its `dd`) | the signed value, then ` px`: `+37.0 px`, `−6.2 px`, `+0.0 px` |
 | The verdict | per kind, below |
 
 **The sign.** `+` when the window floats, `−` (U+2212) when it sinks: the sign follows the kind,
@@ -49,8 +50,9 @@ store the kind) so the sign survives the rounding.
 ## 3. The five kinds: verdict and answer
 
 The verdict is the bold line in the readout, and it is carried verbatim, same case, into the
-window's title and description (section 6). The answer is the record's paragraph under "The record"
-(section 4). `{f}`, `{n}` and `{held}` as above.
+window's title and description (section 6). The answer is one paragraph, with no heading of its own,
+after the frame in the DOM (beside the readout from 1024, under the frame below it: `placement.md`).
+`{f}`, `{n}` and `{held}` as above.
 
 | Kind | Verdict (exact) | Answer (exact, with slots) |
 |---|---|---|
@@ -64,10 +66,12 @@ Examples, as the page reads today:
 
 - 320 × 568: `−6.2 px`, **The crew's own gap**, "The contact links end 6.2 px under the waterline, and the
   crew knew. When it fitted phones in sprint 44, …"
-- 1440 × 900: `+29.2 px`, **Held by the crew's checks**, "The contact links stand 29.2 px above the
-  waterline, and seven of the crew's checks hold them there. …" (if `PINS` gives it seven: below)
+- 1440 × 900: `+37.0 px` (decisions 5), **Held by the crew's checks**, "The contact links stand 37.0 px
+  above the waterline, and seven of the crew's checks hold them there. …" (if `PINS` gives it seven:
+  below)
 - 1366 × 595: `+0.7 px`, **A near miss**.
-- 320 × 460: `−… px`, **Sunk**, "You sank them. … they hold the links up in 80 others." (if `PINS` has 81)
+- 320 × 460: `−114.2 px` (production today), **Sunk**, "You sank them. … they hold the links up in 80
+  others." (if `PINS` has 81)
 - 1920 × 1100: `+… px`, **Afloat**.
 
 **The gap's words are 320 × 568's.** They paraphrase Atlas's sprint 44 ruling as
@@ -76,14 +80,15 @@ asserted (Atlas's ruling, sprint 44)"), and the 8 px is W8's margin for every ph
 If the kind ever matches another window, the build should fail rather than print these words
 under it (a server-side assertion that the gap's window is 320 × 568).
 
-## 4. The record: the answer and the rules
+## 4. The record: the rules
+
+The page's last section, after the form and the crew's windows: the evidence, as citations.
 
 | What | Exact string |
 |---|---|
 | The section's h2 | `The record` |
-| Then | the answer, section 3 |
-| Above the rules, for a `PINS` window (h3) | `The crew's checks here` |
-| For any other window, the one line (no h3, no list) | `None of the crew's checks claims this window.` |
+| For a `PINS` window, the line under the h2, then the list | `Each of the crew's checks at this window, linked to its test.` |
+| For any other window, the one line under the h2 (no list) | `None of the crew's checks claims this window.` |
 | Each rule's sprint, after its sentence | `Sprint {sprint}` (`Sprint 43`) |
 
 **Each rule is one `li`:** the check's sentence (section 5) as **the link** to its spec file and
@@ -203,7 +208,7 @@ value. Native validation does the rest without script.
 | Group h3, 768 to 1279 | `Tablets` |
 | Group h3, 1280 and up | `Laptops` |
 | Each window's link text (`a[data-window]`) | `{size}` |
-| H10's run, if `PINS` holds it: the `summary` | `And every width from 1380 to 1439 at 900 tall` |
+| H10's run, if `PINS` holds it: the `summary` (its native disclosure marker kept) | `And every width from 1380 to 1439 at 900 tall` |
 | Each link in the run: visible text / accessible name | `{w}` / `aria-label="{size}"` (`1380` / `1380 × 900`) |
 
 Within a group, windows go by width, then height. 1440 × 900 is a Laptops link like the others (its
@@ -213,6 +218,8 @@ something to scan. The shown window's link is `aria-current="page"`.
 
 ## Changed from the canvas
 
+- The readout is two labelled readings, Window and Freeboard, then the verdict; the canvas's "Fits
+  found" and "This window" rows are Tb's and Tc's.
 - The h1 is "Sea trials", not "Trials".
 - No codes ("W1, sprint 43", "The 320 px gate"): each rule is its sentence and its sprint (plan call 7).
 - "DWL" is "Waterline" on this page: the page is read by people who don't letter plans.

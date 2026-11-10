@@ -25,3 +25,7 @@
    From 1024 wide the build's sweep governs, as the contract says; the other six quoted values hold.
 6. **Measure only under the repo's `@playwright/test` (Chromium 156).** The machine's global
    Playwright 1.63 drives Chromium 153, which reads 390 × 664 23.2 px lower.
+7. **Iris's three asks, settled.** `PINS` includes every window a kept check asserts the links at,
+   H10's 1380 to 1440 × 900 run included (the contract's "as each reads them"); its extra windows
+   sit in a closed `details`. The sticky figure from 1024 stays: it is position, not motion, and
+   nothing animates (call 8 stands). The gap's answer is 320 × 568's own, asserted server-side.
