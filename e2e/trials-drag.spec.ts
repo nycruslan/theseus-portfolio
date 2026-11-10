@@ -11,6 +11,7 @@ import {
   test,
 } from "@playwright/test";
 import { SITE_URL } from "../lib/site";
+import { trialCard } from "../lib/trials-card";
 import { sweptAt } from "../lib/trials-sweep";
 import {
   addressOf,
@@ -44,6 +45,11 @@ const HOME: Win = [1440, 900];
 
 /** A window's size as the page writes it: "1440 × 900" (U+00D7). */
 const sizeWords = ([w, h]: Win) => `${w} × ${h}`;
+/**
+ * A window's size as it is spoken, in the corner's name and the live region: "1440 by 900", since
+ * screen readers say × as "times" (Iris's words.md, 1 and 4; Atlas's ruling, sprint 64).
+ */
+const spokenWords = ([w, h]: Win) => `${w} by ${h}`;
 const escapeRegExp = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -452,7 +458,7 @@ async function spokenSince(page: Page, from: number, win: Win) {
     ((await instruments(page))?.spoken ?? []).slice(from);
   await until(
     read,
-    (spoken) => spoken.some((s) => s.text.includes(sizeWords(win))),
+    (spoken) => spoken.some((s) => s.text.includes(spokenWords(win))),
     1500,
   );
   await nodeWait(300);
@@ -800,7 +806,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
       .toBe("button");
     await expect
       .soft(corner, "the corner's name holds the window")
-      .toHaveAccessibleName(new RegExp(escapeRegExp(sizeWords(HOME))));
+      .toHaveAccessibleName(new RegExp(escapeRegExp(spokenWords(HOME))));
     for (const width of [390, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       const box = await corner.boundingBox();
@@ -857,7 +863,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
         });
       await expect
         .soft(corner, `the corner's name after ${where}`)
-        .toHaveAccessibleName(new RegExp(escapeRegExp(sizeWords(win))), {
+        .toHaveAccessibleName(new RegExp(escapeRegExp(spokenWords(win))), {
           timeout: 1000,
         });
       const spoken = await spokenSince(page, spokenBefore, win);
@@ -866,7 +872,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
       expect
         .soft(
           said.length === 1 &&
-            (said[0]?.text.includes(sizeWords(win)) ?? false) &&
+            (said[0]?.text.includes(spokenWords(win)) ?? false) &&
             (said[0]?.text.includes(trial ? VERDICT[trial.kind] : "?") ??
               false),
           `the live region spoke once, with the window and "${trial ? VERDICT[trial.kind] : "?"}", after ${where}: ${JSON.stringify(said.map((s) => s.text))}`,
@@ -880,9 +886,12 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
     await w.fill("1024");
     await page.keyboard.press("Tab");
     await settled(page, [1024, 460], 2000);
+    const spokenAtEdit = (await instruments(page))?.spoken.length ?? 0;
     await h.fill("640");
     await page.keyboard.press("Tab");
     const edited = await settled(page, [1024, 640], 2000);
+    // Its words land before the drag starts, so the drag's count holds only the drag's.
+    await spokenSince(page, spokenAtEdit, [1024, 640]);
     expect
       .soft(
         { w: edited.w, h: edited.h, path: edited.path },
@@ -1005,7 +1014,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
     expect
       .soft(
         said.length === 1 &&
-          (said[0]?.text.includes(sizeWords(GAP)) ?? false) &&
+          (said[0]?.text.includes(spokenWords(GAP)) ?? false) &&
           (said[0]?.text.includes(VERDICT.gap) ?? false),
         `the live region spoke once with ${at(GAP)} and "${VERDICT.gap}": ${JSON.stringify(said.map((s) => s.text))}`,
       )
@@ -1036,8 +1045,15 @@ test("T13 the address is replaced, never pushed: after a key settle and a drag, 
   const length = await page.evaluate(() => history.length);
 
   const checkAddress = async (win: Win, after: string) => {
-    const r = await settled(page, win);
     const head = await serverHead(request, addressOf(win));
+    await settled(page, win);
+    const r = await until(
+      () => readNow(page),
+      (now) =>
+        now.title === head.title &&
+        now.canonical.join() === `${SITE_URL}${addressOf(win)}`,
+      2000,
+    );
     expect
       .soft(
         {
@@ -1243,19 +1259,13 @@ test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corne
   await ctx.close();
 });
 
-// The card's words, loaded at run time: the module lands with Forge's build (selectors.md).
+// The card's words (selectors.md), imported statically: a dynamic import() hands the module's own
+// requires to Node's CJS loader, which resolves lib/trials-words.ts's `./trials-sweep` to the
+// .json twin and throws (Forge, sprint 64). Until forge/64 lands, this file fails to load.
 type TrialCard = { lines: readonly string[]; alt: string };
 type CardModule = {
   trialCard?: (win: readonly [number, number]) => TrialCard | undefined;
 };
-const CARD_MODULE = "../lib/trials-card";
-async function loadCard(): Promise<CardModule> {
-  try {
-    return (await import(CARD_MODULE)) as CardModule;
-  } catch {
-    return {};
-  }
-}
 
 const T15_WINDOWS: readonly Win[] = (() => {
   const run = PIN_WINDOWS.filter((w) => w[1] === 900 && w[0] >= 1380);
@@ -1277,7 +1287,7 @@ test("T15 a card per window: each swept window's address has one og:image and on
   request,
 }) => {
   test.setTimeout(180_000);
-  const card = await loadCard();
+  const card: CardModule = { trialCard };
   expect
     .soft(typeof card.trialCard, "lib/trials-card.ts's trialCard")
     .toBe("function");
@@ -1301,15 +1311,25 @@ test("T15 a card per window: each swept window's address has one og:image and on
   const root = await serverHead(request, "/");
   const rootCard = await fetchImage(root.ogImage[0] ?? `${SITE_URL}/`);
 
-  /** What an alt or a card's words must hold for a window (contract, T15). */
-  const wordsProblems = (text: string, win: Win) => {
+  /**
+   * What an alt or a card's drawn words must hold for a window (contract, T15): the size, `{f} px`
+   * and the verdict; the alt also the signed value (Iris's "freeboard −6.2 px", U+2212 or +), the
+   * drawn words "Under by {f} px" when it sinks (Atlas's ruling on the alt, sprint 64).
+   */
+  const wordsProblems = (text: string, win: Win, what: "alt" | "drawn") => {
     const trial = trialAt(win);
     if (!trial) return ["no sweep reading"];
     const f = fOf(trial.freeboard);
+    const signed = `${sinks(trial.kind) ? "−" : "+"}${f}`;
     const out: string[] = [];
     if (!text.includes(sizeWords(win))) out.push(`no "${sizeWords(win)}"`);
     if (!text.includes(`${f} px`)) out.push(`no "${f} px"`);
-    if (sinks(trial.kind) && !text.includes(`Under by ${f} px`))
+    if (what === "alt" && !text.includes(signed)) out.push(`no "${signed}"`);
+    if (
+      what === "drawn" &&
+      sinks(trial.kind) &&
+      !text.includes(`Under by ${f} px`)
+    )
       out.push(`no "Under by ${f} px"`);
     if (!text.includes(VERDICT[trial.kind]))
       out.push(`no "${VERDICT[trial.kind]}"`);
@@ -1360,7 +1380,7 @@ test("T15 a card per window: each swept window's address has one og:image and on
     const alt = head.ogImageAlt.length === 1 ? (head.ogImageAlt[0] ?? "") : "";
     if (head.ogImageAlt.length !== 1)
       problems.push(`${where}: ${head.ogImageAlt.length} og:image:alt`);
-    for (const p of wordsProblems(alt, win))
+    for (const p of wordsProblems(alt, win, "alt"))
       problems.push(`${where}: og:image:alt "${alt}" has ${p}`);
     const words = card.trialCard?.(win);
     if (card.trialCard && !words)
@@ -1370,13 +1390,12 @@ test("T15 a card per window: each swept window's address has one og:image and on
         problems.push(
           `${where}: trialCard's alt "${words.alt}" isn't the tag's`,
         );
-      for (const p of wordsProblems(words.lines.join(" "), win))
+      for (const p of wordsProblems(words.lines.join(" "), win, "drawn"))
         problems.push(`${where}: the card's drawn words have ${p}`);
     }
     if (key(win) === key(GAP)) {
+      // The contract's quote is the drawn lines' (Atlas's ruling): the alt carries its parts.
       const quote = "Under by 6.2 px. The crew's own gap.";
-      if (!alt.includes(quote))
-        problems.push(`${where}: og:image:alt "${alt}" lacks "${quote}"`);
       if (words && !words.lines.join(" ").includes(quote))
         problems.push(`${where}: the card's words lack "${quote}"`);
     }
