@@ -69,7 +69,7 @@ import {
 const DEPLOYED = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 const FRAME = "/trials/frame";
 const SWEEP_JSON = "lib/trials-sweep.json";
-const SWEEP_COMMAND = "pnpm build && node scripts/trials-sweep.mjs";
+const SWEEP_COMMAND = "pnpm build && node .crew/sprint/63/trials-sweep.mjs";
 const BLOB = "https://github.com/nycruslan/theseus-portfolio/blob";
 const AXE_TAGS = [
   "wcag2a",
@@ -1358,7 +1358,7 @@ test("T7 in the first screen: at 1440x900, 390x664 and 320x568 (and Iris's 1366x
 
 const T8_ROUTES = ["/trials", "/trials/320x568"] as const;
 
-test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean of serious and critical, text in the tokens, no overflow from 320 to 1440, targets 44 px below 1024 and 24 x 24 from it, one main, no skipped heading, nothing animating; Tab never focuses inside the frame; in forced colours the waterline and the dimension show; nothing paints --accent; script beyond the 404's 0 B; LCP text in main outside the frame within 2,500 ms at 4x CPU at 1440x900 and 390x844; CLS 0 from load to rest + 2 s at 320, 390 and 1440", async ({
+test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean of serious and critical, text in the tokens, no overflow from 320 to 1440, targets in main 44 px below 1024 and 24 x 24 from it, one main, no skipped heading, nothing animating; Tab never focuses inside the frame; in forced colours the waterline and the dimension show; nothing paints --accent; script beyond the 404's 0 B; LCP text in main outside the frame within 2,500 ms at 4x CPU at 1440x900 and 390x844; CLS 0 from load to rest + 2 s at 320, 390 and 1440", async ({
   browser,
 }) => {
   test.setTimeout(300_000);
@@ -1456,27 +1456,34 @@ test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean 
     ] as const) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto(route);
-      await page.keyboard.press("Tab"); // the skip link shows, as B2.9 reads it
-      const small = await page.evaluate(
-        (min) =>
-          [
-            ...document.querySelectorAll(
-              "a, button, input, select, textarea, summary",
-            ),
-          ]
-            .filter((el) => el.getClientRects().length > 0)
-            .flatMap((el) => {
-              const r = el.getBoundingClientRect();
-              return r.width >= min && r.height >= min
-                ? []
-                : [
-                    `${el.getAttribute("href") ?? el.getAttribute("name") ?? `<${el.tagName.toLowerCase()}> ${(el.textContent ?? "").trim().slice(0, 20)}`}: ${r.width.toFixed(1)} x ${r.height.toFixed(1)}`,
-                  ];
-            }),
-        min,
-      );
+      // Decision 9: the page's own targets, those in main. The shared bar and the skip link are on
+      // every page and held at 24 px by B2.9, as everywhere else.
+      const { targets, small } = await page.evaluate((min) => {
+        const shown = [
+          ...document.querySelectorAll(
+            "main :is(a, button, input, select, textarea, summary)",
+          ),
+        ].filter((el) => el.getClientRects().length > 0);
+        return {
+          targets: shown.length,
+          small: shown.flatMap((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width >= min && r.height >= min
+              ? []
+              : [
+                  `${el.getAttribute("href") ?? el.getAttribute("name") ?? `<${el.tagName.toLowerCase()}> ${(el.textContent ?? "").trim().slice(0, 20)}`}: ${r.width.toFixed(1)} x ${r.height.toFixed(1)}`,
+                ];
+          }),
+        };
+      }, min);
       expect
-        .soft(small, `targets under ${min} x ${min} on ${route} at ${width}`)
+        .soft(targets, `targets in main on ${route} at ${width}`)
+        .toBeGreaterThan(0);
+      expect
+        .soft(
+          small,
+          `targets in main under ${min} x ${min} on ${route} at ${width}`,
+        )
         .toEqual([]);
     }
 
