@@ -99,9 +99,9 @@ function WindowLink({
   );
 }
 
-/** `{f} px`, unbroken (memory, sprint 30). */
+/** `{f} px`, unbroken (memory, sprint 30), one text node so the server's HTML holds it whole. */
 function Px({ children }: { children: string }) {
-  return <span className="whitespace-nowrap">{children} px</span>;
+  return <span className="whitespace-nowrap">{`${children} px`}</span>;
 }
 
 /** The frame scaled to its column, its dimensions, the waterline and the freeboard (placement.md, 3). */
@@ -197,6 +197,7 @@ function Field({
           name={name}
           type="number"
           inputMode="numeric"
+          autoComplete="off"
           min={min}
           max={max}
           step={1}
