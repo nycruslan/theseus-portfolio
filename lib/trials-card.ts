@@ -2,12 +2,19 @@
 // tsconfig's paths, so every value import it reaches is relative (.crew/sprint/64/selectors.md).
 import { profile } from "../content/profile";
 import { addressOf, isSwept, sizeOf, type Win } from "./trials";
-import { depthOf, sweptTrial, type Trial, VERDICT } from "./trials-words";
+import {
+  depthOf,
+  signedOf,
+  sweptTrial,
+  type Trial,
+  VERDICT,
+} from "./trials-words";
 
-// What a window's card says when its address is shared (.crew/sprint/64/contract.md, T15): the
-// window, the answer as a sentence a link preview can carry ("Under by 6.2 px."), the verdict in
-// the page's words, and the page's dare, so the link itself says the answer and asks for another
-// try. The drawing is lib/trials-card-art.tsx; the tags that name the card are trialsMetadata's.
+// What a window's card says when its address is shared (.crew/sprint/64/contract.md, T15), in
+// Iris's words (.crew/sprint/64/words.md, 6): the page, the window, the answer as a sentence a
+// link preview can carry ("Under by 6.2 px."), the verdict, and the page's dare, so the link itself
+// says the answer and asks for another try. The drawing is lib/trials-card-art.tsx; the tags that
+// name the card are trialsMetadata's.
 
 /** The card's size and type, which the image draws and the page's tags give. */
 export const TRIAL_CARD = {
@@ -19,10 +26,13 @@ export const TRIAL_CARD = {
 /** The owner's first name, as the page's dare calls him (components/trials.tsx). */
 const [FIRST_NAME = profile.name] = profile.name.split(" ");
 
+/** The drawn words, top to bottom. */
 type CardLines = readonly [
-  /** "Sea trials · 320 × 568": the page's h1 and the window, as a step card's head names its sprint. */
+  /** "Sea trials", the page's h1. */
   head: string,
-  /** "Under by 6.2 px." when the links sink, "Clear by 29.2 px." when they float. */
+  /** "320 × 568". */
+  size: string,
+  /** "Under by 6.2 px." when the links sink, "Clear by 37.0 px." when they float. */
   answer: string,
   /** The verdict as the page's readout words it, closed as a sentence. */
   verdict: string,
@@ -36,16 +46,19 @@ export type TrialCardWords = { lines: CardLines; alt: string };
 const sinks = ({ kind }: Trial) => kind === "gap" || kind === "under";
 
 function wordsOf(trial: Trial): TrialCardWords {
-  const lines: CardLines = [
-    `Sea trials · ${sizeOf(trial.win)}`,
-    `${sinks(trial) ? "Under" : "Clear"} by ${depthOf(trial)} px.`,
-    `${VERDICT[trial.kind]}.`,
-    `Try to sink ${FIRST_NAME}'s contact links.`,
-  ];
-  const [, answer, verdict] = lines;
+  const size = sizeOf(trial.win);
+  const f = depthOf(trial);
+  const side = sinks(trial) ? "under" : "clear";
+  const verdict = `${VERDICT[trial.kind]}.`;
   return {
-    lines,
-    alt: `${profile.name}'s contact links in a ${sizeOf(trial.win)} window: ${answer} ${verdict}`,
+    lines: [
+      "Sea trials",
+      size,
+      `${sinks(trial) ? "Under" : "Clear"} by ${f} px.`,
+      verdict,
+      `Try to sink ${FIRST_NAME}'s contact links.`,
+    ],
+    alt: `Sea trials: a ${size} window drawn to its waterline, ${profile.name}'s contact links ${side} by ${f} px (freeboard ${signedOf(trial)} px). ${verdict}`,
   };
 }
 
