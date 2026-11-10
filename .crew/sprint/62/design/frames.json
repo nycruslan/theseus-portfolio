@@ -1,0 +1,14 @@
+{
+  "title": "The next thing to play with: three directions, Try to sink it recommended",
+  "frames": [
+    { "file": "trials-1440.webp", "title": "A. Try to sink it (recommended): /trials at 1440, the real first page in a 1366 × 625 window", "width": 1440, "height": 900 },
+    { "file": "trials-390.webp", "title": "A. /trials at 390: 320 × 568, the crew's own gap", "width": 390, "height": 844 },
+    { "file": "trials-play.webp", "title": "A. The playable prototype on production's measured windows, at 1366 × 625", "width": 1440, "height": 1000 },
+    { "file": "trials-play-sunk.webp", "title": "A. The prototype at 320 × 568: under by 6.2 px, and what the record says", "width": 1440, "height": 1000 },
+    { "file": "trials-story.webp", "title": "A. Sinking it frame by frame, and every state", "width": 1440, "height": 640 },
+    { "file": "checked-1440.webp", "title": "B. Send it back: /checked at 1440, sprint 59's case", "width": 1440, "height": 900 },
+    { "file": "checked-390.webp", "title": "B. Send it back at 390", "width": 390, "height": 844 },
+    { "file": "plane-1440.webp", "title": "C. The plane: sprint 22's plank at 1440", "width": 1440, "height": 900 },
+    { "file": "plane-390.webp", "title": "C. The plane at 390", "width": 390, "height": 844 }
+  ]
+}

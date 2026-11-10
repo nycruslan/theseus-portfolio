@@ -1,0 +1,79 @@
+{
+  "sprint": 62,
+  "pr": 129,
+  "goal": "Find the next thing visitors want to play with, and plan its build",
+  "goalFrom": "owner",
+  "size": "L",
+  "outcome": "merged: notes only; Iris's research and three directions on a canvas, A (try to sink it) recommended, Pixel's measured headroom, and Quill's four-sprint plan with Ta's contract",
+  "fixRounds": 0,
+  "minutes": 110,
+  "agents": [
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 538392,
+      "minutes": 51
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 221858,
+      "minutes": 28
+    },
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": 187497,
+      "minutes": 14
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 235469,
+    "important": 0,
+    "actedOn": 2,
+    "nits": 3
+  },
+  "wentWrong": [
+    {
+      "what": "The award sites themselves still could not be opened from the crew's sessions",
+      "evidence": "awwwards.com, thefwa.com, cssdesignawards.com and tympanus.net don't resolve here, so research.md cites their listings through search and write-ups"
+    },
+    {
+      "what": "No direction fits the brief's novelty budget as it is written",
+      "evidence": "The yard is the brief's one archive moment, so a new toy needs one line added to the budget, the owner's pick (decisions.md 4)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Add to design/brief.md's novelty budget: \"One proving ground, on its own route, off the first screen.\"",
+      "moves": "the trials milestone fits the brief as written instead of riding an Owner's pick"
+    },
+    {
+      "change": "Allow awwwards.com, thefwa.com, cssdesignawards.com and tympanus.net in the cloud environment's network policy",
+      "moves": "research sources read first-hand instead of through search"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Iris",
+      "what": "Lens's nit: the lines moved into sheet-fits.md still cite sheet-fits.md as their source"
+    },
+    {
+      "who": "Iris",
+      "what": "Ta's placement and words for the trials page"
+    },
+    {
+      "who": "Pixel",
+      "what": "The live-measure spike of a same-origin frame in Chromium and WebKit, before Tb's contract"
+    },
+    {
+      "who": "Forge",
+      "what": "Whether the frame-ancestors rule can be scoped to the frame's address, and a fallback for CSS length division"
+    },
+    {
+      "who": "Ruslan",
+      "what": "Optional: pick B or C on the canvas, and the novelty-budget line, on PR #129"
+    }
+  ]
+}

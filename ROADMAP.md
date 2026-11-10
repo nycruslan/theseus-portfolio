@@ -17,6 +17,62 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
+## Now: try to sink it
+
+On a page of its own, a visitor puts Ruslan's real first page in any window they choose and tries
+to sink his contact links below the window's foot, drawn as the hull's waterline. The page answers
+with the links' freeboard, measured, and with the crew's record: which checks hold that window,
+which sprint and which agents fitted it, and the one gap the crew accepted on purpose (320 × 568,
+under by 6.2 px). Every window is an address, so what a visitor sends is a dare with a true answer.
+
+This is the owner's goal for sprint 62: the next thing visitors play with and share, beyond the
+yard, still telling the crew's story. Iris researched it (`.crew/sprint/62/research.md`), swept
+28,633 windows of production's `/`, and recommends direction A on the canvas
+(https://claude.ai/artifact/MicDUbCifCHvCBsEfqZQS4; `direction-iris.md`). Pixel measured the
+headroom (`headroom.md`): a server route costs 0 B, and nothing here imports three.
+
+Quill's plan is `.crew/sprint/62/plan.md`, and Ta's contract is `first-contract.md`. It serves
+belief 2 (the five-second read the crew fitted and defended, made visible with the people behind
+it) and principle 3 (the gap is said first, in the crew's own words). `/` doesn't change at all,
+and no door is added to it. The frame shows `/` as built, without the live feed, so the number and
+the frame never disagree (`plan.md`, call 3). The checks are T1 onward, numbered across the
+milestone. No sprint needs an owner answer to start, touches an owner path or edits `content/`.
+
+- [x] Sprint 62 (L, notes only; the owner's goal): Iris's research, three directions on the canvas
+  and A recommended; Pixel's headroom; Quill's plan and Ta's contract (T1 to T9). (PR #129.)
+- [ ] Ta (M): any window, as a page. The trials page frames `/` at the window in its address,
+  draws the waterline, gives the freeboard from a committed sweep and the record's answer, names
+  each check that holds the window with its sprint and source, links the crew's windows, and takes
+  any window in a plain form. No script. The frame's own address alone may be framed by the site.
+  The sweep's staleness check fails CI the day `/` moves. Pixel spikes Tb's live measure alongside,
+  in Chromium and WebKit. T1 to T9; it starts with Iris's placement and words.
+- [ ] Tb (M): drag it, and send it. With script, sliders and the frame's corner resize it live, the
+  freeboard measured from the frame and read by a polite live region, the address replaced on
+  release; a card per window and Copy link. INP during a drag gated at 200 ms at 4x CPU. Planned
+  T10 to T15, from Pixel's spike.
+- [ ] Tc (M): the chart and the fits. Every window drawn as a chart, the sinking band and the
+  crew's pins, tap to try; the seven fits stamp as the frame enters them, each with its sprint,
+  who drew, checked and tested it, and what went wrong first; "found" for the visit only. Planned
+  T16 to T21.
+- [ ] Td (S): the doors, from Crew's keel under its first rule and from the Log's foot, plain
+  links, fit-measured first. Planned T22 to T24.
+- [ ] The milestone's demo: Quill on production after Td (`plan.md`, "The demo").
+- After the demo, not scheduled: the frame with scripts on (the hull in 3D as you drag), and the
+  yard in the trials (a step page in a phone's window). Each has its question in `plan.md`.
+- **The owner's calls, and none blocks the work:**
+  - the direction: A, as recommended, or B (send it back) or C (the plane), on the canvas;
+  - the brief's novelty budget, which allows one signature transition, one live layer and one
+    archive moment (the yard): recommended, add "One proving ground, on its own route, off the
+    first screen." to `design/brief.md`, proposed in sprint 62's retro. It can be undone by
+    removing the route, so the work goes on.
+- Out of scope, and why:
+  - anything on `/`, and a door from it, since the five-second read comes first;
+  - the bar, whose four links share a row at 320 and 390;
+  - a live or scripted frame, until the demo, since it would make the number disagree with the
+    frame;
+  - visitor input that writes anything, sound, and device mockups;
+  - owner paths and `content/`.
+
 ## Finished: the yard in hand
 
 Ha and Hb merged by 2026-11-09 (Hb, #126, last). Quill ran the milestone's demo on production in
@@ -90,14 +146,12 @@ path or edits `content/`.
   - It waits, and the milestone closes with Ha, if the contact links move at any window the W
     checks pin.
 - [x] The milestone's demo (sprint 61, PR #127): Quill on production, `.crew/sprint/61/demo.md`.
-  The yard is in hand, so the crew stands down. Sprint 59's Log CSS follow-ups rode along: the
+  The yard is in hand, so the crew stood down. Sprint 59's Log CSS follow-ups rode along: the
   phone step row 4 px lower so a focused Next's ring clears the keel, and the placement scoped to
   `20rem <= width < 48rem` with sprint 53's in-flow row restored below it.
-- **Then the crew stands down.** The fleet at 45, the record in the motion and sound wait with their
-  questions (`close.md`, "Left open"). No sprint opens until one of these happens:
-  - the owner sets a goal or answers a pick;
-  - a defect on production makes something the site says false, or hides a fact;
-  - the owner, having played the yard on his phone, wants more of it.
+- **Then the crew stood down,** until the owner set sprint 62's goal (above, "try to sink it").
+  The fleet at 45, the record in the motion and sound still wait with their questions
+  (`close.md`, "Left open").
 - **The owner's calls, and none blocks the work:**
   - the yard's direction (A, as built);
   - the tally at 23 (no tally recommended);
