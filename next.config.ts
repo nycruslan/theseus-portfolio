@@ -29,11 +29,6 @@ const SECURITY_HEADERS = [
   },
 ];
 
-// A trials window in the grid's range, written plainly: a width from 320 to 1920 by a height from
-// 460 to 1100 (lib/trials.ts, GRID), as a path-to-regexp pattern.
-const TRIAL_WINDOW =
-  "(?:3[2-9]\\d|[4-9]\\d\\d|1[0-8]\\d\\d|19[01]\\d|1920)x(?:4[6-9]\\d|[5-9]\\d\\d|10\\d\\d|1100)";
-
 const nextConfig: NextConfig = {
   // The build type-checks the site without its end-to-end checks (tsconfig.build.json). Probe
   // writes a sprint's checks before the build, against code that doesn't exist yet, so each such
@@ -70,26 +65,7 @@ const nextConfig: NextConfig = {
         "/work/the-bridge",
       ].map((source) => ({ source, destination: "/crew", permanent: true })),
       { source: "/admin/:path*", destination: "/", permanent: true },
-      // /trials is the 1440 × 900 window, so that window has one address (.crew/sprint/63/).
-      { source: "/trials/1440x900", destination: "/trials", permanent: true },
     ];
-  },
-  // A trials window outside the grid's range, or not written plainly (/trials/0320x568,
-  // /trials/320x568x2), is the site's 404 (.crew/sprint/63/contract.md, "The addresses"). It is
-  // sent to an address no route matches, since only that 404 is drawn by the server: the window
-  // page's own notFound() is an empty shell without script (app/log/[n]/page.tsx). Before the
-  // files, so `frame` and `go` pass by name; a segment with a dot is left to the router's suffixes.
-  async rewrites() {
-    return {
-      beforeFiles: [
-        {
-          source: `/trials/:window((?!(?:frame|go|${TRIAL_WINDOW})$)[^/.]+)`,
-          destination: "/not-a-trials-window",
-        },
-      ],
-      afterFiles: [],
-      fallback: [],
-    };
   },
   async headers() {
     return process.env.NODE_ENV === "production"
