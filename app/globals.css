@@ -4646,9 +4646,12 @@ a[data-replay]:not([data-ready]) {
   --gr: 68px;
   --gt: 22px;
   --frame-max: max(280px, calc(100svh - 500px));
+  /* --scale is set only while a hand drags the corner (lib/trials-live.ts): the scale the drawing
+     had when the hand took it, so the corner stays under the hand, and smaller only to stay
+     inside the column and the height budget. Unset, it is 1 and the rule is Ta's. */
   --fw: min(
     calc(100cqi - var(--gl) - var(--gr)),
-    calc(var(--w) * 1px),
+    calc(var(--w) * var(--scale, 1) * 1px),
     calc(var(--frame-max) * var(--w) / var(--h))
   );
   --fh: calc(var(--fw) * var(--h) / var(--w));
@@ -4808,6 +4811,149 @@ a[data-replay]:not([data-ready]) {
   top: calc(var(--foot) + 8px);
   right: 0;
   color: var(--muted);
+}
+
+/*
+ * The frame's corner (.crew/sprint/64/contract.md, T12; Iris's placement.md, 1): a crop bracket,
+ * an ink L inside the frame's bottom-right corner, its outer edges on the frame's, so it never
+ * covers the freeboard dimension. The 44 px button is centred on the corner and transparent; it is
+ * the page's only `touch-action: none`, so a finger drags it and scrolls the page everywhere else.
+ * Its ring goes round the bracket, since round the box it would strike the dimension. Borders, so
+ * it holds in forced colours; its sizes change state and never animate.
+ */
+.trials-corner {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--gt) + var(--fh) - 22px);
+  left: calc(var(--gl) + var(--fw) - 22px);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: transparent;
+  border: 0;
+}
+
+.trials-bracket {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-right: 3px solid var(--foreground);
+  border-bottom: 3px solid var(--foreground);
+}
+
+.trials-corner[data-dragging] .trials-bracket {
+  width: 28px;
+  height: 28px;
+}
+
+@media (hover: hover) {
+  .trials-corner:hover .trials-bracket {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.trials-corner:focus-visible {
+  outline: none;
+}
+
+.trials-corner:focus-visible .trials-bracket {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+/* While a hand holds the corner the cursor stays the corner's and nothing gets selected. */
+:root:has(.trials-corner[data-dragging]) {
+  cursor: nwse-resize;
+  user-select: none;
+}
+
+/* Mid-drag the verdict's slot holds the marker and the answer its mid-drag line, both in graphite,
+   since nothing in the record binds while the hand moves; the number stays in ink (placement.md,
+   4). The marker is one line at every width, so the readout holds its height. */
+.trials-verdict[data-measuring] {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.trials-answer[data-measuring] {
+  color: var(--muted);
+}
+
+/* Copy link, in its own row after the answer: /read's Print button's grammar (placement.md, 5). */
+.trials-share {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.trials-copy {
+  flex: none;
+  height: 44px;
+  padding: 0 14px;
+  color: var(--foreground);
+  font: 600 var(--step-base) / 1 var(--font-sans);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--foreground);
+}
+
+@media (hover: hover) {
+  .trials-copy:hover {
+    color: var(--background);
+    background: var(--foreground);
+  }
+}
+
+.trials-copied {
+  max-width: 40ch;
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* Without script the corner, Copy link and the caption's drag sentence would promise what nothing
+   does, so Ta's page doesn't show them; with it, the drawing runs the column's whole width, so the
+   waterline spans the field the corner drags into (placement.md, 2). */
+@media (scripting: none) {
+  .trials-corner,
+  .trials-share,
+  .trials-scripted {
+    display: none;
+  }
+}
+
+@media (scripting: enabled) {
+  .trials-drawing {
+    width: 100cqi;
+  }
+}
+
+/* A release's re-fit eases --scale from the drag's to Ta's fit, in Full only and from the frame's
+   top left (placement.md, 3; lib/trials-live.ts, refit). Registered, so it can transition; at
+   rest it is 1, and the drawing is Ta's. */
+@property --scale {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+.trials-drawing[data-refit] {
+  transition: --scale 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media print {
+  .trials-corner,
+  .trials-share {
+    display: none;
+  }
 }
 
 .trials-figure figcaption {
