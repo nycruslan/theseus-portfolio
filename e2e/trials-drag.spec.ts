@@ -433,6 +433,7 @@ function settled(page: Page, win?: Win, timeout = 3000) {
     () => readNow(page),
     (r) =>
       !r.dragging &&
+      r.measure !== "live" &&
       (win ? r.w === win[0] && r.h === win[1] : r.w !== null) &&
       r.size === (win ? sizeWords(win) : r.size),
     timeout,
@@ -441,6 +442,22 @@ function settled(page: Page, win?: Win, timeout = 3000) {
 
 /** Within the release's pinned or named window's half step (contract, call 1), with margin. */
 const TIGHT = { w: 4, h: 1 };
+
+/**
+ * What the live region said since the `from`th change: waits up to 1.5 s for words holding `win`'s
+ * size, then 300 ms more, so a second announcement for the same settle is counted too.
+ */
+async function spokenSince(page: Page, from: number, win: Win) {
+  const read = async () =>
+    ((await instruments(page))?.spoken ?? []).slice(from);
+  await until(
+    read,
+    (spoken) => spoken.some((s) => s.text.includes(sizeWords(win))),
+    1500,
+  );
+  await nodeWait(300);
+  return read();
+}
 
 /** The server's head for an address: title and canonical, as T1 reads them. */
 async function serverHead(request: APIRequestContext, path: string) {
@@ -843,9 +860,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
         .toHaveAccessibleName(new RegExp(escapeRegExp(sizeWords(win))), {
           timeout: 1000,
         });
-      await nodeWait(300);
-      const spoken =
-        (await instruments(page))?.spoken.slice(spokenBefore) ?? [];
+      const spoken = await spokenSince(page, spokenBefore, win);
       const said = spoken.filter((s) => s.text !== "");
       const trial = trialAt(win);
       expect
@@ -888,8 +903,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
     expect.soft(follow, "the inputs following a mouse drag live").toEqual([]);
     await hand.up();
     const rest = await settled(page, target);
-    await nodeWait(300);
-    const spoken = (await instruments(page))?.spoken.slice(spokenBefore) ?? [];
+    const spoken = await spokenSince(page, spokenBefore, target);
     expect
       .soft(
         spoken.filter((s) => s.dragging).map((s) => s.text),
@@ -980,8 +994,7 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
         size: sizeWords(GAP),
         path: addressOf(GAP),
       });
-    await nodeWait(300);
-    const spoken = (await instruments(page))?.spoken.slice(spokenBefore) ?? [];
+    const spoken = await spokenSince(page, spokenBefore, GAP);
     expect
       .soft(
         spoken.filter((s) => s.dragging).map((s) => s.text),
