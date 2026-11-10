@@ -17,7 +17,7 @@ type Axis = (typeof GRID)[keyof typeof GRID];
 export const HOME: Win = [1440, 900];
 
 /** Iris's near misses off the grid. */
-export const NAMED: readonly Win[] = [
+const NAMED: readonly Win[] = [
   [456, 465],
   [792, 575],
   [1160, 635],
@@ -255,6 +255,15 @@ export const HELD_WINDOWS = PINS.size - 1;
 /** The windows the sweep measures besides the grid: PINS and the named windows. */
 export const OFF_GRID: readonly Win[] = [...PIN_WINDOWS, ...NAMED].filter(
   (win) => !onGrid(win),
+);
+
+/**
+ * The windows whose pages and cards are built ahead under /trials/<w>x<h>: the crew's and the named
+ * ones, less 1440 × 900, whose address is /trials. Any other swept window renders on its first
+ * request.
+ */
+export const PRERENDERED: readonly Win[] = [...PIN_WINDOWS, ...NAMED].filter(
+  (win) => keyOf(win) !== keyOf(HOME),
 );
 
 export const isSwept = (win: Win) =>
