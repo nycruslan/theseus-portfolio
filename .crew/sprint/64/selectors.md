@@ -36,9 +36,9 @@ Atlas before building around it.
 - **At rest:** no `requestAnimationFrame` call from load to the first touch, nor from 1 s after a
   settle.
 - **Under the hand (T14, 4x CPU):** every Event Timing entry for a pointer event within 200 ms,
-  and no long animation frame over 200 ms during the drag. Chromium gives `pointermove` no Event
-  Timing entry, so the frames are how T14 sees the moves. A scratch mock that resized and measured
-  on every `pointermove` peaked at 265 ms on a loaded machine.
+  gated. Chromium gives `pointermove` no Event Timing entry, so T14 reports the drag's long
+  animation frames (their count over 200 ms and the longest) without failing on them (Atlas's
+  ruling).
 - **The address:** `history.replaceState` to the settled window's address (`/trials` for 1440 ×
   900); `document.title` and `link[rel="canonical"]`'s href become the server's for that address.
 

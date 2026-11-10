@@ -1165,7 +1165,7 @@ test("T13 the address is replaced, never pushed: after a key settle and a drag, 
   await off.close();
 });
 
-test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corner's range: every Event Timing entry for pointer events during it within 200 ms, and no animation frame longer than 200 ms (pointermove has no Event Timing entry), gated; once settled, no animation frame requested from rest + 1 s", async ({
+test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corner's range: every Event Timing entry for pointer events during it within 200 ms, gated; its long animation frames reported (pointermove has no Event Timing entry); once settled, no animation frame requested from rest + 1 s", async ({
   browser,
 }) => {
   test.setTimeout(120_000);
@@ -1229,7 +1229,7 @@ test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corne
   );
   test.info().annotations.push({
     type: "event timing",
-    description: `${pointer.length} pointer entries of 16 ms or more (${[...new Set(pointer.map((e) => e.name))].join(", ")}), longest ${Math.max(0, ...pointer.map((e) => e.duration)).toFixed(0)} ms; ${loafs.length} long animation frames, longest ${Math.max(0, ...loafs.map((e) => e.duration)).toFixed(0)} ms`,
+    description: `${pointer.length} pointer entries of 16 ms or more (${[...new Set(pointer.map((e) => e.name))].join(", ")}), longest ${Math.max(0, ...pointer.map((e) => e.duration)).toFixed(0)} ms`,
   });
   expect
     .soft(
@@ -1239,14 +1239,12 @@ test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corne
       "pointer events over 200 ms during the drag at 4x CPU",
     )
     .toEqual([]);
-  expect
-    .soft(
-      loafs
-        .filter((e) => e.duration > 200)
-        .map((e) => `${e.duration.toFixed(0)} ms at ${e.startTime.toFixed(0)}`),
-      "animation frames over 200 ms during the drag at 4x CPU",
-    )
-    .toEqual([]);
+  // Reported, not gated (Atlas's ruling, sprint 64): the contract gates the drag's INP, and the
+  // long frames are the framed /'s own relayout on each resize, which a loaded box stretches.
+  test.info().annotations.push({
+    type: "long animation frames, reported",
+    description: `${loafs.length} long animation frames during the drag at 4x CPU, ${loafs.filter((e) => e.duration > 200).length} over 200 ms, longest ${Math.max(0, ...loafs.map((e) => e.duration)).toFixed(0)} ms`,
+  });
 
   await nodeWait(1000);
   const r0 = (await instruments(page))?.raf ?? Number.NaN;
