@@ -1,0 +1,40 @@
+{
+  "sprint": 64,
+  "pr": 131,
+  "goal": "Drag the window yourself, and the page measures as you go",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 150,
+  "agents": [
+    { "role": "creative-engineer", "model": "opus", "tokens": 423852, "minutes": 55 },
+    { "role": "engineer", "model": "opus", "tokens": 360890, "minutes": 41 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 267625, "minutes": 60 },
+    { "role": "design-director", "model": "opus", "tokens": 586874, "minutes": 37 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "The corner's grip grew by width and height, so hovering it shifted the page",
+      "evidence": "Iris's early look: a layout shift of 0.00004 at 390 x 664 on hover, the only one a whole drag made; it now grows by a transform"
+    },
+    {
+      "what": "A test loaded the card's words in a way that found the sweep's data file instead of its code",
+      "evidence": "Forge traced T15's red to a dynamic import resolving ./trials-sweep to the .json twin; a static import fixed it (decisions.md 4)"
+    },
+    {
+      "what": "Dragging redraws the whole first page inside the frame, and on a slowed CPU a frame takes up to a quarter second",
+      "evidence": "Long animation frames of 167 to 268 ms at 4x CPU, while every pointer response stayed within 56 ms (decisions.md 5)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Pixel", "what": "Try coalescing the frame's resizes during a drag at 4x CPU, to bring long animation frames under 200 ms" },
+    { "who": "Pixel", "what": "The frame still fetches 465 KB of the first page's script in Chromium; blocking it by CSP logs refusals T9 forbids" },
+    { "who": "Atlas", "what": "Tc's contract sets the chart's own script allowance: Tb's controller leaves 109 B of the 8,192 B (decisions.md 6)" },
+    { "who": "Iris", "what": "Deep sinks run into blank paper on the page and the card; deepen the sea's hatching to the dimension's foot in both" },
+    { "who": "Forge", "what": "The trials card's foot duplicates the step card's; share one so the two cards can't drift" },
+    { "who": "Probe", "what": "Real Safari and a real finger on the drag, the clipboard on Safari, and what screen readers announce" }
+  ]
+}
