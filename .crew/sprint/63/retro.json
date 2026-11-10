@@ -1,0 +1,87 @@
+{
+  "sprint": 63,
+  "pr": 130,
+  "goal": "Try to sink the contact links in any window you choose",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 155,
+  "agents": [
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 484633,
+      "minutes": 98
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 71400,
+      "minutes": 6
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 219672,
+      "minutes": 40
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 2051774,
+    "important": 0,
+    "actedOn": 0,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The first run planned the page and wrote its checks, then ended before anyone built it",
+      "evidence": "PR #130 sat at notes and Probe's red checks from 02:53 to 06:12 UTC; the second run built it (decisions.md 8)"
+    },
+    {
+      "what": "A check asked every target on the page for 44 px, and the site's own bar falls short",
+      "evidence": "Work and Crew 41 x 44, Log 33 x 44 at 320 on every page; T8 now measures the page's own targets (decisions.md 9)"
+    },
+    {
+      "what": "On a phone, a deep sink drew its measurement through the word Waterline",
+      "evidence": "Iris's review at 320 x 460 drawn 390 wide; a 68 px gutter clears it (review-iris.md 1)"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Add scripts/*.mjs to knip.json's entries so sprint tools can live outside .crew/sprint/",
+      "moves": "the trials sweep's script moves out of a sprint folder into scripts/"
+    }
+  ],
+  "followUps": [
+    {
+      "who": "Forge",
+      "what": "Lens nit: fail the build if 320 x 568 ever floats, so its words are rewritten rather than reading held"
+    },
+    {
+      "who": "Pixel",
+      "what": "Lens nit: a shared window link downloads 465 KB of script the frame never runs; Tb answers it"
+    },
+    {
+      "who": "Forge",
+      "what": "Widen the bar's links and the skip link to 44 px below 1024, site-wide"
+    },
+    {
+      "who": "Forge",
+      "what": "About 6.4 KB of trials CSS ships in the site's one stylesheet, and the spec text imported raw adds about 369 KB to the trials' server bundle"
+    },
+    {
+      "who": "Iris",
+      "what": "At 1440 a phone window sits at the column's left; Tb's corner drag decides the field"
+    },
+    {
+      "who": "Pixel",
+      "what": "The live-measure spike for Tb, in Chromium and WebKit, before Tb's contract"
+    },
+    {
+      "who": "Probe",
+      "what": "Check the trials page in Safari and Firefox at 390 x 664, where one more line in the lead pushes a tall window's waterline under the fold"
+    }
+  ]
+}
