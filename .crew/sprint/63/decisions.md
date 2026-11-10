@@ -29,3 +29,8 @@
    H10's 1380 to 1440 × 900 run included (the contract's "as each reads them"); its extra windows
    sit in a closed `details`. The sticky figure from 1024 stays: it is position, not motion, and
    nothing animates (call 8 stands). The gap's answer is 320 × 568's own, asserted server-side.
+8. **Resumed at 06:12 UTC on 10 Nov.** The first run left the notes, Iris's words and placement,
+   and Probe's T1 to T9 (`probe/63`, cherry-picked) but no build. Forge builds now from the sprint
+   head. The contract mutant is folded into Forge's proof: the whole unedited suite on the real
+   build, every kept red named, since a bare Ta would cost a run for what the full run shows. Pixel's
+   spike for Tb didn't run; it moves to Tb's own sprint.
