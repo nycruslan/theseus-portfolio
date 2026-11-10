@@ -1,4 +1,4 @@
-import { GRID, keyOf, onGrid, type Win } from "./trials";
+import { GRID, keyOf, OFF_GRID, onGrid, type Win } from "./trials";
 import sweep from "./trials-sweep.json";
 
 // The committed sweep (.crew/sprint/63/contract.md, T4): the contact links' freeboard at every
@@ -8,7 +8,7 @@ import sweep from "./trials-sweep.json";
 // servers that don't have the repository's files (memory, sprint 46).
 //
 // Each freeboard is in tenths of a pixel, rounded so the kind still reads as the unrounded value
-// does (lib/trials.ts, tenthOf). `columns` holds one string per grid width, heights ascending: the
+// does (the script's tenthOf). `columns` holds one string per grid width, heights ascending: the
 // first height's value, then each step's change, `d*n` for n steps of d. `windows` holds the
 // pinned and named windows off the grid, and `sideways` every window that scrolls sideways.
 
@@ -35,16 +35,17 @@ function column(text: string) {
 }
 
 const grid = sweep.columns.map(column);
-// A sweep written for another grid would answer wrongly for every window: fail the build instead.
+const offGrid: Readonly<Record<string, number>> = sweep.windows;
+// A sweep written for another grid, or before a window was pinned or named, would answer wrongly or
+// not at all: fail the build instead.
 if (
   grid.length !== (width.to - width.from) / width.step + 1 ||
-  grid.some((col) => col.length !== ROWS || col.some(Number.isNaN))
+  grid.some((col) => col.length !== ROWS || col.some(Number.isNaN)) ||
+  OFF_GRID.some((win) => offGrid[keyOf(win)] === undefined)
 )
   throw new Error(
-    "lib/trials-sweep.json doesn't match the grid in lib/trials.ts: rewrite it with `pnpm build && node .crew/sprint/63/trials-sweep.mjs`",
+    `lib/trials-sweep.json (taken on ${sweep.commit}) doesn't hold every window lib/trials.ts sweeps: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
   );
-
-const offGrid: Readonly<Record<string, number>> = sweep.windows;
 const sideways = new Set<string>(sweep.sideways);
 
 /** The sweep's reading at a window, or undefined for one it doesn't hold. */

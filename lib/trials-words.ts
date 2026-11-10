@@ -14,7 +14,7 @@ import {
   sizeOf,
   type Win,
 } from "@/lib/trials";
-import { sweptAt } from "@/lib/trials-sweep";
+import { SWEEP_META, sweptAt } from "@/lib/trials-sweep";
 
 // What the trials page says for a window, in Iris's words (.crew/sprint/63/words.md), from the
 // committed sweep and the crew's record (lib/trials.ts). Probe's checks quote the same words.
@@ -29,7 +29,7 @@ export type Trial = {
 };
 
 /** The trial at a swept window; undefined for a window the sweep doesn't hold. */
-export function trialAt(win: Win): Trial | undefined {
+function trialAt(win: Win): Trial | undefined {
   const swept = sweptAt(win[0], win[1]);
   if (!swept) return undefined;
   const kind = kindOf(win, swept.freeboard);
@@ -47,7 +47,7 @@ export function sweptTrial(win: Win): Trial {
   const trial = trialAt(win);
   if (!trial)
     throw new Error(
-      `lib/trials-sweep.json has no reading at ${sizeOf(win)}: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
+      `lib/trials-sweep.json (taken on ${SWEEP_META.commit} in Chromium ${SWEEP_META.chromium}) has no reading at ${sizeOf(win)}: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
     );
   return trial;
 }

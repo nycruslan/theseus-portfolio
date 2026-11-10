@@ -16,12 +16,25 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
 import { profile } from "../../../content/profile.ts";
-import { GRID, keyOf, OFF_GRID, tenthOf } from "../../../lib/trials.ts";
+import { GRID, keyOf, OFF_GRID } from "../../../lib/trials.ts";
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const OUT = join(ROOT, "lib", "trials-sweep.json");
 const FRAME = "/trials/frame";
 const WORKERS = 6;
+
+/**
+ * A measured freeboard to 0.1 px, so the answer's kind (lib/trials.ts, kindOf) still reads as the
+ * unrounded value does: a window that sinks never rounds up to the waterline (−0.03 is −0.1), and
+ * a near miss never rounds up to a whole pixel (0.96 is 0.9). Every other value is the nearest
+ * tenth.
+ */
+function tenthOf(freeboard) {
+  const tenth = Math.round(freeboard * 10) / 10;
+  if (freeboard < 0 && tenth >= 0) return -0.1;
+  if (freeboard >= 0 && freeboard < 1 && tenth >= 1) return 0.9;
+  return tenth;
+}
 
 /** A free port, from the system. */
 function freePort() {

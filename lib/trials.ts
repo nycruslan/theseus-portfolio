@@ -42,12 +42,12 @@ const onAxis = (v: number, axis: Axis) =>
 const snapAxis = (v: number, axis: Axis) =>
   axis.from + axis.step * Math.round((v - axis.from) / axis.step);
 
-export const inRange = ([w, h]: Win) =>
+const inRange = ([w, h]: Win) =>
   within(w, GRID.width) && within(h, GRID.height);
 export const onGrid = ([w, h]: Win) =>
   onAxis(w, GRID.width) && onAxis(h, GRID.height);
 /** The grid window a window in the grid's range answers to. */
-export const snap = ([w, h]: Win): Win => [
+const snap = ([w, h]: Win): Win => [
   snapAxis(w, GRID.width),
   snapAxis(h, GRID.height),
 ];
@@ -80,7 +80,7 @@ for (let w = 1380; w <= 1440; w++) H10_RUN.push([w, 900]);
 // Read from each check's body (e2e/trials.ts names why each other W, B and H check claims no
 // window): every window at which a kept check asserts the links inside the viewport, plus 320 ×
 // 568, which W8 reports and doesn't assert.
-export const CHECKS: readonly TrialCheck[] = [
+const CHECKS: readonly TrialCheck[] = [
   {
     code: "B1.1",
     spec: "sheet.spec.ts",
@@ -298,16 +298,4 @@ export function kindOf(win: Win, freeboard: number): Kind {
   if (freeboard >= 0 && freeboard < 1) return "near";
   if (freeboard < 0) return "under";
   return "afloat";
-}
-
-/**
- * A measured freeboard to 0.1 px, so the kind still reads as the unrounded value does: a window
- * that sinks never rounds up to the waterline (−0.03 is −0.1), and a near miss never rounds up to
- * a whole pixel (0.96 is 0.9). The sweep stores this; every other value is the nearest tenth.
- */
-export function tenthOf(freeboard: number) {
-  const tenth = Math.round(freeboard * 10) / 10;
-  if (freeboard < 0 && tenth >= 0) return -0.1;
-  if (freeboard >= 0 && freeboard < 1 && tenth >= 1) return 0.9;
-  return tenth;
 }
