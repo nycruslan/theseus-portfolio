@@ -4641,7 +4641,9 @@ a[data-replay]:not([data-ready]) {
 
 .trials-drawing {
   --gl: 20px;
-  --gr: 56px;
+  /* Waterline then sits at the frame's edge +21 to +68, clear of a sinking window's dimension
+     line at +10 (.crew/sprint/63/review-iris.md, 1). */
+  --gr: 68px;
   --gt: 22px;
   --frame-max: max(280px, calc(100svh - 500px));
   --fw: min(
@@ -4814,12 +4816,14 @@ a[data-replay]:not([data-ready]) {
   color: var(--muted);
   font-size: var(--step-sm);
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .trials-answer {
   max-width: 62ch;
   margin-top: 16px;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .trials-section {
@@ -4848,6 +4852,7 @@ a[data-replay]:not([data-ready]) {
   color: var(--muted);
   font-size: var(--step-sm);
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 /* The form, in /ask's grammar: labels over the fields, a card-filled field in an ink frame, the ink
@@ -4965,6 +4970,7 @@ a[data-replay]:not([data-ready]) {
   display: block;
   min-height: 44px;
   padding-block: 3px;
+  text-wrap: pretty;
 }
 
 .trials-rule-sprint {
