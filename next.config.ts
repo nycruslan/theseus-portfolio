@@ -28,6 +28,10 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // The build type-checks the site without its end-to-end checks (tsconfig.build.json). Probe
+  // writes a sprint's checks before the build, against code that doesn't exist yet, so each such
+  // push failed its Vercel preview and mailed the owner. `pnpm typecheck` still checks e2e/.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
