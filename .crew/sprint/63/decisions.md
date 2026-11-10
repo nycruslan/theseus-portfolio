@@ -34,3 +34,11 @@
    head. The contract mutant is folded into Forge's proof: the whole unedited suite on the real
    build, every kept red named, since a bare Ta would cost a run for what the full run shows. Pixel's
    spike for Tb didn't run; it moves to Tb's own sprint.
+9. **Forge's build, settled (Atlas).** The sweep's script lives at `.crew/sprint/63/trials-sweep.mjs`
+   (knip takes `.crew/*.mjs` as script entries, as `merge-record.mjs` does), and T4's red names it.
+   T8's target clause measures the trials page's own targets, those in `main`: the shared bar's
+   links and the skip link fall short of 44 px below 1024 on every page of the site, which this
+   sprint doesn't touch, and B2.9's 24 px loop keeps holding them; widening them is a follow-up
+   for the bar. The redirects and 404s run in `proxy.ts`, the app's first proxy, since a page's
+   `redirect()` doubled its Location on a cache miss and its `notFound()` dropped the 404's title.
+   The sweep stores tenths rounded away from each kind's edge, so the kind never flips.
