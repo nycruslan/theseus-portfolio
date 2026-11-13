@@ -631,11 +631,16 @@ function back() {
 
 /**
  * A size edited and left while this loaded was never heard (sprint 64, fix round 1's follow-up):
- * it settles now. One still focused is heard on its own change.
+ * it settles now, Width typed and Tabbed to Height included. One still focused is heard on its own
+ * change.
  */
 function unheard(inputs: readonly HTMLInputElement[]) {
-  const focused = inputs.some((input) => input === document.activeElement);
-  if (!focused && inputs.some((input, i) => input.value !== String(rest[i])))
+  if (
+    inputs.some(
+      (input, i) =>
+        input !== document.activeElement && input.value !== String(rest[i]),
+    )
+  )
     typed();
 }
 
