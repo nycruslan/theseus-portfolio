@@ -5,16 +5,47 @@
   "goalFrom": "roadmap",
   "size": "M",
   "outcome": "merged",
-  "fixRounds": 0,
-  "minutes": 150,
+  "fixRounds": 1,
+  "minutes": 200,
   "agents": [
-    { "role": "product-owner", "model": "opus", "tokens": null, "minutes": 15 },
-    { "role": "design-director", "model": "opus", "tokens": null, "minutes": 30 },
-    { "role": "qa-engineer", "model": "opus", "tokens": null, "minutes": 60 },
-    { "role": "engineer", "model": "opus", "tokens": null, "minutes": 45 },
-    { "role": "creative-engineer", "model": "opus", "tokens": 136473, "minutes": 19 }
+    {
+      "role": "product-owner",
+      "model": "opus",
+      "tokens": null,
+      "minutes": 15
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": null,
+      "minutes": 30
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 161665,
+      "minutes": 77
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 105754,
+      "minutes": 56
+    },
+    {
+      "role": "creative-engineer",
+      "model": "opus",
+      "tokens": 312505,
+      "minutes": 26
+    }
   ],
-  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": {
+    "runs": 1,
+    "tokens": 3883032,
+    "important": 2,
+    "actedOn": 3,
+    "nits": 2
+  },
   "wentWrong": [
     {
       "what": "A click on a crew's window on the chart landed one row off, since from 1024 wide a row is under a pixel",
@@ -38,6 +69,22 @@
     {
       "who": "Iris",
       "what": "Confirm a crew's drawn dot should win a tap over a sounding's unpainted 44 px target where one covers it (decisions.md 10)"
+    },
+    {
+      "who": "Pixel",
+      "what": "If the loader's import fails, a click on the chart neither follows a sounding's link nor tries the window (Lens's nit on 833ed7d); the loader has 16 B left"
+    },
+    {
+      "who": "Pixel",
+      "what": "A drag that ends deeper than its grab snaps the frame to the new sea's height budget instead of easing; easing --sea needs it registered in app/globals.css"
+    },
+    {
+      "who": "Iris",
+      "what": "Confirm the found count's number now sits on the words' baseline, and its empty box 2.8 px lower (5fe1b10)"
+    },
+    {
+      "who": "Probe",
+      "what": "T18's first taps at 1024 x 640 and on the soundings don't wait for hydration, as the new blocks do"
     }
   ]
 }

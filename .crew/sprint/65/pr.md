@@ -25,8 +25,17 @@ CI's only red on e21ceb3 was T18: a click on 1024 × 640's dot settled at 1024 �
 - The chart's data: the sweep in the bundle, no request.
 - The sweep was re-taken after the retro (call 2): `lib/trials-sweep.json` changed (the script: 13,103 windows with the off-grid ones, 2,251 sink; 2,249 before).
 
+### Fix round 1 (Lens on 833ed7d: changes)
+- Important, fixed (Pixel, b163323): the controller never wrote `--sea` at a settle, so after a tap to a deep sink the frame kept the load window's sea and the drawing grew 101 px under the finger at 1440 × 900 (placement.md 8). `settle()` writes it now; a drag keeps the grab's value.
+- Important, fixed (Pixel, b163323): a fit region's `data-here` never followed the frame (placement.md 4). Each fit's media list toggles it at creation and on every change, mid-drag too.
+- Found by Probe's new clause, fixed (Forge, 5fe1b10): the count line grew 4 px at the visit's first find, because the plank's `vertical-align: -4px` moved with its content's baseline. It is `middle` now; the row is 20 px empty and filled at 320, 390, 1024 and 1440.
+- Probe's clauses (2e538b2), inside T18 and T21 with their titles extended: the frame, `--sea` and the drawing after a settle match the server's page for that window within 1 px, the chart doesn't move under a tap, and the regions marked here are the fits the frame matches, at rest and mid-drag. All red on 833ed7d (the chart moved 105.2 px; `--sea` 0 against 0.24826; here [5,6] against []).
+- Nit, fixed: `find()`'s comment names `[data-pressed]`. Nit, follow-up: if the loader's import fails, a click on the chart does nothing; the loader has 16 B left.
+- `pnpm verify` passes on the integrated tree; Forge ran the three trials specs, 17 of 17.
+- After the first touch: 9,459 B gzip (≤ 10,240). At load: 1,007 B.
+
 ### Not verified
-Real Safari, iOS and Firefox; a real finger near a dot under a sounding's target; what screen readers announce (DOM text only). The first run's agent tokens aren't in the retro.
+Real Safari, iOS and Firefox; Iris hasn't seen the found count's new baseline (5fe1b10); a real finger near a dot under a sounding's target; what screen readers announce (DOM text only). The first run's agent tokens aren't in the retro.
 
 No owner path is touched and no Owner's pick is asked.
 
