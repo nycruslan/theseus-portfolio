@@ -39,9 +39,11 @@ import { crewCells, FITS, type Fit, fitsAt, matchesAt } from "./trials-fits";
 //   geometry inside it) at each grid point, mapped from the plot's units into their own. Every
 //   mapping goes through screen CTMs: the soundings sit outside the plot's own svg (Forge).
 // - A `[data-pin]` (`data-windows`: "<w>x<h>" keys, space-separated; `data-freeboard`: one value
-//   per listed window, one decimal, the same order) and an `a[data-sounding="<w>x<h>"]` are "at
-//   their point" when the union of their non-text shapes' boxes, in plot units, is centred on it
-//   (a run: the middle of its first and last window) within 0.5 units and covers each listed one.
+//   per listed window, one decimal, the same order) is "at its point" when the union of its
+//   non-text shapes' boxes, in plot units, is centred on it (a run: the middle of its first and
+//   last window) within 0.5 units and covers each listed one. An `a[data-sounding="<w>x<h>"]` is:
+//   its dot (its circle) centred on the point within 0.5 units, its hit rect holding the point,
+//   which may sit off-centre (decisions.md 5).
 // - `circle[data-ring]`: its cx and cy, in plot units, are the shown window.
 // - A fit, `[data-fit="<n>"][data-query]`, is stamped when it has no `hidden` and is visible; its
 //   links are to `/log/<n>` and to `app/globals.css#L<n>` on GitHub at the build's commit.
@@ -210,9 +212,9 @@ function readChart(page: Page) {
     };
     const SHAPES = "circle, ellipse, rect, line, path, polyline, polygon, use";
     /** The union of an element's non-text shapes' boxes, in plot units. */
-    const shapeBox = (el: Element) => {
+    const shapeBox = (el: Element, only = SHAPES) => {
       const shapes = (
-        el.matches(SHAPES) ? [el] : [...el.querySelectorAll(SHAPES)]
+        el.matches(only) ? [el] : [...el.querySelectorAll(only)]
       ) as SVGGraphicsElement[];
       let box: { left: number; top: number; right: number; bottom: number } = {
         left: Number.POSITIVE_INFINITY,
@@ -284,7 +286,8 @@ function readChart(page: Page) {
           href: el.getAttribute("href") ?? el.getAttribute("xlink:href") ?? "",
           inChart: Boolean(svg?.contains(el)),
           text: (el.textContent ?? "").replace(/\s+/g, " ").trim(),
-          box: shapeBox(el),
+          dot: shapeBox(el, "circle"),
+          hit: shapeBox(el, "rect"),
           client: client(el),
         }),
       ),
@@ -606,6 +609,7 @@ async function dragTo(
   target: Win,
   tol: { w: number; h: number },
   each?: (read: Now) => Promise<void>,
+  step = 60,
 ) {
   const start = await cornerAt(page);
   if (!start) return { taken: false, reached: false, read: null, moves: 0 };
@@ -630,8 +634,8 @@ async function dragTo(
     Math.abs(target[0] - r.w) <= tol.w &&
     Math.abs(target[1] - r.h) <= tol.h;
   for (let i = 0; i < 60 && !near(read); i++) {
-    const dx = clamp((target[0] - (read.w ?? target[0])) / gx, -60, 60);
-    const dy = clamp((target[1] - (read.h ?? target[1])) / gy, -60, 60);
+    const dx = clamp((target[0] - (read.w ?? target[0])) / gx, -step, step);
+    const dy = clamp((target[1] - (read.h ?? target[1])) / gy, -step, step);
     const next = { x: p.x + dx, y: p.y + dy };
     await page.mouse.move(next.x, next.y, { steps: 2 });
     await frames(page);
@@ -658,6 +662,58 @@ async function dragTo(
   return { taken: true, reached: near(read), read, moves };
 }
 const TIGHT = { w: 4, h: 1 };
+
+type RingFrame = { w: number; h: number; x: number; y: number } | null;
+type Recorded = Window & { __rings?: RingFrame[]; __ringsOn?: boolean };
+
+/**
+ * Records, at every frame the page paints, the frame's window and the ring in plot units: read in
+ * a task queued from requestAnimationFrame, so after that frame's own callbacks and paint, as a
+ * visitor sees it. Assertion-free.
+ */
+function recordRing(page: Page) {
+  return page.evaluate(() => {
+    const w = window as Recorded;
+    w.__rings = [];
+    w.__ringsOn = true;
+    const read = (): RingFrame => {
+      const iframe = document.querySelector(
+        "main iframe",
+      ) as HTMLIFrameElement | null;
+      const root = iframe?.contentDocument?.documentElement;
+      const svg = document.querySelector("main svg[data-chart]");
+      const plot = svg?.querySelector(
+        "[data-plot]",
+      ) as SVGGraphicsElement | null;
+      const ring = svg?.querySelector("[data-ring]") as SVGCircleElement | null;
+      const pm = plot?.getScreenCTM();
+      const rm = ring?.getScreenCTM();
+      if (!root || !iframe?.contentWindow || !ring || !pm || !rm) return null;
+      const at = new DOMPoint(
+        ring.cx.baseVal.value,
+        ring.cy.baseVal.value,
+      ).matrixTransform(pm.inverse().multiply(rm));
+      return {
+        w: root.clientWidth,
+        h: iframe.contentWindow.innerHeight,
+        x: at.x,
+        y: at.y,
+      };
+    };
+    const tick = () => {
+      if (!w.__ringsOn) return;
+      setTimeout(() => w.__rings?.push(read()), 0);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+const recordedRing = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as Recorded;
+    w.__ringsOn = false;
+    return w.__rings ?? [];
+  });
 
 /** The requests a context makes, and the JSON responses its pages' own frames receive. */
 function watchContext(ctx: BrowserContext) {
@@ -799,8 +855,20 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
         soundProblems.push(
           `${where}: href ${sounding.href}, want ${addressOf(win)}`,
         );
-      const miss = placed(sounding.box, [win]);
-      if (miss) soundProblems.push(`${where}: ${miss}`);
+      // decisions.md 5: the dot is centred on the point; the hit rect holds it, off-centre or not.
+      const miss = placed(sounding.dot, [win]);
+      if (miss) soundProblems.push(`${where}: its dot ${miss}`);
+      const hit = sounding.hit;
+      if (
+        !hit ||
+        win[0] < hit.left - 0.5 ||
+        win[0] > hit.right + 0.5 ||
+        win[1] < hit.top - 0.5 ||
+        win[1] > hit.bottom + 0.5
+      )
+        soundProblems.push(
+          `${where}: its hit rect ${hit ? `${hit.left.toFixed(1)} to ${hit.right.toFixed(1)}, ${hit.top.toFixed(1)} to ${hit.bottom.toFixed(1)}` : "missing"} doesn't hold its point`,
+        );
       const signed = signedAt(win) ?? "?";
       if (!sounding.text.replace(/-/g, "−").includes(signed.replace(/-/g, "−")))
         soundProblems.push(
@@ -927,8 +995,10 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/trials");
   const near = page.locator('main a[data-sounding="1366x595"]');
-  expect(await near.count(), "T17: the 1366 x 595 sounding on /trials").toBe(1);
-  await near.click();
+  const nears = await near.count();
+  expect.soft(nears, "T17: the 1366 x 595 sounding on /trials").toBe(1);
+  // Without it the walk can't start; its red is the one above and the path below.
+  if (nears === 1) await near.click();
   await page
     .waitForURL("**/trials/1366x595", { timeout: 10_000 })
     .catch(() => undefined);
@@ -991,10 +1061,9 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     const length = await page.evaluate(() => history.length);
     const target: Win = [1024, 640];
     const p = await screenPointOf(page, target);
-    expect(
-      p,
-      `T18: ${at(target)}'s point on the plot at 1440 x 900`,
-    ).not.toBeNull();
+    expect
+      .soft(p, `T18: ${at(target)}'s point on the plot at 1440 x 900`)
+      .not.toBeNull();
     if (p) {
       const before = (await probeOf(page))?.spoken.length ?? 0;
       await page.mouse.click(p.x, p.y);
@@ -1034,7 +1103,7 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     });
     const sounding: Win = [1366, 595];
     const sp = await soundingPoint(page, key(sounding));
-    expect(sp, `T18: the ${at(sounding)} sounding shown`).not.toBeNull();
+    expect.soft(sp, `T18: the ${at(sounding)} sounding shown`).not.toBeNull();
     if (sp) {
       await page.mouse.click(sp.x, sp.y);
       const r = await settled(page, sounding);
@@ -1093,25 +1162,39 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
       await popup?.close();
     }
 
-    // The ring through a corner drag.
-    const far: string[] = [];
-    let samples = 0;
-    const toward: Win = [1160, 635];
-    const drag = await dragTo(page, toward, TIGHT, async (r) => {
-      samples++;
-      if (r.w !== null && r.h !== null && ringOff(r, [r.w, r.h]) > 1)
-        far.push(
-          `frame ${r.w} x ${r.h}, ring ${r.ring ? `${r.ring.x.toFixed(1)}, ${r.ring.y.toFixed(1)}` : "none"}`,
-        );
-    });
-    expect(drag.taken, "T18: a corner drag taken from 1366 x 595").toBe(true);
+    // The ring through a corner drag, 574 px of width in small moves, read at every painted frame.
+    const toward: Win = [792, 575];
+    await recordRing(page);
+    const drag = await dragTo(page, toward, TIGHT, undefined, 12);
+    expect
+      .soft(drag.taken, "T18: a corner drag taken from 1366 x 595")
+      .toBe(true);
+    const painted = (await recordedRing(page)).filter(
+      (f): f is NonNullable<RingFrame> => f !== null,
+    );
     await page.mouse.up();
     const rest = await settled(page, toward);
-    expect.soft(samples, "T18: frames sampled mid-drag").toBeGreaterThan(2);
+    const moving = new Set(painted.map((f) => `${f.w}x${f.h}`)).size;
+    const far = painted
+      .filter((f) => Math.max(Math.abs(f.x - f.w), Math.abs(f.y - f.h)) > 1)
+      .map(
+        (f) =>
+          `frame ${f.w} x ${f.h}, ring ${f.x.toFixed(1)}, ${f.y.toFixed(1)}`,
+      );
+    test.info().annotations.push({
+      type: "T18 ring",
+      description: `${painted.length} painted frames in ${drag.moves} moves, ${moving} distinct windows`,
+    });
+    expect
+      .soft(
+        moving,
+        `T18: distinct windows among the ${painted.length} painted frames of the drag (${drag.moves} moves)`,
+      )
+      .toBeGreaterThan(10);
     expect
       .soft(
         far.slice(0, 8),
-        "T18: sampled frames where the ring is over 1 unit from the frame's window",
+        `T18: painted frames where the ring is over 1 unit from the frame's window (${far.length} of ${painted.length})`,
       )
       .toEqual([]);
     expect
@@ -1145,10 +1228,9 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     const length = await page.evaluate(() => history.length);
     const target: Win = [1024, 640];
     const p = await screenPointOf(page, target);
-    expect(
-      p,
-      `T18: ${at(target)}'s point on the plot at 390 x 844`,
-    ).not.toBeNull();
+    expect
+      .soft(p, `T18: ${at(target)}'s point on the plot at 390 x 844`)
+      .not.toBeNull();
     if (p) {
       const before = (await probeOf(page))?.spoken.length ?? 0;
       await page.touchscreen.tap(p.x, p.y);
@@ -1183,10 +1265,9 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     }
     const sounding: Win = [792, 575];
     const sp = await soundingPoint(page, key(sounding));
-    expect(
-      sp,
-      `T18: the ${at(sounding)} sounding shown at 390 x 844`,
-    ).not.toBeNull();
+    expect
+      .soft(sp, `T18: the ${at(sounding)} sounding shown at 390 x 844`)
+      .not.toBeNull();
     if (sp) {
       await page.touchscreen.tap(sp.x, sp.y);
       const r = await settled(page, sounding);
@@ -1219,10 +1300,9 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     const length = await page.evaluate(() => history.length);
     const sounding: Win = [1366, 595];
     const sp = await soundingPoint(page, key(sounding));
-    expect(
-      sp,
-      `T18: the ${at(sounding)} sounding on a fresh /trials`,
-    ).not.toBeNull();
+    expect
+      .soft(sp, `T18: the ${at(sounding)} sounding on a fresh /trials`)
+      .not.toBeNull();
     if (sp) {
       await page.mouse.click(sp.x, sp.y);
       const r = await settled(page, sounding);
@@ -1324,21 +1404,48 @@ function stampsIn(html: string) {
   );
 }
 
-/** What the scripts-off page shows of each fit: shown or not, its text, its links. */
+/**
+ * What the scripts-off page shows of each fit: shown or not, its text, its links. A stamp is its
+ * `[data-fit]` plus the shared lines of its sprint's group, `[data-sprint]` (Iris groups the
+ * stamps by sprint so each sprint's line reads once; Forge's markup, by Atlas).
+ */
 function readStamps(page: Page) {
   return page.evaluate(() =>
-    [...document.querySelectorAll("[data-fit]")].map((el) => ({
-      n: Number(el.getAttribute("data-fit")),
-      query: el.getAttribute("data-query") ?? "",
-      shown:
-        !el.closest("[hidden]") &&
-        el.checkVisibility({ opacityProperty: true, visibilityProperty: true }),
-      text: (el.textContent ?? "").replace(/\s+/g, " ").trim(),
-      links: [...el.querySelectorAll("a")].map((a) => ({
-        href: a.href,
-        text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
-      })),
-    })),
+    [...document.querySelectorAll("[data-fit]")].map((el) => {
+      const group = el.parentElement?.closest("[data-sprint]") ?? null;
+      const shared: Node[] = [];
+      if (group) {
+        const copy = group.cloneNode(true) as Element;
+        for (const fit of copy.querySelectorAll("[data-fit]")) fit.remove();
+        shared.push(copy);
+      }
+      const links = [
+        ...el.querySelectorAll("a"),
+        ...(group
+          ? [...group.querySelectorAll("a")].filter(
+              (a) => !a.closest("[data-fit]"),
+            )
+          : []),
+      ];
+      return {
+        n: Number(el.getAttribute("data-fit")),
+        query: el.getAttribute("data-query") ?? "",
+        group: group?.getAttribute("data-sprint") ?? null,
+        shown:
+          !el.closest("[hidden]") &&
+          el.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+          }),
+        text: [el, ...shared]
+          .map((n) => (n.textContent ?? "").replace(/\s+/g, " ").trim())
+          .join(" "),
+        links: links.map((a) => ({
+          href: a.href,
+          text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
+        })),
+      };
+    }),
   );
 }
 
@@ -1668,7 +1775,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
         `at ${r.w} x ${r.h} the frame matches ${JSON.stringify(r.matches)}: unstamped ${JSON.stringify(unstamped)}, regions unshown ${JSON.stringify(unshown)}`,
       );
   });
-  expect(drag.taken, "T21: a corner drag taken at /trials").toBe(true);
+  expect.soft(drag.taken, "T21: a corner drag taken at /trials").toBe(true);
   expect
     .soft(
       lagging.slice(0, 8),
@@ -1923,7 +2030,9 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
           `at ${r.w} x ${r.h}: ${JSON.stringify(first)} then ${JSON.stringify(second)}`,
         );
     });
-    expect(drag.taken, "T21: a drag taken under reduced motion").toBe(true);
+    expect
+      .soft(drag.taken, "T21: a drag taken under reduced motion")
+      .toBe(true);
     await p.mouse.up();
     await settled(p, [1440, 820]);
     expect
