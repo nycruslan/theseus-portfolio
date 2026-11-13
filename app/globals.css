@@ -4649,10 +4649,12 @@ a[data-replay]:not([data-ready]) {
   /* --scale is set only while a hand drags the corner (lib/trials-live.ts): the scale the drawing
      had when the hand took it, so the corner stays under the hand, and smaller only to stay
      inside the column and the height budget. Unset, it is 1 and the rule is Ta's. */
+  /* --sea is a sinking window's depth under its foot over its height: the frame shrinks so it and
+     its sea fit the budget, as the card's does (.crew/sprint/65/placement.md, 8). */
   --fw: min(
     calc(100cqi - var(--gl) - var(--gr)),
     calc(var(--w) * var(--scale, 1) * 1px),
-    calc(var(--frame-max) * var(--w) / var(--h))
+    calc(var(--frame-max) * var(--w) / var(--h) / (1 + var(--sea, 0)))
   );
   --fh: calc(var(--fw) * var(--h) / var(--w));
   /* The waterline's height in the drawing, and how far a sinking window's links end under it. */
@@ -4740,12 +4742,13 @@ a[data-replay]:not([data-ready]) {
   rotate: 180deg;
 }
 
+/* Down to the freeboard dimension's foot and 4 px past it (.crew/sprint/65/placement.md, 8). */
 .trials-sea {
   position: absolute;
   top: calc(var(--foot) + 2px);
   left: var(--gl);
   width: var(--fw);
-  height: 12px;
+  height: max(12px, calc(var(--sunk) + 4px));
   background: repeating-linear-gradient(
     135deg,
     var(--pencil) 0 1px,
@@ -5164,8 +5167,8 @@ a[data-replay]:not([data-ready]) {
   .trials {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 24.75rem;
-    /* The figure spans every row; the last, flexible, takes whatever it is taller than the rest. */
-    grid-template-rows: repeat(6, auto) 1fr;
+    /* The side spans every row; the last, flexible, takes whatever it is taller than the rest. */
+    grid-template-rows: repeat(8, auto) 1fr;
     column-gap: 40px;
     align-items: start;
     margin-inline: 16px;
@@ -5176,11 +5179,15 @@ a[data-replay]:not([data-ready]) {
     grid-column: 2;
   }
 
-  .trials > .trials-figure {
-    position: sticky;
-    top: 88px;
-    grid-row: 1 / -1;
-    grid-column: 1;
+  /* The left column: the drawing and the chart (.crew/sprint/65/placement.md, 1 and 2). Its
+     --chart-block is what the chart takes under the drawing's caption, its margin included, which
+     the frame's height budget gives up so both are in the first screen. */
+  .trials > .trials-side {
+    --chart-block: 274px;
+    grid-area: 1 / 1 / -1 / 2;
+  }
+
+  .trials-side > .trials-figure {
     margin-top: 0;
   }
 
@@ -5192,7 +5199,7 @@ a[data-replay]:not([data-ready]) {
     --gl: 28px;
     --gr: 80px;
     --gt: 28px;
-    --frame-max: max(360px, calc(100svh - 204px));
+    --frame-max: max(360px, calc(100svh - 204px - var(--chart-block)));
     font-size: var(--step-sm);
   }
 
@@ -5218,5 +5225,622 @@ a[data-replay]:not([data-ready]) {
 @media (width >= 80rem) {
   .trials {
     column-gap: 64px;
+  }
+
+  /* The drawing's caption takes two lines from 1280, three below. */
+  .trials > .trials-side {
+    --chart-block: 256px;
+  }
+}
+
+/* Sticky only where it fits: below 840 tall the frame's 360 px floor binds, the side is taller than
+   the window less the bar, and a sticky side would hide its own foot until the page ends. */
+@media (width >= 64rem) and (height >= 52.5rem) {
+  .trials > .trials-side {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+/* While the side is sticky the drawing holds the field's full height, so a frame that changes
+   height never moves the chart under it; it is also the room the corner drags in (placement.md, 2). */
+@media (width >= 64rem) and (height >= 52.5rem) and (scripting: enabled) {
+  .trials-drawing {
+    min-height: calc(var(--gt) + var(--frame-max) + 14px);
+  }
+}
+
+/* Below 1024 the side is no box, and the drawing goes back above the answer (placement.md, 1). */
+@media (width < 64rem) {
+  .trials-side {
+    display: contents;
+  }
+
+  .trials-side > .trials-figure {
+    order: 1;
+  }
+
+  .trials > .trials-answer {
+    order: 2;
+  }
+
+  .trials-side > .trials-chart,
+  .trials > .trials-share,
+  .trials > .trials-section {
+    order: 3;
+  }
+}
+
+/*
+ * The chart of every window (components/trials-chart.tsx; .crew/sprint/65/placement.md, 4). The plot
+ * stretches across its column at a fixed height, so it scales unevenly: only shapes are drawn in its
+ * window px, and every mark with a size is drawn in px, a dot as a near-zero circle with a round
+ * non-scaling stroke. Ink, graphite and pencil: nothing on the chart is live, so nothing is copper.
+ */
+.trials-chart {
+  --plot-h: 176px;
+  --yg: 30px;
+  --xr: 8px;
+  --xl: 20px;
+  margin-top: 28px;
+  padding-top: 10px;
+  border-top: 1px solid var(--foreground);
+}
+
+/* The count line follows the title and is never right-aligned, so its start holds when its words
+   change; it wraps under the title where the row is too narrow. */
+.trials-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 16px;
+  row-gap: 2px;
+}
+
+.trials-found {
+  font-size: var(--step-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The visit's count with script, the window's own without (words.md, 3). */
+@media (scripting: none) {
+  .trials-found-visit {
+    display: none;
+  }
+}
+
+@media (scripting: enabled) {
+  .trials-found-window,
+  .trials-unscripted {
+    display: none;
+  }
+}
+
+/* The server's count, drawn until the controller writes the visit's digit: kept out of the line's
+   text, so the page without script holds no visit count (T21). */
+[data-found-count]:empty::before {
+  content: attr(data-k);
+}
+
+.trials-found-all {
+  display: none;
+}
+
+main:not(:has([data-fit][hidden])) .trials-found-some {
+  display: none;
+}
+
+main:not(:has([data-fit][hidden])) .trials-found-all {
+  display: inline;
+}
+
+/* The newest find's plank, the site's plank grammar; the dashed empty box before the visit's first
+   find (placement.md, 5). The controller names the newest; until it does, the highest sprint with
+   a stamp shown. The three sprints are lib/trials-fits.ts's, lowest first, so the highest wins. */
+.trials-found-plank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 20px;
+  margin-right: 8px;
+  vertical-align: -4px;
+  border: 1px dashed var(--muted);
+  font-size: var(--step-sm);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+main:has([data-fit]:not([hidden])) .trials-found-plank,
+.trials-found-plank[data-newest] {
+  border: 1px solid var(--foreground);
+  background: var(--card);
+}
+
+main:has([data-sprint="43"] [data-fit]:not([hidden]))
+  .trials-found-plank:not([data-newest])::before {
+  content: "43";
+}
+
+main:has([data-sprint="44"] [data-fit]:not([hidden]))
+  .trials-found-plank:not([data-newest])::before {
+  content: "44";
+}
+
+main:has([data-sprint="45"] [data-fit]:not([hidden]))
+  .trials-found-plank:not([data-newest])::before {
+  content: "45";
+}
+
+.trials-found-plank[data-newest]::before {
+  content: attr(data-newest);
+}
+
+/* The plot's box, its left and foot axes in graphite, and the gutters its labels sit in. */
+.trials-chart-svg {
+  display: block;
+  width: calc(100% - var(--yg) - var(--xr));
+  height: var(--plot-h);
+  margin: 12px var(--xr) var(--xl) var(--yg);
+  overflow: visible;
+  border-left: 1px solid var(--muted);
+  border-bottom: 1px solid var(--muted);
+  font-size: var(--step-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.trials-chart-plot {
+  overflow: visible;
+}
+
+/* A tap anywhere on the plot is the chart's (T18): its marks never take it from the svg. */
+.trials-chart-plot * {
+  pointer-events: none;
+}
+
+/* The plot's own tap target, and the hover that makes it a responder Chromium's touch adjustment
+   won't move a finger's tap off (decisions.md, 6): don't delete either as a no-op. With script any
+   point tries a window, so the cursor says so; without it only the soundings respond. */
+.trials-chart-plot > .trials-chart-hit {
+  fill: none;
+  pointer-events: all;
+}
+
+@media (scripting: enabled) {
+  .trials-chart-plot:hover {
+    cursor: crosshair;
+  }
+}
+
+/* The band: its shape is T16's geometry and paints nothing itself; its hatch is a px pattern
+   clipped to it, the drawing's sea at 135° and 6 px at any stretch. */
+[data-band] {
+  fill: none;
+}
+
+.trials-chart-hatch {
+  fill: url(#trials-hatch);
+}
+
+.trials-hatch-line {
+  fill: none;
+  stroke: var(--pencil);
+  stroke-width: 1px;
+}
+
+.trials-edge {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* A found fit's outline; graphite while it holds the frame's window. */
+.trials-region {
+  fill: none;
+  stroke: var(--pencil);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-region[data-here] {
+  stroke: var(--muted);
+}
+
+.trials-region[hidden] {
+  display: none;
+}
+
+/* A dot in px at a point of the stretched plot: a near-zero circle whose non-scaling stroke is one
+   dash of no length with round caps, so it draws a disc as wide as the stroke. Chromium strokes a
+   tiny circle's outline wrongly under vector-effect, and a dash's cap it draws true. */
+circle[data-pin],
+[data-ring] {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 0 1000;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The crew's windows: 5 px ink dots on 8 px of film, the halo a copy of the same dots. Their stroke
+   is set on the groups, never on the dots, so the copy can take its own. H10's run is a 2 px bar,
+   round at both ends. */
+.trials-pin-run {
+  fill: none;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-pins-ink {
+  stroke: var(--foreground);
+  stroke-width: 5px;
+}
+
+.trials-pins-halo {
+  stroke: var(--background);
+  stroke-width: 8px;
+}
+
+/* The ring: a 2 px ink ring with film inside and a 3 px dot, 16 px across at any stretch. */
+.trials-ring {
+  stroke: var(--foreground);
+  stroke-width: 16px;
+}
+
+.trials-ring-film {
+  stroke: var(--background);
+  stroke-width: 12px;
+}
+
+.trials-ring-dot {
+  stroke: var(--foreground);
+  stroke-width: 3px;
+}
+
+/* Lettering on a film pad: the gap's label, 5 px right of its dot, and the soundings' numbers. */
+.trials-gap rect,
+.trials-sounding-pad {
+  fill: var(--background);
+}
+
+.trials-gap rect {
+  x: 5px;
+  y: -7.5px;
+  width: 28px;
+  height: 15px;
+}
+
+.trials-gap text {
+  color: var(--foreground);
+  fill: currentColor;
+  font-weight: 700;
+  dominant-baseline: central;
+}
+
+.trials-axis {
+  color: var(--muted);
+}
+
+.trials-axis text {
+  fill: currentColor;
+}
+
+.trials-axis > text {
+  text-anchor: end;
+  dominant-baseline: central;
+}
+
+.trials-axis svg text {
+  text-anchor: middle;
+}
+
+.trials-axis svg[data-end="start"] text {
+  text-anchor: start;
+}
+
+.trials-axis svg[data-end="end"] text {
+  text-anchor: end;
+}
+
+.trials-axis path {
+  stroke: currentColor;
+  stroke-width: 1px;
+}
+
+/* A sounding: its number above its dot (1366 × 595's above and to the right), on a film pad,
+   underlined as a link; its target, 44 px below 1024 and 32 × 24 from it, runs from just under its
+   point upward (placement.md, 4). Its focus ring is the site's, around the pad, not the target. */
+/* A quarter px over each side: placed at a percentage, its box reads 43.99 px across otherwise. */
+.trials-sounding-hit {
+  x: -22.25px;
+  y: -38.25px;
+  width: 44.5px;
+  height: 44.5px;
+  fill: transparent;
+}
+
+.trials-sounding[data-side="right"] .trials-sounding-hit {
+  x: -4px;
+}
+
+/* The number's box is 24 × 13 (step-xs, 600, tabular), and its pad 2 px wider each side, 1 px
+   taller: the site's film pad, 1 px by 2 px. */
+.trials-sounding-pad {
+  x: -14px;
+  y: -18px;
+  width: 28px;
+  height: 15px;
+}
+
+.trials-sounding[data-side="right"] .trials-sounding-pad {
+  x: 1px;
+}
+
+.trials-sounding-ring {
+  x: -17px;
+  y: -21px;
+  width: 34px;
+  height: 21px;
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 2px;
+  visibility: hidden;
+}
+
+.trials-sounding[data-side="right"] .trials-sounding-ring {
+  x: -2px;
+}
+
+.trials-sounding:focus-visible {
+  outline: none;
+}
+
+.trials-sounding:focus-visible .trials-sounding-ring {
+  visibility: visible;
+}
+
+.trials-sounding-dot {
+  fill: var(--foreground);
+}
+
+.trials-sounding-number {
+  color: var(--foreground);
+  fill: currentColor;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.trials-sounding[data-side="right"] .trials-sounding-number {
+  text-anchor: start;
+}
+
+@media (hover: hover) {
+  .trials-sounding:hover .trials-sounding-number {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.trials-chart figcaption {
+  max-width: 62ch;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+@media (width >= 64rem) {
+  .trials-chart {
+    --plot-h: 120px;
+    --yg: 28px;
+    --xr: 80px;
+    --xl: 18px;
+    margin-top: 18px;
+    padding-top: 8px;
+  }
+
+  .trials-chart-head h2 {
+    font-size: var(--step-lg);
+  }
+
+  .trials-chart-svg {
+    margin-top: 10px;
+  }
+
+  .trials-chart figcaption {
+    max-width: none;
+  }
+
+  .trials-sounding-hit {
+    x: -16px;
+    y: -22.25px;
+    width: 32px;
+    height: 24.5px;
+  }
+}
+
+@media (forced-colors: active) {
+  .trials-hatch-line,
+  .trials-edge,
+  .trials-region,
+  .trials-pins-ink,
+  .trials-ring,
+  .trials-ring-dot,
+  .trials-sounding-ring {
+    stroke: CanvasText;
+  }
+
+  .trials-pins-halo,
+  .trials-ring-film {
+    stroke: Canvas;
+  }
+
+  .trials-sounding-dot {
+    fill: CanvasText;
+  }
+
+  .trials-gap rect,
+  .trials-sounding-pad {
+    fill: Canvas;
+  }
+
+  .trials-found-plank {
+    border-color: CanvasText;
+  }
+}
+
+/*
+ * The crew's fits, last on the page (placement.md, 6), one group per sprint. Every state is CSS on
+ * the stamps' `hidden`, so the server's page, a restore and the controller share one rule and no
+ * script: a group with no stamp shown reads how many it has to find, behind a dashed plank; once
+ * one shows, its plank is seated, each hidden stamp says another is left, and the sprint's line,
+ * people and quote follow.
+ */
+.trials-stamps {
+  margin-top: 6px;
+}
+
+.trials-stamp-group {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  column-gap: 12px;
+  padding: 12px 0;
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
+.trials-stamp-group + .trials-stamp-group {
+  border-top: 1px solid var(--rule);
+}
+
+.trials-stamp-none,
+.trials-stamp-todo,
+.trials-stamp-where {
+  color: var(--muted);
+}
+
+.trials-plank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 21px;
+  border: 1px solid var(--foreground);
+  background: var(--card);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.trials-stamp-group:not(:has([data-fit]:not([hidden]))) .trials-plank {
+  border: 1px dashed var(--muted);
+  background: none;
+}
+
+.trials-stamp-group:not(:has([data-fit]:not([hidden]))) .trials-plank > span {
+  visibility: hidden;
+}
+
+.trials-stamp-group:not(:has([data-fit]:not([hidden])))
+  :is([data-sprint-line], .trials-stamp-fits) {
+  display: none;
+}
+
+.trials-stamp-group:has([data-fit]:not([hidden])) .trials-stamp-none {
+  display: none;
+}
+
+.trials-stamp-todo {
+  display: none;
+}
+
+.trials-stamp-group:has([data-fit]:not([hidden]))
+  [data-fit][hidden]
+  + .trials-stamp-todo {
+  display: block;
+}
+
+.trials-stamp-fits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trials-stamp-words {
+  font-weight: 600;
+}
+
+/* A whole-line link with a 44 px target below 1024 and 24 from it, its line unmoved (sprint 50's
+   .keel-record-link). */
+.trials-stamp-link,
+.trials-stamp-record {
+  display: inline-block;
+  vertical-align: top;
+  padding: 8px 0 17px;
+  margin: -8px 0 -17px;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .trials-stamp-link:hover,
+  .trials-stamp-record:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+.trials-stamp-line {
+  margin-top: 10px;
+}
+
+.trials-stamp-sprint {
+  font-weight: 700;
+}
+
+.trials-stamp-who {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 10px;
+  color: var(--muted);
+}
+
+.trials-stamp-who dl {
+  display: contents;
+}
+
+.trials-stamp-who dl > div {
+  display: flex;
+  column-gap: 4px;
+}
+
+.trials-stamp-who dd {
+  color: var(--foreground);
+}
+
+.trials-stamp-quote {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--foreground);
+}
+
+.trials-stamp-quote > p {
+  color: var(--muted);
+}
+
+@media (width >= 64rem) {
+  .trials-stamp-link,
+  .trials-stamp-record {
+    padding-block: 4px;
+    margin-block: -4px;
   }
 }

@@ -199,6 +199,23 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
   } catch (error) {
     throw new Error(`${file}: not valid JSON (${(error as Error).message})`);
   }
+  const entry = entryOf(retro, file, folder);
+  return {
+    ...entry,
+    merge: readMerge(join(dirname(file), "merge.json"), entry.pr),
+  };
+}
+
+/**
+ * A parsed retro's entry, by the rules above, without its merge record: the trials' fits read
+ * their three retros into the bundle and take their stamps' names from here, so a stamp and its
+ * sprint's revision row can't disagree (lib/trials-fits.ts). `file` and `folder` name it in errors.
+ */
+export function entryOf(
+  retro: unknown,
+  file: string,
+  folder: string,
+): SprintEntry {
   if (!isRecord(retro)) throw new Error(`${file}: expected a JSON object`);
 
   const { sprint, goal } = retro;
@@ -227,7 +244,6 @@ function parseRetro(file: string, folder: string): SprintEntry | undefined {
     drawn: drawnBy(crew),
     checked: checkedByLens(retro),
     tested: crew.includes("Probe"),
-    merge: readMerge(join(dirname(file), "merge.json"), pr),
   };
 }
 
