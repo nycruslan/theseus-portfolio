@@ -372,11 +372,9 @@ function entered(target: Page) {
 
 /** The settle's one message, with any fit found since the last that spoke (T21; words.md). */
 function message(trial: Trial) {
-  const found = news.map(
-    (stamp) => stamp.querySelector("[data-fit-said]")?.textContent ?? "",
-  );
+  const found = news.map((stamp) => stamp.dataset.said ?? "");
   news = [];
-  return [settledOf(trial), ...found].join(" ");
+  return [settledOf(trial), ...found].filter(Boolean).join(" ");
 }
 
 /**

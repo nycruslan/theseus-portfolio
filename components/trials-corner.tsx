@@ -85,23 +85,21 @@ export function TrialsCorner({ hands }: { hands: Hands }) {
     for (const type of TYPES) main.addEventListener(type, touch, off);
     // The link is the shown window's, which the canonical names at once: the address can lag a
     // held key's settles (lib/trials-live.ts, address). The live region says it and the line beside
-    // the button shows it (.crew/sprint/64/words.md, 4 and 5).
+    // the button shows it (.crew/sprint/64/words.md, 4 and 5). The server writes all of them, and
+    // the canonical, on every trials page (components/trials.tsx).
     const copy = () => {
       const { pathname } = new URL(
-        document.querySelector<HTMLLinkElement>("link[rel=canonical]")?.href ??
-          location.href,
+        (document.querySelector("link[rel=canonical]") as HTMLLinkElement).href,
       );
       const [w = "", h = ""] = (one("[data-size]")?.textContent ?? "").split(
         " × ",
       );
       const say = (copied: boolean) => {
-        const [heard, seen] = hands.copy[copied ? "done" : "failed"].map(
-          (words) => words.replace("{w}", w).replace("{h}", h),
-        );
-        const live = one("[data-trials-live]");
-        const line = one("[data-copied]");
-        if (live) live.textContent = heard ?? "";
-        if (line) line.textContent = seen ?? "";
+        const [heard = "", seen = ""] = hands.copy[
+          copied ? "done" : "failed"
+        ].map((words) => words.replace("{w}", w).replace("{h}", h));
+        (one("[data-trials-live]") as Element).textContent = heard;
+        (one("[data-copied]") as Element).textContent = seen;
       };
       const clipboard = navigator.clipboard;
       if (!clipboard) return say(false);
