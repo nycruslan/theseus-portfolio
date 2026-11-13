@@ -285,7 +285,7 @@ function Sounding({ win, side }: (typeof SOUNDINGS)[number]) {
         <circle r="1.5" className="trials-sounding-dot" />
         <text
           x={side === "right" ? 3 : 0}
-          y="-9.5"
+          y="-10.5"
           className="trials-sounding-number"
         >
           {signed}

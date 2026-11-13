@@ -5509,9 +5509,9 @@ circle[data-pin],
 
 .trials-gap rect {
   x: 5px;
-  y: -7px;
-  width: 26px;
-  height: 14px;
+  y: -7.5px;
+  width: 28px;
+  height: 15px;
 }
 
 .trials-gap text {
@@ -5554,11 +5554,12 @@ circle[data-pin],
 /* A sounding: its number above its dot (1366 × 595's above and to the right), on a film pad,
    underlined as a link; its target, 44 px below 1024 and 32 × 24 from it, runs from just under its
    point upward (placement.md, 4). Its focus ring is the site's, around the pad, not the target. */
+/* A quarter px over each side: placed at a percentage, its box reads 43.99 px across otherwise. */
 .trials-sounding-hit {
-  x: -22px;
-  y: -38px;
-  width: 44px;
-  height: 44px;
+  x: -22.25px;
+  y: -38.25px;
+  width: 44.5px;
+  height: 44.5px;
   fill: transparent;
 }
 
@@ -5566,11 +5567,13 @@ circle[data-pin],
   x: -4px;
 }
 
+/* The number's box is 24 × 13 (step-xs, 600, tabular), and its pad 2 px wider each side, 1 px
+   taller: the site's film pad, 1 px by 2 px. */
 .trials-sounding-pad {
-  x: -13px;
-  y: -16px;
-  width: 26px;
-  height: 13px;
+  x: -14px;
+  y: -18px;
+  width: 28px;
+  height: 15px;
 }
 
 .trials-sounding[data-side="right"] .trials-sounding-pad {
@@ -5578,10 +5581,10 @@ circle[data-pin],
 }
 
 .trials-sounding-ring {
-  x: -16px;
-  y: -19px;
-  width: 32px;
-  height: 19px;
+  x: -17px;
+  y: -21px;
+  width: 34px;
+  height: 21px;
   fill: none;
   stroke: var(--foreground);
   stroke-width: 2px;
@@ -5658,9 +5661,9 @@ circle[data-pin],
 
   .trials-sounding-hit {
     x: -16px;
-    y: -22px;
+    y: -22.25px;
     width: 32px;
-    height: 24px;
+    height: 24.5px;
   }
 }
 
