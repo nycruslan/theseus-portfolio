@@ -138,6 +138,8 @@ let drag: Drag | undefined;
 /** A release waiting a frame to settle: no new drag or key until it has. */
 let settling = false;
 let frameAsked = 0;
+/** The re-fit's end, pending for 200 ms after a release: a grab in that time cancels it. */
+let refitting: ReturnType<typeof setTimeout> | undefined;
 let hand = { x: 0, y: 0 };
 
 const one = (selector: string) => page?.main.querySelector(selector) ?? null;
@@ -338,7 +340,11 @@ function begin(event: PointerEvent) {
   if (!page || drag || settling) return;
   // The drawing keeps the grab's scale, so the corner stays under the hand; it shrinks below that
   // only to stay inside the field (app/globals.css, --scale; placement.md, 3).
+  // A grab during the last release's re-fit takes the scale it is drawn at now and stops the
+  // re-fit there, or its end would drop --scale under the hand.
   const scale = page.frame.getBoundingClientRect().width / rest[0];
+  clearTimeout(refitting);
+  page.drawing.removeAttribute("data-refit");
   hand = { x: event.clientX, y: event.clientY };
   drag = { id: event.pointerId, ...hand, scale, at: rest, moved: false };
   page.drawing.style.setProperty("--scale", String(scale));
@@ -361,7 +367,7 @@ function refit({ drawing, frame }: Page, w: number) {
   drawing.getBoundingClientRect();
   drawing.setAttribute("data-refit", "");
   drawing.style.setProperty("--scale", String(to));
-  setTimeout(() => {
+  refitting = setTimeout(() => {
     drawing.removeAttribute("data-refit");
     drawing.style.removeProperty("--scale");
   }, 200);
@@ -401,17 +407,34 @@ function key(event: KeyboardEvent) {
 }
 
 /**
- * An edited size settles as the form's own address would (lib/trials.ts, goTo), in place. A step
- * of one, from an input's own arrows or spinner, goes on to the next swept window that way, or a
- * 1 px step from 1440 would snap straight back to it (placement.md, 3).
+ * The next swept window from the settled one, a pixel at a time the way an input's arrow points,
+ * within a grid step: so 1380 × 900 steps down to 1376, not past it. Off the grid's lines (a pinned
+ * window such as 390 × 664) there may be none that near, and the grid step settles as a key does.
+ */
+function nextFrom(dw: number, dh: number): Win {
+  const steps = dw !== 0 ? W.step : H.step;
+  for (let k = 1; k <= steps; k++) {
+    const win: Win = [rest[0] + k * dw, rest[1] + k * dh];
+    if (isSwept(win)) return win;
+  }
+  return settleOn([rest[0] + dw * W.step, rest[1] + dh * H.step]);
+}
+
+/**
+ * An edited size settles as the form's own address would (lib/trials.ts, goTo), in place, so a
+ * swept window typed is drawn exactly. A step of one onto a window the crew didn't sweep, from an
+ * input's own arrows or spinner, goes on to the next swept window that way, or a 1 px step up from
+ * 1440 would snap straight back to it (placement.md, 3). Returns whether the form's submit is
+ * handled here: during a drag it is, and ignored, since the hand's next frame rewrites the inputs.
  */
 function typed() {
+  if (drag || settling) return true;
   const [w, h] = page?.inputs ?? [];
   if (!w || !h || !w.checkValidity() || !h.checkValidity()) return false;
   const typed: Win = [Number(w.value), Number(h.value)];
   const [dw, dh] = [typed[0] - rest[0], typed[1] - rest[1]];
-  if (Math.abs(dw) + Math.abs(dh) === 1)
-    settle(settleOn([rest[0] + dw * W.step, rest[1] + dh * H.step]));
+  if (Math.abs(dw) + Math.abs(dh) === 1 && !isSwept(typed))
+    settle(nextFrom(dw, dh));
   else settle(drawnFor(typed) ?? rest);
   return true;
 }
