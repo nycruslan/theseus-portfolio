@@ -483,13 +483,27 @@ function readNow(page: Page) {
         ring: ringAt,
         stamped,
         regions,
+        // The words a visitor sees: the line holds both forms and CSS shows one (Atlas's call),
+        // so only rendered text counts, and the plank's aria-hidden number is set aside.
         found: (() => {
           const line = document.querySelector("[data-found]");
           if (!line) return "";
-          const copy = line.cloneNode(true) as Element;
-          for (const el of copy.querySelectorAll('[aria-hidden="true"]'))
-            el.remove();
-          return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
+          let text = "";
+          const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const parent = node.parentElement;
+            if (
+              !parent ||
+              parent.closest('[aria-hidden="true"]') ||
+              !parent.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+              })
+            )
+              continue;
+            text += node.textContent ?? "";
+          }
+          return text.replace(/\s+/g, " ").trim();
         })(),
         dragging: Boolean(corner?.hasAttribute("data-dragging")),
         marker: (window as Window & { __marker?: number }).__marker ?? null,
@@ -1711,8 +1725,12 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
   {
     const win: Win = [1366, 595];
     await page.goto(addressOf(win));
+    // innerText: the line holds both forms and CSS shows one (Atlas's call).
     const found = await page.evaluate(() =>
-      (document.querySelector("[data-found]")?.textContent ?? "")
+      (
+        (document.querySelector("[data-found]") as HTMLElement | null)
+          ?.innerText ?? ""
+      )
         .replace(/\s+/g, " ")
         .trim(),
     );
@@ -1726,7 +1744,10 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     expect
       .soft(
         await page.evaluate(() =>
-          (document.querySelector("[data-found]")?.textContent ?? "")
+          (
+            (document.querySelector("[data-found]") as HTMLElement | null)
+              ?.innerText ?? ""
+          )
             .replace(/\s+/g, " ")
             .trim(),
         ),
