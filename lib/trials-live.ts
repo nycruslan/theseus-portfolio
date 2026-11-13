@@ -543,26 +543,46 @@ function key(event: KeyboardEvent) {
   settle(settleOn(next(rest)));
 }
 
+/** A window from the key a chart's mark carries: "1024x640". */
+function winOf(key: string | null): Win {
+  const [w = 0, h = 0] = (key ?? "").split("x").map(Number);
+  return [w, h];
+}
+
 /**
- * A tap on the chart tries its window in place (T18): a sounding's own, or the point under it by
- * the plot's units, settled by a release's rule (settleOn). The ring goes there in the tap's own
- * paint and the frame settles in the task after it, as a release does (end). The loader hands over
- * only an unmodified click on the chart, its link's leaving already stopped: a modified click on a
- * sounding is the link's.
+ * A tap on the chart tries its window in place (T18): a crew's window whose mark it is on, a
+ * sounding's own, or the point under it by the plot's units, settled by a release's rule
+ * (settleOn). The ring goes there in the tap's own paint and the frame settles in the task after
+ * it, as a release does (end). The loader hands over only an unmodified click on the chart, its
+ * link's leaving already stopped: a modified click on a sounding is the link's.
  */
 function tap(event: Event) {
   const { clientX, clientY } = event as MouseEvent;
   const plot = page?.plot;
   if (!page || !plot || event.type !== "click" || drag || settling) return;
-  // A sounding's own window, so a key's click (at 0, 0) tries it too.
+  const ctm = plot.getScreenCTM() ?? undefined;
+  // A crew's window whose mark the tap is on, measured on the screen against the mark's CSS width
+  // (a dot, or H10's bar along its windows), the nearest if several: from 1024 one grid row is
+  // under a screen px, so the plot's rounding alone takes a click on 1024 × 640's dot to 645
+  // (decisions.md, 9). The mark is drawn and a sounding's target isn't: it wins where one covers it.
+  let pinned: Win | undefined;
+  let near = Number.POSITIVE_INFINITY;
+  for (const pin of plot.querySelectorAll("[data-pin]")) {
+    const reach = Number.parseFloat(getComputedStyle(pin).strokeWidth) / 2;
+    for (const key of pin.getAttribute("data-windows")?.split(" ") ?? []) {
+      const win = winOf(key);
+      const dot = new DOMPoint(...win).matrixTransform(ctm);
+      const off = Math.hypot(dot.x - clientX, dot.y - clientY);
+      if (off <= reach && off < near) [pinned, near] = [win, off];
+    }
+  }
+  // Else a sounding's own window, so a key's click (at 0, 0, never on the plot) tries it too.
   const sounding = (event.target as Element).closest("[data-sounding]");
-  const [w = 0, h = 0] = (sounding?.getAttribute("data-sounding") ?? "")
-    .split("x")
-    .map(Number);
-  const at = new DOMPoint(clientX, clientY).matrixTransform(
-    plot.getScreenCTM()?.inverse(),
+  const at = new DOMPoint(clientX, clientY).matrixTransform(ctm?.inverse());
+  const win = settleOn(
+    pinned ??
+      (sounding ? winOf(sounding.getAttribute("data-sounding")) : [at.x, at.y]),
   );
-  const win = settleOn(sounding ? [w, h] : [at.x, at.y]);
   settling = true;
   page.ring?.setAttribute("cx", String(win[0]));
   page.ring?.setAttribute("cy", String(win[1]));
