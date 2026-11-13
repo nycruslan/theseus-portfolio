@@ -1952,7 +1952,8 @@ main:has(> [data-model]) {
   }
 }
 
-.log-start a {
+.log-start a,
+.log-door a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -1965,13 +1966,15 @@ main:has(> [data-model]) {
 }
 
 @media (hover: hover) {
-  .log-start a:hover {
+  .log-start a:hover,
+  .log-door a:hover {
     text-decoration-thickness: 2px;
   }
 }
 
 @media (width >= 64rem) {
-  .log-start a {
+  .log-start a,
+  .log-door a {
     min-height: 24px;
   }
 }
@@ -1979,6 +1982,14 @@ main:has(> [data-model]) {
 .log-start [data-hand-off] {
   white-space: normal;
   text-wrap: balance;
+}
+
+/* The door into the trials at the foot of Every revision (components/log.tsx) is one of the Log's
+   ways out, so it shares Rebuild it yourself's look through the selector lists above rather than
+   copying it (Iris's .crew/sprint/66/placement.md, section 1). 24 px off the table's last rule, so
+   its ring clears that rule by 20. */
+.log-door {
+  margin-top: 24px;
 }
 
 /* The lines figure (.crew/sprint/32/contract.md; notes-iris.md, section 3): under a 1 px ink rule
@@ -4027,6 +4038,15 @@ a[data-replay]:not([data-ready]) {
   line-height: 1.5;
 }
 
+/* Rule 1's door into the trials (components/keel.tsx): the source line's type on the rule's own
+   text edge, not the quote's, so it reads as the rule's coda rather than a second citation. Below
+   1024 the two 44 px targets already leave 28 px between the source's text and the door's; from
+   1024 the 24 px ones need the margin to leave 16 (Iris's .crew/sprint/66/placement.md, section 1). */
+.keel-door {
+  font-size: var(--step-sm);
+  line-height: 1.5;
+}
+
 @media (width >= 64rem) {
   .crew-drawing {
     grid-area: 1 / 1 / span 2 / 2;
@@ -4045,6 +4065,10 @@ a[data-replay]:not([data-ready]) {
   .keel-record-link {
     padding-block: 4px;
     margin-block: -4px;
+  }
+
+  .keel-door {
+    margin-top: 8px;
   }
 }
 
