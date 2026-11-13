@@ -23,3 +23,8 @@
    first touch and 8,072 B after (budget 1,024 and 8,192); most of it is the sweep (about 1.2 KB)
    and the record's sentences (about 0.5 KB), which call 3 puts on the client. The plan's "Tb's
    number, chart included" leaves Tc 120 B, so Tc's contract sets the chart's own number.
+7. **Fix round 1 takes Lens's Important finding and its three code nits** (lens on e4eeb33). A typed
+   size that is a swept window settles exactly (1439 from 1440 reached 1424 before). The nits ride
+   along because the round touches the same function. Pixel fixes `lib/trials-live.ts` and the
+   print rule, Probe adds the T12 clause that was red on e4eeb33 and deletes the superseded
+   memory line.
