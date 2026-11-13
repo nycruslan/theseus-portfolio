@@ -35,9 +35,14 @@ export function TrialsCorner({ hands }: { hands: Hands }) {
     };
     main.addEventListener("pointerdown", touch);
     main.addEventListener("focusin", touch);
-    // The address is always the shown window's (T13), so that is the link; the live region says
-    // it and the line beside the button shows it (.crew/sprint/64/words.md, 4 and 5).
+    // The link is the shown window's, which the canonical names at once: the address can lag a
+    // held key's settles (lib/trials-live.ts, address). The live region says it and the line beside
+    // the button shows it (.crew/sprint/64/words.md, 4 and 5).
     const copy = () => {
+      const { pathname } = new URL(
+        document.querySelector<HTMLLinkElement>("link[rel=canonical]")?.href ??
+          location.href,
+      );
       const [w = "", h = ""] = (one("[data-size]")?.textContent ?? "").split(
         " × ",
       );
@@ -52,7 +57,7 @@ export function TrialsCorner({ hands }: { hands: Hands }) {
       };
       const clipboard = navigator.clipboard;
       if (!clipboard) return say(false);
-      clipboard.writeText(location.origin + location.pathname).then(
+      clipboard.writeText(location.origin + pathname).then(
         () => say(true),
         () => say(false),
       );

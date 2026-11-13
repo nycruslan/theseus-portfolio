@@ -125,12 +125,10 @@ type Drag = {
   y: number;
   scale: number;
   at: Win;
-  /** Whether the hand has moved the window: a press with no movement isn't a settle. */
-  moved: boolean;
 };
 
 let page: Page | undefined;
-/** The settled window, whose address the page has. */
+/** The settled window: the address, the canonical and Copy link name it. */
 let rest: Win = HOME;
 /** The window the frame is laid out at now: the one at rest, or the one under the hand. */
 let placed: Win = HOME;
@@ -140,6 +138,10 @@ let settling = false;
 let frameAsked = 0;
 /** The re-fit's end, pending for 200 ms after a release: a grab in that time cancels it. */
 let refitting: ReturnType<typeof setTimeout> | undefined;
+/** The address's writes left to make at once, when they were counted, and a write held back. */
+let writes = 8;
+let counted = 0;
+let held: ReturnType<typeof setTimeout> | undefined;
 let hand = { x: 0, y: 0 };
 
 const one = (selector: string) => page?.main.querySelector(selector) ?? null;
@@ -276,36 +278,65 @@ function windows({ main }: Page, key: string) {
 }
 
 /**
+ * The address, replaced with the settled window's (T13). WebKit throws past 100 history writes in
+ * 10 s, and Next's patched replaceState can add a write of its own to each of ours, in the router's
+ * effect, where a throw takes the page down to its error. So a held key or a run of taps writes 8
+ * at once, then one each 300 ms at most, and the last window always lands. Copy link reads the
+ * canonical, which is never held back.
+ */
+function address() {
+  clearTimeout(held);
+  const now = performance.now();
+  writes = Math.min(8, writes + (now - counted) / 300);
+  counted = now;
+  if (writes < 1) held = setTimeout(address, 300);
+  else if (location.pathname !== addressOf(rest)) {
+    writes--;
+    try {
+      history.replaceState(null, "", addressOf(rest));
+    } catch {
+      // Past the limit, Next's own write has thrown too: the next settle tries again.
+    }
+  }
+}
+
+/**
  * A swept window, settled (placement.md, 3, "Once, at a settle"): the sweep's number, the record's
- * answer, the address, said once. `said` is false for a press that moved nothing, which restores
- * the page from its marker and says nothing (words.md, 4).
+ * answer, the address, said once. A settle on the window already at rest (a press that came back to
+ * it, an edit that rounds to it) restores the page from its marker, writes the inputs back and
+ * says nothing (words.md, 4). `said` is false for Back and Forward, which follow the address
+ * quietly.
  */
 function settle(win: Win, said = true) {
   const trial = trialAt(win);
   if (!page || !trial) return;
   const key = keyOf(win);
-  const same = key === keyOf(rest) && key === keyOf(placed);
-  // The window shown already, at rest: nothing to settle, and nothing to say.
-  if (same && !page.shown.hasAttribute("data-measure")) return;
+  const moved = key !== keyOf(rest);
+  // The window shown already, at rest: only the inputs, which an edit may have left off it.
+  if (
+    !moved &&
+    key === keyOf(placed) &&
+    !page.shown.hasAttribute("data-measure")
+  )
+    return place(page, win);
   rest = win;
   place(page, win);
   measuring(page, false);
   mark(page, win[1], trial);
   text("[data-verdict]", VERDICT[trial.kind]);
   answer(trial);
-  if (!said) return;
+  if (!moved) return;
   record(page, trial);
   windows(page, key);
   page.corner.setAttribute("aria-label", cornerOf(win));
   page.frame.title = frameTitleOf(win, page.hands.name);
   document.title = titleFor(trial, page.hands.name);
   const canonical = document.querySelector("link[rel=canonical]");
-  const address = addressOf(win);
   if (canonical instanceof HTMLLinkElement)
-    canonical.href = new URL(address, canonical.href).href;
-  if (location.pathname !== address) history.replaceState(null, "", address);
+    canonical.href = new URL(addressOf(win), canonical.href).href;
+  address();
   text("[data-copied]", "");
-  text("[data-trials-live]", settledOf(trial));
+  if (said) text("[data-trials-live]", settledOf(trial));
 }
 
 /** The window under the hand: the grab's window plus the hand's travel at the grab's scale. */
@@ -331,7 +362,6 @@ function step() {
   const win = under(drag);
   if (keyOf(win) === keyOf(drag.at)) return;
   drag.at = win;
-  drag.moved = true;
   place(page, win);
   live(page, win);
 }
@@ -346,7 +376,7 @@ function begin(event: PointerEvent) {
   clearTimeout(refitting);
   page.drawing.removeAttribute("data-refit");
   hand = { x: event.clientX, y: event.clientY };
-  drag = { id: event.pointerId, ...hand, scale, at: rest, moved: false };
+  drag = { id: event.pointerId, ...hand, scale, at: rest };
   page.drawing.style.setProperty("--scale", String(scale));
   page.corner.setAttribute("data-dragging", "");
   measuring(page, true);
@@ -379,10 +409,13 @@ function end(event: PointerEvent) {
   cancelAnimationFrame(frameAsked);
   frameAsked = 0;
   hand = { x: event.clientX, y: event.clientY };
-  const { x, y, scale, moved } = drag;
-  const win = moved
-    ? settleOn([rest[0] + (hand.x - x) / scale, rest[1] + (hand.y - y) / scale])
-    : rest;
+  // Where the hand let go, whether or not a frame ran (a first touch whose chunk came late), and
+  // said only if that's another window (settle).
+  const { x, y, scale } = drag;
+  const win = settleOn([
+    rest[0] + (hand.x - x) / scale,
+    rest[1] + (hand.y - y) / scale,
+  ]);
   drag = undefined;
   settling = true;
   // Paint the release first and settle in the task after it: the settle lays the frame out
@@ -390,7 +423,7 @@ function end(event: PointerEvent) {
   requestAnimationFrame(() =>
     setTimeout(() => {
       if (!page) return;
-      settle(win, moved);
+      settle(win);
       refit(page, win[0]);
       corner.removeAttribute("data-dragging");
       settling = false;
@@ -439,6 +472,18 @@ function typed() {
   return true;
 }
 
+/**
+ * Back or Forward within the page, as after the skip link's entry: the page follows the window the
+ * address names, quietly, so the address, the page and Copy link agree (T13). A drag or a settle in
+ * hand writes its own window over it.
+ */
+function back() {
+  const named = /^\/trials(?:\/(\d+)x(\d+))?$/.exec(location.pathname);
+  const win =
+    named && drawnFor(named[1] ? [+named[1], Number(named[2])] : HOME);
+  if (win && !drag && !settling) settle(win, false);
+}
+
 /** Takes the page over from the corner's listener, with the touch that woke it. */
 export function start(hands: Hands, first: Event) {
   const main = document.getElementById("main");
@@ -475,6 +520,7 @@ export function start(hands: Hands, first: Event) {
   form.addEventListener("submit", (event) => {
     if (typed()) event.preventDefault();
   });
+  addEventListener("popstate", back);
 
   // The touch that loaded this: a drag already in hand, unless it let go while this loaded.
   if (first instanceof PointerEvent && first.type === "pointerdown") {
