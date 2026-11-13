@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Trials } from "@/components/trials";
-import {
-  HOME,
-  isSwept,
-  keyOf,
-  NAMED,
-  PIN_WINDOWS,
-  parseWindow,
-} from "@/lib/trials";
+import { isSwept, keyOf, PRERENDERED, parseWindow } from "@/lib/trials";
+import { trialCardImage } from "@/lib/trials-card";
 import { sweptTrial, trialsMetadata } from "@/lib/trials-words";
 
 // A window's own address, /trials/<w>x<h> (.crew/sprint/63/contract.md, "The addresses"). The
@@ -18,9 +12,7 @@ import { sweptTrial, trialsMetadata } from "@/lib/trials-words";
 // swept window reaches it.
 
 export function generateStaticParams() {
-  return [...PIN_WINDOWS, ...NAMED]
-    .filter((win) => keyOf(win) !== keyOf(HOME))
-    .map((win) => ({ window: keyOf(win) }));
+  return PRERENDERED.map((win) => ({ window: keyOf(win) }));
 }
 
 async function trialOf({ params }: PageProps<"/trials/[window]">) {
@@ -32,7 +24,8 @@ async function trialOf({ params }: PageProps<"/trials/[window]">) {
 export async function generateMetadata(
   props: PageProps<"/trials/[window]">,
 ): Promise<Metadata> {
-  return trialsMetadata(await trialOf(props));
+  const trial = await trialOf(props);
+  return trialsMetadata(trial, trialCardImage(trial));
 }
 
 export default async function WindowPage(props: PageProps<"/trials/[window]">) {

@@ -2,6 +2,7 @@ import { type CSSProperties, Fragment } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { SkipLink } from "@/components/skip-link";
+import { TrialsCorner } from "@/components/trials-corner";
 import { profile } from "@/content/profile";
 import { REPO_URL } from "@/lib/site";
 import {
@@ -10,9 +11,18 @@ import {
   PIN_WINDOWS,
   RUN_WINDOWS,
   type Rule,
+  rulesAt,
   sizeOf,
   type Win,
 } from "@/lib/trials";
+import {
+  CAPTION_DRAG,
+  COPY,
+  CORNER_KEYS,
+  cornerOf,
+  frameTitleOf,
+  RECORD,
+} from "@/lib/trials-answer";
 import {
   answerOf,
   depthOf,
@@ -31,9 +41,12 @@ import laptop from "../e2e/window.spec.ts?raw";
 
 // The trials page (.crew/sprint/63/contract.md; Iris's placement.md and words.md): Ruslan's first
 // page framed at a window, the waterline drawn at the window's foot, the contact links' freeboard
-// from the committed sweep, and what the crew's record answers. Server HTML only: no script, and
-// nothing moves. One DOM for both layouts, in reading order: the head, the readout, the drawing,
-// the answer, the form, the crew's windows, the record (app/globals.css, "The trials").
+// from the committed sweep, and what the crew's record answers. Server HTML, whole without script.
+// One DOM for both layouts, in reading order: the head, the readout, the drawing, the answer, the
+// form, the crew's windows, the record (app/globals.css, "The trials"). With script, the frame's
+// corner, the live region and Copy link come alive (.crew/sprint/64/contract.md): the controller
+// (lib/trials-live.ts) loads on the first touch and rewrites this DOM in place as a window settles,
+// from the same words (lib/trials-answer.ts). Without script the corner and Copy link don't show.
 
 // The specs each rule links into, read into the server's bundle when the site is built, so a
 // window rendered on demand finds its lines on a server without the repository's files, as the
@@ -131,7 +144,7 @@ function Drawing({ trial }: { trial: Trial }) {
             src="/trials/frame"
             sandbox="allow-same-origin"
             inert
-            title={`${profile.name}'s first page in a ${sizeOf(trial.win)} window`}
+            title={frameTitleOf(trial.win, profile.name)}
             width={w}
             height={h}
           />
@@ -147,11 +160,27 @@ function Drawing({ trial }: { trial: Trial }) {
         <span className="trials-waterline-label" aria-hidden="true">
           Waterline
         </span>
+        {/* The frame's corner, a crop bracket and a handle with script only (T12; Iris's
+          placement.md, 1), last so it paints over the frame. Its keys are told in a hidden
+          description, which aria-describedby still reads. */}
+        <button
+          type="button"
+          data-corner=""
+          aria-label={cornerOf(trial.win)}
+          aria-describedby="trials-keys"
+          className="trials-corner"
+        >
+          <span className="trials-bracket" aria-hidden="true" />
+        </button>
+        <span id="trials-keys" hidden>
+          {CORNER_KEYS}
+        </span>
       </div>
       <figcaption>
         His first page as the site builds it, without the crew's live updates,
         in a <span className="whitespace-nowrap">{sizeOf(trial.win)}</span>{" "}
         window.
+        <span className="trials-scripted">{` ${CAPTION_DRAG}`}</span>
       </figcaption>
     </figure>
   );
@@ -213,6 +242,11 @@ function Field({
 
 export function Trials({ trial }: { trial: Trial }) {
   const { win, rules } = trial;
+  // What the controller can't read itself: the name and links from content/, and each check's link
+  // to its test, which reads the specs into the server's bundle.
+  const hrefs = Object.fromEntries(
+    PIN_WINDOWS.flatMap(rulesAt).map((rule) => [rule.code, hrefOf(rule)]),
+  );
   return (
     <>
       <SkipLink />
@@ -253,6 +287,17 @@ export function Trials({ trial }: { trial: Trial }) {
 
         <Drawing trial={trial} />
         <Answer trial={trial} />
+        {/* With script only, its own row after the answer (placement.md, 5): the address is
+          always the shown window's, so it copies that. The line beside it is the live region's
+          words for the eye. */}
+        <div className="trials-share">
+          <button type="button" data-copy="" className="trials-copy">
+            Copy link
+          </button>
+          <span data-copied="" aria-hidden="true" className="trials-copied" />
+        </div>
+        {/* Said once a window settles, and after Copy link; never during a drag (T12). */}
+        <p data-trials-live="" aria-live="polite" className="sr-only" />
 
         <section className="trials-section" aria-labelledby="trials-try">
           <h2 id="trials-try">Try any window</h2>
@@ -316,9 +361,7 @@ export function Trials({ trial }: { trial: Trial }) {
           <h2 id="trials-record">The record</h2>
           {rules.length > 0 ? (
             <>
-              <p className="trials-note">
-                Each of the crew's checks at this window, linked to its test.
-              </p>
+              <p className="trials-note">{RECORD.note}</p>
               <ol className="trials-rules">
                 {rules.map((rule) => (
                   <li key={rule.code} data-rule="" data-check={rule.code}>
@@ -332,10 +375,18 @@ export function Trials({ trial }: { trial: Trial }) {
             </>
           ) : (
             <p data-unclaimed="" className="trials-note">
-              None of the crew's checks claims this window.
+              {RECORD.unclaimed}
             </p>
           )}
         </section>
+        <TrialsCorner
+          hands={{
+            name: profile.name,
+            links: profile.links.map((link) => link.href),
+            hrefs,
+            copy: COPY,
+          }}
+        />
       </main>
     </>
   );

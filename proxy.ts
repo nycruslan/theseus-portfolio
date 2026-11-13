@@ -25,6 +25,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // One segment under /trials, never the frame's address or the form's.
-  matcher: "/trials/:window((?!frame$|go$)[^/]+)",
+  // One segment under /trials, never the frame's address, the form's or /trials's card.
+  matcher: "/trials/:window((?!frame$|go$|opengraph-image$)[^/]+)",
 };

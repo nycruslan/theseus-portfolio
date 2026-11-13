@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import AxeBuilder from "@axe-core/playwright";
 import {
   type Browser,
@@ -1358,7 +1359,7 @@ test("T7 in the first screen: at 1440x900, 390x664 and 320x568 (and Iris's 1366x
 
 const T8_ROUTES = ["/trials", "/trials/320x568"] as const;
 
-test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean of serious and critical, text in the tokens, no overflow from 320 to 1440, targets in main 44 px below 1024 and 24 x 24 from it, one main, no skipped heading, nothing animating; Tab never focuses inside the frame; in forced colours the waterline and the dimension show; nothing paints --accent; script beyond the 404's 0 B; LCP text in main outside the frame within 2,500 ms at 4x CPU at 1440x900 and 390x844; CLS 0 from load to rest + 2 s at 320, 390 and 1440", async ({
+test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean of serious and critical, text in the tokens, no overflow from 320 to 1440, targets in main 44 px below 1024 and 24 x 24 from it, one main, no skipped heading, nothing animating; Tab never focuses inside the frame; in forced colours the waterline and the dimension show; nothing paints --accent; script beyond the 404's at most 1,024 B gzip at load (T10's numbers: sprint 64's named rewrite of 0 B); LCP text in main outside the frame within 2,500 ms at 4x CPU at 1440x900 and 390x844; CLS 0 from load to rest + 2 s at 320, 390 and 1440", async ({
   browser,
 }) => {
   test.setTimeout(300_000);
@@ -1552,7 +1553,8 @@ test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean 
     }
   }
 
-  // Script beyond the 404's: 0 B on both.
+  // Script beyond the 404's at load: at most 1,024 B gzip on both (sprint 64's named rewrite of
+  // Ta's 0 B to T10's numbers: Tb's listener waits for the first touch; e2e/trials-drag.spec.ts).
   const notFound = await scriptBytes(browser, "/no-such-page");
   expect(notFound.status, "status of the 404").toBe(404);
   for (const route of T8_ROUTES) {
@@ -1560,14 +1562,14 @@ test("T8 accessible, still and cheap: on /trials and /trials/320x568, axe clean 
     expect.soft(bytes.status, `status of ${route}`).toBe(200);
     test.info().annotations.push({
       type: "script",
-      description: `${route}: ${bytes.bytes} B in ${bytes.files} files; the 404's ${notFound.bytes} B in ${notFound.files}`,
+      description: `${route}: ${bytes.bytes} B (${bytes.gzip} B gzip -9) in ${bytes.files} files; the 404's ${notFound.bytes} B (${notFound.gzip} B gzip -9) in ${notFound.files}`,
     });
     expect
       .soft(
-        bytes.bytes - notFound.bytes,
-        `script bytes on ${route} beyond the 404's`,
+        bytes.gzip - notFound.gzip,
+        `script bytes on ${route} beyond the 404's at load, gzip -9`,
       )
-      .toBeLessThanOrEqual(0);
+      .toBeLessThanOrEqual(1024);
   }
 
   // LCP and CLS.
@@ -1734,11 +1736,11 @@ async function inkOf(page: Page, selector: string) {
   return false;
 }
 
-/** B2.10's method: the script bodies a fresh visit fetches, summed. */
+/** B2.10's method: the script bodies a fresh visit fetches, summed, raw and each gzip -9. */
 async function scriptBytes(browser: Browser, url: string) {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
-  const bodies: Promise<number>[] = [];
+  const bodies: Promise<{ raw: number; gzip: number }>[] = [];
   page.on("response", (response) => {
     // Decision 4: the page's own frame; the sandboxed frame's fetches are T2's.
     if (
@@ -1748,8 +1750,11 @@ async function scriptBytes(browser: Browser, url: string) {
       bodies.push(
         response
           .body()
-          .then((b) => b.length)
-          .catch(() => Number.NaN),
+          .then((b) => ({
+            raw: b.length,
+            gzip: gzipSync(b, { level: 9 }).length,
+          }))
+          .catch(() => ({ raw: Number.NaN, gzip: Number.NaN })),
       );
   });
   const response = await page.goto(url);
@@ -1759,7 +1764,8 @@ async function scriptBytes(browser: Browser, url: string) {
   return {
     status: response?.status(),
     files: sizes.length,
-    bytes: sizes.reduce((a, b) => a + b, 0),
+    bytes: sizes.reduce((a, b) => a + b.raw, 0),
+    gzip: sizes.reduce((a, b) => a + b.gzip, 0),
   };
 }
 
