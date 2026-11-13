@@ -1205,6 +1205,94 @@ test("T13 the address is replaced, never pushed: after a key settle and a drag, 
       freeboard: rest.freeboard,
     });
   await off.close();
+
+  // Back within the page: the skip link pushes /trials#main, a key settle replaces that entry, and
+  // Back returns to /trials in the same document. The address, the readout, the frame and Copy
+  // link then name one window (Lens on cc5d690: popstate went unheard).
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      permissions: ["clipboard-read", "clipboard-write"],
+    });
+    const page = await ctx.newPage();
+    expect((await page.goto("/trials"))?.status(), "status of /trials").toBe(
+      200,
+    );
+    await frameReady(page);
+    await page.locator('a[href="#main"]').focus();
+    await page.keyboard.press("Enter");
+    expect(
+      await until(
+        () => page.evaluate(() => location.hash),
+        (hash) => hash === "#main",
+        2000,
+      ),
+      "the skip link followed",
+    ).toBe("#main");
+    const corner = page.locator(CORNER);
+    await corner.focus();
+    await nodeWait(1000);
+    const stepped: Win = [1424, 900];
+    await page.keyboard.press("ArrowLeft");
+    const keyed = await settled(page, stepped, 1000);
+    expect
+      .soft(
+        { path: keyed.path, size: keyed.size },
+        "after ArrowLeft from the skip link's /trials#main",
+      )
+      .toEqual({ path: addressOf(stepped), size: sizeWords(stepped) });
+
+    await page.goBack();
+    await nodeWait(1000);
+    const named = (path: string): Win | null => {
+      if (path === "/trials") return HOME;
+      const m = path.match(/^\/trials\/(\d+)x(\d+)$/);
+      return m ? [Number(m[1]), Number(m[2])] : null;
+    };
+    const agree = (r: Now) => {
+      const win = named(r.path);
+      return (
+        win !== null &&
+        r.size === sizeWords(win) &&
+        r.w === win[0] &&
+        r.h === win[1]
+      );
+    };
+    const back = await until(() => readNow(page), agree, 3000);
+    const win = named(back.path);
+    expect
+      .soft(
+        { path: back.path, size: back.size, w: back.w, h: back.h },
+        `Back from ${addressOf(stepped)} to the skip link's entry: the address, [data-size] and the frame name one window`,
+      )
+      .toEqual({
+        path: back.path,
+        size: win ? sizeWords(win) : "a window the address names",
+        w: win?.[0],
+        h: win?.[1],
+      });
+    await page.locator(COPY).click();
+    await nodeWait(500);
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    // The link hands over the window the visitor sees, whatever the address says.
+    const sizeMatch = back.size?.match(/^(\d+) × (\d+)$/);
+    const shown: Win | null = sizeMatch
+      ? [Number(sizeMatch[1]), Number(sizeMatch[2])]
+      : null;
+    const absolute = shown
+      ? [
+          new URL(addressOf(shown), baseURL).href,
+          `${SITE_URL}${addressOf(shown)}`,
+        ]
+      : [];
+    expect
+      .soft(
+        absolute.includes(copied),
+        `after Back, showing ${back.size}, the clipboard "${copied}" is one of ${absolute.join(", ")}`,
+      )
+      .toBe(true);
+    await ctx.close();
+  }
 });
 
 test("T14 quick under the hand: at 4x CPU, a 40-step mouse drag across the corner's range: every Event Timing entry for pointer events during it within 200 ms, gated; its long animation frames reported (pointermove has no Event Timing entry); once settled, no animation frame requested from rest + 1 s", async ({
