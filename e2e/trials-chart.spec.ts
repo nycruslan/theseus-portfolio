@@ -195,6 +195,28 @@ const frames = (page: Page) =>
       }),
   );
 
+/**
+ * Waits until React has hydrated the drawing's corner (its props key is set on the element), then
+ * a beat for the loader's effect (components/trials-corner.tsx): before it, a tap on the plot or a
+ * press on the corner does nothing. Under two workers a tap or a drag right after frameReady came
+ * that early: the reduced-motion drag below failed so on 833ed7d's spec, unedited (sprint 65).
+ */
+async function hydrated(page: Page) {
+  await until(
+    () =>
+      page.evaluate(() => {
+        const el = document.querySelector("main [data-corner]");
+        return Boolean(
+          el && Object.keys(el).some((k) => k.startsWith("__reactProps$")),
+        );
+      }),
+    Boolean,
+    10_000,
+  );
+  await frames(page);
+  await nodeWait(100);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Reads
 
@@ -459,10 +481,13 @@ function readNow(page: Page) {
         );
       const stamped: number[] = [];
       const regions: number[] = [];
+      // The regions drawn as holding the frame's window (graphite; placement.md, 4).
+      const here: number[] = [];
       for (let n = 1; n <= queries.length; n++) {
         if (shown(document.querySelector(`[data-fit="${n}"]`))) stamped.push(n);
-        if (shown(document.querySelector(`[data-fit-region="${n}"]`)))
-          regions.push(n);
+        const region = document.querySelector(`[data-fit-region="${n}"]`);
+        if (shown(region)) regions.push(n);
+        if (region?.hasAttribute("data-here")) here.push(n);
       }
       const corner = document.querySelector("main [data-corner]");
       return {
@@ -483,6 +508,7 @@ function readNow(page: Page) {
         ring: ringAt,
         stamped,
         regions,
+        here,
         // The words a visitor sees: the line holds both forms and CSS shows one (Atlas's call),
         // so only rendered text counts, and the plank's aria-hidden number is set aside.
         found: (() => {
@@ -513,6 +539,57 @@ function readNow(page: Page) {
   );
 }
 type Now = Awaited<ReturnType<typeof readNow>>;
+
+/**
+ * The drawing as laid out now: its `--sea` (computed on the drawing, where `--fw` reads it; the
+ * drawing is `.trials-drawing`, the controller's own selector), the frame's and the drawing's
+ * sizes, the frame's place in the drawing, and the chart's top on the screen. Assertion-free.
+ */
+function readDrawing(page: Page) {
+  return page.evaluate(() => {
+    const iframe = document.querySelector("main iframe");
+    const drawing = document.querySelector("main .trials-drawing");
+    const chart = document.querySelector("main svg[data-chart]");
+    if (!iframe || !drawing || !chart) return null;
+    const f = iframe.getBoundingClientRect();
+    const d = drawing.getBoundingClientRect();
+    const round = (v: number) => Math.round(v * 10) / 10;
+    return {
+      sea: getComputedStyle(drawing).getPropertyValue("--sea").trim(),
+      frame: [f.width, f.height, f.left - d.left, f.top - d.top].map(round),
+      drawing: [d.width, d.height].map(round),
+      chartTop: round(chart.getBoundingClientRect().top),
+      // The chart's head, the count line's row above the plot: told in a red message, not asserted.
+      headHeight: round(
+        document
+          .querySelector("main [data-found]")
+          ?.parentElement?.getBoundingClientRect().height ?? 0,
+      ),
+    };
+  });
+}
+type Drawn = NonNullable<Awaited<ReturnType<typeof readDrawing>>>;
+
+/** Where a drawing differs from another by over 1 px, or its `--sea` by over 0.00001. */
+function drawnApart(got: Drawn | null, want: Drawn | null) {
+  if (!got || !want) return [`drawn: ${JSON.stringify({ got, want })}`];
+  const out: string[] = [];
+  const sea = (s: string) => Number(s === "" ? "0" : s);
+  if (!(Math.abs(sea(got.sea) - sea(want.sea)) <= 0.00001))
+    out.push(`--sea "${got.sea}", the server's "${want.sea}"`);
+  const names = ["width", "height", "left", "top"];
+  got.frame.forEach((v, i) => {
+    const w = want.frame[i] ?? Number.NaN;
+    if (!(Math.abs(v - w) <= 1))
+      out.push(`frame ${names[i]} ${v}, the server's ${w}`);
+  });
+  got.drawing.forEach((v, i) => {
+    const w = want.drawing[i] ?? Number.NaN;
+    if (!(Math.abs(v - w) <= 1))
+      out.push(`drawing ${names[i]} ${v}, the server's ${w}`);
+  });
+  return out;
+}
 
 /** Waits until no drag is on and the frame is `win` and named so. */
 function settled(page: Page, win: Win, timeout = 8000) {
@@ -763,7 +840,7 @@ function watchContext(ctx: BrowserContext) {
 
 // =============================================================================================
 
-test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without script; tap to try: scripts off on /trials and /trials/320x568 main holds one svg[data-chart] whose [data-plot] is in window px, [data-band] fills exactly the sinking grid windows at all 13,029 points, its words give the sinking count and the total, the edge at each of the 101 widths equals a fresh measure within 0.5 px, the band and the ring show in forced colours; with script no JSON reaches the page from load through a tap and a drag; each PINS window marked once at its point with its freeboard, each sounding at its point linking to its window with its signed number and named in words, the four named windows among them, the ring at the shown window, no two sounding targets overlapping at 320, 390, 1024 and 1440, T6's links unchanged, and the walk from /trials to the 1366x595 sounding at 390x844; the first tap on the plot at 1024x640's point, by mouse at 1440x900 and by touch at 390x844, settles the frame there with the sweep's number, the address replaced, history unchanged, one message and the ring there; a sounding's tap tries it in place, a Ctrl- or Meta-click opens it; the ring follows a corner drag within 1 unit", async ({
+test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without script; tap to try: scripts off on /trials and /trials/320x568 main holds one svg[data-chart] whose [data-plot] is in window px, [data-band] fills exactly the sinking grid windows at all 13,029 points, its words give the sinking count and the total, the edge at each of the 101 widths equals a fresh measure within 0.5 px, the band and the ring show in forced colours; with script no JSON reaches the page from load through a tap and a drag; each PINS window marked once at its point with its freeboard, each sounding at its point linking to its window with its signed number and named in words, the four named windows among them, the ring at the shown window, no two sounding targets overlapping at 320, 390, 1024 and 1440, T6's links unchanged, and the walk from /trials to the 1366x595 sounding at 390x844; the first tap on the plot at 1024x640's point, by mouse at 1440x900 and by touch at 390x844, settles the frame there with the sweep's number, the address replaced, history unchanged, one message and the ring there; a sounding's tap tries it in place, a Ctrl- or Meta-click opens it; the ring follows a corner drag within 1 unit; at 1440x900 a tap's settle from /trials to the deep sink 320x460 and back draws the drawing's --sea, the frame and the drawing as the server does at that window's page within 1 px, and the chart doesn't move under the tap", async ({
   browser,
   request,
 }) => {
@@ -1377,6 +1454,92 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
     }
     await ctx.close();
   }
+
+  // ---- T18: a tap's settle draws the frame to its sea, as the server does at that window, and at
+  // 1440 x 900 the chart stays under the tap (placement.md, 8, and 2's sticky field, final under
+  // decisions.md, 7): from /trials to the deep sink 320 x 460 (114 px under), and back. A page as
+  // it arrives is the server's drawing for its window (the controller loads at the first touch),
+  // so each settle is read against the other leg's arrival.
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    });
+    const deep: Win = [320, 460];
+    const arrived = new Map<string, Drawn | null>();
+    const after = new Map<string, Drawn | null>();
+    for (const [from, to] of [
+      [HOME, deep],
+      [deep, HOME],
+    ] as [Win, Win][]) {
+      const page = await ctx.newPage();
+      expect(
+        (await page.goto(addressOf(from)))?.status(),
+        `status of ${addressOf(from)}`,
+      ).toBe(200);
+      await frameReady(page);
+      await hydrated(page);
+      arrived.set(key(from), await readDrawing(page));
+      const p = await screenPointOf(page, to);
+      expect
+        .soft(
+          p,
+          `T18: ${at(to)}'s point on the plot at ${addressOf(from)}, 1440 x 900`,
+        )
+        .not.toBeNull();
+      if (p) {
+        const before = await readDrawing(page);
+        await page.mouse.click(p.x, p.y);
+        const r = await settled(page, to);
+        // At rest: two reads a frame apart agree.
+        const rest = await until(
+          async () => {
+            const a = await readDrawing(page);
+            await frames(page);
+            return { a, b: await readDrawing(page) };
+          },
+          ({ a, b }) => JSON.stringify(a) === JSON.stringify(b),
+          2000,
+        );
+        after.set(key(to), rest.b);
+        const point = await page.evaluate(([w, h]) => {
+          const plot = document.querySelector(
+            "main svg[data-chart] [data-plot]",
+          ) as SVGGraphicsElement | null;
+          const m = plot?.getScreenCTM();
+          return m ? new DOMPoint(w, h).matrixTransform(m) : null;
+        }, to);
+        const off = point
+          ? Math.round(Math.hypot(point.x - p.x, point.y - p.y) * 10) / 10
+          : null;
+        const moved =
+          before && rest.b
+            ? Math.round((rest.b.chartTop - before.chartTop) * 10) / 10
+            : null;
+        expect
+          .soft(
+            {
+              settled: r.w === to[0] && r.h === to[1],
+              chartMoved: moved !== null && Math.abs(moved) <= 1,
+              pointUnderTap: off !== null && off <= 1,
+            },
+            `T18: at 1440 x 900 a tap on ${at(to)}'s point (over ${p.under}) from ${addressOf(from)} settles there and the chart doesn't move under it: the chart moved ${moved} px, ${at(to)}'s point is ${off} px from the tap; the drawing ${before?.drawing[1]} to ${rest.b?.drawing[1]} px tall, the count line's row ${before?.headHeight} to ${rest.b?.headHeight}`,
+          )
+          .toEqual({ settled: true, chartMoved: true, pointUnderTap: true });
+      }
+      await page.close();
+    }
+    for (const win of [deep, HOME])
+      expect
+        .soft(
+          drawnApart(
+            after.get(key(win)) ?? null,
+            arrived.get(key(win)) ?? null,
+          ),
+          `T18: the frame, its --sea and the drawing settled at ${at(win)} by a tap, against the server's at ${addressOf(win)} (1 px)`,
+        )
+        .toEqual([]);
+    await ctx.close();
+  }
 });
 
 // =============================================================================================
@@ -1471,7 +1634,7 @@ function readStamps(page: Page) {
   );
 }
 
-test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; found, for this visit only: the oracle holds the contract's table and each [data-fit] its query, found once as a media query in the build's app/globals.css and linked at its line at the build's commit, its sprint a merged retro with the table's pull request; scripts off, the stamped fits are the ones the frame's document matches at PINS, the named windows and either side of every boundary (1440x900 none, 320x568 3 and 4, 1366x595 1 and 2, 1024x640 5 and 6); a stamp shows its words, pull request, sprint linked to its record, the revision row's names and its retro's first wrong turn, with no check code or URL path, and an unentered fit shows none of its words; with script arriving finds the window's fits and the count reads n of 7, a drag stamps a fit the moment the frame matches it and shows its region, which equals the query at every grid point, nothing is spoken mid-drag and the settle names what it found; a reload and a crew window's link keep the count with CLS 0 at 390 and 1440, a new context starts afresh, found lives in one sessionStorage key and nowhere else; under reduced motion no stamp moves and at rest + 1 s nothing animates; without script the window's own fits and how many of the seven, no visit count", async ({
+test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; found, for this visit only: the oracle holds the contract's table and each [data-fit] its query, found once as a media query in the build's app/globals.css and linked at its line at the build's commit, its sprint a merged retro with the table's pull request; scripts off, the stamped fits are the ones the frame's document matches at PINS, the named windows and either side of every boundary (1440x900 none, 320x568 3 and 4, 1366x595 1 and 2, 1024x640 5 and 6); a stamp shows its words, pull request, sprint linked to its record, the revision row's names and its retro's first wrong turn, with no check code or URL path, and an unentered fit shows none of its words; with script arriving finds the window's fits and the count reads n of 7, a drag stamps a fit the moment the frame matches it and shows its region, which equals the query at every grid point, a region is marked here exactly while the frame's document matches its query (mid-drag, and at /trials/1024x640 and after settles that leave its fits and enter others), nothing is spoken mid-drag and the settle names what it found; a reload and a crew window's link keep the count with CLS 0 at 390 and 1440, a new context starts afresh, found lives in one sessionStorage key and nowhere else; under reduced motion no stamp moves and at rest + 1 s nothing animates; without script the window's own fits and how many of the seven, no visit count", async ({
   browser,
   request,
 }) => {
@@ -1812,16 +1975,17 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     for (const n of r.matches) ever.add(n);
     const unstamped = r.matches.filter((n) => !r.stamped.includes(n));
     const unshown = r.matches.filter((n) => !r.regions.includes(n));
-    if (unstamped.length > 0 || unshown.length > 0)
+    const hereWrong = JSON.stringify(r.here) !== JSON.stringify(r.matches);
+    if (unstamped.length > 0 || unshown.length > 0 || hereWrong)
       lagging.push(
-        `at ${r.w} x ${r.h} the frame matches ${JSON.stringify(r.matches)}: unstamped ${JSON.stringify(unstamped)}, regions unshown ${JSON.stringify(unshown)}`,
+        `at ${r.w} x ${r.h} the frame matches ${JSON.stringify(r.matches)}: unstamped ${JSON.stringify(unstamped)}, regions unshown ${JSON.stringify(unshown)}, regions marked here ${JSON.stringify(r.here)}`,
       );
   });
   expect.soft(drag.taken, "T21: a corner drag taken at /trials").toBe(true);
   expect
     .soft(
       lagging.slice(0, 8),
-      "T21: sampled frames where a matched fit isn't stamped, or its region not shown",
+      "T21: sampled frames where a matched fit isn't stamped, or its region not shown, or the regions marked here aren't the ones the frame matches",
     )
     .toEqual([]);
   expect
@@ -2034,6 +2198,56 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     await fresh.close();
   }
 
+  // A region is drawn holding the frame's window (data-here) exactly while the frame's document
+  // matches its query (placement.md, 4, final under decisions.md, 7): at /trials/1024x640 (fits 5
+  // and 6), after a tap's settle that leaves them (1440 x 900's pin) and one that enters 1 and 2
+  // (the 1366 x 595 sounding). Read at rest, so a change event a frame after the settle counts.
+  {
+    const ctx2 = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    });
+    const p = await ctx2.newPage();
+    const start: Win = [1024, 640];
+    expect(
+      (await p.goto(addressOf(start)))?.status(),
+      `status of ${addressOf(start)}`,
+    ).toBe(200);
+    await frameReady(p);
+    await hydrated(p);
+    const agrees = (r: Now) =>
+      JSON.stringify(r.here) === JSON.stringify(r.matches);
+    // The oracle's fits at each: 5 and 6, none, then 1 and 2.
+    const steps: { how: string; win: Win }[] = [
+      { how: `arriving at ${addressOf(start)}`, win: start },
+      { how: `a tap on ${at(HOME)}'s pin`, win: HOME },
+      { how: "a click on the 1366 x 595 sounding", win: [1366, 595] },
+    ];
+    for (const step of steps) {
+      if (step.win !== start) {
+        const pt =
+          step.win === HOME
+            ? await screenPointOf(p, step.win)
+            : await soundingPoint(p, key(step.win));
+        expect.soft(pt, `T21: ${step.how}, its point`).not.toBeNull();
+        if (!pt) continue;
+        await p.mouse.click(pt.x, pt.y);
+        await settled(p, step.win);
+      }
+      const r = await until(() => readNow(p), agrees, 1500);
+      expect
+        .soft(
+          { at: [r.w, r.h], matches: r.matches, here: r.here },
+          `T21: after ${step.how}, the regions marked here are the fits the frame's document matches (regions shown ${JSON.stringify(r.regions)})`,
+        )
+        .toEqual({
+          at: step.win,
+          matches: fitsAt(...step.win),
+          here: fitsAt(...step.win),
+        });
+    }
+    await ctx2.close();
+  }
+
   // Under reduced motion no stamp moves, and at rest + 1 s nothing animates.
   {
     const still = await browser.newContext({
@@ -2043,6 +2257,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     const p = await still.newPage();
     await p.goto("/trials");
     await frameReady(p);
+    await hydrated(p);
     const moved: string[] = [];
     let stampedReads = 0;
     const drag = await dragTo(p, [1440, 820], TIGHT, async (r) => {
