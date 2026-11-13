@@ -21,3 +21,11 @@
      when the shown window doesn't enter it; its region on the chart `[data-fit-region="<n>"]`,
      hidden until found. The count line `[data-found]`.
    - Fit table and retro words live in `lib/trials-fits.ts` (Forge), imported by both.
+5. **A sounding's target may sit off its point, its dot may not** (Forge's option A). At 320 the
+   named 1160 × 635 and 1366 × 595 sit 36.7 px across and 7 px down on a 288 px chart, so two
+   centred 44 px targets overlap by 7.3 px at any chart height. Below 24rem each target shifts
+   4 px apart and still holds its point. T17 reads: the sounding's dot is centred on its point
+   within 0.5 units, and its hit rect contains the point. Rejected: a sideways-scrolling chart at
+   320 (a swipe to see the laptops) and dropping a named window from the soundings (the contract).
+6. **Every mark inside the plot is `pointer-events: none`;** a tap that misses a sounding lands on
+   `svg[data-chart]`, where the controller listens and maps through `g[data-plot]`'s CTM.

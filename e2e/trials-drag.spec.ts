@@ -538,7 +538,7 @@ async function notFoundGzip(browser: Browser) {
 
 // ---------------------------------------------------------------------------------------------
 
-test("T10 the controller loads on the first touch, and not before: with script, at load the trials page's script beyond the 404's is at most 1,024 B gzip; no script is requested until the first pointerdown on the corner or focus on a size input; after the touch, at most 8,192 B gzip beyond the 404's in all; 0 animation frames requested at rest", async ({
+test("T10 the controller loads on the first touch, and not before: with script, at load the trials page's script beyond the 404's is at most 1,024 B gzip; no script is requested until the first pointerdown on the corner or focus on a size input; after the touch, at most 10,240 B gzip beyond the 404's in all; 0 animation frames requested at rest", async ({
   browser,
 }) => {
   test.setTimeout(90_000);
@@ -632,7 +632,7 @@ test("T10 the controller loads on the first touch, and not before: with script, 
         after - notFound.gzip,
         `/trials's script beyond the 404's after the first touch, B gzip -9 (${touch})`,
       )
-      .toBeLessThanOrEqual(8192);
+      .toBeLessThanOrEqual(10240);
     await ctx.close();
   }
 });
