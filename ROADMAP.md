@@ -56,10 +56,12 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   isn't heard; the framed `/`'s relayout makes 200 to 380 ms long frames at 4x (INP stays within
   56 ms); the frame still fetches `/`'s 465 KB; Lens's two nits on the first-touch listener (any
   button, no cleanup); real Safari, its history limit and a real finger are unchecked.
-- [ ] Tc (M): the chart and the fits. Every window drawn as a chart, the sinking band and the
-  crew's pins, tap to try; the seven fits stamp as the frame enters them, each with its sprint,
-  who drew, checked and tested it, and what went wrong first; "found" for the visit only. Planned
-  T16 to T21.
+- [x] Tc (M), sprint 65: the chart and the fits. Every window drawn as a chart, the sinking band,
+  the crew's pins, soundings and the ring, tap to try; the seven fits stamp as the frame enters
+  them, each with its sprint, who drew, checked and tested it, and what went wrong first; "found"
+  for the visit only. T16 to T21. (PR #133.) Left open: Iris to confirm a crew's dot wins a tap
+  over a sounding's target (decisions.md 10); the track (call 5); Tb's open items above; real
+  Safari, iOS and a real finger are unchecked.
 - [ ] Td (S): the doors, from Crew's keel under its first rule and from the Log's foot, plain
   links, fit-measured first. Planned T22 to T24.
 - [ ] The milestone's demo: Quill on production after Td (`plan.md`, "The demo").
