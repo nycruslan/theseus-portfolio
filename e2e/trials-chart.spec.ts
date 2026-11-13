@@ -25,7 +25,7 @@ import {
   PINS,
   type Win,
 } from "./trials";
-import { crewCells, FITS, type Fit, fitsAt, matchesAt } from "./trials-fits";
+import { crewCells, FITS, fitsAt, matchesAt } from "./trials-fits";
 
 // Sprint 65, Tc: the chart of every window and the crew's seven fits (.crew/sprint/65/contract.md,
 // T16 to T21), written before the build as two tests, T16 to T18 and T19 to T21, so the suite's
@@ -81,10 +81,18 @@ function signedAt(win: Win) {
   return `${sign}${Math.abs(swept.freeboard).toFixed(1)}`;
 }
 
-/** A fit's words on the page: the contract's working words until Iris's words.md lands. */
-const fitWords = (fit: Fit) => fit.words;
-/** The count line with script: "3 of 7 found" (the contract's outcome). */
-const visitCount = (n: number) => new RegExp(`\\b${n} of 7\\b`);
+/** The count line (.crew/sprint/65/words.md, 3), its plank's aria-hidden number aside. */
+const visitCount = (n: number) =>
+  n === FITS.length
+    ? `All ${FITS.length} fits found`
+    : `${n} of ${FITS.length} fits found`;
+const windowCount = (k: number) =>
+  `This window is in ${k === 0 ? "none" : k} of the crew's ${FITS.length} fits`;
+/** The settle's count sentence (words.md, 5). */
+const countSentence = (n: number) => `${visitCount(n)}.`;
+/** The caption's first part (words.md, 1). */
+const captionWords = (sinking: string, total: string) =>
+  `Width across, height up, hatched where the contact links sink: ${sinking} of the ${total} windows swept. Dots are the crew's windows, the ring is the frame's, the numbers are close calls.`;
 
 const CODE = /\b[A-Z]{1,2}\d+(\.\d+)*\b/;
 const URL_PATH = /(?:^|[^\w/])\/[A-Za-z0-9_-]/;
@@ -475,9 +483,14 @@ function readNow(page: Page) {
         ring: ringAt,
         stamped,
         regions,
-        found: (document.querySelector("[data-found]")?.textContent ?? "")
-          .replace(/\s+/g, " ")
-          .trim(),
+        found: (() => {
+          const line = document.querySelector("[data-found]");
+          if (!line) return "";
+          const copy = line.cloneNode(true) as Element;
+          for (const el of copy.querySelectorAll('[aria-hidden="true"]'))
+            el.remove();
+          return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
+        })(),
         dragging: Boolean(corner?.hasAttribute("data-dragging")),
         marker: (window as Window & { __marker?: number }).__marker ?? null,
       };
@@ -790,9 +803,8 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
       .toEqual({ found: true, misses: 0, first: [] });
     expect
       .soft(
-        c.caption.includes(count(SINKING)) &&
-          c.caption.includes(count(GRID.length)),
-        `T16: on ${route}, the chart's words give ${count(SINKING)} sinking of ${count(GRID.length)}: "${c.caption}"`,
+        c.caption.startsWith(captionWords(count(SINKING), count(GRID.length))),
+        `T16: on ${route}, the chart's words give ${count(SINKING)} sinking of ${count(GRID.length)} (words.md, 1): "${c.caption}"`,
       )
       .toBe(true);
 
@@ -887,21 +899,14 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
         expect
           .soft(status, `T17: status of sounding ${sounding.key}'s address`)
           .toBe(200);
-        // The name gives the size and the number (Iris's words.md decides the sentence).
-        const abs = Math.abs(
-          sweptAt(win[0], win[1])?.freeboard ?? Number.NaN,
-        ).toFixed(1);
+        // The name gives the number and the size, as heard (words.md, 2).
+        const name = `${signedAt(win)} pixels at ${spokenWords(win)}`;
         await expect
           .soft(
             page.locator(`main a[data-sounding="${sounding.key}"]`),
-            `T17: sounding ${sounding.key}'s accessible name gives its size and ${abs}`,
+            `T17: sounding ${sounding.key}'s accessible name`,
           )
-          .toHaveAccessibleName(
-            new RegExp(
-              `(${win[0]} (by|×) ${win[1]}).*\\b${abs.replace(".", "\\.")}\\b`,
-            ),
-            { timeout: 1000 },
-          );
+          .toHaveAccessibleName(name, { timeout: 1000 });
       }
     }
 
@@ -1135,7 +1140,9 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
       const opened = ctx
         .waitForEvent("page", { timeout: 5000 })
         .catch(() => null);
-      await link.click({ modifiers: ["Control"] });
+      await link
+        .click({ modifiers: ["Control"], timeout: 5000 })
+        .catch(() => undefined);
       const popup = await opened;
       await nodeWait(500);
       const r = await readNow(page);
@@ -1334,7 +1341,8 @@ test("T16 T17 T18 the chart is the sweep; pins, soundings and the ring without s
         .catch(() => null);
       await page
         .locator(`main a[data-sounding="${key(other)}"]`)
-        .click({ modifiers: ["Meta"] });
+        .click({ modifiers: ["Meta"], timeout: 5000 })
+        .catch(() => undefined);
       const popup = await opened;
       if (popup)
         await popup.waitForLoadState("domcontentloaded").catch(() => undefined);
@@ -1624,7 +1632,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
         if (!entered.includes(fit.n)) {
           if (stamp?.shown)
             problems.push(`${where}: shown, and the window doesn't enter it`);
-          if (texts.includes(fitWords(fit)))
+          if (texts.includes(fit.stamp) || texts.includes(fit.where))
             problems.push(
               `${where}: its words show, and the window doesn't enter it`,
             );
@@ -1655,8 +1663,10 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
             `${where}: the retro's first wrong turn is "${retro.wentWrong[0]}", the table's "${fit.wentWrong}"`,
           );
         const missing = [
-          fitWords(fit),
-          `#${fit.pr}`,
+          fit.stamp,
+          fit.where,
+          `Sprint ${fit.sprint}: ${retro.goal}`,
+          `Pull request #${fit.pr}`,
           ...cells.drawn.split(", "),
           ...(retro.checked ? ["Lens"] : []),
           ...(retro.tested ? ["Probe"] : []),
@@ -1708,12 +1718,21 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     );
     expect
       .soft(
-        /\b2\b/.test(found) &&
-          /\b(7|seven)\b/.test(found) &&
-          !visitCount(2).test(found),
-        `T21: without script, ${addressOf(win)}'s count line says it is in 2 of the seven, with no visit count: "${found}"`,
+        found,
+        `T21: without script, ${addressOf(win)}'s count line, with no visit count`,
       )
-      .toBe(true);
+      .toBe(windowCount(2));
+    await page.goto("/trials");
+    expect
+      .soft(
+        await page.evaluate(() =>
+          (document.querySelector("[data-found]")?.textContent ?? "")
+            .replace(/\s+/g, " ")
+            .trim(),
+        ),
+        "T21: without script, /trials's count line",
+      )
+      .toBe(windowCount(0));
   }
   await off.close();
 
@@ -1737,8 +1756,10 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
   );
   expect
     .soft(
-      FITS.filter((f) => !saidFor[f.n]).map((f) => f.n),
-      "T21: fits with no data-said, the words a settle speaks for them",
+      FITS.filter((f) => saidFor[f.n] !== f.said).map(
+        (f) => `${f.n}: "${saidFor[f.n]}"`,
+      ),
+      "T21: fits whose data-said isn't Iris's sentence (words.md, 4)",
     )
     .toEqual([]);
   const names = (text: string | undefined) =>
@@ -1748,12 +1769,12 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
   {
     const r = await until(
       () => readNow(live),
-      (now) => visitCount(0).test(now.found),
+      (now) => now.found === visitCount(0),
       2000,
     );
     expect
       .soft(
-        { stamped: r.stamped, count: visitCount(0).test(r.found) },
+        { stamped: r.stamped, count: r.found === visitCount(0) },
         `T21: arriving at /trials, no fit found: "${r.found}"`,
       )
       .toEqual({ stamped: [], count: true });
@@ -1794,7 +1815,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
         .toEqual([1, 2]);
     expect
       .soft(
-        visitCount(2).test(r.found),
+        r.found === visitCount(2),
         `T21: the count after the drag: "${r.found}"`,
       )
       .toBe(true);
@@ -1810,8 +1831,10 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
       .toEqual([]);
     expect
       .soft(
-        said.length === 1 && JSON.stringify(names(said[0]?.text)) === "[1,2]",
-        `T21: the settle's one message names fits 1 and 2: ${JSON.stringify(said.map((s) => s.text))}`,
+        said.length === 1 &&
+          JSON.stringify(names(said[0]?.text)) === "[1,2]" &&
+          (said[0]?.text.endsWith(countSentence(2)) ?? false),
+        `T21: the settle's one message names fits 1 and 2, then "${countSentence(2)}": ${JSON.stringify(said.map((s) => s.text))}`,
       )
       .toBe(true);
     // At rest + 1 s nothing animates.
@@ -1833,12 +1856,12 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
   }
 
   // Typed settles: 1024 (fits 5, 6), 320 (3, 4), 960 tall then 1024 (7).
-  for (const [field, value, win, fresh] of [
-    ["w", "1024", [1024, 640], [5, 6]],
-    ["w", "320", [320, 640], [3, 4]],
-    ["h", "960", [320, 960], []],
-    ["w", "1024", [1024, 960], [7]],
-  ] as [string, string, Win, number[]][]) {
+  for (const [field, value, win, fresh, total] of [
+    ["w", "1024", [1024, 640], [5, 6], 4],
+    ["w", "320", [320, 640], [3, 4], 6],
+    ["h", "960", [320, 960], [], 6],
+    ["w", "1024", [1024, 960], [7], 7],
+  ] as [string, string, Win, number[], number][]) {
     const before = (await probeOf(live))?.spoken.length ?? 0;
     await live.locator(`main input[name="${field}"]`).fill(value);
     await live.keyboard.press("Tab");
@@ -1847,12 +1870,14 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
       (s) => s.text !== "",
     );
     const named = names(said[0]?.text);
+    // A find ends on the count (words.md, 5); a settle that finds nothing is Tb's sentence alone.
+    const counted = said[0]?.text.endsWith(countSentence(total)) ?? false;
     expect
       .soft(
-        { spoken: said.length, named },
-        `T21: the settle at ${at(win)} speaks once, naming the fits it found: ${JSON.stringify(said.map((s) => s.text))}`,
+        { spoken: said.length, named, counted },
+        `T21: the settle at ${at(win)} speaks once, naming the fits it found${fresh.length > 0 ? `, then "${countSentence(total)}"` : ""}: ${JSON.stringify(said.map((s) => s.text))}`,
       )
-      .toEqual({ spoken: 1, named: fresh });
+      .toEqual({ spoken: 1, named: fresh, counted: fresh.length > 0 });
     expect
       .soft(r.w === win[0] && r.h === win[1], `T21: settled at ${at(win)}`)
       .toBe(true);
@@ -1861,7 +1886,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     const r = await readNow(live);
     expect
       .soft(
-        { regions: r.regions, count: visitCount(7).test(r.found) },
+        { regions: r.regions, count: r.found === visitCount(7) },
         `T21: every region shown and the count at 7: "${r.found}"`,
       )
       .toEqual({ regions: [1, 2, 3, 4, 5, 6, 7], count: true });
@@ -1956,7 +1981,7 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     expect
       .soft(
         {
-          count: visitCount(7).test(r.found),
+          count: r.found === visitCount(7),
           cls: probe?.cls,
           shifts: probe?.shifts,
         },
@@ -1976,12 +2001,12 @@ test("T19 T20 T21 the seven fits are the stylesheet's; each stamp is its retro; 
     await frameReady(p);
     const r = await until(
       () => readNow(p),
-      (now) => visitCount(2).test(now.found),
+      (now) => now.found === visitCount(2),
       2000,
     );
     expect
       .soft(
-        { stamped: r.stamped, count: visitCount(2).test(r.found) },
+        { stamped: r.stamped, count: r.found === visitCount(2) },
         `T21: a new context at /trials/1366x595: "${r.found}"`,
       )
       .toEqual({ stamped: [1, 2], count: true });

@@ -8,6 +8,12 @@ export type Fit = {
   n: number;
   /** The fit, the table's working words (Iris's `words.md` decides what the page says). */
   words: string;
+  /** Iris's words for it (.crew/sprint/65/words.md, 4): the link to its query's line. */
+  stamp: string;
+  /** Where: its range, the line under its words. */
+  where: string;
+  /** `data-said`: what the settle speaks when it is found. */
+  said: string;
   /** Its query, verbatim. */
   query: string;
   /** The line the table gives at d6b9fbf, for the record: the checks read the build's own file. */
@@ -33,6 +39,9 @@ export const FITS: readonly Fit[] = [
   {
     n: 1,
     words: "The drawing gives way, and the contact links follow the bio",
+    stamp: "The drawing gives way, and the contact links follow his summary.",
+    where: "From 1280 px wide, under 900 tall or wider than 13:8.",
+    said: "Found a fit from sprint 43: the drawing gives way, and the contact links follow his summary.",
     query:
       "(width >= 80rem) and (height < 56.25rem), (width >= 80rem) and (aspect-ratio >= 13 / 8)",
     lineAtContract: 1512,
@@ -46,6 +55,9 @@ export const FITS: readonly Fit[] = [
   {
     n: 2,
     words: "The facts stand beside the drawing",
+    stamp: "The four facts stand beside the drawing.",
+    where: "From 1280 px wide, under 712 tall.",
+    said: "Found a fit from sprint 43: the four facts stand beside the drawing.",
     query: "(width >= 80rem) and (height < 44.5rem)",
     lineAtContract: 1528,
     covers: "1280 and up, under 712 tall (2,091; 1,141)",
@@ -58,6 +70,10 @@ export const FITS: readonly Fit[] = [
     n: 3,
     words:
       "A phone's drawing shrinks with the window, and its controls go to the top",
+    stamp:
+      "The drawing shrinks to the window's height, with Read as page above it.",
+    where: "Under 768 px wide.",
+    said: "Found a fit from sprint 44: the drawing shrinks to the window's height, with Read as page above it.",
     query: "screen and (width < 48rem)",
     lineAtContract: 1699,
     covers: "under 768 wide (3,612; 61)",
@@ -69,6 +85,10 @@ export const FITS: readonly Fit[] = [
   {
     n: 4,
     words: "On the narrowest phones the drawing drops clear of the controls",
+    stamp:
+      "The drawing drops a few pixels more, so its Profile label clears the row above.",
+    where: "Under 331 px wide.",
+    said: "Found a fit from sprint 44: the drawing drops a few pixels more, so its Profile label clears the row above.",
     query: "screen and (width < 20.6875rem)",
     lineAtContract: 1820,
     covers: "under 331 wide (129, the 320 column; 23, 320 × 568 among them)",
@@ -80,6 +100,9 @@ export const FITS: readonly Fit[] = [
   {
     n: 5,
     words: "A tablet's drawing gives way, and the facts stand beside it",
+    stamp: "The drawing gives way, and the four facts stand beside it.",
+    where: "From 1024 to 1279 px wide, under 960 tall.",
+    said: "Found a fit from sprint 45: the drawing gives way, and the four facts stand beside it.",
     query: "screen and (64rem <= width < 80rem) and (height < 60rem)",
     lineAtContract: 1574,
     covers: "1024 to 1279, under 960 tall (1,600; 554)",
@@ -91,6 +114,10 @@ export const FITS: readonly Fit[] = [
   {
     n: 6,
     words: "The contact links and the key break into two lines where they read",
+    stamp:
+      "His contact links take their own line under the site's three, and the key breaks after its first sentence.",
+    where: "From 1024 to 1247 px wide.",
+    said: "Found a fit from sprint 45: his contact links take their own line under the site's three, and the key breaks after its first sentence.",
     query: "(64rem <= width < 78rem)",
     lineAtContract: 1646,
     covers: "1024 to 1247 (1,806; 492)",
@@ -103,6 +130,10 @@ export const FITS: readonly Fit[] = [
     n: 7,
     words:
       "A tall tablet keeps the whole sheet, with the facts in a row of four",
+    stamp:
+      "The drawing keeps its full width, and the four facts stand in a row under it.",
+    where: "From 1024 to 1279 px wide, 960 tall or more.",
+    said: "Found a fit from sprint 45: the drawing keeps its full width, and the four facts stand in a row under it.",
     query:
       "(64rem <= width < 80rem) and (height >= 60rem), print and (64rem <= width < 80rem)",
     lineAtContract: 1427,
