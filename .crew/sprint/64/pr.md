@@ -49,6 +49,9 @@ Early look on the running build: changes, one rule, taken (the bracket grew by w
 ### Lens on 387b03a: ship
 Two nits on the first-touch listener (any mouse button starts a drag, and the effect has no cleanup) ride along with the next sprint that touches `components/trials-corner.tsx`.
 
+### Not merged this run
+All required checks but one passed on 11704a9, with Lens on ship. e2e (2/4) hit its 20-minute cap three times (twice on fresh pushes, once rerun), each time at 104 of its 105 tests with none failing. Its Log specs are unchanged since #130. It passed in 19:21 on e4eeb33, so the shard has no margin left (proposal in `retro.json`). The next run tries the merge again.
+
 ### Not verified
 Real Safari, iOS and Firefox (Playwright's WebKit resizes and measures the frame live, `spike.md`), a real finger, the clipboard on Safari, what screen readers announce (DOM text only), the cards in real link previews.
 

@@ -182,6 +182,11 @@ makes stale.
   (#100: 28.8), so Playwright now splits it by test count. A spec that starts its own servers (the
   feed specs) starts them together in a per-worker `beforeAll`, and a sprint that adds slow specs
   reads its slowest shard's time before the label.
+  Sprint 64 (#131): shard 2 passed in 19:21 on 2026-11-10, then hit the cap three times running on
+  2026-11-13 at 104 of 105 tests with none failing, on a head whose Log specs hadn't changed. Shard
+  2 has no margin left. A run that finds it timed out reruns it once (`actions/jobs/<id>/rerun`,
+  then `check`'s job once the run is idle) and otherwise leaves the PR for a later run; the cap or
+  the split is the owner's (`ci.yml`), proposed in sprint 64's retro.
 - **Settle the PR body before CI starts, not during it.** CI's `check` runs on a PR's `edited`
   event too, so a body edit cancels a running check and starts it over (sprint 36: a 9-minute run
   lost). Edit the body with the close-out push, which re-runs CI anyway.

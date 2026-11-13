@@ -32,3 +32,6 @@
    address's writes rather than skipping key repeats, because Next's own write follows each one
    and throws past WebKit's limit. The address may lag a held key; the canonical and Copy link
    never do. This is the last fix round: anything further cuts scope.
+9. **No merge this run.** Lens says ship on 387b03a and every check passes but e2e (2/4), which hit
+   its 20-minute cap three times at 104 of 105 tests with none failing. The cap and the split are in
+   `ci.yml`, an owner path, so the retro proposes them and the next run tries the merge again.
