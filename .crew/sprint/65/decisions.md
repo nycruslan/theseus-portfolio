@@ -42,3 +42,11 @@
    792 × 495. The chart is the sprint's point and has to be in the first screen beside the frame;
    the frame's document stays exactly the window (T2), only its drawing is smaller. T1 to T15 run on
    the integrated tree before the label to prove the kept checks hold.
+8. **The count line is read as the visitor sees it.** The server writes both forms (the visit's
+   and the window's) and CSS picks one by `@media (scripting)` and `:has`, since the server can't
+   know whether script runs and the loader has bytes only for the digit. T21 reads the line's
+   `innerText`, not `textContent`, which carries the hidden form too.
+9. **A tap on a pin's dot is that window** (Pixel). From 1024 one 5 px grid row is 0.93 screen px,
+   so a click on 1024 × 640's dot settled at 1024 × 645. The controller maps taps from the
+   pointer's fractional position, and a tap within a pin's drawn dot settles on the pin, as a
+   release within half a cell already does.
