@@ -43,8 +43,9 @@ import laptop from "../e2e/window.spec.ts?raw";
 // The trials page (.crew/sprint/63/contract.md; Iris's placement.md and words.md): Ruslan's first
 // page framed at a window, the waterline drawn at the window's foot, the contact links' freeboard
 // from the committed sweep, and what the crew's record answers. Server HTML, whole without script.
-// One DOM for both layouts, in reading order: the head, the readout, the drawing, the answer, the
-// form, the crew's windows, the record (app/globals.css, "The trials"). With script, the frame's
+// One DOM for both layouts, in reading order: the head, the readout, the answer, the drawing and the
+// chart of every window (components/trials-chart.tsx), the form, the crew's windows, the record,
+// and the crew's fits (app/globals.css, "The trials"; .crew/sprint/65/placement.md). With script, the frame's
 // corner, the live region and Copy link come alive (.crew/sprint/64/contract.md): the controller
 // (lib/trials-live.ts) loads on the first touch and rewrites this DOM in place as a window settles,
 // from the same words (lib/trials-answer.ts). Without script the corner and Copy link don't show.
@@ -129,6 +130,9 @@ function Drawing({ trial }: { trial: Trial }) {
     "--h": String(h),
     "--fa": Math.min(1 - f / h, 1).toFixed(5),
     "--fs": (Math.abs(f) / h).toFixed(5),
+    // How far a sinking window's links end under its foot, as a share of its height: the frame
+    // shrinks so it and its sea fit the height budget (.crew/sprint/65/placement.md, 8).
+    "--sea": (Math.max(0, -f) / h).toFixed(5),
   };
   return (
     <figure className="trials-figure">
@@ -286,8 +290,14 @@ export function Trials({ trial }: { trial: Trial }) {
           </p>
         </div>
 
-        <Drawing trial={trial} />
+        {/* The answer before the figures, so the page reads verdict, answer, drawing, chart; on
+          phones CSS puts the drawing back above it (.crew/sprint/65/placement.md, 1). */}
         <Answer trial={trial} />
+        {/* The left column from 1024: the drawing and, under it, the chart of every window. */}
+        <div className="trials-side">
+          <Drawing trial={trial} />
+          <TrialsChart win={win} />
+        </div>
         {/* With script only, its own row after the answer (placement.md, 5): the address is
           always the shown window's, so it copies that. The line beside it is the live region's
           words for the eye. */}
@@ -380,7 +390,7 @@ export function Trials({ trial }: { trial: Trial }) {
             </p>
           )}
         </section>
-        <TrialsChart win={win} />
+        {/* Last, so a stamp found after load moves nothing in view (placement.md, 6). */}
         <TrialsFits win={win} />
         <TrialsCorner
           hands={{

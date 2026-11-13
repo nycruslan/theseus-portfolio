@@ -23,10 +23,10 @@ export type FitNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 type FitRow = {
   n: FitNumber;
-  /** What the fit does, in Iris's words (words.md). */
+  /** What the fit does to /, Iris's words (words.md, 4): its stamp's link to its query's line. */
   words: string;
-  /** What the live region says when a visit finds it (words.md). */
-  said: string;
+  /** Its range in px, the query at 16 px a rem, in words (words.md, 4). */
+  where: string;
   /** The media query, verbatim as the stylesheet holds it. */
   query: string;
   sprint: 43 | 44 | 45;
@@ -36,8 +36,8 @@ type FitRow = {
 const ROWS: readonly FitRow[] = [
   {
     n: 1,
-    said: "Found fit 1: the drawing gives way, and the contact links follow the bio.",
-    words: "The drawing gives way, and the contact links follow the bio",
+    words: "The drawing gives way, and the contact links follow his summary.",
+    where: "From 1280 px wide, under 900 tall or wider than 13:8.",
     query:
       "(width >= 80rem) and (height < 56.25rem), (width >= 80rem) and (aspect-ratio >= 13 / 8)",
     sprint: 43,
@@ -45,50 +45,52 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 2,
-    said: "Found fit 2: the facts stand beside the drawing.",
-    words: "The facts stand beside the drawing",
+    words: "The four facts stand beside the drawing.",
+    where: "From 1280 px wide, under 712 tall.",
     query: "(width >= 80rem) and (height < 44.5rem)",
     sprint: 43,
     pr: 102,
   },
   {
     n: 3,
-    said: "Found fit 3: a phone's drawing shrinks with the window.",
     words:
-      "A phone's drawing shrinks with the window, and its controls go to the top",
+      "The drawing shrinks to the window's height, with Read as page above it.",
+    where: "Under 768 px wide.",
     query: "screen and (width < 48rem)",
     sprint: 44,
     pr: 107,
   },
   {
     n: 4,
-    said: "Found fit 4: on the narrowest phones the drawing drops clear of the controls.",
-    words: "On the narrowest phones the drawing drops clear of the controls",
+    words:
+      "The drawing drops a few pixels more, so its Profile label clears the row above.",
+    where: "Under 331 px wide.",
     query: "screen and (width < 20.6875rem)",
     sprint: 44,
     pr: 107,
   },
   {
     n: 5,
-    said: "Found fit 5: a tablet's drawing gives way.",
-    words: "A tablet's drawing gives way, and the facts stand beside it",
+    words: "The drawing gives way, and the four facts stand beside it.",
+    where: "From 1024 to 1279 px wide, under 960 tall.",
     query: "screen and (64rem <= width < 80rem) and (height < 60rem)",
     sprint: 45,
     pr: 108,
   },
   {
     n: 6,
-    said: "Found fit 6: the contact links and the key break into two lines.",
-    words: "The contact links and the key break into two lines where they read",
+    words:
+      "His contact links take their own line under the site's three, and the key breaks after its first sentence.",
+    where: "From 1024 to 1247 px wide.",
     query: "(64rem <= width < 78rem)",
     sprint: 45,
     pr: 108,
   },
   {
     n: 7,
-    said: "Found fit 7: a tall tablet keeps the whole sheet.",
     words:
-      "A tall tablet keeps the whole sheet, with the facts in a row of four",
+      "The drawing keeps its full width, and the four facts stand in a row under it.",
+    where: "From 1024 to 1279 px wide, 960 tall or more.",
     query:
       "(64rem <= width < 80rem) and (height >= 60rem), print and (64rem <= width < 80rem)",
     sprint: 45,
@@ -214,6 +216,8 @@ export type Fit = FitRow & {
   enters: Test;
   /** The query's line at the build's commit, as the record's rules link their tests. */
   href: string;
+  /** What the settle says when a visit finds it (words.md, 4): its words, lower-cased first. */
+  said: string;
   /** The sprint's entry on the Log: its revision row's names and what went wrong first. */
   entry: SprintEntry;
   wentWrong: string;
@@ -234,6 +238,7 @@ export const FITS: readonly Fit[] = ROWS.map((row) => {
   return {
     ...row,
     enters: compile(row.query),
+    said: `Found a fit from sprint ${row.sprint}: ${row.words.charAt(0).toLowerCase()}${row.words.slice(1)}`,
     href: `${REPO_URL}/blob/${process.env.KEEL_REF || "main"}/app/globals.css#L${lineOf(row.query)}`,
     entry,
     wentWrong,
