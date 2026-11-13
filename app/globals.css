@@ -5338,7 +5338,11 @@ main:not(:has([data-fit][hidden])) .trials-found-all {
 
 /* The newest find's plank, the site's plank grammar; the dashed empty box before the visit's first
    find (placement.md, 5). The controller names the newest; until it does, the highest sprint with
-   a stamp shown. The three sprints are lib/trials-fits.ts's, lowest first, so the highest wins. */
+   a stamp shown. The three sprints are lib/trials-fits.ts's, lowest first, so the highest wins.
+   Aligned by its middle, not a baseline: the empty box's baseline is its foot and the filled one's
+   its number's, so a baseline offset would seat them 6.5 px apart and the first find would drop
+   the chart under the pointer (placement.md, 5: no shift). Its middle on the words' x-height also
+   sets the number on their baseline. */
 .trials-found-plank {
   display: inline-flex;
   align-items: center;
@@ -5346,7 +5350,7 @@ main:not(:has([data-fit][hidden])) .trials-found-all {
   width: 28px;
   height: 20px;
   margin-right: 8px;
-  vertical-align: -4px;
+  vertical-align: middle;
   border: 1px dashed var(--muted);
   font-size: var(--step-sm);
   font-weight: 700;
