@@ -46,6 +46,9 @@ Early look on the running build: changes, one rule, taken (the bracket grew by w
 - To fit T10's 8,192 B after the first touch, the sweep's build-time checks moved out of the browser chunk (`checkSweep()` in `lib/trials-sweep.ts`, `sweptTrial` in `lib/trials-answer.ts`). They still fail the build, which prerenders every pinned window through them. The controller is 7,253 B gzip.
 - `pnpm verify` passes on the integrated tree, and the trials specs pass 15 of 15.
 
+### Lens on 387b03a: ship
+Two nits on the first-touch listener (any mouse button starts a drag, and the effect has no cleanup) ride along with the next sprint that touches `components/trials-corner.tsx`.
+
 ### Not verified
 Real Safari, iOS and Firefox (Playwright's WebKit resizes and measures the frame live, `spike.md`), a real finger, the clipboard on Safari, what screen readers announce (DOM text only), the cards in real link previews.
 

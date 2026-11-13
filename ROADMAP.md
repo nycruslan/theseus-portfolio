@@ -48,10 +48,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   frame fetches `/`'s 465 KB of script and runs none, a cost Tb's frame answers by running it or
   not fetching it; Pixel's live-measure spike moves to Tb; the bar's links are under 44 px below
   1024 site-wide; Safari and Firefox at 390 × 664 are unchecked.
-- [ ] Tb (M): drag it, and send it. With script, sliders and the frame's corner resize it live, the
-  freeboard measured from the frame and read by a polite live region, the address replaced on
-  release; a card per window and Copy link. INP during a drag gated at 200 ms at 4x CPU. Planned
-  T10 to T15, from Pixel's spike.
+- [x] Tb (M), sprint 64: drag it, and send it. The frame's corner and the size inputs resize it
+  live, the freeboard measured from the frame while the hand moves and the sweep's at rest; a
+  release settles on a swept window, spoken once, its address replaced; Back follows the page; a
+  card per window and Copy link. T10 to T15. (PR #131, two fix rounds.) Left open: Tc gets its own
+  script allowance (the controller leaves about 60 B of 8,192); a Tab before the controller loads
+  isn't heard; the framed `/`'s relayout makes 200 to 380 ms long frames at 4x (INP stays within
+  56 ms); the frame still fetches `/`'s 465 KB; Lens's two nits on the first-touch listener (any
+  button, no cleanup); real Safari, its history limit and a real finger are unchecked.
 - [ ] Tc (M): the chart and the fits. Every window drawn as a chart, the sinking band and the
   crew's pins, tap to try; the seven fits stamp as the frame enters them, each with its sprint,
   who drew, checked and tested it, and what went wrong first; "found" for the visit only. Planned

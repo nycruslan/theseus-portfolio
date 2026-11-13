@@ -34,11 +34,11 @@
     }
   ],
   "lens": {
-    "runs": 2,
-    "tokens": 7159758,
+    "runs": 3,
+    "tokens": 10989134,
     "important": 2,
     "actedOn": 9,
-    "nits": 7
+    "nits": 9
   },
   "wentWrong": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "who": "Atlas",
-      "what": "Tc's contract sets the chart's own script allowance: Tb's controller leaves 109 B of the 8,192 B (decisions.md 6)"
+      "what": "Tc's contract sets the chart's own script allowance: Tb's controller leaves about 60 B of the 8,192 B (decisions.md 6)"
     },
     {
       "who": "Iris",
@@ -87,6 +87,10 @@
     {
       "who": "Probe",
       "what": "Real Safari under its history limit: the address lags a held key by design; check the page holds"
+    },
+    {
+      "who": "Pixel",
+      "what": "The first-touch listener takes any mouse button and its effect has no cleanup (Lens's nits on 387b03a)"
     }
   ]
 }
