@@ -33,6 +33,12 @@ Early look on the running build: changes, one rule, taken (the bracket grew by w
 - Without script the corner and Copy link hide by `@media (scripting: none)`, so nothing shifts when script arrives; browsers without that feature (Safari before 17, Chrome before 120) would show them inert.
 - `proxy.ts`'s matcher now leaves `/trials/opengraph-image` alone (it was rewritten to the 404); `/trials/frame` re-exports `/`'s card.
 
+### Fix round 1 (Lens on e4eeb33)
+- Important, fixed: a typed or stepped size that is a swept window settles on it exactly. From `/trials`, 1439 now lands on `/trials/1439x900`; before, it landed on 1424. When a 1 px step lands off the sweep, the controller walks on to the first swept window within a grid step, so 1380 stepped down reaches 1376 (Pixel's `nextFrom`, a little beyond Lens's shape, per placement.md §3). Probe's new T12 clause was red on e4eeb33 (1424 × 900, 42.4 against 37.4) and is green now.
+- Nits, fixed: a grab during the re-fit's ease keeps `--scale`, an edit that blurs to a grab no longer settles mid-drag, print hides `.trials-scripted`, and Probe's superseded memory line is gone.
+- Follow-up: a Tab out of an input before the controller's chunk arrives isn't heard (the base had this too; Pixel saw it on 4 of 12 fresh pages with no wait). The new clause waits for the controller, as T12's keys do. The fix is to reconcile the inputs in `start()`, in the next sprint that touches the controller.
+- `pnpm verify` passes on the integrated tree, and the trials specs pass 15 of 15.
+
 ### Not verified
 Real Safari, iOS and Firefox (Playwright's WebKit resizes and measures the frame live, `spike.md`), a real finger, the clipboard on Safari, what screen readers announce (DOM text only), the cards in real link previews.
 
