@@ -56,7 +56,7 @@
   ],
   "proposals": [
     {
-      "what": "Rebalance the e2e shards or raise their 20-minute cap in .github/workflows/ci.yml: shard 2 (the log press and riffle specs) took 19:21 on e4eeb33 and hit the cap on e74efd6 with no test failing",
+      "change": "Rebalance the e2e shards or raise their 20-minute cap in .github/workflows/ci.yml: shard 2 (the log press and riffle specs) took 19:21 on e4eeb33 and hit the cap on e74efd6 with no test failing",
       "moves": "e2e shard time, now within 40 s of its cap"
     }
   ],
