@@ -318,7 +318,7 @@ function address() {
  * A fit the frame's document has entered, stamped and found for the visit (T21): its stamp and its
  * region on the chart shown, the count and sessionStorage's key rewritten. A shown stamp is found:
  * the loader showed the ones found before. Silent, since a drag says nothing: the next settle that
- * speaks names it. It presses in with full motion only (app/globals.css, [data-stamping]).
+ * speaks names it. It presses in with full motion only (app/globals.css, [data-pressed]).
  */
 function find(stamp: HTMLElement) {
   if (!page || !stamp.hidden) return;
@@ -349,7 +349,9 @@ const stamps = ({ main }: Page) =>
  * Each fit's query, from its stamp (call 3), listened to on the frame's window: a frame's resize
  * reports it at the next frame's media step, before its animation frames, so a drag stamps a fit
  * as its frame paints there, and nothing runs at rest. Each list is read once, here: in Chromium a
- * read after a resize takes the place of its change event (.crew/sprint/65/, Pixel's spike).
+ * read after a resize takes the place of its change event (.crew/sprint/65/, Pixel's spike). A
+ * fit's region is graphite while the frame is in it, entering and leaving, mid-drag too
+ * (placement.md, 4).
  */
 function listen(target: Page) {
   const { frame } = target;
@@ -360,8 +362,13 @@ function listen(target: Page) {
   if (!win) return;
   for (const stamp of stamps(target)) {
     const list = win.matchMedia(stamp.dataset.query ?? "");
-    if (list.matches) find(stamp);
-    list.addEventListener("change", (event) => event.matches && find(stamp));
+    const region = one(`[data-fit-region="${stamp.dataset.fit}"]`);
+    const here = ({ matches }: { matches: boolean }) => {
+      region?.toggleAttribute("data-here", matches);
+      if (matches) find(stamp);
+    };
+    here(list);
+    list.addEventListener("change", here);
   }
 }
 
@@ -433,6 +440,12 @@ function settle(win: Win, said = true) {
   place(page, win);
   measuring(page, false);
   mark(page, win[1], trial);
+  // The sea's share, as the server writes it (components/trials.tsx), at a settle only: mid-drag
+  // the frame keeps the grab's, so the corner stays under the hand (placement.md, 8).
+  page.drawing.style.setProperty(
+    "--sea",
+    (Math.max(0, -trial.freeboard) / win[1]).toFixed(5),
+  );
   text("[data-verdict]", VERDICT[trial.kind]);
   answer(trial);
   if (away) moved(page, win, trial);
@@ -491,9 +504,9 @@ function begin(event: PointerEvent) {
  * The release's re-fit, from the drag's scale to Ta's fit for the settled window: eased in Full
  * only, at most 180 ms from the frame's top left (placement.md, 3), by a transition on --scale
  * (app/globals.css), so it requests no frames of its own. Calm, Off and reduced motion snap.
+ * `from` is the drag's drawn scale, read before the settle wrote the window's sea.
  */
-function refit({ drawing, frame }: Page, w: number) {
-  const from = frame.getBoundingClientRect().width / w;
+function refit({ drawing, frame }: Page, w: number, from: number) {
   drawing.style.removeProperty("--scale");
   const to = frame.getBoundingClientRect().width / w;
   if (!full() || Math.abs(to - from) < 0.002) return;
@@ -527,8 +540,10 @@ function end(event: PointerEvent) {
   requestAnimationFrame(() =>
     setTimeout(() => {
       if (!page) return;
+      // Read before the settle: a shallower sea there would widen the drawing before it eases.
+      const from = page.frame.getBoundingClientRect().width / placed[0];
       settle(win);
-      refit(page, win[0]);
+      refit(page, win[0], from);
       corner.removeAttribute("data-dragging");
       settling = false;
     }),
