@@ -27,5 +27,10 @@
    4 px apart and still holds its point. T17 reads: the sounding's dot is centred on its point
    within 0.5 units, and its hit rect contains the point. Rejected: a sideways-scrolling chart at
    320 (a swipe to see the laptops) and dropping a named window from the soundings (the contract).
-6. **Every mark inside the plot is `pointer-events: none`;** a tap that misses a sounding lands on
-   `svg[data-chart]`, where the controller listens and maps through `g[data-plot]`'s CTM.
+6. **Every mark inside the plot is `pointer-events: none`, and the plot is a tap target of its own.**
+   Chromium's touch adjustment moves a finger's tap to a link within its radius unless the spot is a
+   responder that isn't the link's ancestor (Probe found it, Pixel measured it at 390 × 844: a tap
+   at 1024 × 640's point clicked the 1160 × 635 sounding 8.2 px away). A listener on
+   `svg[data-chart]` loses, since the soundings are its children. So the nested plot `svg` gets a
+   hit rect over its viewBox and a `:hover` rule (Forge), at 0 B of script; the click bubbles to
+   `main`, where the loader listens and maps it through `g[data-plot]`'s CTM.
