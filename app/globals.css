@@ -5220,6 +5220,24 @@ a[data-replay]:not([data-ready]) {
   overflow: visible;
 }
 
+/* A tap anywhere on the plot is the chart's (T18): its marks never take it from the svg. */
+.trials-chart-plot * {
+  pointer-events: none;
+}
+
+/* The fits' count: the visit's with script, the window's own without (contract, T21). */
+@media (scripting: none) {
+  .trials-found-visit {
+    display: none;
+  }
+}
+
+@media (scripting: enabled) {
+  .trials-found-window {
+    display: none;
+  }
+}
+
 .trials-band {
   fill: url(#trials-hatch);
   stroke: var(--foreground);
@@ -5280,10 +5298,17 @@ a[data-replay]:not([data-ready]) {
 }
 
 .trials-sounding-number {
-  fill: var(--foreground);
-  font-size: 11px;
+  color: var(--foreground);
+  fill: currentColor;
+  font-size: var(--step-xs);
   text-anchor: middle;
   transform: translateY(-8px);
+}
+
+@media (width < 24rem) {
+  .trials-sounding-hit {
+    x: calc(var(--x) - 22px + var(--nudge, 0px));
+  }
 }
 
 @media (width >= 64rem) {
@@ -5305,4 +5330,35 @@ a[data-replay]:not([data-ready]) {
 
 .trials-stamp[hidden] {
   display: none;
+}
+
+.trials-stamps {
+  margin-top: 6px;
+}
+
+.trials-stamp {
+  padding: 10px 0;
+}
+
+.trials-stamp-link {
+  display: block;
+  min-height: 44px;
+  padding-block: 3px;
+  text-wrap: pretty;
+}
+
+.trials-stamp-record {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+@media (width >= 64rem) {
+  .trials-stamp-link {
+    min-height: 0;
+  }
+
+  .trials-stamp-record {
+    min-height: 24px;
+  }
 }

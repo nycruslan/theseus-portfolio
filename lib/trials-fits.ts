@@ -25,6 +25,8 @@ type FitRow = {
   n: FitNumber;
   /** What the fit does, in Iris's words (words.md). */
   words: string;
+  /** What the live region says when a visit finds it (words.md). */
+  said: string;
   /** The media query, verbatim as the stylesheet holds it. */
   query: string;
   sprint: 43 | 44 | 45;
@@ -34,6 +36,7 @@ type FitRow = {
 const ROWS: readonly FitRow[] = [
   {
     n: 1,
+    said: "Found fit 1: the drawing gives way, and the contact links follow the bio.",
     words: "The drawing gives way, and the contact links follow the bio",
     query:
       "(width >= 80rem) and (height < 56.25rem), (width >= 80rem) and (aspect-ratio >= 13 / 8)",
@@ -42,6 +45,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 2,
+    said: "Found fit 2: the facts stand beside the drawing.",
     words: "The facts stand beside the drawing",
     query: "(width >= 80rem) and (height < 44.5rem)",
     sprint: 43,
@@ -49,6 +53,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 3,
+    said: "Found fit 3: a phone's drawing shrinks with the window.",
     words:
       "A phone's drawing shrinks with the window, and its controls go to the top",
     query: "screen and (width < 48rem)",
@@ -57,6 +62,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 4,
+    said: "Found fit 4: on the narrowest phones the drawing drops clear of the controls.",
     words: "On the narrowest phones the drawing drops clear of the controls",
     query: "screen and (width < 20.6875rem)",
     sprint: 44,
@@ -64,6 +70,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 5,
+    said: "Found fit 5: a tablet's drawing gives way.",
     words: "A tablet's drawing gives way, and the facts stand beside it",
     query: "screen and (64rem <= width < 80rem) and (height < 60rem)",
     sprint: 45,
@@ -71,6 +78,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 6,
+    said: "Found fit 6: the contact links and the key break into two lines.",
     words: "The contact links and the key break into two lines where they read",
     query: "(64rem <= width < 78rem)",
     sprint: 45,
@@ -78,6 +86,7 @@ const ROWS: readonly FitRow[] = [
   },
   {
     n: 7,
+    said: "Found fit 7: a tall tablet keeps the whole sheet.",
     words:
       "A tall tablet keeps the whole sheet, with the facts in a row of four",
     query:

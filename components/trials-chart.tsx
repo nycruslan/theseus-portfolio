@@ -78,7 +78,7 @@ function regionPath(
     throw new Error("A chart region's widths aren't side by side");
   const top = held.map(({ w, to }) => [w, to + HALF_H] as const);
   const foot = held.map(({ w, from }) => [w, from - HALF_H] as const).reverse();
-  const points = [
+  const points: (readonly [number, number])[] = [
     [first.w - HALF_W, first.to + HALF_H],
     ...top,
     [last.w + HALF_W, last.to + HALF_H],
@@ -86,7 +86,18 @@ function regionPath(
     ...foot,
     [first.w - HALF_W, first.from - HALF_H],
   ];
-  return `M${points.map(([x, y]) => `${n(x)} ${n(y)}`).join("L")}Z`;
+  // A point on the line through its neighbours changes nothing the path holds: dropped, a level
+  // run of widths is one segment, and the page carries the path twice (its HTML and React's data).
+  const corners = points.filter((point, at) => {
+    const before = points[at - 1];
+    const after = points[at + 1];
+    if (!before || !after) return true;
+    const turn =
+      (point[0] - before[0]) * (after[1] - point[1]) -
+      (point[1] - before[1]) * (after[0] - point[0]);
+    return turn !== 0;
+  });
+  return `M${corners.map(([x, y]) => `${n(x)} ${n(y)}`).join("L")}Z`;
 }
 
 /** The run of heights at a width where `inside` holds, checked to be one run. */
@@ -183,12 +194,24 @@ const SOUNDINGS: readonly Win[] = [
   [1366, 595],
 ];
 
+/**
+ * Px a sounding's target moves across, its dot staying on its point, on a chart too narrow for two
+ * 44 px targets to sit centred: 1160 and 1366 wide are 206 window px apart, 36.7 px of a 288 px
+ * chart at 320, so below 24rem each target gives way 4 px and still holds its point.
+ */
+const NUDGE: Readonly<Record<string, number>> = {
+  "1160x635": -4,
+  "1366x595": 4,
+};
+
 function Sounding({ win }: { win: Win }) {
   const trial = sweptTrial(win);
   const at = percentOf(win);
+  const nudge = NUDGE[keyOf(win)];
   const style: CSSProperties & Record<`--${string}`, string> = {
     "--x": at.x,
     "--y": at.y,
+    ...(nudge ? { "--nudge": `${nudge}px` } : {}),
   };
   return (
     <a
@@ -272,6 +295,7 @@ function Stamp({ fit, shown }: { fit: Fit; shown: boolean }) {
     <li
       data-fit={fit.n}
       data-query={fit.query}
+      data-said={fit.said}
       hidden={!shown}
       className="trials-stamp"
     >
@@ -281,7 +305,9 @@ function Stamp({ fit, shown }: { fit: Fit; shown: boolean }) {
         </a>
       </p>
       <p className="trials-stamp-sprint">
-        <a href={`/log/${fit.sprint}`}>{`Sprint ${fit.sprint}`}</a>
+        <a href={`/log/${fit.sprint}`} className="trials-stamp-record">
+          {`Sprint ${fit.sprint}`}
+        </a>
         {`, pull request #${fit.pr}`}
       </p>
       <dl className="trials-stamp-names">
@@ -304,10 +330,18 @@ export function TrialsFits({ win }: { win: Win }) {
   return (
     <section className="trials-section" aria-labelledby="trials-fits">
       <h2 id="trials-fits">The crew's fits</h2>
+      {/* With script, the visit's count, whose digit alone the controller writes; without it, the
+        fits this window is in, since nothing counts a visit (contract, T21). */}
       <p data-found="" className="trials-note">
-        {`This window is in `}
-        <span data-found-count="">{entered.length}</span>
-        {` of the crew's 7 fits.`}
+        <span className="trials-found-visit">
+          <span data-found-count="">{entered.length}</span>
+          {` of ${FITS.length} found`}
+        </span>
+        <span className="trials-found-window">
+          {`This window is in `}
+          <span data-entered-count="">{entered.length}</span>
+          {` of the crew's ${FITS.length} fits.`}
+        </span>
       </p>
       <ol className="trials-stamps">
         {FITS.map((fit) => (
