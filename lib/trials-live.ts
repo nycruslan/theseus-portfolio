@@ -569,13 +569,15 @@ function tap(event: Event) {
   // The settle changes the frame's height and the answer's length above the chart: where the page
   // scrolls, the plot keeps its place under the finger by a scroll, never a tween (placement.md,
   // 3). Where the side is sticky nothing above it moves, and this scrolls by 0.
-  const top = plot.getBoundingClientRect().top;
+  // The chart's own box: the plot's would grow with the ring at the grid's edge.
+  const chart = plot.closest("[data-chart]");
+  const top = chart?.getBoundingClientRect().top ?? 0;
   requestAnimationFrame(() =>
     setTimeout(() => {
       settle(win);
       settling = false;
       scrollBy({
-        top: plot.getBoundingClientRect().top - top,
+        top: (chart?.getBoundingClientRect().top ?? 0) - top,
         behavior: "instant",
       });
     }),
