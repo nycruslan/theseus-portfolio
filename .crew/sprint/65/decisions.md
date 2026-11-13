@@ -50,3 +50,10 @@
    so a click on 1024 × 640's dot settled at 1024 × 645. The controller maps taps from the
    pointer's fractional position, and a tap within a pin's drawn dot settles on the pin, as a
    release within half a cell already does.
+10. **A crew's drawn dot wins a tap over a sounding's target** (Pixel, 61ee0b9; Atlas takes it).
+   CI's T18 on e21ceb3 showed decision 9 was never built: a click on 1024 × 640's dot settled at
+   1024 × 645. `tap()` now tests each `[data-pin]` window in screen px against half its mark's
+   stroke width (2.5 px for a dot, 1 px along H10's bar), before a sounding and the plot's
+   rounding. Many dots lie under soundings' unpainted 44 px targets (2 at 1440, 10 at 320, 1024 ×
+   640 among them), and the visitor aims at what's drawn. +151 B gzip; 9,410 B after the first
+   touch against 10,240. Iris may reverse the order: one line.

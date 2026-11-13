@@ -1,0 +1,43 @@
+{
+  "sprint": 65,
+  "pr": 133,
+  "goal": "A chart of every window, and the crew's seven fits to find",
+  "goalFrom": "roadmap",
+  "size": "M",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 150,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": null, "minutes": 15 },
+    { "role": "design-director", "model": "opus", "tokens": null, "minutes": 30 },
+    { "role": "qa-engineer", "model": "opus", "tokens": null, "minutes": 60 },
+    { "role": "engineer", "model": "opus", "tokens": null, "minutes": 45 },
+    { "role": "creative-engineer", "model": "opus", "tokens": 136473, "minutes": 19 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "A click on a crew's window on the chart landed one row off, since from 1024 wide a row is under a pixel",
+      "evidence": "CI's T18 on e21ceb3: a click on 1024 x 640's dot settled at 1024 x 645 (16.7 px, not 11.7); Pixel's 61ee0b9 settles a tap on a drawn dot on its window (decisions.md 9, 10)"
+    },
+    {
+      "what": "On a phone, a finger's tap on the chart jumped to a nearby number",
+      "evidence": "Chromium's touch adjustment clicked the 1160 x 635 sounding 8.2 px from a tap at 1024 x 640's point at 390 x 844; the plot became its own tap target (decisions.md 6)"
+    },
+    {
+      "what": "At 320 wide two close calls sit too near for both their targets to centre on them",
+      "evidence": "1160 x 635 and 1366 x 595 are 36.7 px apart on a 288 px chart, so two centred 44 px targets overlap by 7.3 px; below 24rem each shifts 4 px apart (decisions.md 5)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    {
+      "who": "Atlas",
+      "what": "The first run's agent tokens weren't carried to this run, so the retro gives only their minutes, estimated from the commits"
+    },
+    {
+      "who": "Iris",
+      "what": "Confirm a crew's drawn dot should win a tap over a sounding's unpainted 44 px target where one covers it (decisions.md 10)"
+    }
+  ]
+}
