@@ -34,6 +34,10 @@ CI's only red on e21ceb3 was T18: a click on 1024 × 640's dot settled at 1024 �
 - `pnpm verify` passes on the integrated tree; Forge ran the three trials specs, 17 of 17.
 - After the first touch: 9,459 B gzip (≤ 10,240). At load: 1,007 B.
 
+### Reports the contract asks for
+- **The trials page's HTML** (raw bytes): `/trials` 65,907 on production (main) and 109,426 on this head; `/trials/320x568` 62,943 and 106,635. The growth is the chart (band, pins, soundings, the seven regions) and the stamps, written once in HTML and again in React's data.
+- **Shard times on c51e96c:** 10:14, 21:30, 14:49 and 8:47. Shard 2 failed one test, B5.25's CLS on `/log/13` at 1440 × 900 (0.030), which nothing here touches; it passed 6 of 6 locally on a fresh build of the head (`--repeat-each=3`). On 833ed7d all four shards passed.
+
 ### Not verified
 Real Safari, iOS and Firefox; Iris hasn't seen the found count's new baseline (5fe1b10); a real finger near a dot under a sounding's target; what screen readers announce (DOM text only). The first run's agent tokens aren't in the retro.
 
