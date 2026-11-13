@@ -39,6 +39,13 @@ Early look on the running build: changes, one rule, taken (the bracket grew by w
 - Follow-up: a Tab out of an input before the controller's chunk arrives isn't heard (the base had this too; Pixel saw it on 4 of 12 fresh pages with no wait). The new clause waits for the controller, as T12's keys do. The fix is to reconcile the inputs in `start()`, in the next sprint that touches the controller.
 - `pnpm verify` passes on the integrated tree, and the trials specs pass 15 of 15.
 
+### Fix round 2 (Lens on cc5d690)
+- Important, fixed: the address, Copy link and the shown window agree. Back and Forward within the page settle on the window the address names; Next's router doesn't reload on that popstate (Probe's new T13 clause: red on cc5d690, with `/trials` showing 1424 × 900 and copying `/trials`, green now). Copy link copies the canonical, which every settle writes at once.
+- WebKit's history limit (100 writes in 10 s): address writes go through a budget, 8 at once and then one per 300 ms, and the last one always lands. Next 16's patched `replaceState` makes the router write again inside an effect, so a try/catch alone can't save the page. Under an emulated limit, 300 fast taps made 104 writes and crashed the base; the fix makes 36 writes and the page holds. The trade-off: while a key is held, the address lags the frame, but the canonical and Copy link don't.
+- Nits, fixed: an edit that rounds to the shown window writes the inputs back, and a release always settles where the hand let go, speaking only when the window changed. The retro records Lens's runs.
+- To fit T10's 8,192 B after the first touch, the sweep's build-time checks moved out of the browser chunk (`checkSweep()` in `lib/trials-sweep.ts`, `sweptTrial` in `lib/trials-answer.ts`). They still fail the build, which prerenders every pinned window through them. The controller is 7,253 B gzip.
+- `pnpm verify` passes on the integrated tree, and the trials specs pass 15 of 15.
+
 ### Not verified
 Real Safari, iOS and Firefox (Playwright's WebKit resizes and measures the frame live, `spike.md`), a real finger, the clipboard on Safari, what screen readers announce (DOM text only), the cards in real link previews.
 

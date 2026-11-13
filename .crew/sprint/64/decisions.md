@@ -28,3 +28,7 @@
    along because the round touches the same function. Pixel fixes `lib/trials-live.ts` and the
    print rule, Probe adds the T12 clause that was red on e4eeb33 and deletes the superseded
    memory line.
+8. **Fix round 2 takes Lens's history finding and its nits** (lens on cc5d690). Pixel bounds the
+   address's writes rather than skipping key repeats, because Next's own write follows each one
+   and throws past WebKit's limit. The address may lag a held key; the canonical and Copy link
+   never do. This is the last fix round: anything further cuts scope.
