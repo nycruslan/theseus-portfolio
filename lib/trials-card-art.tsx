@@ -92,7 +92,9 @@ function linesOf({ fw, top, foot, links }: Layout) {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${DRAWING}" height="${ROW}" viewBox="0 0 ${DRAWING} ${ROW}">`,
     // The sea at 135 degrees, as the page's, under the frame only.
     `<defs><pattern id="sea" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="${LIGHT_LINES.pencil}" stroke-width="${WEIGHT.sea}"/></pattern></defs>`,
-    `<rect x="${num(left)}" y="${num(foot + WEIGHT.waterline / 2)}" width="${num(fw)}" height="${SEA - WEIGHT.waterline / 2}" fill="url(#sea)"/>`,
+    // Down to a sinking window's freeboard dimension and 6 px past it, as the page's sea runs to its
+    // dimension's foot (.crew/sprint/65/placement.md, 8).
+    `<rect x="${num(left)}" y="${num(foot + WEIGHT.waterline / 2)}" width="${num(fw)}" height="${num(Math.max(SEA, links - foot + 6) - WEIGHT.waterline / 2)}" fill="url(#sea)"/>`,
     // The width over the frame and the height beside it, each between its extension ticks.
     `<g stroke="${LIGHT.muted}" stroke-width="${WEIGHT.dimension}">`,
     line(left, above, left, top),

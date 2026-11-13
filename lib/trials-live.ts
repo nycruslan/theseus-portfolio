@@ -33,7 +33,9 @@ import {
 // sweep's number and the record's answer for it (calls 2 and 3), replaces the address, and the
 // live region says it once. The frame stays scriptless (call 4): this module sizes its box and
 // reads its document. It loads on the first touch (components/trials-corner.tsx) and requests a
-// frame only while a hand drags.
+// frame only while a hand drags or a tap settles. Tc (.crew/sprint/65/contract.md, T18 and T21;
+// decisions.md, 4) adds the chart under it: a tap tries a window in place, the ring follows the
+// frame, and the fits the frame's document enters are stamped and found for the visit.
 
 /** What the server hands the controller, read from content/ and the specs, which it never loads. */
 export type Hands = {
@@ -116,7 +118,14 @@ type Page = {
   /** `[data-freeboard]`, the readout's number. */
   shown: HTMLElement;
   inputs: readonly HTMLInputElement[];
+  /** The chart's plot, whose user units are window px (.crew/sprint/65/decisions.md, 4). */
+  plot: SVGGraphicsElement | null;
+  /** `circle[data-ring]`, at the window the frame is laid out at. */
+  ring: Element | null;
 };
+
+/** The visit's found fits, as digits: sessionStorage's one key (T21), the loader's too. */
+const FOUND = "theseus:found";
 
 /** A drag in hand: where it began, the drawing's scale then, and the window under the hand now. */
 type Drag = {
@@ -143,6 +152,8 @@ let writes = 8;
 let counted = 0;
 let held: ReturnType<typeof setTimeout> | undefined;
 let hand = { x: 0, y: 0 };
+/** Fits found since the last settle that spoke: its one message names them (T21). */
+let news: HTMLElement[] = [];
 
 const one = (selector: string) => page?.main.querySelector(selector) ?? null;
 
@@ -178,12 +189,15 @@ function measure({ frame, hands }: Page) {
 }
 
 /** The frame laid out at a window, and every number of its size with it (placement.md, 3). */
-function place({ drawing, frame, inputs }: Page, [w, h]: Win) {
+function place({ drawing, frame, inputs, ring }: Page, [w, h]: Win) {
   placed = [w, h];
   drawing.style.setProperty("--w", String(w));
   drawing.style.setProperty("--h", String(h));
   frame.width = String(w);
   frame.height = String(h);
+  // The chart's ring follows the frame, in a hand and at rest (T18).
+  ring?.setAttribute("cx", String(w));
+  ring?.setAttribute("cy", String(h));
   text("[data-size]", sizeOf([w, h]));
   text(".trials-figure figcaption > span", sizeOf([w, h]));
   text(".trials-dim-w > span", String(w));
@@ -301,6 +315,109 @@ function address() {
 }
 
 /**
+ * A fit the frame's document has entered, stamped and found for the visit (T21): its stamp and its
+ * region on the chart shown, the count and sessionStorage's key rewritten. A shown stamp is found:
+ * the loader showed the ones found before. Silent, since a drag says nothing: the next settle that
+ * speaks names it. It presses in with full motion only (app/globals.css, [data-pressed]).
+ */
+function find(stamp: HTMLElement) {
+  if (!page || !stamp.hidden) return;
+  stamp.hidden = false;
+  one(`[data-fit-region="${stamp.dataset.fit}"]`)?.removeAttribute("hidden");
+  news.push(stamp);
+  // The count line's plank takes the newest find's sprint, and presses in with full motion only:
+  // several finds in one frame press once (placement.md, 5 and 7).
+  const plank = one(".trials-found-plank");
+  const sprint = stamp.closest<HTMLElement>("[data-sprint]")?.dataset.sprint;
+  if (plank && sprint) plank.setAttribute("data-newest", sprint);
+  if (full()) plank?.setAttribute("data-pressed", "");
+  let found = "";
+  for (const fit of page.main.querySelectorAll<HTMLElement>("[data-fit]"))
+    if (!fit.hidden) found += fit.dataset.fit;
+  try {
+    sessionStorage.setItem(FOUND, found);
+  } catch {
+    // Storage is blocked: the visit's count holds for this page only.
+  }
+  text("[data-found-count]", String(found.length));
+}
+
+const stamps = ({ main }: Page) =>
+  main.querySelectorAll<HTMLElement>("[data-fit][data-query]");
+
+/**
+ * Each fit's query, from its stamp (call 3), listened to on the frame's window: a frame's resize
+ * reports it at the next frame's media step, before its animation frames, so a drag stamps a fit
+ * as its frame paints there, and nothing runs at rest. Each list is read once, here: in Chromium a
+ * read after a resize takes the place of its change event (.crew/sprint/65/, Pixel's spike). A
+ * fit's region is graphite while the frame is in it, entering and leaving, mid-drag too
+ * (placement.md, 4).
+ */
+function listen(target: Page) {
+  const { frame } = target;
+  // The lists belong to the frame's document: one still loading is listened to once it has.
+  if (frame.contentDocument?.URL === "about:blank")
+    return frame.addEventListener("load", () => listen(target), { once: true });
+  const win = frame.contentWindow;
+  if (!win) return;
+  for (const stamp of stamps(target)) {
+    const list = win.matchMedia(stamp.dataset.query ?? "");
+    const region = one(`[data-fit-region="${stamp.dataset.fit}"]`);
+    const here = ({ matches }: { matches: boolean }) => {
+      region?.toggleAttribute("data-here", matches);
+      if (matches) find(stamp);
+    };
+    here(list);
+    list.addEventListener("change", here);
+  }
+}
+
+/**
+ * The fits the settled window enters, found before its message is said: its change events come a
+ * frame after the settle. Fresh lists, so the listened ones keep their events.
+ */
+function entered(target: Page) {
+  const win = target.frame.contentWindow;
+  for (const stamp of stamps(target))
+    if (win?.matchMedia(stamp.dataset.query ?? "").matches) find(stamp);
+}
+
+/**
+ * The settle's one message (T21; words.md, 5): Tb's sentence for a window that moved, then each
+ * fit found since the last that spoke, in fit order, then the visit's count, its words from
+ * `[data-found]`.
+ */
+function message(trial?: Trial) {
+  const found = news
+    .toSorted((a, b) => Number(a.dataset.fit) - Number(b.dataset.fit))
+    .map((stamp) => stamp.dataset.said);
+  const line = one("[data-found]") as HTMLElement | null;
+  const n = one("[data-found-count]")?.textContent;
+  const count =
+    news.length === 0
+      ? ""
+      : n === String(page ? stamps(page).length : 0)
+        ? line?.dataset.saidAll
+        : line?.dataset.said?.replace("{n}", n ?? "");
+  news = [];
+  return [trial && settledOf(trial), ...found, count].filter(Boolean).join(" ");
+}
+
+/** What a settle to another window rewrites besides the readout: the record, the links, the head. */
+function moved(target: Page, win: Win, trial: Trial) {
+  record(target, trial);
+  windows(target, keyOf(win));
+  target.corner.setAttribute("aria-label", cornerOf(win));
+  target.frame.title = frameTitleOf(win, target.hands.name);
+  document.title = titleFor(trial, target.hands.name);
+  const canonical = document.querySelector("link[rel=canonical]");
+  if (canonical instanceof HTMLLinkElement)
+    canonical.href = new URL(addressOf(win), canonical.href).href;
+  address();
+  text("[data-copied]", "");
+}
+
+/**
  * A swept window, settled (placement.md, 3, "Once, at a settle"): the sweep's number, the record's
  * answer, the address, said once. A settle on the window already at rest (a press that came back to
  * it, an edit that rounds to it) restores the page from its marker, writes the inputs back and
@@ -311,10 +428,10 @@ function settle(win: Win, said = true) {
   const trial = trialAt(win);
   if (!page || !trial) return;
   const key = keyOf(win);
-  const moved = key !== keyOf(rest);
+  const away = key !== keyOf(rest);
   // The window shown already, at rest: only the inputs, which an edit may have left off it.
   if (
-    !moved &&
+    !away &&
     key === keyOf(placed) &&
     !page.shown.hasAttribute("data-measure")
   )
@@ -323,20 +440,20 @@ function settle(win: Win, said = true) {
   place(page, win);
   measuring(page, false);
   mark(page, win[1], trial);
+  // The sea's share, as the server writes it (components/trials.tsx), at a settle only: mid-drag
+  // the frame keeps the grab's, so the corner stays under the hand (placement.md, 8).
+  page.drawing.style.setProperty(
+    "--sea",
+    (Math.max(0, -trial.freeboard) / win[1]).toFixed(5),
+  );
   text("[data-verdict]", VERDICT[trial.kind]);
   answer(trial);
-  if (!moved) return;
-  record(page, trial);
-  windows(page, key);
-  page.corner.setAttribute("aria-label", cornerOf(win));
-  page.frame.title = frameTitleOf(win, page.hands.name);
-  document.title = titleFor(trial, page.hands.name);
-  const canonical = document.querySelector("link[rel=canonical]");
-  if (canonical instanceof HTMLLinkElement)
-    canonical.href = new URL(addressOf(win), canonical.href).href;
-  address();
-  text("[data-copied]", "");
-  if (said) text("[data-trials-live]", settledOf(trial));
+  if (away) moved(page, win, trial);
+  // Last, after every write, so the frame is laid out once.
+  entered(page);
+  // An unmoved settle says nothing, unless a drag found a fit on its way back (words.md, 5).
+  if (said && (away || news.length > 0))
+    text("[data-trials-live]", message(away ? trial : undefined));
 }
 
 /** The window under the hand: the grab's window plus the hand's travel at the grab's scale. */
@@ -387,9 +504,9 @@ function begin(event: PointerEvent) {
  * The release's re-fit, from the drag's scale to Ta's fit for the settled window: eased in Full
  * only, at most 180 ms from the frame's top left (placement.md, 3), by a transition on --scale
  * (app/globals.css), so it requests no frames of its own. Calm, Off and reduced motion snap.
+ * `from` is the drag's drawn scale, read before the settle wrote the window's sea.
  */
-function refit({ drawing, frame }: Page, w: number) {
-  const from = frame.getBoundingClientRect().width / w;
+function refit({ drawing, frame }: Page, w: number, from: number) {
   drawing.style.removeProperty("--scale");
   const to = frame.getBoundingClientRect().width / w;
   if (!full() || Math.abs(to - from) < 0.002) return;
@@ -423,8 +540,10 @@ function end(event: PointerEvent) {
   requestAnimationFrame(() =>
     setTimeout(() => {
       if (!page) return;
+      // Read before the settle: a shallower sea there would widen the drawing before it eases.
+      const from = page.frame.getBoundingClientRect().width / placed[0];
       settle(win);
-      refit(page, win[0]);
+      refit(page, win[0], from);
       corner.removeAttribute("data-dragging");
       settling = false;
     }),
@@ -437,6 +556,67 @@ function key(event: KeyboardEvent) {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   event.preventDefault();
   settle(settleOn(next(rest)));
+}
+
+/** A window from the key a chart's mark carries: "1024x640". */
+function winOf(key: string | null): Win {
+  const [w = 0, h = 0] = (key ?? "").split("x").map(Number);
+  return [w, h];
+}
+
+/**
+ * A tap on the chart tries its window in place (T18): a crew's window whose mark it is on, a
+ * sounding's own, or the point under it by the plot's units, settled by a release's rule
+ * (settleOn). The ring goes there in the tap's own paint and the frame settles in the task after
+ * it, as a release does (end). The loader hands over only an unmodified click on the chart, its
+ * link's leaving already stopped: a modified click on a sounding is the link's.
+ */
+function tap(event: Event) {
+  const { clientX, clientY } = event as MouseEvent;
+  const plot = page?.plot;
+  if (!page || !plot || event.type !== "click" || drag || settling) return;
+  const ctm = plot.getScreenCTM() ?? undefined;
+  // A crew's window whose mark the tap is on, measured on the screen against the mark's CSS width
+  // (a dot, or H10's bar along its windows), the nearest if several: from 1024 one grid row is
+  // under a screen px, so the plot's rounding alone takes a click on 1024 × 640's dot to 645
+  // (decisions.md, 9). The mark is drawn and a sounding's target isn't: it wins where one covers it.
+  let pinned: Win | undefined;
+  let near = Number.POSITIVE_INFINITY;
+  for (const pin of plot.querySelectorAll("[data-pin]")) {
+    const reach = Number.parseFloat(getComputedStyle(pin).strokeWidth) / 2;
+    for (const key of pin.getAttribute("data-windows")?.split(" ") ?? []) {
+      const win = winOf(key);
+      const dot = new DOMPoint(...win).matrixTransform(ctm);
+      const off = Math.hypot(dot.x - clientX, dot.y - clientY);
+      if (off <= reach && off < near) [pinned, near] = [win, off];
+    }
+  }
+  // Else a sounding's own window, so a key's click (at 0, 0, never on the plot) tries it too.
+  const sounding = (event.target as Element).closest("[data-sounding]");
+  const at = new DOMPoint(clientX, clientY).matrixTransform(ctm?.inverse());
+  const win = settleOn(
+    pinned ??
+      (sounding ? winOf(sounding.getAttribute("data-sounding")) : [at.x, at.y]),
+  );
+  settling = true;
+  page.ring?.setAttribute("cx", String(win[0]));
+  page.ring?.setAttribute("cy", String(win[1]));
+  // The settle changes the frame's height and the answer's length above the chart: where the page
+  // scrolls, the plot keeps its place under the finger by a scroll, never a tween (placement.md,
+  // 3). Where the side is sticky nothing above it moves, and this scrolls by 0.
+  // The chart's own box: the plot's would grow with the ring at the grid's edge.
+  const chart = plot.closest("[data-chart]");
+  const top = chart?.getBoundingClientRect().top ?? 0;
+  requestAnimationFrame(() =>
+    setTimeout(() => {
+      settle(win);
+      settling = false;
+      scrollBy({
+        top: (chart?.getBoundingClientRect().top ?? 0) - top,
+        behavior: "instant",
+      });
+    }),
+  );
 }
 
 /**
@@ -484,24 +664,50 @@ function back() {
   if (win && !drag && !settling) settle(win, false);
 }
 
-/** Takes the page over from the corner's listener, with the touch that woke it. */
-export function start(hands: Hands, first: Event) {
+/**
+ * A size edited and left while this loaded was never heard (sprint 64, fix round 1's follow-up):
+ * it settles now, Width typed and Tabbed to Height included. One still focused is heard on its own
+ * change.
+ */
+function unheard(inputs: readonly HTMLInputElement[]) {
+  if (
+    inputs.some(
+      (input, i) =>
+        input !== document.activeElement && input.value !== String(rest[i]),
+    )
+  )
+    typed();
+}
+
+/**
+ * Takes the page over from the loader (components/trials-corner.tsx) with the touch that woke it,
+ * and tries every tap on the chart, which the loader's listener hands on, the first included (T18).
+ */
+export function start(hands: Hands, touch: Event) {
+  if (!page) take(hands, touch);
+  tap(touch);
+}
+
+function take(hands: Hands, first: Event) {
   const main = document.getElementById("main");
   const drawing = main?.querySelector<HTMLElement>(".trials-drawing");
   const frame = main?.querySelector("iframe");
   const corner = main?.querySelector<HTMLElement>("[data-corner]");
   const shown = main?.querySelector<HTMLElement>("[data-freeboard]");
   const form = main?.querySelector(".trials-form");
-  if (page || !main || !drawing || !frame || !corner || !shown || !form) return;
+  if (!main || !drawing || !frame || !corner || !shown || !form) return;
   const inputs = [
     ...main.querySelectorAll<HTMLInputElement>("input[name=w], input[name=h]"),
   ];
-  page = { hands, main, drawing, frame, corner, shown, inputs };
+  const plot = main.querySelector<SVGGraphicsElement>("[data-plot]");
+  const ring = main.querySelector("[data-ring]");
+  page = { hands, main, drawing, frame, corner, shown, inputs, plot, ring };
   rest = placed =
     drawnFor([
       Number(drawing.style.getPropertyValue("--w")),
       Number(drawing.style.getPropertyValue("--h")),
     ]) ?? HOME;
+  listen(page);
 
   corner.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
@@ -521,7 +727,12 @@ export function start(hands: Hands, first: Event) {
     if (typed()) event.preventDefault();
   });
   addEventListener("popstate", back);
+  // The plank presses once and rests (placement.md, 7): nothing is left to animate.
+  const plank = main.querySelector(".trials-found-plank");
+  for (const type of ["animationend", "animationcancel"])
+    plank?.addEventListener(type, () => plank.removeAttribute("data-pressed"));
 
+  unheard(inputs);
   // The touch that loaded this: a drag already in hand, unless it let go while this loaded.
   if (first instanceof PointerEvent && first.type === "pointerdown") {
     if (corner.hasPointerCapture(first.pointerId)) begin(first);
