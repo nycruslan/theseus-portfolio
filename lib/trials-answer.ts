@@ -9,7 +9,7 @@ import {
   sizeOf,
   type Win,
 } from "./trials";
-import { SWEEP_META, sweptAt } from "./trials-sweep";
+import { checkSweep, SWEEP_META, sweptAt } from "./trials-sweep";
 
 // What the trials page says for a window, in Iris's words (.crew/sprint/63/words.md and
 // .crew/sprint/64/words.md), from the committed sweep and the crew's record (lib/trials.ts). One
@@ -27,27 +27,31 @@ export type Trial = {
 
 /**
  * The trial at a swept window; undefined for a window the sweep doesn't hold. The controller
- * reads this one, so the build's message below stays out of its chunk.
+ * reads this one, so the build's messages below stay out of its chunk (T10's budget).
  */
 export function trialAt(win: Win): Trial | undefined {
   const swept = sweptAt(win[0], win[1]);
   if (!swept) return undefined;
   const kind = kindOf(win, swept.freeboard);
-  // The gap's words are 320 × 568's own (Atlas's sprint 44 ruling): if another pinned window ever
-  // sinks, fail the build rather than print them under it (words.md, 3).
-  if (kind === "gap" && keyOf(win) !== keyOf(GAP))
-    throw new Error(
-      `${sizeOf(win)} is pinned and sinks: the crew's own gap is only ${sizeOf(GAP)}`,
-    );
   return { win, freeboard: swept.freeboard, kind, rules: rulesAt(win) };
 }
 
-/** The trial at a window the sweep must hold: a stale sweep fails the build, naming its command. */
+/**
+ * The trial at a window the sweep must hold: a stale sweep fails the build, naming its command.
+ * Every pinned window is built ahead through this, so the gap's check holds for the controller too.
+ */
 export function sweptTrial(win: Win): Trial {
+  checkSweep();
   const trial = trialAt(win);
   if (!trial)
     throw new Error(
       `lib/trials-sweep.json (taken on ${SWEEP_META.commit} in Chromium ${SWEEP_META.chromium}) has no reading at ${sizeOf(win)}: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
+    );
+  // The gap's words are 320 × 568's own (Atlas's sprint 44 ruling): if another pinned window ever
+  // sinks, fail the build rather than print them under it (words.md, 3).
+  if (trial.kind === "gap" && keyOf(win) !== keyOf(GAP))
+    throw new Error(
+      `${sizeOf(win)} is pinned and sinks: the crew's own gap is only ${sizeOf(GAP)}`,
     );
   return trial;
 }

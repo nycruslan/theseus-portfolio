@@ -36,16 +36,27 @@ function column(text: string) {
 
 const grid = sweep.columns.map(column);
 const offGrid: Readonly<Record<string, number>> = sweep.windows;
-// A sweep written for another grid, or before a window was pinned or named, would answer wrongly or
-// not at all: fail the build instead.
-if (
-  grid.length !== (width.to - width.from) / width.step + 1 ||
-  grid.some((col) => col.length !== ROWS || col.some(Number.isNaN)) ||
-  OFF_GRID.some((win) => offGrid[keyOf(win)] === undefined)
-)
-  throw new Error(
-    `lib/trials-sweep.json (taken on ${sweep.commit}) doesn't hold every window lib/trials.ts sweeps: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
-  );
+let checked = false;
+
+/**
+ * A sweep written for another grid, or before a window was pinned or named, would answer wrongly or
+ * not at all: the server's pages check it first, so the build fails instead (lib/trials-answer.ts,
+ * sweptTrial). The browser's copy is the one the build checked, so the check and its message stay
+ * out of the trials controller's chunk (.crew/sprint/64/contract.md, T10's budget).
+ */
+export function checkSweep() {
+  if (checked) return;
+  if (
+    grid.length !== (width.to - width.from) / width.step + 1 ||
+    grid.some((col) => col.length !== ROWS || col.some(Number.isNaN)) ||
+    OFF_GRID.some((win) => offGrid[keyOf(win)] === undefined)
+  )
+    throw new Error(
+      `lib/trials-sweep.json (taken on ${sweep.commit}) doesn't hold every window lib/trials.ts sweeps: rewrite it with \`pnpm build && node .crew/sprint/63/trials-sweep.mjs\``,
+    );
+  checked = true;
+}
+
 const sideways = new Set<string>(sweep.sideways);
 
 /** The sweep's reading at a window, or undefined for one it doesn't hold. */
