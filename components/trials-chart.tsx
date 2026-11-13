@@ -100,31 +100,32 @@ function runOf(w: number, inside: (h: number) => boolean, what: string) {
   return [from, to] as const;
 }
 
-const sinksAt = (w: number, h: number) => sweptTrial([w, h]).freeboard < 0;
+/** The grid windows whose links sink, by key, read once from the sweep. */
+const SUNK = new Set(
+  widths.flatMap((w) =>
+    heights.flatMap((h) =>
+      sweptTrial([w, h]).freeboard < 0 ? [keyOf([w, h])] : [],
+    ),
+  ),
+);
 
 // The band: every grid window whose links sink. In each width they are one run up from the
 // shortest window (contract, call 1), so the band has one edge per width, down to the foot itself
 // where nothing sinks (an empty run, its top half a step under the shortest window). A sweep where
 // a window sank above one that floats would need another drawing, so it fails the build.
 const BAND = regionPath((w) => {
-  const run = runOf(w, (h) => sinksAt(w, h), "The sinking windows");
+  const run = runOf(w, (h) => SUNK.has(keyOf([w, h])), "The sinking windows");
   if (run && run[0] !== HEIGHT.from)
     throw new Error(`At ${w} wide the sinking windows don't start at the foot`);
   return run ?? [HEIGHT.from, HEIGHT.from - HEIGHT.step];
 });
 
-const SINKING = widths.reduce(
-  (sum, w) => sum + heights.filter((h) => sinksAt(w, h)).length,
-  0,
-);
 const TOTAL = widths.length * heights.length;
 
 const REGIONS = new Map(
   FITS.map((fit) => [
     fit.n,
-    regionPath((w) =>
-      runOf(w, (h) => fitsAt([w, h]).includes(fit), `Fit ${fit.n}`),
-    ),
+    regionPath((w) => runOf(w, (h) => fit.enters([w, h]), `Fit ${fit.n}`)),
   ]),
 );
 
@@ -258,7 +259,7 @@ export function TrialsChart({ win }: { win: Win }) {
         ))}
       </svg>
       <figcaption id="trials-chart-words">
-        {`Every window the crew swept, ${counted(TOTAL)} of them: the links sink in the ${counted(SINKING)} hatched along the foot.`}
+        {`Every window the crew swept, ${counted(TOTAL)} of them: the links sink in the ${counted(SUNK.size)} hatched along the foot.`}
       </figcaption>
     </figure>
   );

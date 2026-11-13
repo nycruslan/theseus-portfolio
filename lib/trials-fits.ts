@@ -113,8 +113,96 @@ function lineOf(query: string) {
   return line;
 }
 
+// The server's reading of a query: the frame is a screen whose viewport is the window, and a rem
+// is 16 px, the browser's default (contract, "When a fit is entered"). It reads only the syntax
+// the seven use and throws on anything else, so a fit it can't judge fails the build rather than
+// stamping wrongly. Each query is read once into a test, since the chart asks it at every grid
+// window. T19 holds it to the frame's own matchMedia.
+
+type Test = (win: Win) => boolean;
+
+const REM = 16;
+const OPS: Record<string, (a: number, b: number) => boolean> = {
+  "<": (a, b) => a < b,
+  "<=": (a, b) => a <= b,
+  ">": (a, b) => a > b,
+  ">=": (a, b) => a >= b,
+};
+
+const opOf = (text: string) => {
+  const op = OPS[text];
+  if (!op) throw new Error(`"${text}" isn't a comparison`);
+  return op;
+};
+
+/** A length in px: `80rem`, `331px`. */
+function lengthOf(text: string) {
+  const match = /^(\d+(?:\.\d+)?)(rem|px)$/.exec(text);
+  if (!match)
+    throw new Error(`"${text}" isn't a length lib/trials-fits.ts reads`);
+  return Number(match[1]) * (match[2] === "rem" ? REM : 1);
+}
+
+const sideOf = (name: string): ((win: Win) => number) | undefined =>
+  name === "width" ? ([w]) => w : name === "height" ? ([, h]) => h : undefined;
+
+/** `a op b`, either side the feature: `width >= 80rem`, `64rem <= width`, `aspect-ratio >= 13 / 8`. */
+function comparison(left: string, opText: string, right: string): Test {
+  const op = opOf(opText);
+  const leftSide = sideOf(left);
+  if (leftSide) {
+    const px = lengthOf(right);
+    return (win) => op(leftSide(win), px);
+  }
+  const rightSide = sideOf(right);
+  if (rightSide) {
+    const px = lengthOf(left);
+    return (win) => op(px, rightSide(win));
+  }
+  const ratio = /^(\d+)\s*\/\s*(\d+)$/.exec(right);
+  if (left === "aspect-ratio" && ratio) {
+    // Width over height against a ratio, cross-multiplied so no division rounds a boundary.
+    const [across, up] = [Number(ratio[1]), Number(ratio[2])];
+    return ([w, h]) => op(w * up, across * h);
+  }
+  throw new Error(
+    `"${left} ${opText} ${right}" isn't a feature lib/trials-fits.ts reads`,
+  );
+}
+
+/** One parenthesised feature: a comparison, or a range with the feature between two lengths. */
+function feature(text: string): Test {
+  const inner = /^\((.+)\)$/.exec(text.trim())?.[1];
+  const parts = (inner ?? "").split(/\s*(<=|>=|<|>)\s*/).map((p) => p.trim());
+  const [a = "", op1 = "", b = "", op2 = "", c = ""] = parts;
+  if (parts.length === 3) return comparison(a, op1, b);
+  if (parts.length === 5) {
+    const [low, high] = [comparison(a, op1, b), comparison(b, op2, c)];
+    return (win) => low(win) && high(win);
+  }
+  throw new Error(`"${text}" isn't a feature lib/trials-fits.ts reads`);
+}
+
+/** One query of a list: an optional media type, then features joined by `and`. */
+function query(text: string): Test {
+  const [first = "", ...rest] = text.trim().split(/\s+and\s+/);
+  const type = /^(screen|print|all)$/.exec(first)?.[1];
+  const tests = (type ? rest : [first, ...rest]).map(feature);
+  // The frame is a screen: a print query is read, so the build checks it, and never entered.
+  if (type === "print") return () => false;
+  return (win) => tests.every((test) => test(win));
+}
+
+/** A query list's test: a window enters it when it enters any of its queries. */
+function compile(list: string): Test {
+  const tests = list.split(",").map(query);
+  return (win) => tests.some((test) => test(win));
+}
+
 /** A fit as the page stamps it. */
 export type Fit = FitRow & {
+  /** Whether a window enters the fit's query, as a screen's document at 16 px a rem would. */
+  enters: Test;
   /** The query's line at the build's commit, as the record's rules link their tests. */
   href: string;
   /** The sprint's entry on the Log: its revision row's names and what went wrong first. */
@@ -136,96 +224,12 @@ export const FITS: readonly Fit[] = ROWS.map((row) => {
     );
   return {
     ...row,
+    enters: compile(row.query),
     href: `${REPO_URL}/blob/${process.env.KEEL_REF || "main"}/app/globals.css#L${lineOf(row.query)}`,
     entry,
     wentWrong,
   };
 });
 
-// The server's reading of a query at a window: the frame is a screen whose viewport is the
-// window, and a rem is 16 px, the browser's default (contract, "When a fit is entered"). It reads
-// only the syntax the seven use, and throws on anything else, so a fit it can't judge fails the
-// build rather than stamping wrongly. T19 holds it to the frame's own matchMedia.
-
-const REM = 16;
-const COMPARE = /^(<=|>=|<|>)$/;
-
-type Size = { width: number; height: number };
-
-function compare(a: number, op: string, b: number) {
-  switch (op) {
-    case "<":
-      return a < b;
-    case "<=":
-      return a <= b;
-    case ">":
-      return a > b;
-    case ">=":
-      return a >= b;
-  }
-  throw new Error(`"${op}" isn't a comparison`);
-}
-
-/** A length in px: `80rem`, `331px`. */
-function lengthOf(text: string) {
-  const match = /^(\d+(?:\.\d+)?)(rem|px)$/.exec(text);
-  if (!match)
-    throw new Error(`"${text}" isn't a length lib/trials-fits.ts reads`);
-  return Number(match[1]) * (match[2] === "rem" ? REM : 1);
-}
-
-/** `a op b`, either side the feature: `width >= 80rem`, `64rem <= width`. */
-function holds(left: string, op: string, right: string, size: Size): boolean {
-  if (left === "width" || left === "height")
-    return compare(size[left], op, lengthOf(right));
-  if (right === "width" || right === "height")
-    return compare(lengthOf(left), op, size[right]);
-  if (left === "aspect-ratio") {
-    // Width over height against a ratio, cross-multiplied so no division rounds a boundary.
-    const ratio = /^(\d+)\s*\/\s*(\d+)$/.exec(right);
-    if (!ratio) throw new Error(`"${right}" isn't a ratio`);
-    return compare(
-      size.width * Number(ratio[2]),
-      op,
-      Number(ratio[1]) * size.height,
-    );
-  }
-  throw new Error(
-    `"${left} ${op} ${right}" isn't a feature lib/trials-fits.ts reads`,
-  );
-}
-
-/** One parenthesised feature: a comparison, or a range with the feature between two lengths. */
-function featureHolds(text: string, size: Size) {
-  const parts = text.split(/\s*(<=|>=|<|>)\s*/).map((part) => part.trim());
-  const [a = "", op1 = "", b = "", op2, c] = parts;
-  if (parts.length === 3 && COMPARE.test(op1)) return holds(a, op1, b, size);
-  if (parts.length === 5 && op2 !== undefined && c !== undefined)
-    return holds(a, op1, b, size) && holds(b, op2, c, size);
-  throw new Error(`"(${text})" isn't a feature lib/trials-fits.ts reads`);
-}
-
-/** One query of a list: an optional media type, then features joined by `and`. */
-function queryHolds(query: string, size: Size) {
-  const [first = "", ...rest] = query.split(/\s+and\s+/);
-  const type = /^(screen|print|all)$/.exec(first.trim())?.[1];
-  const features = type ? rest : [first, ...rest];
-  if (type === "print") return false;
-  return features.every((feature) => {
-    const inner = /^\((.+)\)$/.exec(feature.trim())?.[1];
-    if (inner === undefined)
-      throw new Error(`"${feature}" isn't a feature lib/trials-fits.ts reads`);
-    return featureHolds(inner, size);
-  });
-}
-
-/** Whether a window enters a query, as a screen's document at 16 px a rem would match it. */
-export function enters(query: string, [width, height]: Win) {
-  return query
-    .split(",")
-    .some((one) => queryHolds(one.trim(), { width, height }));
-}
-
 /** The fits a window enters, in order. */
-export const fitsAt = (win: Win) =>
-  FITS.filter((fit) => enters(fit.query, win));
+export const fitsAt = (win: Win) => FITS.filter((fit) => fit.enters(win));
