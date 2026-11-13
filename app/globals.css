@@ -5197,3 +5197,112 @@ a[data-replay]:not([data-ready]) {
     column-gap: 64px;
   }
 }
+
+/*
+ * The chart of every window and the crew's fits (components/trials-chart.tsx;
+ * .crew/sprint/65/placement.md). The plot scales evenly with its column, so the chart's box keeps
+ * the grid's own shape, its width and height in window px plus half a step on every side; the
+ * soundings are drawn in the box's px, so their targets keep their size at any scale (T8).
+ */
+.trials-chart {
+  margin-top: 32px;
+}
+
+.trials-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1616 / 645;
+  overflow: visible;
+}
+
+.trials-chart-plot {
+  overflow: visible;
+}
+
+.trials-band {
+  fill: url(#trials-hatch);
+  stroke: var(--foreground);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-hatch-line {
+  stroke: var(--foreground);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-region {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-region[hidden] {
+  display: none;
+}
+
+.trials-pin {
+  r: 9px;
+  fill: var(--foreground);
+}
+
+.trials-pin-run {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 18px;
+}
+
+.trials-ring {
+  r: 28px;
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.trials-sounding-hit {
+  x: calc(var(--x) - 22px);
+  y: calc(var(--y) - 22px);
+  width: 44px;
+  height: 44px;
+  fill: transparent;
+}
+
+.trials-sounding-dot {
+  r: 3px;
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+}
+
+.trials-sounding-number {
+  fill: var(--foreground);
+  font-size: 11px;
+  text-anchor: middle;
+  transform: translateY(-8px);
+}
+
+@media (width >= 64rem) {
+  .trials-sounding-hit {
+    x: calc(var(--x) - 12px);
+    y: calc(var(--y) - 12px);
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (forced-colors: active) {
+  .trials-band,
+  .trials-hatch-line,
+  .trials-ring {
+    stroke: CanvasText;
+  }
+}
+
+.trials-stamp[hidden] {
+  display: none;
+}

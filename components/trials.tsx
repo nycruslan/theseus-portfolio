@@ -2,6 +2,7 @@ import { type CSSProperties, Fragment } from "react";
 import { sofiaCondensed } from "@/app/fonts";
 import { Bar } from "@/components/bar";
 import { SkipLink } from "@/components/skip-link";
+import { TrialsChart, TrialsFits } from "@/components/trials-chart";
 import { TrialsCorner } from "@/components/trials-corner";
 import { profile } from "@/content/profile";
 import { REPO_URL } from "@/lib/site";
@@ -379,6 +380,8 @@ export function Trials({ trial }: { trial: Trial }) {
             </p>
           )}
         </section>
+        <TrialsChart win={win} />
+        <TrialsFits win={win} />
         <TrialsCorner
           hands={{
             name: profile.name,
