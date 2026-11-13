@@ -323,9 +323,14 @@ function address() {
 function find(stamp: HTMLElement) {
   if (!page || !stamp.hidden) return;
   stamp.hidden = false;
-  if (full()) stamp.setAttribute("data-stamping", "");
   one(`[data-fit-region="${stamp.dataset.fit}"]`)?.removeAttribute("hidden");
   news.push(stamp);
+  // The count line's plank takes the newest find's sprint, and presses in with full motion only:
+  // several finds in one frame press once (placement.md, 5 and 7).
+  const plank = one(".trials-found-plank");
+  const sprint = stamp.closest<HTMLElement>("[data-sprint]")?.dataset.sprint;
+  if (plank && sprint) plank.setAttribute("data-newest", sprint);
+  if (full()) plank?.setAttribute("data-pressed", "");
   let found = "";
   for (const fit of page.main.querySelectorAll<HTMLElement>("[data-fit]"))
     if (!fit.hidden) found += fit.dataset.fit;
@@ -370,11 +375,39 @@ function entered(target: Page) {
     if (win?.matchMedia(stamp.dataset.query ?? "").matches) find(stamp);
 }
 
-/** The settle's one message, with any fit found since the last that spoke (T21; words.md). */
-function message(trial: Trial) {
-  const found = news.map((stamp) => stamp.dataset.said ?? "");
+/**
+ * The settle's one message (T21; words.md, 5): Tb's sentence for a window that moved, then each
+ * fit found since the last that spoke, in fit order, then the visit's count, its words from
+ * `[data-found]`.
+ */
+function message(trial?: Trial) {
+  const found = news
+    .toSorted((a, b) => Number(a.dataset.fit) - Number(b.dataset.fit))
+    .map((stamp) => stamp.dataset.said);
+  const line = one("[data-found]") as HTMLElement | null;
+  const n = one("[data-found-count]")?.textContent;
+  const count =
+    news.length === 0
+      ? ""
+      : n === String(page ? stamps(page).length : 0)
+        ? line?.dataset.saidAll
+        : line?.dataset.said?.replace("{n}", n ?? "");
   news = [];
-  return [settledOf(trial), ...found].filter(Boolean).join(" ");
+  return [trial && settledOf(trial), ...found, count].filter(Boolean).join(" ");
+}
+
+/** What a settle to another window rewrites besides the readout: the record, the links, the head. */
+function moved(target: Page, win: Win, trial: Trial) {
+  record(target, trial);
+  windows(target, keyOf(win));
+  target.corner.setAttribute("aria-label", cornerOf(win));
+  target.frame.title = frameTitleOf(win, target.hands.name);
+  document.title = titleFor(trial, target.hands.name);
+  const canonical = document.querySelector("link[rel=canonical]");
+  if (canonical instanceof HTMLLinkElement)
+    canonical.href = new URL(addressOf(win), canonical.href).href;
+  address();
+  text("[data-copied]", "");
 }
 
 /**
@@ -388,10 +421,10 @@ function settle(win: Win, said = true) {
   const trial = trialAt(win);
   if (!page || !trial) return;
   const key = keyOf(win);
-  const moved = key !== keyOf(rest);
+  const away = key !== keyOf(rest);
   // The window shown already, at rest: only the inputs, which an edit may have left off it.
   if (
-    !moved &&
+    !away &&
     key === keyOf(placed) &&
     !page.shown.hasAttribute("data-measure")
   )
@@ -402,20 +435,12 @@ function settle(win: Win, said = true) {
   mark(page, win[1], trial);
   text("[data-verdict]", VERDICT[trial.kind]);
   answer(trial);
-  if (!moved) return;
-  record(page, trial);
-  windows(page, key);
-  page.corner.setAttribute("aria-label", cornerOf(win));
-  page.frame.title = frameTitleOf(win, page.hands.name);
-  document.title = titleFor(trial, page.hands.name);
-  const canonical = document.querySelector("link[rel=canonical]");
-  if (canonical instanceof HTMLLinkElement)
-    canonical.href = new URL(addressOf(win), canonical.href).href;
-  address();
-  text("[data-copied]", "");
+  if (away) moved(page, win, trial);
   // Last, after every write, so the frame is laid out once.
   entered(page);
-  if (said) text("[data-trials-live]", message(trial));
+  // An unmoved settle says nothing, unless a drag found a fit on its way back (words.md, 5).
+  if (said && (away || news.length > 0))
+    text("[data-trials-live]", message(away ? trial : undefined));
 }
 
 /** The window under the hand: the grab's window plus the hand's travel at the grab's scale. */
@@ -541,10 +566,20 @@ function tap(event: Event) {
   settling = true;
   page.ring?.setAttribute("cx", String(win[0]));
   page.ring?.setAttribute("cy", String(win[1]));
+  // The settle changes the frame's height and the answer's length above the chart: where the page
+  // scrolls, the plot keeps its place under the finger by a scroll, never a tween (placement.md,
+  // 3). Where the side is sticky nothing above it moves, and this scrolls by 0.
+  // The chart's own box: the plot's would grow with the ring at the grid's edge.
+  const chart = plot.closest("[data-chart]");
+  const top = chart?.getBoundingClientRect().top ?? 0;
   requestAnimationFrame(() =>
     setTimeout(() => {
       settle(win);
       settling = false;
+      scrollBy({
+        top: (chart?.getBoundingClientRect().top ?? 0) - top,
+        behavior: "instant",
+      });
     }),
   );
 }
@@ -596,11 +631,16 @@ function back() {
 
 /**
  * A size edited and left while this loaded was never heard (sprint 64, fix round 1's follow-up):
- * it settles now. One still focused is heard on its own change.
+ * it settles now, Width typed and Tabbed to Height included. One still focused is heard on its own
+ * change.
  */
 function unheard(inputs: readonly HTMLInputElement[]) {
-  const focused = inputs.some((input) => input === document.activeElement);
-  if (!focused && inputs.some((input, i) => input.value !== String(rest[i])))
+  if (
+    inputs.some(
+      (input, i) =>
+        input !== document.activeElement && input.value !== String(rest[i]),
+    )
+  )
     typed();
 }
 
@@ -652,6 +692,10 @@ function take(hands: Hands, first: Event) {
     if (typed()) event.preventDefault();
   });
   addEventListener("popstate", back);
+  // The plank presses once and rests (placement.md, 7): nothing is left to animate.
+  const plank = main.querySelector(".trials-found-plank");
+  for (const type of ["animationend", "animationcancel"])
+    plank?.addEventListener(type, () => plank.removeAttribute("data-pressed"));
 
   unheard(inputs);
   // The touch that loaded this: a drag already in hand, unless it let go while this loaded.
