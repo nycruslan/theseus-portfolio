@@ -53,8 +53,10 @@ jobs:
   e2e:
     name: e2e (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    # A shard takes about a quarter of the suite, 8 to 10 minutes; 20 leaves room for a slow runner.
-    timeout-minutes: 20
+    # Shards aren't even: Playwright splits by test count, and the Log's 3D checks land together.
+    # By sprint 64 the slowest took 14 minutes on a quick runner and over 20 on a slow one, with
+    # the same tests 43% slower everywhere (#131). 30 leaves room for a slow runner.
+    timeout-minutes: 30
     strategy:
       # Every shard finishes, so one run reports every failing spec, not only the first shard's.
       fail-fast: false
@@ -101,8 +103,8 @@ jobs:
   # merge.mjs reads as a failure, or a skipped one, which GitHub counts as passing.
   check:
     runs-on: ubuntu-latest
-    # Waits for the slowest shard, whose own cap is 20 minutes.
-    timeout-minutes: 25
+    # Waits for the slowest shard, whose own cap is 30 minutes.
+    timeout-minutes: 35
     permissions:
       actions: read
     steps:
