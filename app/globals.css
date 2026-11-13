@@ -4952,9 +4952,11 @@ a[data-replay]:not([data-ready]) {
   transition: --scale 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Paper has no corner to drag, so the caption's drag sentence goes with it, as without script. */
 @media print {
   .trials-corner,
-  .trials-share {
+  .trials-share,
+  .trials-scripted {
     display: none;
   }
 }
