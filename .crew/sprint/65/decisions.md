@@ -34,3 +34,11 @@
    `svg[data-chart]` loses, since the soundings are its children. So the nested plot `svg` gets a
    hit rect over its viewBox and a `:hover` rule (Forge), at 0 B of script; the click bubbles to
    `main`, where the loader listens and maps it through `g[data-plot]`'s CTM.
+7. **Iris's placement and words are final** (3336619). I take both of her calls
+   (`placement.md` 9): the stamps go last on the page, after the record, so a found stamp never
+   shifts anything visible at load (the list's top was below the fold at all 14 viewports she
+   tried, 1,426 px at 1024 × 768 the nearest); and from 1024 the frame gives up the chart's block
+   (274 px to 1279, 256 from 1280), so `/trials` at 1440 × 900 draws its frame at 704 × 440, not
+   792 × 495. The chart is the sprint's point and has to be in the first screen beside the frame;
+   the frame's document stays exactly the window (T2), only its drawing is smaller. T1 to T15 run on
+   the integrated tree before the label to prove the kept checks hold.
