@@ -934,6 +934,48 @@ test("T12 keys and a finger: the corner is a button named with the window, at le
     await ctx.close();
   }
 
+  // An edit 1 px from the shown window that is itself swept settles on it, as the form without
+  // script does: 1439 x 900 is in H10's run, prerendered at /trials/1439x900. A grid step from
+  // 1440 would land on 1424 (Lens on e4eeb33, lib/trials-live.ts typed()).
+  {
+    const exact: Win = [1439, 900];
+    const swept = trialAt(exact);
+    expect(swept, `${at(exact)} is in the sweep`).toBeDefined();
+    const ctx = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    });
+    const page = await ctx.newPage();
+    expect((await page.goto("/trials"))?.status(), "status of /trials").toBe(
+      200,
+    );
+    await frameReady(page);
+    const w = page.locator('main input[name="w"]');
+    // Give the controller its first touch before typing.
+    await w.focus();
+    await nodeWait(1000);
+    await w.fill(String(exact[0]));
+    await page.keyboard.press("Tab");
+    const r = await settled(page, exact, 2000);
+    expect
+      .soft(
+        { path: r.path, w: r.w, h: r.h, size: r.size },
+        `the frame after typing ${exact[0]} in Width at ${at(HOME)}`,
+      )
+      .toEqual({
+        path: addressOf(exact),
+        w: exact[0],
+        h: exact[1],
+        size: sizeWords(exact),
+      });
+    expect
+      .soft(
+        Number(r.freeboard),
+        `[data-freeboard] ${r.freeboard} at ${r.w} x ${r.h} against the sweep's for ${at(exact)}`,
+      )
+      .toBeCloseTo(swept?.freeboard ?? Number.NaN, 1);
+    await ctx.close();
+  }
+
   // A finger, at 390 x 844: the page scrolls by touch off the handle, and the handle drags.
   {
     const ctx = await browser.newContext({
