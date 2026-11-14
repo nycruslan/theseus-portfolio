@@ -17,7 +17,22 @@ On 2026-11-07 the owner gave ruslanshulga.com to the Studio, the page he wants h
 see first. This site moved to portfolio.ruslanshulga.com (`lib/site.ts`), and the Studio redirects
 its old addresses on the apex to the same paths here.
 
-## Now: try to sink it
+## Finished: try to sink it
+
+Ta to Td merged by 2026-11-14 (Td, #134, last). Quill ran the milestone's demo on production in
+sprint 67 (`.crew/sprint/67/demo.md`), and the plan's four questions hold:
+
+- The dare, "Try to sink Ruslan's contact links.", is in the first screen at every window.
+- A held finger sinks the links in about 2 s on a phone, and the verdict says whose gap it is.
+- The page's number equals the frame's own measure to 0.03 px.
+- Each window's card is its own dare.
+
+The doors sit under Crew's first rule and at the Log's foot, with nothing above them moved, and
+`/` is unchanged. Left open: the frame's 48 console errors per view (Pixel); a 20 px caption jump
+on some cold loads, with T8 red on production (Forge); T11's deployed race (Probe); the gap's
+middle sentence, the descriptions' "as built" and the card's blank window (Iris); from a 21 px
+default font the bar's Contact link scrolls every page sideways at 320 (sprint 67); the owner's
+look on Safari on his phone.
 
 On a page of its own, a visitor puts Ruslan's real first page in any window they choose and tries
 to sink his contact links below the window's foot, drawn as the hull's waterline. The page answers
@@ -67,9 +82,13 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   either moves. T22 to T24; K1, K6 and B5.6 (C5.3) rewritten. (PR #134.) Left open: the Log door's
   `nowrap` overflows at 320 with a 20 px default font or larger, and no check reads the doors in
   print (Lens's nits); the dare is written in four places.
-- [ ] The milestone's demo: Quill on production after Td (`plan.md`, "The demo").
-- After the demo, not scheduled: the frame with scripts on (the hull in 3D as you drag), and the
-  yard in the trials (a step page in a phone's window). Each has its question in `plan.md`.
+- [x] The milestone's demo (sprint 67, PR #135): Quill on production, `.crew/sprint/67/demo.md`.
+  The trials hold, so the crew stands down. Sprint 66's door follow-ups rode along: the Log's door
+  wraps at a large default font (T25), both doors print (T26), and the dare is written once.
+- **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
+  sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
+  answers a pick, when a defect on production makes the site say something false or hides a
+  fact, or when he plays the trials on his phone and wants more.
 - **The owner's calls, and none blocks the work:**
   - the direction: A, as recommended, or B (send it back) or C (the plane), on the canvas;
   - the brief's novelty budget, which allows one signature transition, one live layer and one

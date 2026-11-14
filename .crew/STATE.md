@@ -24,6 +24,9 @@ makes stale.
   - A PR or branch a run worked on in the last two hours is left to the run still on it. A commit
     counts, and so does marking the PR ready or labelling it `review`. Lens's reviews and the
     owner's comments don't, since they aren't a run.
+  - Role branches are `<role>/<n>`, never `sprint/<n>-<role>`: the pre-flight reads any
+    `sprint/…` branch without a PR as a run in flight, and sprint 66's `sprint/66-probe` and
+    `sprint/66-forge` told the run its own merge started to stand down (`.crew/sprint/67/decisions.md` 1).
 - **The merge records (sprint 32).** At the start of every run, after the pre-flight, run
   `node .crew/sprint/32/merge-record.mjs` from the repository root and commit any record it writes
   with the sprint: `/log`'s dates and lines figure read them. It writes only for merged sprints
