@@ -19,6 +19,7 @@ Quill's verdict (`.crew/sprint/67/demo.md`): the trials hold on production. The 
 
 ## Checks
 
+- **Lens: ship** on cff2447, 0 Important, 1 nit (one `FIRST_NAME`, `lib/trials-dare.ts:6` and `lib/crew-key.ts:11`), which rides with the next sprint on that code.
 - **T25** (`e2e/trials-doors.spec.ts`): each door inside its column and the page at 320 × 568 with a 16, 20 and 24 px default font, webfont and fonts blocked; no sideways scroll at 16 and 20. Red on main's CSS for the Log at 24 px (right edge 354 against a 304 column), green with the recipe (304) (Probe, two scratch builds). Lens's "from 20 px" was off by one: the door fits at 20 and overflows from 21 (Probe and Forge, both renderers).
 - **T26**: each door prints, in ink, as its sentence, at 390 × 844 and 1440 × 900, light and dark. It pins what ships.
 - **K6** (`e2e/keel.spec.ts`, `keelShows`): reads every link in a rule, so rule 1's door is read in print and forced colours at all five sizes.

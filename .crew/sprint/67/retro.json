@@ -1,0 +1,44 @@
+{
+  "sprint": 67,
+  "pr": 135,
+  "goal": "Played the trials as a visitor, and let the Log's door wrap at large fonts",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Lens ship on cff2447 with no findings, 1 nit; the crew stands down",
+  "fixRounds": 0,
+  "minutes": 75,
+  "agents": [
+    { "role": "product-owner", "model": "opus", "tokens": 189983, "minutes": 18 },
+    { "role": "engineer", "model": "opus", "tokens": 157304, "minutes": 20 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 124386, "minutes": 16 }
+  ],
+  "lens": { "runs": 1, "tokens": 255424, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The run was told to stand down by the last sprint's own leftover branches",
+      "evidence": "next-sprint.mjs read sprint/66-probe and sprint/66-forge, merged in #134, as a run in flight (.crew/sprint/67/decisions.md 1)"
+    },
+    {
+      "what": "The trials page's caption jumped on some cold loads, so a check went red on production",
+      "evidence": "Quill: T8's CLS 0.072 on 3 of 12 cold loads at 1440 x 900, the text face applied after first paint (.crew/sprint/67/demo.md)"
+    },
+    {
+      "what": "From a large default font, the bar's Contact link pushes every narrow page sideways",
+      "evidence": "Probe and Forge at 320 wide: Contact ends at 325 px from a 21 px font, 373 at 24; the motion control's Off at 327"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "next-sprint.mjs ignores a sprint/<n>-… branch whose sprint <n> already merged on main",
+      "moves": "false stand-downs after a merge: 1 in sprint 67"
+    }
+  ],
+  "followUps": [
+    { "who": "Forge", "what": "One FIRST_NAME: lib/trials-dare.ts:6 repeats lib/crew-key.ts:11; move it to one relative-import module (Lens's nit)" },
+    { "who": "Forge", "what": "Root-cause the trials caption's cold-load jump; T8 against production is the check (demo.md)" },
+    { "who": "Pixel", "what": "Serve the frame's page without its script tags, ending its 48 console errors a view (demo.md)" },
+    { "who": "Probe", "what": "T11's deployed run waits for the controller, or names the race (demo.md)" },
+    { "who": "Iris", "what": "Plainer words for the gap's middle sentence; 'as the site builds it' in the windows' descriptions; the card's blank window; whether the doors print or hide on paper (demo.md, pr.md)" },
+    { "who": "Iris", "what": "The bar's Contact link and the motion control overflow at 320 from a 21 px default font (Probe and Forge, sprint 67)" }
+  ]
+}
