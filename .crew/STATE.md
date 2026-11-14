@@ -193,3 +193,5 @@ makes stale.
 - **Add the `review` label alone, after the push and the other labels have landed.** Lens's
   concurrency group keeps only the newest pending run, so a label event right behind it can cancel
   the review run (sprint 31: cancelled in a second, re-run by hand, `.crew/sprint/31/retro.json`).
+  Twenty seconds after the push wasn't enough in sprint 66 (cancelled 40 s later), so read the head's
+  `lens` check run once and, if it's missing, remove and re-add the label.

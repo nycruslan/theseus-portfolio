@@ -1,0 +1,70 @@
+{
+  "sprint": 66,
+  "pr": 134,
+  "goal": "Doors into the trials from Crew and the Log",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 155,
+  "agents": [
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 234369,
+      "minutes": 13
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 177589,
+      "minutes": 27
+    },
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 194031,
+      "minutes": 62
+    }
+  ],
+  "lens": {
+    "runs": 1,
+    "tokens": 1977508,
+    "important": 0,
+    "actedOn": 1,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "The machine the crew works on restarted twice, and the first measuring of the doors was lost before it reported",
+      "evidence": "Iris's first run stopped with no report; her scripts and 66 screenshots survived, and a second run finished from them in 13 minutes (placement.md, 8c47946)"
+    },
+    {
+      "what": "The first review was cancelled before it ran, so the crew asked for it again",
+      "evidence": "lens on d493402: the run at 00:51:17 cancelled by the next event at 00:51:57, though the label went on 20 s after the push; removing and re-adding the label ran it (Lens: ship)"
+    },
+    {
+      "what": "Two builds shared one port for a while, so the first fit measures read the wrong server",
+      "evidence": "Forge's server on 3361 exited EADDRINUSE behind Probe's mutant build; he redid every measure on 3391 (Forge's report, f5e0e95)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    {
+      "who": "Forge",
+      "what": "The Log's door takes .log-start a's nowrap, so at a 20 px default font or larger it overflows sideways at 320; add white-space: normal and text-wrap: balance to .log-door a, as [data-hand-off] has (Lens's nit, app/globals.css:1962)"
+    },
+    {
+      "who": "Probe",
+      "what": "No check reads either door in print, and K6's keelShows reads only each rule's first link (Lens's nit, e2e/keel.spec.ts:939)"
+    },
+    {
+      "who": "Forge",
+      "what": "The dare is written in four places (components/trials.tsx, lib/trials-card.ts, the two doors); one constant would keep them one"
+    },
+    {
+      "who": "Quill",
+      "what": "The milestone's demo on production, now that Td is in (.crew/sprint/62/plan.md, The demo)"
+    }
+  ]
+}

@@ -47,7 +47,10 @@ specs 30 of 30.
 
 ## Not verified
 
-- Forced colours and print on the doors (K6 and B2.9 cover the keel's and the Log's print).
+- Print on the doors: no check reads either one in print (K6's print read takes each rule's first
+  link only, Lens). Forced colours: B2.9 Tabs through every link on both pages, the doors included.
+- The Log door keeps "Rebuild it yourself"'s `nowrap`, so at a 20 px default font or larger it
+  would overflow at 320 (Lens's nit, traced, not run): a follow-up for the next sprint on the Log.
 - T23's first-screen read on the live, open and resting fixtures (run on the default server).
 - Real Safari and iOS.
 
