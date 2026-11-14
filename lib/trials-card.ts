@@ -2,6 +2,7 @@
 // tsconfig's paths, so every value import it reaches is relative (.crew/sprint/64/selectors.md).
 import { profile } from "../content/profile";
 import { addressOf, isSwept, sizeOf, type Win } from "./trials";
+import { DARE } from "./trials-dare";
 import {
   depthOf,
   signedOf,
@@ -22,9 +23,6 @@ export const TRIAL_CARD = {
   height: 630,
   type: "image/png",
 } as const;
-
-/** The owner's first name, as the page's dare calls him (components/trials.tsx). */
-const [FIRST_NAME = profile.name] = profile.name.split(" ");
 
 /** The drawn words, top to bottom. */
 type CardLines = readonly [
@@ -56,7 +54,7 @@ function wordsOf(trial: Trial): TrialCardWords {
       size,
       `${sinks(trial) ? "Under" : "Clear"} by ${f} px.`,
       verdict,
-      `Try to sink ${FIRST_NAME}'s contact links.`,
+      `${DARE}.`,
     ],
     alt: `Sea trials: a ${size} window drawn to its waterline, ${profile.name}'s contact links ${side} by ${f} px (freeboard ${signedOf(trial)} px). ${verdict}`,
   };

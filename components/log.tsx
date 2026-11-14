@@ -7,11 +7,11 @@ import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { chapterLine, countLine } from "@/lib/count-line";
-import { FIRST_NAME } from "@/lib/crew-key";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatHolders, shipsAt } from "@/lib/lines-plan";
 import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
 import type { MergeRecord, SprintEntry } from "@/lib/sprint-log";
+import { DARE } from "@/lib/trials-dare";
 
 // The Log (.crew/sprint/29/b5-first-contract.md; the approved frames log-1440.webp and log-390.webp
 // in .crew/sprint/17/design/): the ghost hull with its caption and count, the lines figure, then
@@ -344,7 +344,7 @@ export function Log({ entries, open }: LogProps) {
             without its full stop, the look Rebuild it yourself's (app/globals.css, ".log-door"). */}
           {record ? null : (
             <p data-trials-door="" className="log-door">
-              <a href="/trials">{`Try to sink ${FIRST_NAME}'s contact links`}</a>
+              <a href="/trials">{DARE}</a>
             </p>
           )}
         </section>

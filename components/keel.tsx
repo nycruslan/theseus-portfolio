@@ -2,6 +2,7 @@ import { LINK } from "@/components/crew-link";
 import { FIRST_NAME } from "@/lib/crew-key";
 import { type KeelRule, keelRules } from "@/lib/keel";
 import type { SprintEntry } from "@/lib/sprint-log";
+import { DARE } from "@/lib/trials-dare";
 import gate from "../.crew/gate.mjs?raw";
 import guard from "../.crew/guard.mjs?raw";
 import scope from "../.crew/scope.mjs?raw";
@@ -83,7 +84,7 @@ function TrialsDoor() {
   return (
     <p data-trials-door="" className="keel-door">
       <a href="/trials" className={LINK}>
-        {`Try to sink ${FIRST_NAME}'s contact links`}
+        {DARE}
       </a>
     </p>
   );

@@ -1979,7 +1979,10 @@ main:has(> [data-model]) {
   }
 }
 
-.log-start [data-hand-off] {
+/* Two lines, balanced, where nowrap would overflow: the hand-off at 320, and the trials' door at 320
+   from a 20 px default font (.crew/sprint/67/). */
+.log-start [data-hand-off],
+.log-door a {
   white-space: normal;
   text-wrap: balance;
 }
