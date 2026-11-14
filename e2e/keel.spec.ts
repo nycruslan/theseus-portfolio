@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { type Browser, expect, type Page } from "@playwright/test";
+import { profile } from "../content/profile";
 import {
   type Crew,
   crewOf,
@@ -41,6 +42,15 @@ const AXE_TAGS = [
   "wcag22aa",
   "best-practice",
 ];
+
+/**
+ * Sprint 66's door into the trials, the last link in rule 1 (.crew/sprint/66/contract.md, T24):
+ * its words from the owner's first name (content/profile.ts), its href exactly /trials.
+ */
+const TRIALS_DOOR = {
+  href: "/trials",
+  text: `Try to sink ${profile.name.trim().split(/\s+/)[0]}'s contact links`,
+};
 
 const LEAD =
   "The rules the crew builds under. The crew replaces the planks sprint by sprint; the keel stays. These rules live in files that are Ruslan's, so a change to any of them waits for his approval. Each is quoted from its file.";
@@ -314,7 +324,15 @@ function k1(read: Read, where: string) {
     expect
       .soft(li.quotes, `${what}'s blockquote`)
       .toEqual([shownQuote(rule.quote)]);
-    expect.soft(li.links.length, `${what}'s links`).toBe(1);
+    // Sprint 66 (T24): this pinned exactly one link per rule, its source. Rule 1 now holds its
+    // source and then the trials door, exactly those two in that order; rules 2 to 6 keep one, so a
+    // door under any other rule, before the source or beside a second door fails here. links[0]
+    // stays the source, which K2 reads.
+    const door = rule.n === 1 ? [TRIALS_DOOR] : [];
+    expect.soft(li.links.length, `${what}'s links`).toBe(1 + door.length);
+    expect
+      .soft(li.links.slice(1), `${what}'s links after its source`)
+      .toEqual(door);
     expect
       .soft(
         li.links[0]?.href.startsWith(`${REPO}/blob/`) &&
@@ -400,7 +418,7 @@ function baseOf(base: string) {
 // K1, default server (holds in every feed state, so it runs on a deployment too)
 
 const K1 =
-  "K1 server-rendered: in GET /crew's HTML and in the DOM with scripts off (and on) at 1440 x 900 and 390 x 844, one section[aria-labelledby=keel] in main, outside and after the panel, h2#keel Keel, the lead, one ol of six li[data-rule] in the contract's order, each with its sentence, [data-enforcer] with its label, a blockquote with its quote's text and exactly one a to its source; no h1, aria-live or button in it";
+  "K1 server-rendered: in GET /crew's HTML and in the DOM with scripts off (and on) at 1440 x 900 and 390 x 844, one section[aria-labelledby=keel] in main, outside and after the panel, h2#keel Keel, the lead, one ol of six li[data-rule] in the contract's order, each with its sentence, [data-enforcer] with its label, a blockquote with its quote's text and exactly one a to its source, rule 1 then exactly one more, the trials door to /trials (sprint 66); no h1, aria-live or button in it";
 
 test(`${K1} (the default server's pass)`, async ({ browser }) => {
   test.setTimeout(90_000);
@@ -777,12 +795,18 @@ function smallLinks(page: Page, tall: number) {
  * Every keel link by where it sits: a rule's (by its number) or the record line's (by its href),
  * sorted. Sprint 50 (Ra, R3) links the record line to the Log's Every revision, so K6's count of
  * six became this list: six source links, one per rule, and exactly one /log#every-revision in
- * p[data-keel-record] (.crew/sprint/49/first-contract.md, "Kept checks").
+ * p[data-keel-record] (.crew/sprint/49/first-contract.md, "Kept checks"). Sprint 66 (T24): the
+ * list pinned every link in a rule as that rule's one source link, so the trials door would have
+ * read as a second "rule 1"; now a link in p[data-trials-door] is its own entry, by its rule and
+ * href, and the list holds exactly one, rule 1's to /trials, beside the six sources and the record
+ * line's.
  */
 function keelLinks(page: Page) {
   return page.evaluate((keel) => {
     const out = [...document.querySelectorAll(`${keel} a`)].map((a) => {
       const rule = a.closest("li[data-rule]");
+      if (rule && a.closest("p[data-trials-door]"))
+        return `the trials door in rule ${rule.getAttribute("data-rule")}: ${a.getAttribute("href")}`;
       if (rule) return `rule ${rule.getAttribute("data-rule")}`;
       const where = a.closest("p[data-keel-record]")
         ? "the record line"
@@ -796,6 +820,7 @@ function keelLinks(page: Page) {
 const KEEL_LINKS = [
   ...RULES.map((rule) => `rule ${rule.n}`),
   "the record line: /log#every-revision",
+  `the trials door in rule 1: ${TRIALS_DOOR.href}`,
 ].sort();
 
 /** Anything in the keel painted in `accent` (B1.6's properties), pseudo-elements included. */
@@ -977,7 +1002,7 @@ for (const [width, height] of K6_SIZES) {
         expect
           .soft(
             await keelLinks(page),
-            `keel links ${where}: one source link per rule, and the record line's one (${targets.count} in all)`,
+            `keel links ${where}: one source link per rule, the record line's one and rule 1's trials door (${targets.count} in all)`,
           )
           .toEqual(KEEL_LINKS);
         expect
