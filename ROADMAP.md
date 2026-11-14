@@ -62,8 +62,11 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   for the visit only. T16 to T21. (PR #133.) Left open: Iris to confirm a crew's dot wins a tap
   over a sounding's target (decisions.md 10); the track (call 5); Tb's open items above; real
   Safari, iOS and a real finger are unchecked.
-- [ ] Td (S): the doors, from Crew's keel under its first rule and from the Log's foot, plain
-  links, fit-measured first. Planned T22 to T24.
+- [x] Td (S), sprint 66: the doors. "Try to sink Ruslan's contact links", to `/trials`, under the
+  keel's rule 1 on `/crew` and after the Log's table on `/log` (not the records); nothing above
+  either moves. T22 to T24; K1, K6 and B5.6 (C5.3) rewritten. (PR #134.) Left open: the Log door's
+  `nowrap` overflows at 320 with a 20 px default font or larger, and no check reads the doors in
+  print (Lens's nits); the dare is written in four places.
 - [ ] The milestone's demo: Quill on production after Td (`plan.md`, "The demo").
 - After the demo, not scheduled: the frame with scripts on (the hull in 3D as you drag), and the
   yard in the trials (a step page in a phone's window). Each has its question in `plan.md`.

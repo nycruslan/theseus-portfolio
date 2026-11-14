@@ -7,6 +7,7 @@ import { Model, MotionControl } from "@/components/model";
 import { CrewKey, signatures } from "@/components/revisions";
 import { SkipLink } from "@/components/skip-link";
 import { chapterLine, countLine } from "@/lib/count-line";
+import { FIRST_NAME } from "@/lib/crew-key";
 import { PLANKS } from "@/lib/hull-layouts";
 import { seatHolders, shipsAt } from "@/lib/lines-plan";
 import { dayWords, utcDay, utcYear, weekdayWords } from "@/lib/log-dates";
@@ -335,6 +336,17 @@ export function Log({ entries, open }: LogProps) {
               </tbody>
             ))}
           </table>
+          {/* On /log, the door into the trials at the record's end, for the reader who went
+            through it all: the page's last Tab stop. Not at the head, which has its two ways out
+            and the first screen, and not on the records, which are the yard's steps. Inside the
+            section, so it takes the table's edge; from 1024 a sibling would need a grid row of its
+            own (Iris's .crew/sprint/66/placement.md, section 1). The words are /trials's dare
+            without its full stop, the look Rebuild it yourself's (app/globals.css, ".log-door"). */}
+          {record ? null : (
+            <p data-trials-door="" className="log-door">
+              <a href="/trials">{`Try to sink ${FIRST_NAME}'s contact links`}</a>
+            </p>
+          )}
         </section>
       </main>
     </>

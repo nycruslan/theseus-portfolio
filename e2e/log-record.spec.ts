@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { profile } from "../content/profile";
 import { installRgba, SCHEMES } from "./helpers";
 import {
   BAR,
@@ -384,40 +385,52 @@ test.describe("B5.6 A record per revision", () => {
     }
   });
 
-  test("B5.6 (C5.3) no outcome, no evidence and no backtick on /log or a record, and no link but the bar's, the record's, the table's and the key's one to /crew#keel, inside p[data-crew-key]", async ({
+  test("B5.6 (C5.3) no outcome, no evidence and no backtick on /log or a record, and no link but the bar's, the record's, the table's, the key's one to /crew#keel, inside p[data-crew-key], and on /log only the trials door's one to /trials, inside p[data-trials-door]", async ({
     page,
   }) => {
     test.setTimeout(120_000);
     const table = MERGED.map((entry) => recordOf(entry.sprint));
     const bar = ["#main", "/", ...BAR.map((link) => link.href)];
+    const doorWords = `Try to sink ${profile.name.trim().split(/\s+/)[0]}'s contact links`;
     for (const entry of [undefined, ...VALID]) {
       const url = entry ? recordOf(entry.sprint) : LOG;
       await open(page, url, 1440);
       // Sprint 48 (K9): the table's key holds one link, "his rules" to the keel, on /log and every
       // record. It is allowed only there, exactly once; every other link keeps the rule below.
-      const found = await page.evaluate(() => {
+      // Sprint 66 (T24): this pinned /trials as a link no Log page may hold. Now /log holds exactly
+      // one, the trials door's words to /trials inside p[data-trials-door], and every record none;
+      // a /trials link anywhere else, or a door on a record, still fails.
+      const found = await page.evaluate((words) => {
         const links = [...document.querySelectorAll("a")].map((a) => ({
           href: a.getAttribute("href"),
           text: (a.textContent ?? "").replace(/\s+/g, " ").trim(),
           inKey: a.closest("p[data-crew-key]") !== null,
+          inDoor: a.closest("p[data-trials-door]") !== null,
         }));
-        const key = (l: {
-          href: string | null;
-          text: string;
-          inKey: boolean;
-        }) => l.inKey && l.href === "/crew#keel" && l.text === "his rules";
+        type Link = (typeof links)[number];
+        const key = (l: Link) =>
+          l.inKey && l.href === "/crew#keel" && l.text === "his rules";
+        const door = (l: Link) =>
+          l.inDoor && l.href === "/trials" && l.text === words;
         return {
           text: document.querySelector("main")?.textContent ?? "",
-          hrefs: links.filter((l) => !key(l)).map((l) => l.href),
+          hrefs: links.filter((l) => !key(l) && !door(l)).map((l) => l.href),
           keyLinks: links.filter(key).length,
+          doorLinks: links.filter(door).length,
         };
-      });
+      }, doorWords);
       expect
         .soft(
           found.keyLinks,
           `the key's links to /crew#keel reading his rules on ${url}`,
         )
         .toBe(1);
+      expect
+        .soft(
+          found.doorLinks,
+          `the trials door's links to /trials reading "${doorWords}" on ${url}`,
+        )
+        .toBe(entry ? 0 : 1);
       const text = squash(found.text);
       const own = [...VALID.map((e) => e.goal), ...(entry ? shown(entry) : [])];
       // Only more than two words: a one-word outcome ("merged") would match any goal that has it.

@@ -72,6 +72,24 @@ function Approvals({ retros }: { retros: Retros }) {
 }
 
 /**
+ * The door into the trials, the coda of rule 1 ("Nothing merges until three checks pass"): a
+ * visitor who has just read it is dared to test the site themselves (Iris's
+ * .crew/sprint/66/placement.md, section 1). Keyed on the rule's number, not its place, so if rule 1
+ * drops its door drops with it rather than moving under rule 2. The words are /trials's own dare
+ * without its full stop, so the visitor lands on the sentence they clicked, and they name no window,
+ * which would give the answer away. Rule 1's source link's classes, so the two read as one voice.
+ */
+function TrialsDoor() {
+  return (
+    <p data-trials-door="" className="keel-door">
+      <a href="/trials" className={LINK}>
+        {`Try to sink ${FIRST_NAME}'s contact links`}
+      </a>
+    </p>
+  );
+}
+
+/**
  * The keel (.crew/sprint/46/first-contract.md; Iris's .crew/sprint/47/placement.md): server HTML
  * after the panel. Each rule keeps its number from KEEL, so a dropped rule leaves a gap; with none
  * left the page sets nothing, not an empty heading. Its h2 is where "his rules" on / and the
@@ -107,6 +125,7 @@ export function Keel({
                 {at(rule)}
               </a>
             </p>
+            {rule.n === 1 ? <TrialsDoor /> : null}
           </li>
         ))}
       </ol>
