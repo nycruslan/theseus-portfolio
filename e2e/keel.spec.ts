@@ -932,11 +932,22 @@ function keelShows(page: Page) {
     const items = [...section.querySelectorAll("li[data-rule]")];
     for (const li of items) {
       const n = li.getAttribute("data-rule");
+      // Every link in the rule, not only its first: rule 1 ends in the trials door since sprint 66
+      // (Lens's nit, .crew/sprint/66/retro.json).
+      const links = [...li.querySelectorAll("a")];
       const parts: [string, Element | null][] = [
         ["rule", li],
         ["label", li.querySelector("[data-enforcer]")],
         ["quote", li.querySelector("blockquote")],
-        ["link", li.querySelector("a")],
+        ...(links.length > 0
+          ? links.map(
+              (a, i) =>
+                [`link ${i + 1} (${a.getAttribute("href")})`, a] as [
+                  string,
+                  Element | null,
+                ],
+            )
+          : [["link", null] as [string, Element | null]]),
       ];
       for (const [what, el] of parts) {
         const name = `rule ${n}'s ${what}`;

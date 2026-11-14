@@ -685,3 +685,191 @@ for (const name of PAGES) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// T25, a reader's large font. Sprint 67's follow-up from Lens's nit (.crew/sprint/66/retro.json):
+// the Log's door took Rebuild it yourself's nowrap, so on main at 320 x 568 with Chrome's "Very
+// large" font (24 px) it runs to 354 and the page scrolls sideways; the fix lets it wrap within its
+// column (.crew/sprint/67/). Chrome's "Large" (20) and "Very large" (24) presets, set through CDP's
+// Page.setFontSizes, which is the reader's default font: rem and a media query's rem follow it.
+// At 24 px the page scrolls sideways on every route for two things outside the doors, the bar's
+// Contact (to 373) and the motion control's Off (to 327): sprint 67's finding, so there the clause is
+// the door's own edges, and the whole page's scroll is read at 16 and 20.
+
+/** Chrome's Medium, Large and Very large default fonts. */
+const DEFAULT_FONTS = [16, 20, 24] as const;
+/** The default fonts at which the whole page holds without sideways scroll today. */
+const PAGE_HOLDS = new Set<number>([16, 20]);
+
+/** The door link's right edge against its column (the holder's content box) and the page's. */
+function readEdge(page: Page) {
+  return page.evaluate((door) => {
+    const holder = document.querySelector(door);
+    const a = holder?.querySelector("a");
+    if (!holder || !a) return null;
+    const box = holder.getBoundingClientRect();
+    const s = getComputedStyle(holder);
+    return {
+      root: getComputedStyle(document.documentElement).fontSize,
+      right: a.getBoundingClientRect().right,
+      column:
+        box.right -
+        Number.parseFloat(s.paddingRight) -
+        Number.parseFloat(s.borderRightWidth),
+      page: document.documentElement.clientWidth,
+    };
+  }, DOOR);
+}
+
+const T25 =
+  "T25 a large default font: at 320 x 568 with a 16, 20 or 24 px default font, webfont and fonts blocked, each door's right edge stays inside its column and the page, and at 16 and 20 px the page has no horizontal scroll (at 24 px the bar and the motion control scroll every page, sprint 67's finding)";
+
+for (const name of PAGES) {
+  test(`${T25} (${name})`, async ({ browser }) => {
+    test.setTimeout(90_000);
+    for (const blocked of [false, true]) {
+      for (const size of DEFAULT_FONTS) {
+        const where = `at 320 x 568, ${size} px default font, ${blocked ? "fonts blocked" : "webfont"}`;
+        const { context, page } = await contextOf(browser, {
+          width: 320,
+          height: 568,
+          blocked,
+        });
+        try {
+          const cdp = await context.newCDPSession(page);
+          await cdp.send("Page.setFontSizes", {
+            fontSizes: { standard: size },
+          });
+          await open(page, name);
+          const edge = await readEdge(page);
+          expect.soft(edge, `a door on ${name}, ${where}`).not.toBeNull();
+          if (!edge) continue;
+          // The setting took: the root's font is the reader's default.
+          expect(edge.root, `the root's font on ${name}, ${where}`).toBe(
+            `${size}px`,
+          );
+          expect
+            .soft(
+              edge.right,
+              `the door's right edge on ${name}, ${where}, against its column's ${edge.column}`,
+            )
+            .toBeLessThanOrEqual(edge.column + 0.5);
+          expect
+            .soft(
+              edge.right,
+              `the door's right edge on ${name}, ${where}, against the page's ${edge.page}`,
+            )
+            .toBeLessThanOrEqual(edge.page);
+          if (PAGE_HOLDS.has(size))
+            expect
+              .soft(
+                await horizontalOverflow(page),
+                `sideways overflow on ${name}, ${where}`,
+              )
+              .toBeLessThanOrEqual(0);
+        } finally {
+          await context.close();
+        }
+      }
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// T26, the doors on paper. Sprint 67's follow-up from Lens's nit (.crew/sprint/66/retro.json): no
+// check read either door in print. Print keeps the site's links that read as words and drops only
+// the controls nobody can press on paper (app/globals.css, "Print, on every route"; the bar isn't
+// printed): each door prints as its sentence, in the print ink, never copper. Whether a dare to an
+// interactive page should print without its address is sprint 67's question for Iris, so no clause
+// here reads an address either way.
+
+const T26 =
+  "T26 the doors in print: on /crew and /log at 390 x 844 and 1440 x 900, light and dark, exactly one door, reading exactly \"Try to sink Ruslan's contact links\", shown (a box, visible, full opacity down its ancestors), its words in print's --foreground on its ground, never --accent, its right edge inside the page";
+
+for (const name of PAGES) {
+  test(`${T26} (${name})`, async ({ browser }) => {
+    test.setTimeout(60_000);
+    for (const [width, height] of [
+      [390, 844],
+      [1440, 900],
+    ] as const) {
+      for (const scheme of SCHEMES) {
+        const where = `at ${at(width, height)}, ${scheme}, in print`;
+        const { context, page } = await contextOf(browser, {
+          width,
+          height,
+          scheme,
+        });
+        try {
+          await page.emulateMedia({ media: "print", colorScheme: scheme });
+          await open(page, name);
+          const read = await readDoors(page);
+          expect
+            .soft(read.links, `[data-trials-door] a on ${name}, ${where}`)
+            .toBe(1);
+          expect
+            .soft(read.text, `the door's words on ${name}, ${where}`)
+            .toBe(WORDS);
+          if (read.links !== 1) continue;
+          const accent = await tokenRgba(page, "--accent");
+          const ink = await tokenRgba(page, "--foreground");
+          const shown = await page.evaluate((door) => {
+            const rgba = (
+              window as Window & { __rgba?: (c: string) => number[] | null }
+            ).__rgba;
+            const a = document.querySelector(`${door} a`);
+            if (!a || !rgba) return null;
+            let opacity = 1;
+            let ground: number[] | null = null;
+            for (let el: Element | null = a; el; el = el.parentElement) {
+              const s = getComputedStyle(el);
+              opacity *= Number(s.opacity);
+              const c = rgba(s.backgroundColor);
+              if (!ground && c && (c[3] ?? 0) >= 0.99) ground = c;
+            }
+            return {
+              boxes: a.getClientRects().length,
+              shown: a.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+              }),
+              opacity,
+              ink: rgba(getComputedStyle(a).color),
+              ground: ground ?? [255, 255, 255, 1],
+              right: a.getBoundingClientRect().right,
+              page: document.documentElement.clientWidth,
+            };
+          }, DOOR);
+          expect
+            .soft(shown, `the door read on ${name}, ${where}`)
+            .not.toBeNull();
+          if (!shown) continue;
+          expect
+            .soft(
+              [shown.boxes > 0, shown.shown, shown.opacity >= 0.99],
+              `the door has a box, shows and is at full opacity on ${name}, ${where} (opacity ${shown.opacity})`,
+            )
+            .toEqual([true, true, true]);
+          expect
+            .soft(
+              [
+                sameColor(shown.ink, ink),
+                sameColor(shown.ink, shown.ground),
+                sameColor(shown.ink, accent),
+              ],
+              `the door's words are print's ink (${JSON.stringify(shown.ink)} against ${JSON.stringify(ink)}), unlike their ground (${JSON.stringify(shown.ground)}), never copper (${JSON.stringify(accent)}), on ${name}, ${where}`,
+            )
+            .toEqual([true, false, false]);
+          expect
+            .soft(
+              shown.right,
+              `the door's right edge on ${name}, ${where}, against the page's ${shown.page}`,
+            )
+            .toBeLessThanOrEqual(shown.page);
+        } finally {
+          await context.close();
+        }
+      }
+    }
+  });
+}

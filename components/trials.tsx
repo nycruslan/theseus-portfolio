@@ -24,6 +24,7 @@ import {
   frameTitleOf,
   RECORD,
 } from "@/lib/trials-answer";
+import { DARE } from "@/lib/trials-dare";
 import {
   answerOf,
   depthOf,
@@ -264,7 +265,7 @@ export function Trials({ trial }: { trial: Trial }) {
       >
         <header className="trials-head">
           <h1>Sea trials</h1>
-          <p className="trials-dare">Try to sink Ruslan's contact links.</p>
+          <p className="trials-dare">{`${DARE}.`}</p>
           <p className="trials-lead">
             Pick a window and his first page is drawn at its size. The window's
             foot is the waterline; how far the links stand above it is their
