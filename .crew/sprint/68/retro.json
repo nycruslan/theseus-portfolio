@@ -1,0 +1,37 @@
+{
+  "sprint": 68,
+  "pr": 137,
+  "goal": "A reader's large font keeps the Contact link whole on a small phone",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Lens ship on 7e385f2 after one fix round, 2 nits",
+  "fixRounds": 1,
+  "minutes": 230,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 792765, "minutes": 218 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 206495, "minutes": 12 },
+    { "role": "design-director", "model": "opus", "tokens": 107918, "minutes": 9 }
+  ],
+  "lens": { "runs": 2, "tokens": 1432640, "important": 1, "actedOn": 1, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "One overflow hid the next: the drawing's labels and the Freeboard reading also ran off the page",
+      "evidence": "Probe hid the bar and the control and measured again: DWL to 344 and Base to 346 on /, Freeboard to 340 on /trials, at 24 px (contract.md, Contract change)"
+    },
+    {
+      "what": "The first fix made the Log and Crew pages jump a row as their motion buttons arrived",
+      "evidence": "Lens on 0b66d12: the foot went from 44 to 88 px after hydration; T27's scripts off and on clause, red there, is green on 489cdec"
+    },
+    {
+      "what": "The wrapped bar first took 133 px of a 568 px window",
+      "evidence": "Iris: its rows were rem, 66 px each at 24 px; 44 px rows in px make it 89 px (pr.md, Iris)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "A T27 clause that follows the bar's Work link at 24 px and checks #work lands below the bar (Lens's nit, app/globals.css:156)" },
+    { "who": "Forge", "what": "Check whether the trials readout's row count changes with the reading's length at 21 px; if so, key its wrap on the font (Lens's nit, app/globals.css:4714)" },
+    { "who": "Forge", "what": "At a 28 px font, /crew's table overflows below 330 px wide and /evals below 300; /crew at 24 px below 294 (Forge, Iris)" },
+    { "who": "Forge", "what": "MEMORY.md is 24.8 KB, at its load limit: move detail to a topic file" }
+  ]
+}
