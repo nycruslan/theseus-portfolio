@@ -146,19 +146,28 @@ html {
 /* Where a large default font wraps the bar's links under the wordmark (components/bar.tsx): under
    359 px, the links' small step, the row wraps below 16.4rem of window (Playwright's Chromium, 16
    to 28 px fonts, the face and its fallback), and from 359 below 18.2rem; each bound here keeps a
-   margin over that. The bar is then two rows, each a 2.75rem target's height, the sheet's plain
-   wordmark included, so the scroll padding is both and the rule. At the default font the first
-   holds only under 268 px and the second never, so nothing there moves (.crew/sprint/68/
-   contract.md). Past a bound and short of the wrap, the padding is one row more than the bar. */
+   margin over that. The bar is then two rows, each a 44 px target's height in px, not rem, the
+   sheet's plain wordmark included, so it is 89 px at 24 px rather than 133 and `/`'s h1 rule is
+   back in the first screen (Iris, sprint 68); a row's text, if taller (the wordmark's from a 30 px
+   font), sets it instead. The scroll padding is both rows and the rule. At the default font the
+   first bound holds only under 268 px and the second never, so nothing there moves
+   (.crew/sprint/68/contract.md). Past a bound and short of the wrap, the padding is one row more
+   than the bar. */
 @media (width < 16.75rem), (359px <= width < 18.5rem) {
   html {
-    scroll-padding-top: calc(5.5rem + 1px);
+    --bar-row: max(44px, var(--step-xl), 1.55 * var(--step-base));
+    scroll-padding-top: calc(2 * var(--bar-row) + 1px);
   }
 
   .bar-mark {
     display: flex;
     align-items: center;
-    min-height: 2.75rem;
+  }
+
+  .bar-mark,
+  .bar-mark a,
+  .bar-mark ~ nav a {
+    min-height: 44px;
   }
 }
 
@@ -167,7 +176,7 @@ html {
    font the first bound holds only under 208 px and the second never. */
 @media (width < 13rem), (359px <= width < 14.75rem) {
   html {
-    scroll-padding-top: calc(8.25rem + 1px);
+    scroll-padding-top: calc(3 * var(--bar-row) + 1px);
   }
 }
 
@@ -216,11 +225,16 @@ nav > [data-motion] {
 }
 
 /* The slot takes the rest of the row, so its box is the same before the buttons arrive, with scripts
-   off, and after. */
+   off, and after. Its floor is the group's own width, so the row breaks the same way empty or full:
+   76 px of padding and frames below 22.5rem (100 from there, below) and its labels, 5.21em of the
+   buttons' text at most (5.12 in Chrome, whose glyphs take fractional widths). Empty in the
+   server's HTML, it had no width of its own, so at 24 px the buttons' arrival broke the row and
+   moved the page 44 px down (Lens on #137). At the default font the slot is always wider. */
 .foot > [data-motion] {
   display: flex;
   flex: 1;
   justify-content: flex-end;
+  min-width: calc(100px + 5.3 * var(--step-base));
 }
 
 [data-motion] fieldset {
@@ -277,6 +291,10 @@ nav > [data-motion] {
 
   [data-motion] button {
     padding: 0 12px;
+  }
+
+  .foot > [data-motion] {
+    min-width: calc(76px + 5.3 * var(--step-base));
   }
 }
 
@@ -1821,11 +1839,13 @@ main:has(> [data-model]) {
 
   /* A set slot, not the group's own width: sized by its content, the buttons' arrival would push
      Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). The whole row's width, so a
-     row of its own, on --narrow-wrap's condition (here 100% is the row's inner width). */
+     row of its own, on --narrow-wrap's condition (here 100% is the row's inner width). That set
+     width is its floor too, for this group a step smaller, so not the foot's. */
   main > [data-model] + .foot > [data-motion] {
     --row-need: calc(var(--narrow-read) + 16px + var(--narrow-slot) - 100%);
     flex: none;
     width: max(var(--narrow-slot), clamp(0px, var(--row-need) * 1000, 100%));
+    min-width: 0;
   }
 
   /* The row lies over the model's layer here, so once the canvas arrives Chromium composites the
