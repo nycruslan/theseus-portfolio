@@ -33,3 +33,10 @@ No new script; CSS only if it can be. The bar's links keep 44 px targets where t
 The bar's design at the default font (its four links share one row at 320 and 390); `/`'s first
 screen; the trials' other open items (console errors, caption jump, T11); owner paths and
 `content/`.
+
+## Contract change (Atlas, during the build)
+
+Probe found two more overflows at 320 × 568 and a 24 px default font: the plan drawing's
+lettering on `/` ("DWL" to 341, "Base" to 342; 344 and 346 with fonts blocked) and the Freeboard
+reading on `/trials` ("+37.0 px" to 340). The outcome names every page, so both are in. That opens
+nothing on `/`'s first screen at the default font, and the 16 px box diff still has to read 0.
