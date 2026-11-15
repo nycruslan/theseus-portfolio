@@ -21,8 +21,17 @@ stay inside it:
 - **The drawing's floor.** DWL and Base stay inside.
 - **The Freeboard reading on `/trials`.** It wraps.
 
-The sticky bar is now two rows (133 px at 24 px), so the scroll padding grows with it. That way a
-link to `#work` doesn't land under the bar.
+The sticky bar becomes two rows (89 px at 24 px), with each wrapped row 44 px tall in px, as Iris
+suggested; it was 133 px in round 0. The scroll padding grows with it, so a link to `#work`
+doesn't land under the bar.
+
+## Fix round 1
+
+Lens (changes on 0b66d12) found that on /log and /crew at 24 px the foot was one row in the
+server's HTML and two rows after the motion buttons arrived, so the page jumped 44 px. Probe added
+a T27 clause comparing the foot's height and what follows it with scripts off and on: it was red
+on 0b66d12 (44 → 88). Forge gave the empty slot the button group's own minimum width, so the row
+wraps the same way empty or full. It is green now, and the 16 px box diff is still 0 of 9,144.
 
 ## Evidence
 
@@ -48,7 +57,7 @@ All numbers are at 320 px wide.
 - **Nothing moves at 16 px:** 0 of 9,144 boxes changed on `/`, `/crew`, `/log` and `/trials` at
   320, 390, 1024 and 1440 (Forge). The before and after screenshots of `/` and `/log` at 320 are
   byte-identical.
-- **Tests:** Forge's full run, `pnpm test:e2e`, passed 433 tests. `pnpm verify` passes on the
+- **Tests:** Forge's full run, `pnpm test:e2e`, passed all 433 tests on 489cdec. `pnpm verify` passes on the
   integrated tree (Atlas).
 
 ## Not verified
@@ -57,3 +66,8 @@ All numbers are at 320 px wide.
 - Forced colours, and print at a large font.
 - Beyond the contract: at a 28 px font, `/crew`'s table overflows below 330 px wide and `/evals`
   below 300 (follow-up).
+
+## Iris
+
+`Verdict: ship` (7.8/10). The change is better than production, which also scrolls sideways at
+390 × 844 with a 24 px font (to 408). Her one cheap change, 44 px wrapped rows, is built.
