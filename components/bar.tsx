@@ -20,6 +20,13 @@ import type { ReactNode } from "react";
 // (app/page.tsx; .crew/sprint/44/placement.md), at the drawing's foot on /crew, and under the h1
 // at the drawings' head on the Log and its records (components/log.tsx; .crew/sprint/53/
 // placement.md, the addendum).
+//
+// A reader's large default font grows the bar's words and padding (rem) but not the window (px):
+// at 320 px from a 21 px font the four links ran off the page (.crew/sprint/68/contract.md). So the
+// row wraps, only when the wordmark and the links can't share it: the links take a second row,
+// still at the right, Contact's word still on the bar's edge. At the default font they always fit,
+// so nothing moves there; the row's height is a floor, so it grows with the links' 44 px targets,
+// which are in rem, and app/globals.css's scroll padding follows it.
 type BarProps = {
   /** Where the bar is: the sheet, the Log, a record, the crew's page, a case study, or any other. */
   at?: "sheet" | "log" | "record" | "crew" | "work" | "page";
@@ -74,10 +81,11 @@ export function Bar({ at = "sheet", control, className = "" }: BarProps) {
     <header
       className={`sticky top-0 z-10 bg-background print:hidden lg:mt-4 ${className}`}
     >
-      <div className="flex h-[52px] items-center justify-between border-b border-foreground px-4 lg:mx-4 lg:h-14 lg:justify-start lg:gap-10 lg:px-6">
+      <div className="flex min-h-[52px] flex-wrap items-center justify-between border-b border-foreground px-4 lg:mx-4 lg:h-14 lg:justify-start lg:gap-10 lg:px-6">
+        {/* bar-mark: its row's height when the links wrap under it (app/globals.css). */}
         <p
           translate="no"
-          className="font-cond text-step-xl leading-none font-bold"
+          className="bar-mark font-cond text-step-xl leading-none font-bold"
         >
           {/* 44 px tall on phones, as the links beside it; 24 from 1024 px. */}
           {home ? (
@@ -91,14 +99,17 @@ export function Bar({ at = "sheet", control, className = "" }: BarProps) {
             "Theseus"
           )}
         </p>
+        {/* Its auto margin keeps it at the right on a row of its own, as justify-between does
+          beside the wordmark. From 1024 px it grows instead, so the margin is 0. */}
         <nav
           aria-label="Main"
-          className="md:flex md:items-center md:gap-[18px] lg:flex-1 lg:gap-6"
+          className="ml-auto md:flex md:items-center md:gap-[18px] lg:flex-1 lg:gap-6"
         >
           {/* Below 768 px the negative margin sets the last word on the bar's edge, its target
             running past it. From 1024 px Read as page ends the links, at the right before the
-            control, as the frame draws it. */}
-          <ul className="-mr-1.5 flex md:mr-0 lg:flex-1 lg:gap-7">
+            control, as the frame draws it. They wrap only where even a row of their own is too
+            narrow (under 300 px at a 24 px font), so no label is ever cut. */}
+          <ul className="-mr-1.5 flex flex-wrap justify-end md:mr-0 lg:flex-1 lg:gap-7">
             {links.map((link) => (
               <li
                 key={link.label}

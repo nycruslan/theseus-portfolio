@@ -137,9 +137,38 @@ body {
 }
 
 /* The bar sticks to the top (components/bar.tsx), so a fragment link or a focused link scrolls in
-   below it rather than under it. */
+   below it rather than under it. A large default font grows the bar's row with its links' targets
+   (2.75rem, and its 1 px rule), which pass 52 px from 19 px. */
 html {
-  scroll-padding-top: 52px;
+  scroll-padding-top: max(52px, 2.75rem + 1px);
+}
+
+/* Where a large default font wraps the bar's links under the wordmark (components/bar.tsx): under
+   359 px, the links' small step, the row wraps below 16.4rem of window (Playwright's Chromium, 16
+   to 28 px fonts, the face and its fallback), and from 359 below 18.2rem; each bound here keeps a
+   margin over that. The bar is then two rows, each a 2.75rem target's height, the sheet's plain
+   wordmark included, so the scroll padding is both and the rule. At the default font the first
+   holds only under 268 px and the second never, so nothing there moves (.crew/sprint/68/
+   contract.md). Past a bound and short of the wrap, the padding is one row more than the bar. */
+@media (width < 16.75rem), (359px <= width < 18.5rem) {
+  html {
+    scroll-padding-top: calc(5.5rem + 1px);
+  }
+
+  .bar-mark {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}
+
+/* Narrower still, the links themselves take two rows, below 12.7rem of window (14.43rem from 359
+   px), measured the same way: under 300 px at a 24 px font, the bar is three rows. At the default
+   font the first bound holds only under 208 px and the second never. */
+@media (width < 13rem), (359px <= width < 14.75rem) {
+  html {
+    scroll-padding-top: calc(8.25rem + 1px);
+  }
 }
 
 @media (width >= 64rem) {
@@ -167,14 +196,23 @@ nav > [data-motion] {
    row. Here, as /crew sets it at the drawing's foot, it borrows 12 px of the drawing's own margin,
    and paints over the model's layer, which lies on the drawing's box. The sheet hangs it from the
    bar at the drawing's head ("The sheet on a phone window"), the Log sets it under the h1 at the
-   drawings' head (`.log-side > .foot`). */
+   drawings' head (`.log-side > .foot`). A large default font grows both items but not the window,
+   so the control takes a second 44 px row when they can't share one (from a 24 px font at 320,
+   .crew/sprint/68/contract.md); at the default font they always do, and nothing moves. */
 .foot {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  height: 44px;
   margin: -12px 0 12px;
   padding: 0 16px;
+}
+
+/* Each row is 44 px, the row's height when it was set on the foot: its items are that tall
+   whatever their text, as the one row's stretch made them (/'s Read as page's text and padding
+   come to 44.8 from 359 px). */
+.foot > * {
+  height: 44px;
 }
 
 /* The slot takes the rest of the row, so its box is the same before the buttons arrive, with scripts
@@ -1694,12 +1732,31 @@ main:has(> [data-model]) {
  *     whose 76 px of padding and frames hold while its labels grow with the text.
  *   - --narrow-cap, (width - 40 - the slot) * 1.25: the widest drawing whose bow (x 20 + 312 s)
  *     stays 4 px clear of the slot, 16 px in from the right (1.25 is 390 / 312).
+ *   - 0.843618 and 2rem: the floor, in rem, would outgrow the band, in px, at a large default font
+ *     (336 px at 24 px, at 320 wide), and the DWL and Base figures, which start at 0.8949 of the
+ *     drawing and run 1.71 to 1.875rem past it (the face, its fallback), with it. So the floor is
+ *     never wider than keeps them in the band: 20 px - 0.051282 w + 0.8949 w + 2rem. At the
+ *     default font that is 318 px against 224, so it never binds (.crew/sprint/68/contract.md).
  * --narrow-w is the larger of the two fits, never under the floor or past the band.
  */
+/* Read as page's widest, for --narrow-wrap below: 6.27em of its step in the face's fallback (5.65 in
+   the face), whose step is the small one under 359 px (components/foot.tsx). */
+@media screen and (width < 359px) {
+  main {
+    --narrow-read: calc(6.4 * var(--step-sm));
+  }
+}
+
+@media screen and (359px <= width < 48rem) {
+  main {
+    --narrow-read: calc(6.4 * var(--step-base));
+  }
+}
+
 @media screen and (width < 48rem) {
   main {
     --phone-foot: 28rem;
-    --narrow-floor: 14rem;
+    --narrow-floor: min(14rem, calc((100% - 20px - 2rem) / 0.843618));
     --narrow-slot: calc(76px + 4.5rem);
     --narrow-room: calc(100svh - 60px - var(--phone-foot));
     --narrow-cap: calc((100% - 40px - var(--narrow-slot)) * 1.25);
@@ -1716,7 +1773,15 @@ main:has(> [data-model]) {
        no conditional. */
     --narrow-over: calc(var(--narrow-w) - var(--narrow-cap));
     --narrow-step: clamp(0px, var(--narrow-over) * 1000, 12px);
-    --narrow-drop: calc(38px + var(--narrow-step) - var(--narrow-w) * 0.105128);
+    /* 44 px more where a large default font leaves Read as page and the slot no room to share the
+       row (the row's 100% - 32px, less the 16 px between them): the slot then takes a row of its
+       own (below), so the drawing drops by that row. One step sets both, so they always agree.
+       Never at the default font, where they need 247 px of a 288 px row at 320 (266 of 327 at
+       359). */
+    --narrow-need: calc(var(--narrow-read) + 48px + var(--narrow-slot) - 100%);
+    --narrow-wrap: clamp(0px, var(--narrow-need) * 1000, 44px);
+    --narrow-lift: calc(var(--narrow-step) + var(--narrow-wrap));
+    --narrow-drop: calc(38px + var(--narrow-lift) - var(--narrow-w) * 0.105128);
     --narrow-trim: min(0px, 19px - var(--narrow-w) * 0.1);
     --narrow-band: calc(
       var(--narrow-drop) +
@@ -1746,18 +1811,21 @@ main:has(> [data-model]) {
   }
 
   /* The row at the band's head: pulled up by the band's whole height, so its grid row is 0 tall and
-     the title block follows the drawing. */
+     the title block follows the drawing. At its rows' height, not stretched down that grid row. */
   main > [data-model] + .foot {
+    align-self: start;
     justify-content: flex-end;
     column-gap: 16px;
     margin: calc(-1 * var(--narrow-band)) 0 0;
   }
 
   /* A set slot, not the group's own width: sized by its content, the buttons' arrival would push
-     Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). */
+     Read as page left (CLS 0.0066 at 390 x 664 in Iris's prototype). The whole row's width, so a
+     row of its own, on --narrow-wrap's condition (here 100% is the row's inner width). */
   main > [data-model] + .foot > [data-motion] {
+    --row-need: calc(var(--narrow-read) + 16px + var(--narrow-slot) - 100%);
     flex: none;
-    width: var(--narrow-slot);
+    width: max(var(--narrow-slot), clamp(0px, var(--row-need) * 1000, 100%));
   }
 
   /* The row lies over the model's layer here, so once the canvas arrives Chromium composites the
@@ -1816,12 +1884,13 @@ main:has(> [data-model]) {
 /* Below 331 px the row reaches the Profile caption's column (x 20 to 56), so the drawing drops
    further and the caption sits under the row: 55 - 25 s sets the caption's middle (25 s down the
    box) at y 107, its top 4.5 px under the row, and 48 - 41 s keeps the stations' tops 4 px under
-   it, whichever drops more. */
+   it, whichever drops more. A large default font reaches this from wider windows, and there a
+   second row (--narrow-wrap) drops the drawing by its height too. */
 @media screen and (width < 20.6875rem) {
   main {
     --narrow-drop: max(
-      calc(55px - var(--narrow-w) * 0.064103),
-      calc(48px - var(--narrow-w) * 0.105128)
+      calc(55px - var(--narrow-w) * 0.064103 + var(--narrow-wrap)),
+      calc(48px - var(--narrow-w) * 0.105128 + var(--narrow-wrap))
     );
   }
 }
@@ -4612,7 +4681,10 @@ a[data-replay]:not([data-ready]) {
 }
 
 /* The readout: Window and Freeboard on one ink rule, the freeboard at the right, then the verdict
-   in ink and bold, since it binds (memory, sprint 47). */
+   in ink and bold, since it binds (memory, sprint 47). A large default font grows both figures
+   (rem) but not the column (px), so the freeboard takes a row of its own, still at the right, when
+   they can't share one (to 340 at 320 wide and a 24 px font, .crew/sprint/68/contract.md); at the
+   default font they always do. */
 .trials-readout {
   margin-top: 18px;
   padding-top: 8px;
@@ -4621,11 +4693,13 @@ a[data-replay]:not([data-ready]) {
 
 .trials-readout dl {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
 }
 
 .trials-readout dl > div:last-child {
+  margin-left: auto;
   text-align: right;
 }
 
