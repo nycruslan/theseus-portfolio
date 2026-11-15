@@ -1,9 +1,9 @@
-import { type Browser, expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { profile } from "../content/profile";
-import { horizontalOverflow, installRgba, SCHEMES } from "./helpers";
+import { horizontalOverflow, SCHEMES } from "./helpers";
 import { type Rgba, sameColor, tokenRgba } from "./log";
+import { contextOf, setDefaultFont } from "./reader-font";
 import { MERGED } from "./retros";
-import { refuseWebGl } from "./webgl";
 
 // Sprint 66, Td (.crew/sprint/66/contract.md, T22 and T23): the two doors into the trials, written
 // before the build. One plain link, "Try to sink Ruslan's contact links", to /trials: on /crew the
@@ -47,34 +47,6 @@ const PLACE = {
 } as const;
 
 const at = (width: number, height: number) => `${width} x ${height}`;
-
-/** A context with scripts on or off, WebGL refused, in a scheme; web fonts refused if `blocked`. */
-async function contextOf(
-  browser: Browser,
-  options: {
-    width: number;
-    height: number;
-    scheme?: "light" | "dark";
-    scripts?: boolean;
-    blocked?: boolean;
-  },
-) {
-  const context = await browser.newContext({
-    baseURL: test.info().project.use.baseURL,
-    viewport: { width: options.width, height: options.height },
-    colorScheme: options.scheme ?? "light",
-    javaScriptEnabled: options.scripts ?? true,
-  });
-  await context.addInitScript(installRgba);
-  await context.addInitScript(refuseWebGl);
-  const aborted = { count: 0 };
-  if (options.blocked)
-    await context.route(/\.woff2(\?|$)/, (route) => {
-      aborted.count += 1;
-      return route.abort();
-    });
-  return { context, page: await context.newPage(), aborted };
-}
 
 /** `path`, its status asserted, with the fonts settled (loaded or refused). */
 async function open(page: Page, path: string) {
@@ -692,14 +664,15 @@ for (const name of PAGES) {
 // large" font (24 px) it runs to 354 and the page scrolls sideways; the fix lets it wrap within its
 // column (.crew/sprint/67/). Chrome's "Large" (20) and "Very large" (24) presets, set through CDP's
 // Page.setFontSizes, which is the reader's default font: rem and a media query's rem follow it.
-// At 24 px the page scrolls sideways on every route for two things outside the doors, the bar's
-// Contact (to 373) and the motion control's Off (to 327): sprint 67's finding, so there the clause is
-// the door's own edges, and the whole page's scroll is read at 16 and 20.
+// Sprint 67 read the whole page's scroll at 16 and 20 only, since at 24 the bar's Contact (to 373)
+// and the motion control's Off (to 327) scrolled every route; sprint 68 fixes that finding
+// (.crew/sprint/68/contract.md), so the clause holds at all three. The bar and the control's own
+// edges at a large font are T27's (large-font.spec.ts).
 
 /** Chrome's Medium, Large and Very large default fonts. */
 const DEFAULT_FONTS = [16, 20, 24] as const;
-/** The default fonts at which the whole page holds without sideways scroll today. */
-const PAGE_HOLDS = new Set<number>([16, 20]);
+/** The default fonts at which the whole page holds without sideways scroll: every one, since sprint 68. */
+const PAGE_HOLDS = new Set<number>([16, 20, 24]);
 
 /** The door link's right edge against its column (the holder's content box) and the page's. */
 function readEdge(page: Page) {
@@ -722,7 +695,7 @@ function readEdge(page: Page) {
 }
 
 const T25 =
-  "T25 a large default font: at 320 x 568 with a 16, 20 or 24 px default font, webfont and fonts blocked, each door's right edge stays inside its column and the page, and at 16 and 20 px the page has no horizontal scroll (at 24 px the bar and the motion control scroll every page, sprint 67's finding)";
+  "T25 a large default font: at 320 x 568 with a 16, 20 or 24 px default font, webfont and fonts blocked, each door's right edge stays inside its column and the page, and the page has no horizontal scroll";
 
 for (const name of PAGES) {
   test(`${T25} (${name})`, async ({ browser }) => {
@@ -736,10 +709,7 @@ for (const name of PAGES) {
           blocked,
         });
         try {
-          const cdp = await context.newCDPSession(page);
-          await cdp.send("Page.setFontSizes", {
-            fontSizes: { standard: size },
-          });
+          await setDefaultFont(context, page, size);
           await open(page, name);
           const edge = await readEdge(page);
           expect.soft(edge, `a door on ${name}, ${where}`).not.toBeNull();
