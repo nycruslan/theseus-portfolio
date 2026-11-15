@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 import { horizontalOverflow, MODES, MOTION, motionReady } from "./helpers";
 import { contextOf, setDefaultFont } from "./reader-font";
 
@@ -12,7 +12,11 @@ import { contextOf, setDefaultFont } from "./reader-font";
 // them), so hiding the overflow isn't a fix. The bar shows its four links at 320 and keeps them (the
 // contract's outcome). Sprint 68's sweep found two more things that scroll a page at 24 px past the
 // bar: the sheet's drawing (its DWL and Base figures, to 341) and the trials' Freeboard reading (to
-// 340), so the trials, which T25 doesn't visit, are read here too (Atlas's call, sprint 68).
+// 340), so the trials, which T25 doesn't visit, are read here too (Atlas's call, sprint 68). Last,
+// Lens's finding on the fix: the control's buttons arrive with scripts, and on /crew and /log at 24
+// px the foot's row took a second line only then, so the page jumped 44 px after it showed. So on
+// each page with the control, the foot's top and height and the top of what follows it are the same
+// with scripts off (the page as the server sends it, before the buttons arrive) as after them.
 
 /** Each route, and whether it has a model and so the motion control (the trials have neither). */
 const ROUTES = [
@@ -98,6 +102,105 @@ function readPieces(page: Page) {
   }, MOTION);
 }
 
+/**
+ * The foot holding the shown control slot, in the page's coordinates, and what follows it on the
+ * page: the box outside the foot that starts nearest under it, found by where it sits, since CSS
+ * places the Log's foot under its h1 while the DOM's next sibling is a hidden live region. Given
+ * `path`, the CSS path an earlier read found, it reads that element instead, so before and after
+ * read one element.
+ */
+function readFoot(page: Page, path?: string) {
+  return page.evaluate(
+    ([motion, given]) => {
+      const shown = (el: Element) => el.getClientRects().length > 0;
+      const top = (el: Element) => el.getBoundingClientRect().top + scrollY;
+      const foot = [...document.querySelectorAll("[data-foot]")].find(
+        (el) => shown(el) && [...el.querySelectorAll(motion)].some(shown),
+      );
+      if (!foot) return null;
+      const box = foot.getBoundingClientRect();
+      const bottom = box.bottom + scrollY;
+      const pathOf = (el: Element): string =>
+        el.parentElement && el !== document.body
+          ? `${pathOf(el.parentElement)} > :nth-child(${[...el.parentElement.children].indexOf(el) + 1})`
+          : "body";
+      const below = [...document.querySelectorAll("main *")].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return (
+          r.width > 1 &&
+          r.height > 1 &&
+          !foot.contains(el) &&
+          !el.contains(foot) &&
+          top(el) >= bottom - 1
+        );
+      });
+      const nearest = below.reduce<Element | null>(
+        (best, el) => (!best || top(el) < top(best) ? el : best),
+        null,
+      );
+      const next = given ? document.querySelector(given) : nearest;
+      return {
+        top: box.top + scrollY,
+        height: box.height,
+        next: next ? top(next) : null,
+        path: given || (nearest ? pathOf(nearest) : null),
+      };
+    },
+    [MOTION, path ?? ""] as const,
+  );
+}
+
+/** The foot as the server sends it: the same window, font and fonts, with scripts off. */
+async function footBefore(
+  browser: Browser,
+  name: string,
+  size: number,
+  blocked: boolean,
+) {
+  const { context, page } = await contextOf(browser, {
+    width: 320,
+    height: 568,
+    blocked,
+    scripts: false,
+  });
+  try {
+    await setDefaultFont(context, page, size);
+    await page.goto(name);
+    await page.evaluate(() => document.fonts.ready);
+    return await readFoot(page);
+  } finally {
+    await context.close();
+  }
+}
+
+type Foot = Awaited<ReturnType<typeof readFoot>>;
+
+/** Nothing moves when the buttons arrive: the foot's top and height, and the next thing's top. */
+function expectFootHolds(before: Foot, after: Foot, where: string) {
+  expect.soft(before, `the foot with scripts off ${where}`).not.toBeNull();
+  expect.soft(after, `the foot with its buttons ${where}`).not.toBeNull();
+  expect.soft(before?.path, `something under the foot ${where}`).toBeTruthy();
+  if (!before || !after) return;
+  expect
+    .soft(
+      after.height,
+      `the foot's height with its buttons ${where}, against ${before.height} before`,
+    )
+    .toBeCloseTo(before.height, 0);
+  expect
+    .soft(
+      after.top,
+      `the foot's top with its buttons ${where}, against ${before.top} before`,
+    )
+    .toBeCloseTo(before.top, 0);
+  expect
+    .soft(
+      after.next,
+      `the top of what follows the foot (${before.path}) with its buttons ${where}, against ${before.next} before`,
+    )
+    .toBeCloseTo(before.next ?? Number.NaN, 0);
+}
+
 /** Each piece whole and inside the page: box and words between 0 and the page, one line, unclipped. */
 function expectWhole(piece: Piece, page: number, where: string) {
   const name = `${piece.label} ${where}`;
@@ -121,7 +224,7 @@ function expectWhole(piece: Piece, page: number, where: string) {
 }
 
 const T27 =
-  "T27 a large font keeps the bar whole: at 320 x 568 with a 21 or 24 px default font, webfont and fonts blocked, the page has no horizontal scroll, and the bar's four links and, where a page has it, the motion control's three buttons are each whole, their right edges inside the page";
+  "T27 a large font keeps the bar whole: at 320 x 568 with a 21 or 24 px default font, webfont and fonts blocked, the page has no horizontal scroll, and the bar's four links and, where a page has it, the motion control's three buttons are each whole, their right edges inside the page, and the foot that holds the control keeps its top and height, and what follows it its top, from before its buttons arrive (scripts off) to after";
 
 for (const [name, control] of ROUTES) {
   test(`${T27} (${name})`, async ({ browser }) => {
@@ -159,6 +262,11 @@ for (const [name, control] of ROUTES) {
           .toEqual(control ? [...MODES] : []);
         for (const piece of [...read.links, ...read.buttons])
           expectWhole(piece, read.page, where);
+        if (control) {
+          const before = await footBefore(browser, name, size, blocked);
+          const after = await readFoot(page, before?.path ?? undefined);
+          expectFootHolds(before, after, where);
+        }
       } finally {
         await context.close();
       }
