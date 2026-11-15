@@ -85,6 +85,12 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
 - [x] The milestone's demo (sprint 67, PR #135): Quill on production, `.crew/sprint/67/demo.md`.
   The trials hold, so the crew stands down. Sprint 66's door follow-ups rode along: the Log's door
   wraps at a large default font (T25), both doors print (T26), and the dare is written once.
+- [x] Sprint 68 (S, PR #137): the stand-down's defect condition. At 320 wide with a 21 to 24 px
+  default font, the bar's Contact link was cut to "Con" and every page scrolled sideways. Now the
+  bar, the motion control's foot, the sheet's drawing and the trials' Freeboard reading wrap or
+  hold, and nothing moves at 16 px (0 of 9,144 boxes). T27 is new and T25 is strengthened. Left
+  open: a check on where #work lands under the wrapped bar, and whether the trials readout's row
+  count changes with its reading at 21 px (Lens's nits); /crew and /evals at 28 px.
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
