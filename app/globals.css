@@ -2573,8 +2573,9 @@ main:has(> [data-model]) {
    clears its ascenders. Visibility, never display: B5.6 (C5.2) holds a record to no display-none
    element. Its line is 14 px at the default font, and grows 1.5 px with each px of a larger one:
    its text's box is 1rem tall (1.23 of --step-sm), so a fixed 14 px line let a 20 to 28 px
-   default font print the text over the step links and the hand-off, and a wrapped hint's two
-   lines over each other; from 20 px the line holds the text whole (.crew/sprint/73/contract.md).
+   default font print the text into the hand-off and the goal (never the step links' words,
+   .crew/sprint/73/decisions.md 1), and a wrapped hint's two lines over each other; from 20 px the
+   line holds the text whole (.crew/sprint/73/contract.md).
    The ghost's caption below 48rem stands under it, so the line is a term of its margin. */
 .log-open {
   --hint-line: max(14px, 1.5rem - 10px);
@@ -3556,35 +3557,54 @@ main:has(> [data-model]) {
 
 /* The status, and "Pause updates" at the row's right end on the panel's content edge, Close's
    (.crew/sprint/35/notes-iris.md, section 1). The button's top is the row's, so a status that
-   changes or wraps never moves it; the status's first line is centred on it. */
+   changes or wraps never moves it; the status's first line is centred on it.
+   The row is laid from its right end, the button first, and wraps: the status takes what the
+   button leaves while its longest word fits there, and where it doesn't, the status takes a line
+   of its own under the button, which keeps the row's top and right end either way. A grid kept
+   the button's whole width at any font, so a 28 px default font at 320 left the status 56 px and
+   split every word in it, the entry's too (.crew/sprint/74/contract.md). */
 .crew-status-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-flow: row-reverse wrap;
   column-gap: 16px;
-  align-items: start;
+  align-items: flex-start;
   margin-top: 8px;
 }
 
+/* `break-word`, not the panel's `anywhere`, so the status's narrowest is its longest word, which
+   is what the row wraps on: with `anywhere` it was one letter and the status never wrapped under.
+   A word wider than the whole row still breaks, within it (max-width). */
 .crew-status {
+  flex: 1 1 0;
+  max-width: 100%;
   padding-top: calc((44px - 1lh) / 2);
   font-size: var(--step-base);
   font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.crew-status-row > [data-pause] {
+  flex: none;
+  order: -1;
 }
 
 /* At rest with a replay to offer, its entry is the status's own next line, under the sentence
    (.crew/sprint/37/contract.md, amendment 1): Pause updates keeps the row's first line, and the
-   entry the left cell's second. */
-.crew-status-row > [data-pause] {
-  grid-area: 1 / 2;
+   entry the status's second, at the row's left, since a line of its own would set it at the
+   right. The empty item ends the status's line, so the entry never joins it where there's room. */
+.crew-status-row::after {
+  content: "";
+  flex-basis: 100%;
+  order: 1;
 }
 
 /* A link, since it lands on the anchor: ink, underlined as /'s are, a 44 px target below 1024 and
    24 from it, never copper. The triangle says it plays rather than navigates. */
 .crew-entry {
   display: inline-flex;
-  grid-column: 1;
-  justify-self: start;
+  order: 2;
+  margin-right: auto;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -3741,6 +3761,21 @@ a[data-replay]:not([data-ready]) {
   white-space: nowrap;
 }
 
+/* Below 20rem, which 16 px never reaches from 320, a phone has a 20 px default font or more, and
+   the role words show only with the feed down, where the table is the roster. On one line, "Roadmap,
+   AI agent" made the table 322 px at 320 with a 28 px font and the page scrolled sideways
+   (.crew/sprint/74/contract.md). Here they wrap between words where the table needs it, never
+   inside one (`break-word`), and the column takes what they need: a fixed 60 px would make every
+   phrase wrap, room or not. */
+@media (width < 20rem) {
+  .crew-word {
+    width: auto;
+    white-space: normal;
+    overflow-wrap: break-word;
+    text-wrap: balance;
+  }
+}
+
 .crew-line,
 .crew-absent {
   padding-right: 0;
@@ -3851,15 +3886,27 @@ a[data-replay]:not([data-ready]) {
 
 /* With a replay offered, the heading and "Pause replay" share the head as the status shares its
    row with Pause updates: the button at the row's end, top-aligned, the heading's first line
-   centred on it, so the heading's word can change or wrap and the button never moves. */
+   centred on it, so the heading's word can change or wrap and the button never moves. As there,
+   the heading takes a line of its own under the button where its longest word doesn't fit beside
+   it (a grid left it 64 px at 320 with a 28 px font, "Activi / ty"), and the button keeps the
+   head's top: its box is held, unseen, until a replay plays, and that space reads as the gap
+   before the section rather than one between the heading and its moments. */
 .crew-activity-head:has(> [data-replay-pause]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-flow: row-reverse wrap;
   column-gap: 16px;
-  align-items: start;
+  align-items: flex-start;
 
   & .crew-activity {
+    flex: 1 1 0;
+    max-width: 100%;
     padding-top: calc((44px - 1lh) / 2);
+    overflow-wrap: break-word;
+  }
+
+  & > [data-replay-pause] {
+    flex: none;
+    order: -1;
   }
 }
 
