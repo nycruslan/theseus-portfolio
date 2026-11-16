@@ -64,6 +64,9 @@ makes stale.
   visit: sprint 68 fixed a large font on four pages and sprint 69 found a case study's title and
   `/evals` still running off a phone (`.crew/sprint/69/contract.md`). `/evals`' category heads
   exist only with the Blob report, so read them on production or draw them as T28 does.
+  It reads text against text, not only against the window's edge, and once with WebGL on: sprint
+  70's record printed "Approved" over its fact well inside the window, and the yard's hint shows
+  only while the model plays (`.crew/sprint/70/retro.json`).
 - **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
   code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
 - **The fixtures' unmerged sprint 999 pencils the next seat, which walks the hull one seat per

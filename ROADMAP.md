@@ -99,6 +99,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   (1024 to about 1430). T28 and T29 are new. Left open: Lens's two nits (record the off-token
   sizes in the token check's comment; a note at the break-word backstop) and the rail heads at
   1024 with a 24 px font elsewhere (`.crew/sprint/69/retro.json`).
+- [x] Sprint 70 (S, PR #140): the stand-down's defect condition a third time, now text over text.
+  From a 24 px default font a Log step's record ran "Approved" into who approved it, printing over
+  it at 28 px, and at 320 × 28 its pull-request link scrolled the page. The label column grows with
+  the font and stacks over its fact on a narrow list; /crew's Evidence and Approval list got the
+  same rule. Nothing moves at 16 px (0 of 48,420 boxes). T30 and T31 are new. Left open, each a
+  large-font defect on production: "Read as page" under the motion control at 1440 (Iris, the next
+  candidate), the yard's hint over the hand-off link with WebGL on, /crew's table at 320 × 28, the
+  step links past 1536 × 24; and Lens's nit on T31 (`.crew/sprint/70/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
