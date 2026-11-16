@@ -303,18 +303,25 @@ nav > [data-motion] {
     display: none;
   }
 
+  /* The bar's slot is the drawn width at the default font, but its labels follow the reader's font
+     and a px width didn't: from 20 px the group ran out of the slot's left edge and over Read as
+     page, 43 px at 1440 x 28 (.crew/sprint/71/contract.md). So it grows by the labels' 5.3em (the
+     foot's measure above) for each px their step gains on its default-font size, here
+     step-base's at its cap (1.0625rem, 17 px), and keeps its width under the default font. At 16
+     px the growth is 0, so nothing moves. */
   nav > [data-motion] {
     display: flex;
     justify-content: flex-end;
-    width: 186px;
+    width: max(186px, 186px + 5.3 * (1.0625rem - 17px));
     height: 44px;
   }
 }
 
-/* The approved frame's group: 32 px tall at the bar's right end, a step smaller than the links. */
+/* The approved frame's group: 32 px tall at the bar's right end, a step smaller than the links.
+   Its slot grows as the one above, by step-sm's gain on 13 px. */
 @media (width >= 64rem) {
   nav > [data-motion] {
-    width: 142px;
+    width: max(142px, 142px + 5.3 * (var(--step-sm) - 13px));
     height: 32px;
   }
 
