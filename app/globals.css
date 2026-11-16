@@ -2388,6 +2388,15 @@ main:has(> [data-model]) {
     grid-row: 1 / 4;
   }
 
+  /* On a record the right column runs down beside Every revision, so Every revision's row is the
+     flexible one and takes the column's slack, and both drawings' rows stay the drawings' own.
+     With the ghost's row flexible, a first paint with the table only partly parsed (the render
+     block waits for its heading, not its rows) gave the ghost's row the column's slack, and Every
+     revision jumped up from below the fold once the rows arrived: B5.25's shift on /log/13. */
+  .log-open {
+    grid-template-rows: auto auto 1fr;
+  }
+
   /* The header's text edge is the record box's below it; the drawings' transoms stand on the
      sheet's 40 px text edge, the Theseus over the ghost. */
   .log-head {
