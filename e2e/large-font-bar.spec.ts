@@ -21,17 +21,15 @@ import { contextOf, setDefaultFont } from "./reader-font";
 // holds Read as page and the control only where the window is 48rem or wider: not at 1024 x 24, nor
 // at 1024 or 1180 x 28, where the control is the foot's (T27 reads that row) and its buttons are
 // read there for the window clause alone. Where the window is 48rem wide, the bar must show both, so
-// hiding either isn't a fix. The sideways read leaves out the record's step links (`.record-steps`),
-// which scroll /log/23 at 1920 x 28 on main and are out of this contract's scope (sprint 70's
-// follow-up, .crew/sprint/71/contract.md, "Out of scope").
+// hiding either isn't a fix. The sideways read is the whole page's: sprint 71 left out the record's
+// step links (`.record-steps`), which scrolled /log/23 at 1920 x 28, until sprint 72 kept them in the
+// window (.crew/sprint/72/contract.md, T33 in large-font-steps.spec.ts).
 
 const ROUTES = ["/", "/log", "/log/23", "/crew"] as const;
 const WIDTHS = [1024, 1180, 1440, 1920] as const;
 const HEIGHT = 900;
 /** The default font, Chrome's Large and Very large, and 28 past them. */
 const SIZES = [16, 20, 24, 28] as const;
-/** Out of scope here: sprint 70's open follow-up, the record's step links past 1536 px. */
-const ELSEWHERE = ".record-steps";
 
 type Piece = {
   label: string;
@@ -50,74 +48,66 @@ type Piece = {
 
 /** Read as page in the bar and the shown control's buttons, each with its box, words and cuts. */
 function readBar(page: Page) {
-  return page.evaluate(
-    ([motion, elsewhere]) => {
-      const shown = (el: Element) => el.getClientRects().length > 0;
-      type Edges = { left: number; right: number };
-      const outside = (e: Edges, r: DOMRect) =>
-        e.left < r.left - 0.5 || e.right > r.right + 0.5;
-      const clipper = (el: Element, edges: Edges[]) => {
-        for (
-          let at: Element | null = el;
-          at && at !== document.documentElement;
-          at = at.parentElement
-        ) {
-          const s = getComputedStyle(at);
-          const r = at.getBoundingClientRect();
-          // An element's own overflow cuts only its contents (its words), not its box.
-          const mine = edges.slice(at === el ? 1 : 0);
-          if (s.overflowX !== "visible" && mine.some((e) => outside(e, r)))
-            return `${at.tagName.toLowerCase()}.${String(at.className).trim().split(/\s+/).join(".")} (overflow-x ${s.overflowX}, ${r.left}..${r.right})`;
-        }
-        return null;
-      };
-      const read = (el: Element) => {
-        const box = el.getBoundingClientRect();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        const text = range.getBoundingClientRect();
-        const lines = new Set(
-          [...range.getClientRects()]
-            .filter((r) => r.width > 0)
-            .map((r) => Math.round(r.top)),
-        ).size;
-        return {
-          label: (el.textContent ?? "").trim(),
-          left: box.left,
-          right: box.right,
-          top: box.top,
-          bottom: box.bottom,
-          textLeft: text.left,
-          textRight: text.right,
-          lines,
-          spill: el.scrollWidth - el.clientWidth,
-          clippedBy: clipper(el, [box, text]),
-        };
-      };
-      const nav = document.querySelector('header nav[aria-label="Main"]');
-      const link = [...(nav?.querySelectorAll('a[href="/read"]') ?? [])].find(
-        shown,
-      );
-      const slot = [...document.querySelectorAll(motion)].find(shown);
-      // The page's sideways scroll with the out-of-scope step row taken out for the read.
-      const root = document.documentElement;
-      const hide = document.createElement("style");
-      hide.textContent = `${elsewhere} { display: none !important; }`;
-      document.head.append(hide);
-      const overflow = root.scrollWidth - root.clientWidth;
-      hide.remove();
+  return page.evaluate((motion) => {
+    const shown = (el: Element) => el.getClientRects().length > 0;
+    type Edges = { left: number; right: number };
+    const outside = (e: Edges, r: DOMRect) =>
+      e.left < r.left - 0.5 || e.right > r.right + 0.5;
+    const clipper = (el: Element, edges: Edges[]) => {
+      for (
+        let at: Element | null = el;
+        at && at !== document.documentElement;
+        at = at.parentElement
+      ) {
+        const s = getComputedStyle(at);
+        const r = at.getBoundingClientRect();
+        // An element's own overflow cuts only its contents (its words), not its box.
+        const mine = edges.slice(at === el ? 1 : 0);
+        if (s.overflowX !== "visible" && mine.some((e) => outside(e, r)))
+          return `${at.tagName.toLowerCase()}.${String(at.className).trim().split(/\s+/).join(".")} (overflow-x ${s.overflowX}, ${r.left}..${r.right})`;
+      }
+      return null;
+    };
+    const read = (el: Element) => {
+      const box = el.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const text = range.getBoundingClientRect();
+      const lines = new Set(
+        [...range.getClientRects()]
+          .filter((r) => r.width > 0)
+          .map((r) => Math.round(r.top)),
+      ).size;
       return {
-        root: getComputedStyle(root).fontSize,
-        page: root.clientWidth,
-        overflow,
-        wide: matchMedia("(width >= 48rem)").matches,
-        inBar: Boolean(slot && nav?.contains(slot)),
-        link: link ? read(link) : null,
-        buttons: slot ? [...slot.querySelectorAll("button")].map(read) : [],
+        label: (el.textContent ?? "").trim(),
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+        textLeft: text.left,
+        textRight: text.right,
+        lines,
+        spill: el.scrollWidth - el.clientWidth,
+        clippedBy: clipper(el, [box, text]),
       };
-    },
-    [MOTION, ELSEWHERE] as const,
-  );
+    };
+    const nav = document.querySelector('header nav[aria-label="Main"]');
+    const link = [...(nav?.querySelectorAll('a[href="/read"]') ?? [])].find(
+      shown,
+    );
+    const slot = [...document.querySelectorAll(motion)].find(shown);
+    const root = document.documentElement;
+    const overflow = root.scrollWidth - root.clientWidth;
+    return {
+      root: getComputedStyle(root).fontSize,
+      page: root.clientWidth,
+      overflow,
+      wide: matchMedia("(width >= 48rem)").matches,
+      inBar: Boolean(slot && nav?.contains(slot)),
+      link: link ? read(link) : null,
+      buttons: slot ? [...slot.querySelectorAll("button")].map(read) : [],
+    };
+  }, MOTION);
 }
 
 /** Two boxes share a line where they overlap by more than a pixel top to bottom. */
@@ -159,10 +149,7 @@ function expectBar(read: Bar, size: number, where: string) {
   // The setting took: the root's font is the reader's default.
   expect(read.root, `the root's font ${where}`).toBe(`${size}px`);
   expect
-    .soft(
-      read.overflow,
-      `sideways overflow (the record's step links left out) ${where}`,
-    )
+    .soft(read.overflow, `sideways overflow ${where}`)
     .toBeLessThanOrEqual(0);
   expect
     .soft(
