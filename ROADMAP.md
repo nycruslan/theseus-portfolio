@@ -122,6 +122,12 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   (Owner chores #144), then Lens said ship. Left open: at 16 px /log/70's Next lands on the newest
   record's ← Sprint 70 (on main too), and the large-font hand-off and fold Iris named
   (`.crew/sprint/72/retro.json`).
+- [x] Sprint 73 (S, PR #145): the stand-down's defect condition a sixth time. With the yard playing,
+  from a 20 px default font the hint "Hold to flip through the sprints" outgrew its fixed 14 px
+  line: at 320 × 24 and 28 its two lines printed over each other, and its text ran into the newest
+  record's hand-off and, on other records, the goal. The line now grows with the font, 14 px at
+  16; nothing moves at 16 px (0 of 43,806 boxes). T34 is new. Left open: Lens's two comment nits,
+  /crew's table at 320 × 28 and "answering." splitting mid-word (`.crew/sprint/73/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
