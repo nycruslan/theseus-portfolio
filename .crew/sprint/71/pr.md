@@ -56,3 +56,6 @@ sprint 70 and confirmed by Atlas's sweep of production on 2026-11-16.
 - The yard's hint over the hand-off link with WebGL on; /crew's table at 320 × 28; "answering."
   splitting mid-word (sprint 70's follow-ups).
 - Safari, Firefox and the Vercel preview were not measured by the builders.
+
+Lens: ship on 993ac3b, nothing Important; one pre-existing note (the group runs about 2 px past its
+142 px slot at 16 px, hidden in the nav's gap), recorded as a follow-up.
