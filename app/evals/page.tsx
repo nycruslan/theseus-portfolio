@@ -68,7 +68,12 @@ export default async function EvalsPage() {
       </header>
 
       {report?.categories.map((category, index) => (
-        <Schedule key={category.label} id={`c${index}`} title={category.label}>
+        <Schedule
+          key={category.label}
+          id={`c${index}`}
+          title={category.label}
+          className="sched-scores"
+        >
           <ul className="sched-body">
             {category.cases.map((testCase) => (
               <li key={testCase.prompt} className="entry">
