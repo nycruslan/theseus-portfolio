@@ -14,8 +14,10 @@ font through CDP `Page.setFontSizes`):
   1792 and 1920 × 28. What runs past the window is `.record-steps`, its Next link and its
   `.step-arrow`.
 - Nothing scrolls at 16 or 20 px, at 1280 or 1440, at 2560, or on `/log`, `/log/1` and `/log/71`
-  in that sweep. Forge sweeps every step (`/log/1` to the newest) before the fix, to name the full
-  set.
+  in that sweep. Forge then swept every step on a local build: every step with both links, `/log/2`
+  to `/log/70` (68 pages; there's no 16), scrolls sideways at 1792 and 1920 × 28, and 61 of them at
+  1536 to 1792 × 24; `/log/2` to `/log/8` don't scroll at 24 but run 34 px past the record's frame.
+  `/log/1` and the newest step, with one link each, don't.
 - Cut at the window's edge, Next's words and arrow can't be read whole, and the page pans under
   the reader.
 
