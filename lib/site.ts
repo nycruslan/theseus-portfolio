@@ -11,6 +11,12 @@ export const SITE_URL = "https://portfolio.ruslanshulga.com";
 /** The Studio: the separate app where anyone can watch the crew build this site, live. */
 export const STUDIO_URL = "https://ruslanshulga.com";
 
+/**
+ * Every origin the Studio is served from. Its Site view frames this site, production and the
+ * sprint's preview, so these are the only other origins allowed to (next.config.ts).
+ */
+export const STUDIO_ORIGINS = [STUDIO_URL, "https://studio.ruslanshulga.com"];
+
 /** The team's repository, where every sprint's pull request lives. Not the owner's content. */
 export const REPO_URL = "https://github.com/nycruslan/theseus-portfolio";
 

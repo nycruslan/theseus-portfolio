@@ -1807,7 +1807,12 @@ async function lcpOf(page: Page, url: string): Promise<Lcp | null> {
   );
 }
 
-test("T9 the header: the frame's address sends the site's CSP with frame-ancestors 'self' and nothing else changed; /, /trials, a window page, /log, /crew, /read and a 404 still send frame-ancestors 'none'; a page on another origin can't frame the frame's address; it is noindex, canonical to /; no page of the trials logs a CSP refusal", async ({
+// The site itself (the trials page frames its frame) and the Studio's Site view, on both of the
+// Studio's origins, may frame a page; no one else may.
+const ANCESTORS =
+  "frame-ancestors 'self' https://ruslanshulga.com https://studio.ruslanshulga.com";
+
+test("T9 the header: the frame's address sends /'s headers, and /, /trials, a window page, /log, /crew, /read and a 404 all send frame-ancestors of the site and the Studio's two origins; a page on another origin can't frame the frame's address, and the Studio's origin can; it is noindex, canonical to /; no page of the trials logs a CSP refusal", async ({
   browser,
   request,
   baseURL,
@@ -1821,17 +1826,13 @@ test("T9 the header: the frame's address sends the site's CSP with frame-ancesto
   const frame = await request.get(FRAME);
   expect(frame.status(), `status of ${FRAME}`).toBe(200);
   const homeCsp = directives(home.headers()["content-security-policy"]);
-  expect(homeCsp, "/'s CSP").toContain("frame-ancestors 'none'");
+  expect(homeCsp, "/'s CSP").toContain(ANCESTORS);
   expect
     .soft(
       directives(frame.headers()["content-security-policy"]),
-      `${FRAME}'s CSP: /'s, frame-ancestors 'self'`,
+      `${FRAME}'s CSP, as /'s`,
     )
-    .toEqual(
-      homeCsp.map((d) =>
-        d.startsWith("frame-ancestors") ? "frame-ancestors 'self'" : d,
-      ),
-    );
+    .toEqual(homeCsp);
   for (const header of [
     "referrer-policy",
     "x-content-type-options",
@@ -1862,7 +1863,7 @@ test("T9 the header: the frame's address sends the site's CSP with frame-ancesto
         ),
         `${path}'s frame-ancestors`,
       )
-      .toEqual(["frame-ancestors 'none'"]);
+      .toEqual([ANCESTORS]);
   }
 
   // noindex, canonical to /.
@@ -1879,31 +1880,44 @@ test("T9 the header: the frame's address sends the site's CSP with frame-ancesto
     .soft(head.canonical, `${FRAME}'s canonical`)
     .toEqual(headOf(await home.text()).canonical);
 
-  // Another origin can't frame it; the trials page can (the control).
-  const ctx = await browser.newContext();
-  const page = await ctx.newPage();
-  const target = new URL(FRAME, baseURL).href;
-  await page.route("https://elsewhere.example/**", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: `<!doctype html><title>elsewhere</title><iframe src="${target}" width="400" height="300"></iframe>`,
-    }),
-  );
-  await page.goto("https://elsewhere.example/");
-  await new Promise((done) => setTimeout(done, 1500));
-  const child = page.frames().find((f) => f !== page.mainFrame());
-  const framed = child
-    ? await child
-        .evaluate(() => Boolean(document.querySelector("main > header")))
-        .catch(() => false)
-    : false;
+  // Another origin can't frame it; the Studio's can, and so can the trials page (the control).
+  // Chrome's Local Network Access blocks a public page from framing localhost before the CSP is
+  // read, which would refuse both origins alike, so the permission is granted and the CSP decides.
+  const framedFrom = async (origin: string) => {
+    const ctx = await browser.newContext({
+      permissions: ["local-network-access"],
+    });
+    const page = await ctx.newPage();
+    const target = new URL(FRAME, baseURL).href;
+    await page.route(`${origin}/**`, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><title>${origin}</title><iframe src="${target}" width="400" height="300"></iframe>`,
+      }),
+    );
+    await page.goto(`${origin}/`);
+    await new Promise((done) => setTimeout(done, 1500));
+    const child = page.frames().find((f) => f !== page.mainFrame());
+    const framed = child
+      ? await child
+          .evaluate(() => Boolean(document.querySelector("main > header")))
+          .catch(() => false)
+      : false;
+    await ctx.close();
+    return framed;
+  };
   expect
     .soft(
-      framed,
-      `${FRAME} rendered inside a page on another origin (frame at ${child?.url()})`,
+      await framedFrom("https://elsewhere.example"),
+      `${FRAME} rendered inside a page on another origin`,
     )
     .toBe(false);
-  await ctx.close();
+  expect
+    .soft(
+      await framedFrom("https://ruslanshulga.com"),
+      `${FRAME} rendered inside a page on the Studio's origin`,
+    )
+    .toBe(true);
 
   // No refusal on the trials' pages.
   const csp = await browser.newContext();
