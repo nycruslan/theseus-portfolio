@@ -107,6 +107,13 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   large-font defect on production: "Read as page" under the motion control at 1440 (Iris, the next
   candidate), the yard's hint over the hand-off link with WebGL on, /crew's table at 320 × 28, the
   step links past 1536 × 24; and Lens's nit on T31 (`.crew/sprint/70/retro.json`).
+- [x] Sprint 71 (S, PR #141): the stand-down's defect condition a fourth time. From 1024 px wide
+  at a 20 to 28 px default font, the bar's Full/Calm/Off control printed over "Read as page" on `/`,
+  the Log, its records and /crew (43 px over at 1440 × 28). The control's slot now grows with its
+  labels, and nothing moves at 16 px (0 of 14,700 boxes). T32 is new. Left open: the group's 2 px
+  overrun of its 142 px slot at 16 px, hidden in the nav's gap (Lens), and sprint 70's other
+  large-font follow-ups, with the step links past 1536 × 24 the next candidate
+  (`.crew/sprint/71/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

@@ -1,0 +1,35 @@
+{
+  "sprint": 71,
+  "pr": 141,
+  "goal": "The bar's motion control stays clear of Read as page at a large font",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Lens ship on 993ac3b, 0 Important, 1 pre-existing note",
+  "fixRounds": 0,
+  "minutes": 60,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 173571, "minutes": 33 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 107370, "minutes": 12 }
+  ],
+  "lens": { "runs": 1, "tokens": 283650, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "At a large font, the bar's motion control printed over Read as page",
+      "evidence": "Atlas's sweep of production: at 1440 x 28 Full's left edge at 1165 against Read as page's right at 1208; T32 red on main on all four pages (pr.md, Evidence)"
+    },
+    {
+      "what": "The control's slot was a fixed width while its labels grew with the font",
+      "evidence": "nav > [data-motion] at 186 and 142 px; the group measured 205 to 247 px in the 186 px slot from 20 to 28 px (Forge, pr.md)"
+    },
+    {
+      "what": "The bar's breakpoints follow the reader's font, so the contract named a 1024 x 24 bar that isn't there",
+      "evidence": "48rem is 1152 px at 24 px: at 1024 x 24 and 28 the page is in its phone layout, and T32 checks the foot's row there (pr.md, Decisions 2)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Forge", "what": "From 64rem the group is about 2 px wider than its 142 px slot at 16 px, hidden in the nav's gap; 144 px holds it if the slot is ever redrawn (Lens, app/globals.css:324)" },
+    { "who": "Forge", "what": "/log/23's step-link arrow scrolls the page at 1536 to 1792 x 24 and 1920 x 28 (sprint 70's follow-up)" },
+    { "who": "Forge", "what": "The yard's hint over the hand-off link with WebGL on, /crew's table at 320 x 28, and 'answering.' splitting mid-word (sprint 70's follow-ups)" }
+  ]
+}
