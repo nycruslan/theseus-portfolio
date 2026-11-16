@@ -20,7 +20,7 @@ font (CDP `Page.setFontSizes`, as T27 does). Two defects, both in the step recor
 False hits, not taken: the revision table's column heads past a phone's edge are its visually
 hidden `thead` (`.rev thead` under 40rem), and the Log's "Revision N" heads carry sr-only text.
 
-## Checks (Probe, `e2e/record-labels.spec.ts`, T30 and T31)
+## Checks (Probe, `e2e/log-record-labels.spec.ts`, T30 and T31; renamed from `record-labels` so shard 2 sheds time, Probe)
 
 - **T30.** On `/log/23` and `/log/<newest>` at 320 × 568, 390 × 664, 1024 × 900 and 1440 × 900,
   with a 16, 20, 24 and 28 px default font, webfont and fonts blocked: every `.record dt`'s text
