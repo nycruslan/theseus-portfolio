@@ -2773,10 +2773,14 @@ main:has(> [data-model]) {
   padding-bottom: 40px;
 }
 
+/* Capped as a reading page's title is (.doc-head h1), over 5.135 rather than 4.45 so the head keeps
+   the title's 13:15 at the narrowest window (52 and 60 px at 16 px): "Groundedness" (/evals,
+   4.33 em) then fits the column at any default font, and at 16 px the cap stays above the step at
+   every width from 320 (56.1 px against 52 there), so nothing moves (.crew/sprint/69/). */
 .sched h2 {
   margin-bottom: 6px;
   font-family: var(--font-sofia-cond), sans-serif;
-  font-size: var(--step-2xl);
+  font-size: min(var(--step-2xl), (100vw - 32px) / 5.135);
   font-weight: 700;
   line-height: 0.95;
 }
@@ -4348,10 +4352,15 @@ a[data-replay]:not([data-ready]) {
   border-top: 2px solid var(--foreground);
 }
 
+/* A reader's large default font grows the step (rem) but not the window, and a word can't wrap, so
+   the title is capped at its column below 1024 (the window less its 16 px sides) over 4.45:
+   "orchestration", the widest word a title has (4.12 em), then fits it at any default font, never
+   broken. At 16 px the cap stays above the step at every width from 320 (64.7 px against 60 there;
+   from 1024 it is far above), so nothing moves (.crew/sprint/69/contract.md). */
 .doc-head h1 {
   max-width: 18ch;
   font-family: var(--font-sofia-cond), sans-serif;
-  font-size: var(--step-3xl);
+  font-size: min(var(--step-3xl), (100vw - 32px) / 4.45);
   font-weight: 700;
   line-height: 0.9;
   text-wrap: balance;
