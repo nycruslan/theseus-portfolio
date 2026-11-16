@@ -2571,11 +2571,19 @@ main:has(> [data-model]) {
 /* The hint, under the step links (.crew/sprint/59/placement.md, section 3): its line held in every
    mode, shown only while the yard plays them, 4 px under their boxes so a focused link's ring
    clears its ascenders. Visibility, never display: B5.6 (C5.2) holds a record to no display-none
-   element. */
+   element. Its line is 14 px at the default font, and grows 1.5 px with each px of a larger one:
+   its text's box is 1rem tall (1.23 of --step-sm), so a fixed 14 px line let a 20 to 28 px
+   default font print the text over the step links and the hand-off, and a wrapped hint's two
+   lines over each other; from 20 px the line holds the text whole (.crew/sprint/73/contract.md).
+   The ghost's caption below 48rem stands under it, so the line is a term of its margin. */
+.log-open {
+  --hint-line: max(14px, 1.5rem - 10px);
+}
+
 .record-hint {
   margin-top: 4px;
   font-size: var(--step-sm);
-  line-height: 14px;
+  line-height: var(--hint-line);
   color: var(--muted);
   text-align: end;
   text-wrap: balance;
@@ -2620,11 +2628,6 @@ main:has(> [data-model]) {
     left: 16px;
     z-index: 1;
     margin: var(--yard-row) 0 0;
-    justify-content: space-between;
-  }
-
-  .log-open .record-steps [data-step="next"] {
-    margin-left: auto;
   }
 
   .log-open .record-hint {
@@ -2640,9 +2643,10 @@ main:has(> [data-model]) {
     text-align: start;
   }
 
-  /* The gap (4), the row (44), 4, the hint's line (14), 10. */
+  /* The gap (4), the row (44), 4, the hint's line (14 at the default font), 10. One line here at
+     any font: the hint's width and this block's 20rem floor grow together. */
   .log-open [data-ghost-caption] {
-    margin-top: 76px;
+    margin-top: calc(62px + var(--hint-line));
   }
 }
 

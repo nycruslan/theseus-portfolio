@@ -1,0 +1,35 @@
+{
+  "sprint": 73,
+  "pr": 145,
+  "goal": "The yard's hint stays clear of the step links at a large font",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 150,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 108679, "minutes": 11 },
+    { "role": "engineer", "model": "opus", "tokens": 0, "minutes": 0 }
+  ],
+  "lens": { "runs": 1, "tokens": 338002, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "At a large font on a phone, the yard's hint printed its two lines over each other",
+      "evidence": "Atlas's sweep of production with WebGL on: at 320 x 24 and 28 the hint's lines sat 14 px apart with 24 and 27 px text; T34 red on main in 21 cases (pr.md, Evidence)"
+    },
+    {
+      "what": "The contract named the wrong neighbour: the hint never touched the step links' words",
+      "evidence": "Atlas's sweep measured the hint's text against the links' 44 px boxes; Probe's word-on-word read found it ran into the hand-off and the goal instead (decisions.md 1)"
+    },
+    {
+      "what": "The engineer's run was lost to a container restart after it pushed the fix",
+      "evidence": "forge/73 held the fix and memory; no report came back, so its tokens and minutes are unknown and Atlas verified the fix itself (decisions.md 5)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nits: T34's header still says the hint ran into the step links, and its shard comment doesn't match the shard diff" },
+    { "who": "Forge", "what": "The CSS comment at .record-hint says 'over the step links' (Lens); /crew's table at 320 x 28 and 'answering.' splitting mid-word, the next candidates" },
+    { "who": "Forge", "what": "pnpm build intermittently stops on Next.js's SecurityFatalError notice about 16.4.3's advisories and passes on a retry" }
+  ]
+}
