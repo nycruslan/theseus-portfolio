@@ -5,8 +5,8 @@ import { readSprintLog } from "@/lib/sprint-log";
 // The frame's address (.crew/sprint/63/decisions.md, 2): / as the site builds it, in the feed's
 // down state, for the trials page to frame at any window. The frame's size is the iframe's box, so
 // one address serves every window. It keeps /'s title and description; it isn't a page of its own,
-// so search engines skip it and credit /. Only this path may be framed, and only by the site
-// (next.config.ts). It is framed sandboxed and inert, so none of /'s scripts runs in it.
+// so search engines skip it and credit /. Like every page, only the site and the Studio may frame
+// it (next.config.ts). It is framed sandboxed and inert, so none of /'s scripts runs in it.
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
   robots: { index: false },

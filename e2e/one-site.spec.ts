@@ -342,7 +342,9 @@ test("the old portfolio's addresses lead somewhere", async ({ request }) => {
 
 test("pages carry the security headers", async ({ request }) => {
   const all = (await request.get("/")).headers();
-  expect(all["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(all["content-security-policy"]).toContain(
+    "frame-ancestors 'self' https://ruslanshulga.com https://studio.ruslanshulga.com",
+  );
   expect(all["x-content-type-options"]).toBe("nosniff");
 });
 
