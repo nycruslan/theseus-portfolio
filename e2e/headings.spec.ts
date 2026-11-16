@@ -41,7 +41,9 @@ function categoryLabels() {
 /**
  * The categories as app/evals/page.tsx draws them: a Schedule each, with one case under it, its
  * prompt, its result line and its grader's note, so the result line sits where the real report's
- * does (from 1024, in the column beside the h2's, where T29 reads the overlap).
+ * does (from 1024, in the column beside the h2's, where T29 reads the overlap). Each section carries
+ * the page's own class for its categories, `sched-scores` (sprint 69, Iris's direction), so the
+ * page's rules for them apply to the drawn ones too.
  */
 function categoriesMarkup(labels: string[]) {
   return labels
@@ -51,6 +53,7 @@ function categoriesMarkup(labels: string[]) {
         Schedule({
           id: `c${index}`,
           title: label,
+          className: "sched-scores",
           children: createElement(
             "ul",
             { className: "sched-body" },
