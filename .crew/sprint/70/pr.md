@@ -38,7 +38,7 @@ wide, 16 to 28 px default font.
   `html, body { overflow-x: clip }`, and a clipped `dt`. 12 of 12 pass on the build. The file is
   named `log-record-labels` so shard 2 gets about 14 test-seconds faster, not 22 slower (Probe's
   `--list --shard` diff).
-- `pnpm verify` exits 0 on the integrated head. Forge ran 112 tests across the specs the record
+- `pnpm verify` exits 0 on the integrated head. CI runs the whole suite; Forge ran 112 tests across the specs the record
   and /crew touch, all passing.
 
 ## Decisions
@@ -48,7 +48,15 @@ wide, 16 to 28 px default font.
 2. The query container is the list, not `.record`, so the step links absolutely placed in `main`
    aren't trapped by containment in an older browser.
 
+3. Iris: ship, 8.0 (quality 8, originality 7, craft 9, functionality 9), no changes. A stacked
+   pair sits 4 to 8 px apart against 14 to 20 px between pairs, so it reads as a unit, the way `/`
+   sets a period over its entry. 15rem is the highest threshold that moves nothing at 320 × 16.
+   axe finds no serious or critical issue at 320 × 28, 390 × 24 and 1440 × 24.
+
 ## Left open (follow-ups, none a label column)
+
+- On every Log page at 1440, "Read as page" runs under the Full/Calm/Off control at a 24 or 28 px
+  default font, on production too (Iris): the next candidate under the stand-down rule.
 
 - The yard's hint (`.record-hint`, a fixed 14 px line) prints over the hand-off link on the newest
   step at 320 and 390 with 24 or 28 px, WebGL on; no check sees it, since checks refuse WebGL.
