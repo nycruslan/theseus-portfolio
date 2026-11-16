@@ -91,6 +91,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   hold, and nothing moves at 16 px (0 of 9,144 boxes). T27 is new and T25 is strengthened. Left
   open: a check on where #work lands under the wrapped bar, and whether the trials readout's row
   count changes with its reading at 21 px (Lens's nits); /crew and /evals at 28 px.
+- [x] Sprint 69 (S, PR #139): the stand-down's defect condition again, on the pages sprint 68
+  didn't visit. With a 20 or 24 px default font on a phone, a case study's title ("orchestration")
+  and `/evals`' "Groundedness" ran off the window; at the default font from 1024 to 1180,
+  "Groundedness" printed over its own result. The headings now cap at their column over their
+  longest word, with no hyphen and nothing hidden, and only `/evals`' four heads change at 16 px
+  (1024 to about 1430). T28 and T29 are new. Left open: Lens's two nits (record the off-token
+  sizes in the token check's comment; a note at the break-word backstop) and the rail heads at
+  1024 with a 24 px font elsewhere (`.crew/sprint/69/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

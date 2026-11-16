@@ -2773,12 +2773,18 @@ main:has(> [data-model]) {
   padding-bottom: 40px;
 }
 
+/* Capped as a reading page's title is (.doc-head h1), over 5.135 rather than 4.45 so the head keeps
+   the title's 13:15 at the narrowest window (52 and 60 px at 16 px): "Groundedness" (/evals,
+   4.33 em) then fits the column at any default font, and at 16 px the cap stays above the step at
+   every width from 320 (56.1 px against 52 there), so nothing moves (.crew/sprint/69/). A word
+   wider still breaks rather than run off the page: today none is, so it breaks nothing. */
 .sched h2 {
   margin-bottom: 6px;
   font-family: var(--font-sofia-cond), sans-serif;
-  font-size: var(--step-2xl);
+  font-size: min(var(--step-2xl), (100vw - 32px) / 5.135);
   font-weight: 700;
   line-height: 0.95;
+  overflow-wrap: break-word;
 }
 
 .entry {
@@ -2918,6 +2924,15 @@ main:has(> [data-model]) {
     grid-column: 1 / span 3;
     margin: 0;
     line-height: 0.9;
+  }
+
+  /* /evals' category heads (app/evals/page.tsx) fitted to their three columns, the window less
+     the frame's 344 px over four plus two 24 px gaps (218 px at 1024), over 4.45: "Groundedness"
+     (4.33 em) printed over its first result there, and up to 1280 ran out of its columns. All four
+     heads take it, so they stay one size; it meets the step near 1430, so 1440 doesn't move
+     (Iris's direction, .crew/sprint/69/contract.md, T29). */
+  .sched-scores h2 {
+    font-size: min(var(--step-2xl), ((100vw - 344px) / 4 + 48px) / 4.45);
   }
 
   .sched-body {
@@ -4348,13 +4363,20 @@ a[data-replay]:not([data-ready]) {
   border-top: 2px solid var(--foreground);
 }
 
+/* A reader's large default font grows the step (rem) but not the window, and a word can't wrap, so
+   the title is capped at its column below 1024 (the window less its 16 px sides) over 4.45:
+   "orchestration", the widest word a title has (4.12 em), then fits it at any default font, never
+   broken. At 16 px the cap stays above the step at every width from 320 (64.7 px against 60 there;
+   from 1024 it is far above), so nothing moves (.crew/sprint/69/contract.md). A word wider than
+   4.45 em, which no title has, breaks rather than run off the page. */
 .doc-head h1 {
   max-width: 18ch;
   font-family: var(--font-sofia-cond), sans-serif;
-  font-size: var(--step-3xl);
+  font-size: min(var(--step-3xl), (100vw - 32px) / 4.45);
   font-weight: 700;
   line-height: 0.9;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 .doc-lead {

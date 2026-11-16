@@ -60,6 +60,10 @@ makes stale.
   - Before placing anything near the title block, list every viewport the kept checks pin
     (`grep -n setViewportSize e2e/`): sprint 40's key was placed for 1440 × 900 and went red at
     B4.22's 1024 × 768, then B4.49's 1280 × 800, costing two rounds.
+- **A defect sweep covers every route family in the sitemap**, not only the pages the kept checks
+  visit: sprint 68 fixed a large font on four pages and sprint 69 found a case study's title and
+  `/evals` still running off a phone (`.crew/sprint/69/contract.md`). `/evals`' category heads
+  exist only with the Blob report, so read them on production or draw them as T28 does.
 - **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
   code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
 - **The fixtures' unmerged sprint 999 pencils the next seat, which walks the hull one seat per
