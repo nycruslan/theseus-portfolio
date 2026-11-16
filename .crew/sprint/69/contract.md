@@ -35,6 +35,19 @@ nothing moves.
   1440 are the same before and after (Forge's box diff, as in sprints 67 and 68), and the existing
   suite is green.
 
+## Contract change (Atlas, during the build)
+
+Forge found a live defect at the default font in the same rule (`.sched h2`): at 1024 wide,
+production's `/evals` prints "Groundedness" (to 311) over its own result, "Failed, 6 of 10", which
+sits from 282; the heading's grid area ends at 258. A fact on the page is hidden, which is the
+stand-down's condition, and the code is this sprint's, so it rides along. Added:
+
+- **T29** (Probe): on `/evals` (report drawn as T28 draws it) and the five case studies, at the
+  default font, at widths 768, 900, 1024, 1180, 1280 and 1440, each `.sched` h2's text range sits
+  inside its own grid area and overlaps no other text box in its section. Red on main at 1024.
+- **Nothing moves at 16 px** narrows to: nothing moves but `.sched` h2s that overran their area,
+  and what they push. Forge's box diff names every box that moved.
+
 ## Budgets
 
 No new script; CSS only. No new font file.
