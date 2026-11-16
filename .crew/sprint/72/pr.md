@@ -55,8 +55,9 @@ and 71, confirmed by Atlas's sweep of production on 2026-11-16.
 
 ## Decisions
 
-1. Steps stay right-aligned when they stack (Forge): the record from 768 keeps them at its right,
-   and a left-aligned ← Sprint p read as one group with Rev.
+1. When the steps stack, ← Sprint p stands at the start under the number and Next at the end, as on
+   phones (Iris's fix round). It replaced the first build's right-aligned stack, after which a
+   repeated click on Next went back a record.
 2. The column keeps its fixed width rather than growing with the font: that would shrink the
    drawings, a design call outside this scope (follow-up).
 
@@ -66,11 +67,12 @@ and 71, confirmed by Atlas's sweep of production on 2026-11-16.
 4. The 16 px bounce between /log/70's Next and the newest record's ← Sprint 70 is older than this
    sprint (main does it too) and fixing it moves boxes at 16 px, so it is a follow-up (Atlas).
 
-## Not reviewed yet
+## Review
 
-`lens` and `gate` ended in `startup_failure`, with no jobs, on both heads (85b57b5 and 44fa37e), as
-has every `pull_request_target` run in the repository since 16:15 UTC; CI passed. It's on Owner
-chores (#144). Once they start, this PR takes Lens's review like any other and merges on ship.
+`lens` and `gate` ended in `startup_failure`, with no jobs, from 16:15 to 21:09 UTC (Owner chores
+#144), while CI passed. They started again when the `review` label was re-added at 21:09:
+`gate` passed, and Lens said ship on 38188f5 with two nits on these notes, both fixed in the
+close-out (Decision 1, and the retro's and roadmap's records of the review).
 
 ## Left open
 
