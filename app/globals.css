@@ -2658,11 +2658,14 @@ main:has(> [data-model]) {
   overflow-wrap: break-word;
 }
 
-/* 88 px holds "Pull request" at 16 px, and leaves a 320 px phone's detail room for the pull
-   request's link on one line. */
+/* The terms' column grows with the reader's font, as the terms do: 5.5rem is 88 px at 16 px, which
+   holds "Pull request", and never narrower than the widest term. A fixed 88 px ran Approved into its
+   fact from a 24 px default font and printed it over the fact at 28 (.crew/sprint/70/contract.md).
+   The list is its own query container, so it reads its own width wherever the record sits. */
 .record dl {
+  container: record-list / inline-size;
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr);
   gap: 6px 12px;
   margin-top: 14px;
   line-height: 1.45;
@@ -2676,12 +2679,33 @@ main:has(> [data-model]) {
   overflow-wrap: break-word;
 }
 
-/* The pull request's link never wraps, a 24 px target. */
+/* Under 15rem the two columns can't hold the pull request's link on one line beside its term, so
+   each term stands over its fact, as a period stands over its entry on /: a large font on a phone,
+   or in the record's 360 px column. At 16 px the list is 254 px at its narrowest (320 wide), over
+   15rem's 240, so the columns hold at every window from 320. The 6 px row gap is the list's own,
+   which its own query can't change: a term gives it back to sit on its fact, and a fact keeps 12 px
+   to the next term, so each pair reads as one. */
+@container record-list (width < 15rem) {
+  .record dt,
+  .record dd {
+    grid-column: 1 / -1;
+  }
+
+  .record dt {
+    margin-bottom: -6px;
+  }
+
+  .record dd + dt {
+    margin-top: 6px;
+  }
+}
+
+/* The pull request's link, a 24 px target, on one line wherever it fits, and wrapped rather than
+   past the window where it can't (from 36 px at 320 wide). */
 .record-pr {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  white-space: nowrap;
 }
 
 .record h3 {
@@ -3903,10 +3927,14 @@ a[data-replay]:not([data-ready]) {
    foot the panel's own padding the anchor was the panel, whose top a new moment doesn't move, and
    the keel slid down by the new row (33 px, CLS 0.049 at 390 × 664). Now it's this list, which
    the new row moves, so Chrome scrolls with it and the keel holds; mid-feed the rows stay
-   candidates and hold as before. */
+   candidates and hold as before.
+   The terms' column grows with the reader's font, as the record's does (sprint 70): 4.5rem is
+   72 px at 16 px, and never narrower than the widest term. A fixed 72 px split Evidence and Approval
+   mid-word from a 24 px default font, the panel's `overflow-wrap: anywhere` breaking them. */
 .crew-facts {
+  container: crew-facts / inline-size;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: minmax(4.5rem, max-content) minmax(0, 1fr);
   align-items: baseline;
   gap: 8px 12px;
   margin-top: 24px;
@@ -3919,6 +3947,26 @@ a[data-replay]:not([data-ready]) {
 
 .crew-facts dt {
   color: var(--muted);
+}
+
+/* Under 17rem each term stands over its fact, as the record's do: beside a 4.5rem column at 320 wide
+   and 28 px the facts would run a dozen characters a line, and Approval's rules link, which never
+   splits (INLINE_LINK, components/crew-link.ts), past the window. At 16 px the list is 288 px at
+   its narrowest (320 wide), over 17rem's 272, so the columns hold at every window from 320. A term
+   gives back the list's 8 px row gap, and a fact keeps 12 px to the next term. */
+@container crew-facts (width < 17rem) {
+  .crew-facts dt,
+  .crew-facts dd {
+    grid-column: 1 / -1;
+  }
+
+  .crew-facts dt {
+    margin-bottom: -8px;
+  }
+
+  .crew-facts dd + dt {
+    margin-top: 4px;
+  }
 }
 
 /* From 768 to 1023 the panel runs the page's width; the measure stays a reading one. */
@@ -4015,7 +4063,7 @@ a[data-replay]:not([data-ready]) {
   }
 
   .crew-facts {
-    grid-template-columns: 80px minmax(0, 1fr);
+    grid-template-columns: minmax(5rem, max-content) minmax(0, 1fr);
   }
 
   .crew-link {

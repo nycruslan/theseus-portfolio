@@ -1,0 +1,37 @@
+{
+  "sprint": 70,
+  "pr": 140,
+  "goal": "A step's record keeps each label beside its fact at a large font",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Lens ship on a34b89c, 1 nit",
+  "fixRounds": 0,
+  "minutes": 110,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 303780, "minutes": 36 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 111366, "minutes": 11 },
+    { "role": "design-director", "model": "opus", "tokens": 102934, "minutes": 10 }
+  ],
+  "lens": { "runs": 1, "tokens": 717581, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "At a large font, a step's record printed Approved over who approved it",
+      "evidence": "Atlas's sweep of production: at 28 px 'Approved' ended at 148 to 155 against its fact at 133; T30 red on main at 24 and 28 px (pr.md, Evidence)"
+    },
+    {
+      "what": "The record's pull request link scrolled a small phone's page sideways",
+      "evidence": "At 320 x 568 and 28 px, 'Pull request #139' ran to 343; T31 red on main at 28 px (contract.md)"
+    },
+    {
+      "what": "Sprints 68 and 69 swept large fonts for the window's edge, not for text over text",
+      "evidence": "The record's overlap stayed inside the window, so only a label-against-fact read found it (contract.md, Why it earns a sprint)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "T31's link read passes when the link draws no text: assert its rects aren't empty (Lens's nit, e2e/log-record-labels.spec.ts:114)" },
+    { "who": "Forge", "what": "On every Log page at 1440, 'Read as page' runs under the Full/Calm/Off control at a 24 or 28 px default font, on production too (Iris)" },
+    { "who": "Forge", "what": "The yard's hint prints over the hand-off link on the newest step at 320 and 390 with 24 or 28 px, WebGL on; checks refuse WebGL, so none sees it" },
+    { "who": "Forge", "what": "/crew's table scrolls at 320 x 28 (no-feed state), the record's step links run past 1536 x 24 and 1920 x 28, and 'answering.' splits mid-word" }
+  ]
+}
