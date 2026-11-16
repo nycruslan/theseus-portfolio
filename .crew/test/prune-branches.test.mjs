@@ -13,7 +13,11 @@ function prune(arg, table) {
     cwd: repo,
     args: [arg],
     env: {
-      GH_ROUTES: routes({ [`DELETE ${R}/git/refs/heads/*/*`]: "", ...table }),
+      GH_ROUTES: routes({
+        [`DELETE ${R}/git/refs/heads/*/*`]: "",
+        [`${R}/pulls?state=open`]: [],
+        ...table,
+      }),
       GH_LOG: log.file,
       GH_STATE: tempDir(),
     },
@@ -80,6 +84,14 @@ test("leaves the role branches of an earlier sprint that is still open", () => {
     ),
   });
   assert.deepEqual(deleted.toSorted(), ["forge/32", "forge/33"]);
+});
+
+test("never deletes an open PR's branch, even one named like a role's, and holds its sprint open", () => {
+  const { deleted } = prune("sprint/81-next", {
+    [`${R}/pulls?state=open`]: [{ head: { ref: "sprint/80-merge" } }],
+    [`${R}/branches`]: branches("sprint/80-merge", "forge/80", "probe/79"),
+  });
+  assert.deepEqual(deleted, ["probe/79"]);
 });
 
 test("a role's branch under a sprint's prefix doesn't hold that sprint open", () => {

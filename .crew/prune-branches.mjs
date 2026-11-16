@@ -37,18 +37,25 @@ const repo = repoOf(cwd);
 
 try {
   const branches = list(`repos/${repo}/branches?per_page=100`, { cwd });
+  // An open PR's branch is live whatever its name: a sprint called `sprint/80-merge` reads like a
+  // role's push, but while its PR is open it's never deleted and holds its sprint open.
+  const live = new Set(
+    list(`repos/${repo}/pulls?state=open&per_page=100`, { cwd }).map(
+      ({ head }) => head.ref,
+    ),
+  );
   // GitHub may not have deleted the merged branch yet, so it never counts as open, and a role's
   // branch under the sprint's prefix is a role's, not an open sprint.
   const open = new Set(
     branches
-      .filter(({ name }) => !ROLE.test(name))
+      .filter(({ name }) => live.has(name) || !ROLE.test(name))
       .map(({ name }) => name.match(SPRINT))
       .filter(Boolean)
       .map((match) => Number(match[1]))
       .filter((number) => number !== sprint),
   );
   const stale = branches.filter(({ name }) => {
-    const role = name.match(ROLE);
+    const role = !live.has(name) && name.match(ROLE);
     if (!role) return false;
     const number = Number(role[1] ?? role[2]);
     return number <= sprint && !open.has(number);

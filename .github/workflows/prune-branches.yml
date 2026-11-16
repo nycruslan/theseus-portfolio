@@ -32,6 +32,8 @@ jobs:
     timeout-minutes: 3
     permissions:
       contents: write
+      # To leave every open PR's branch alone, whatever its name.
+      pull-requests: read
     steps:
       - run: git config --global init.defaultBranch main
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
