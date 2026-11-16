@@ -2483,9 +2483,10 @@ main:has(> [data-model]) {
    number and the steps grow with the reader's font, so from a 20 px default font the one row
    outgrew it: the number split onto two lines and the steps ran past the record, and from 1536 x
    24 past the window (.crew/sprint/72/contract.md). The row wraps instead: the steps take the row
-   under the number, still at its right, and where the two can't share that row Next stands under
-   ← Sprint p, both at the right. At the default font they always share one row, so nothing
-   moves. */
+   under the number, still at its right, and where the two links can't share that row ← Sprint p
+   stands at the start under the number and Next at the end, as on phones, so a click repeated on
+   Next never lands on ← Sprint p when the next record's links take its place (Iris, sprint 72).
+   At the default font they always share one row, so nothing moves. */
 .record-top {
   display: flex;
   flex-wrap: wrap;
@@ -2502,8 +2503,12 @@ main:has(> [data-model]) {
 .record-steps {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 16px;
+  margin-left: auto;
+}
+
+.record-steps [data-step="next"] {
   margin-left: auto;
 }
 
@@ -2648,11 +2653,6 @@ main:has(> [data-model]) {
 @media (width < 20rem) {
   .record-steps {
     flex-basis: 100%;
-    justify-content: space-between;
-  }
-
-  .record-steps [data-step="next"] {
-    margin-left: auto;
   }
 
   .record:not(:has([data-step="next"])) .record-hint {
@@ -2779,9 +2779,9 @@ main:has(> [data-model]) {
     min-height: 24px;
   }
 
-  /* Where Next stands under ← Sprint p at a large font (above), 4 px between them, as the hint
-     keeps under them: a focused link's ring (2 px at 2 px) clears the other's words, and the
-     number and the two steps read as three lines rather than two blocks. */
+  /* Where Next takes the row under ← Sprint p at a large font (above), 4 px between the rows, as
+     the hint keeps under them: a focused link's ring (2 px at 2 px) clears the other's words, and
+     the number and the two steps read as three lines rather than two blocks. */
   .record-steps {
     row-gap: 4px;
   }
