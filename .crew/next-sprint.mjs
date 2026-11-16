@@ -1,6 +1,7 @@
 // The sprint pre-flight: `node .crew/next-sprint.mjs [--owner-goal] [--after-merge]`, run by Atlas
-// before anything else (the sprint skill). A sprint's folder reaches main only when its PR merges, so main alone
-// can't tell what's in flight. This reads GitHub, through REST alone (github.mjs), and prints JSON:
+// before anything else (the sprint skill). A sprint's folder reaches main only when its PR merges,
+// so main alone can't tell what's in flight. This reads GitHub, through REST alone (github.mjs), and
+// prints JSON:
 // - actingAs: who GitHub thinks is calling. In a cloud session that's always the owner, since the
 //   cloud's GitHub proxy swaps any token for the owner's connection, so the rules hold through gate,
 //   Lens, merge.mjs and the guard rather than a separate account.
