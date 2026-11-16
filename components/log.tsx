@@ -280,11 +280,11 @@ export function Log({ entries, open }: LogProps) {
                 </th>
               </tr>
             </thead>
-            {dayGroups(entries).map(({ day, entries: group }, at) => (
+            {dayGroups(entries).map(({ day, entries: group }, index) => (
               // A day or "Undated" can head two runs, so the run's first sprint keys it.
               <tbody
                 key={group[0]?.sprint}
-                id={at === 0 ? "every-revision-rows" : undefined}
+                id={index === 0 ? "every-revision-rows" : undefined}
               >
                 <tr className="rev-day">
                   <th scope="rowgroup" colSpan={7}>
