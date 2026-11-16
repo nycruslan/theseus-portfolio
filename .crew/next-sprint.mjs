@@ -1,7 +1,7 @@
 // The sprint pre-flight: `node .crew/next-sprint.mjs [--owner-goal] [--after-merge]`, run by Atlas
 // before anything else (the sprint skill). A sprint's folder reaches main only when its PR merges,
-// so main alone can't tell what's in flight. This reads GitHub, through REST alone (github.mjs), and
-// prints JSON:
+// so main alone can't tell what's in flight. This reads GitHub, through REST alone (github.mjs),
+// and prints JSON:
 // - actingAs: who GitHub thinks is calling. In a cloud session that's always the owner, since the
 //   cloud's GitHub proxy swaps any token for the owner's connection, so the rules hold through gate,
 //   Lens, merge.mjs and the guard rather than a separate account.
@@ -54,7 +54,7 @@ const ACTIVE_HOURS = 2;
 const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
 // How long a merge's own run has to push its sprint's branch, which takes it 5 to 10 minutes. On
-// 2026-11-16 a scheduled run that came 4 minutes after a merge started the same sprint (#142, #143).
+// 2026-11-16 a scheduled run 4 minutes after a merge started the same sprint (#142, #143).
 const HANDOVER_MINUTES = 30;
 configure({ timeout: 20_000 });
 
