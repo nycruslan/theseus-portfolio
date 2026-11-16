@@ -1,0 +1,37 @@
+{
+  "sprint": 72,
+  "pr": 142,
+  "goal": "A Log record's step links stay inside the window at a large font",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "built, not merged: lens and gate failed to start on 85b57b5 and 44fa37e (Owner chores #144)",
+  "fixRounds": 1,
+  "minutes": 190,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 264777, "minutes": 138 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 150447, "minutes": 56 },
+    { "role": "design-director", "model": "opus", "tokens": 135394, "minutes": 17 }
+  ],
+  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "At a large font, a record's next step link ran past the window and the page scrolled sideways",
+      "evidence": "Atlas's sweep of production: 23 px at 1536 to 1792 x 24, 69 to 78 px at 1792 and 1920 x 28, on every record with a next step; T33 red on main at those five cases (pr.md, Evidence)"
+    },
+    {
+      "what": "The first fix stacked both links at the right, so a repeated click on Next went back a record",
+      "evidence": "Iris at 1536 x 24: Next's point on /log/10 hit ← Sprint 10 on /log/11; T33b red on 85b57b5 at /log/8 to 9 and /log/10 to 11, green on the outward layout"
+    },
+    {
+      "what": "The review couldn't run: every check that reviews a pull request failed to start",
+      "evidence": "lens, gate and prune-branches ended in startup_failure with no jobs from 16:15 UTC on 2026-11-16, while CI passed; no workflow changed on main (Owner chores #144)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Owner", "what": "Get lens and gate starting again (Owner chores #144); then the next run labels #142 for review and merges it on ship" },
+    { "who": "Forge", "what": "At 16 px, a repeated click on /log/70's Next lands on the newest record's ← Sprint 70, which stands where Next stood (on main too; Probe and Forge)" },
+    { "who": "Iris", "what": "At 1536 x 24 and 1792 x 28 a click on /log/70's Next lands on the newest record's hand-off link, and the step links sit at or under the fold" },
+    { "who": "Forge", "what": "The yard block below 48rem repeats space-between and Next's margin, which the base rules now give; and sprint 70's large-font follow-ups (the yard's hint, /crew's table at 320 x 28, 'answering.')" }
+  ]
+}

@@ -114,6 +114,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   overrun of its 142 px slot at 16 px, hidden in the nav's gap (Lens), and sprint 70's other
   large-font follow-ups, with the step links past 1536 × 24 the next candidate
   (`.crew/sprint/71/retro.json`).
+- [ ] Sprint 72 (S, PR #142): the stand-down's defect condition a fifth time. From 1536 px wide at a
+  24 or 28 px default font, a Log record's next step link ran 23 to 78 px past the window. The
+  record's head now wraps, ← Sprint p at the start and Next at the end, so a repeated click on
+  Next walks on (Iris's fix round); nothing moves at 16 px (0 of 47,943 boxes). T33 and T33b are
+  new, and T32 reads the whole page again. Built and green in CI, not merged: `lens` and `gate`
+  fail to start (Owner chores #144). Left open: at 16 px /log/70's Next lands on the newest
+  record's ← Sprint 70 (on main too), and the large-font hand-off and fold Iris named
+  (`.crew/sprint/72/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

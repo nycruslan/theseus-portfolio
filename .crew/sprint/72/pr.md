@@ -16,7 +16,11 @@ and 71, confirmed by Atlas's sweep of production on 2026-11-16.
   and the steps don't share a row, the steps take the row under Rev, at its right; when the two
   links don't fit side by side, Next stands under ← Sprint p, 4 px apart. At 20 px Rev no longer
   splits onto two lines.
-- The `width < 20rem` block loses the wrap rules the base rules now carry; its layout is the same.
+- **Fix round 1 (Iris):** stacked, ← Sprint p stands at the start under the number and Next at the
+  end, as on phones (`justify-content: space-between`, Next `margin-left: auto`). The first build
+  stacked both at the right, and a click repeated on Next went back a record at 1536 × 24 (Next's
+  point on /log/10 hit ← Sprint 10 on /log/11). Rev's row and the steps keep no gap (Iris).
+- The `width < 20rem` block loses the rules the base rules now carry; its layout is the same.
 - CSS only: no markup, no script.
 
 ## Evidence
@@ -40,7 +44,13 @@ and 71, confirmed by Atlas's sweep of production on 2026-11-16.
   gets about 70 test-s lighter.
 - **T32** (`e2e/large-font-bar.spec.ts`): its `.record-steps` exclusion is gone, so its sideways
   read covers the whole page again; red on main at /log/23 1920 × 28, green on the fix.
-- `pnpm verify` exits 0 on the integrated head (Atlas). Forge ran every `log*`, `large-font*` and
+- **T33b** (same spec; Probe, on Iris's finding): at 1536 × 24 and 1792 × 28, webfont blocked and
+  loaded, across /log/8 to 11 and 23 to 24, Next's centre and arrow point on record n never hit ← Sprint
+  p on record n + 1. Red on the first build (85b57b5) at /log/8→9 and /log/10→11; green on the fix
+  round, 8 of 8 with T33 and T32 (Probe and Forge). Forge's own read: 37 of 648 repeated clicks
+  landed on the opposite step before, 8 after, all 8 at 16 px on /log/70→71 and the same on main.
+- After the fix round, nothing moves at 16 px still: 0 of 47,943 boxes, 0 of 20,127 at 300 to 320.
+- `pnpm verify` exits 0 on the integrated head (Atlas, on 44fa37e's tree). Forge ran every `log*`, `large-font*` and
   `sheet` spec on the fix: 176 passed. CI runs the whole suite.
 
 ## Decisions
@@ -50,10 +60,24 @@ and 71, confirmed by Atlas's sweep of production on 2026-11-16.
 2. The column keeps its fixed width rather than growing with the font: that would shrink the
    drawings, a design call outside this scope (follow-up).
 
+3. Rev's row meets the steps with no gap, and the wrap follows the digit count (Iris: the three
+   lines are evenly spaced at 0, and once each direction keeps its edge the count only changes the
+   head's height, as the Log column above already does).
+4. The 16 px bounce between /log/70's Next and the newest record's ← Sprint 70 is older than this
+   sprint (main does it too) and fixing it moves boxes at 16 px, so it is a follow-up (Atlas).
+
+## Not reviewed yet
+
+`lens` and `gate` ended in `startup_failure`, with no jobs, on both heads (85b57b5 and 44fa37e), as
+has every `pull_request_target` run in the repository since 16:15 UTC; CI passed. It's on Owner
+chores (#144). Once they start, this PR takes Lens's review like any other and merges on ship.
+
 ## Left open
 
-- Iris's look at the stacked head: Rev's row meets ← Sprint p's with no gap, and the wrap follows
-  the digit count (at 1536 × 24 Next sits on Rev's row on /log/1, a row down on 2 to 8, two from 9).
+- At 16 px, a repeated click on /log/70's Next lands on the newest record's ← Sprint 70 (on main too).
+- At 1536 × 24 and 1792 × 28, /log/70's Next lands on the newest record's hand-off link, and the
+  step links sit at or under the fold (Iris).
+- The yard block below 48rem repeats the base rules' `space-between` and Next's margin (Forge).
 - The yard's hint over the hand-off link with WebGL on; /crew's table at 320 × 28; "answering."
   splitting mid-word (sprint 70's follow-ups).
 - Safari, Firefox and the Vercel preview were not measured by the builders.
