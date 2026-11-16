@@ -268,10 +268,16 @@ async function startSiteOnce(
     symlinkSync(join(ROOT, entry), join(dir, entry));
   }
   // The build's times kept: the prerender's age decides when the first regeneration reads the feed.
+  // The build alone: the default server writes server/route-cache as it serves (Next 16.4 promotes
+  // each prerender there on its first read, through a temporary file it then removes), so a copy
+  // could list a file that is gone by the time it reads it (ENOENT, main's run 43881298318), and
+  // would hand this site the default server's regenerations instead of the build's prerenders.
   cpSync(join(ROOT, ".next"), join(dir, ".next"), {
     recursive: true,
     preserveTimestamps: true,
-    filter: (source) => !source.startsWith(join(ROOT, ".next", "cache")),
+    filter: (source) =>
+      !source.startsWith(join(ROOT, ".next", "cache")) &&
+      !source.startsWith(join(ROOT, ".next", "server", "route-cache")),
   });
   const port = await freePort();
   const env: NodeJS.ProcessEnv = {
