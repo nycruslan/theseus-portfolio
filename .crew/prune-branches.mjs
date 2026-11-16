@@ -1,15 +1,22 @@
 // `node .crew/prune-branches.mjs <merged branch>`: deletes the role branches a merged sprint leaves
-// on GitHub (`forge/36`, `probe/36-r2`), which roles push from their worktrees and Atlas brings
-// over. GitHub deletes only a PR's own branch on merge, so these pile up. Run by
+// on GitHub (ROLE below), which roles push from their worktrees and Atlas brings over. GitHub
+// deletes only a PR's own branch on merge, so these pile up. Run by
 // .github/workflows/prune-branches.yml whoever merged the PR, since the owner's merges don't go
 // through merge.mjs.
 // It deletes the merged sprint's and earlier ones', and leaves any sprint whose own branch is still
-// on GitHub: that one is open, and may yet need its roles'. Only those exact names are touched.
+// on GitHub: that one is open, and may yet need its roles'. Only role branch names are touched.
 // Each tip goes in the run's log, so a branch that turns out to hold something can be restored.
 
 import { api, list, repoOf, toplevel } from "./github.mjs";
 
-const ROLE = /^(?:forge|pixel|probe|iris|quill|merge)\/(\d+)(?:-r\d+)?$/u;
+// A role's branch for sprint n: `forge/36`, any suffix after the number (`probe/36-r2`,
+// `pixel/64-fix`, `probe/72-t33`), or a role's name pushed under the sprint's prefix
+// (`sprint/66-forge`), which isn't the sprint's own branch.
+const ROLES = "forge|pixel|probe|iris|quill|merge";
+const ROLE = new RegExp(
+  `^(?:(?:${ROLES})/(\\d+)(?:-[\\w.-]+)?|sprint/(\\d+)-(?:${ROLES}))$`,
+  "u",
+);
 const SPRINT = /^sprint\/(\d+)(?:[-/]|$)/u;
 
 const branch = process.argv[2];
@@ -30,9 +37,11 @@ const repo = repoOf(cwd);
 
 try {
   const branches = list(`repos/${repo}/branches?per_page=100`, { cwd });
-  // GitHub may not have deleted the merged branch yet, so it never counts as open.
+  // GitHub may not have deleted the merged branch yet, so it never counts as open, and a role's
+  // branch under the sprint's prefix is a role's, not an open sprint.
   const open = new Set(
     branches
+      .filter(({ name }) => !ROLE.test(name))
       .map(({ name }) => name.match(SPRINT))
       .filter(Boolean)
       .map((match) => Number(match[1]))
@@ -41,7 +50,7 @@ try {
   const stale = branches.filter(({ name }) => {
     const role = name.match(ROLE);
     if (!role) return false;
-    const number = Number(role[1]);
+    const number = Number(role[1] ?? role[2]);
     return number <= sprint && !open.has(number);
   });
   for (const { name, commit } of stale) {
