@@ -91,7 +91,7 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   hold, and nothing moves at 16 px (0 of 9,144 boxes). T27 is new and T25 is strengthened. Left
   open: a check on where #work lands under the wrapped bar, and whether the trials readout's row
   count changes with its reading at 21 px (Lens's nits); /crew and /evals at 28 px.
-- [x] Sprint 69 (S, PR #138): the stand-down's defect condition again, on the pages sprint 68
+- [x] Sprint 69 (S, PR #139): the stand-down's defect condition again, on the pages sprint 68
   didn't visit. With a 20 or 24 px default font on a phone, a case study's title ("orchestration")
   and `/evals`' "Groundedness" ran off the window; at the default font from 1024 to 1180,
   "Groundedness" printed over its own result. The headings now cap at their column over their
