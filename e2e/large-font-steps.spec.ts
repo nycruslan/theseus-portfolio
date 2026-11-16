@@ -14,7 +14,7 @@ import { contextOf, setDefaultFont } from "./reader-font";
 // page doesn't scroll sideways. Hiding the row's overflow isn't a fix, so the cut is read from the
 // boxes, not only the scroll. One test per record, one context per font, the page resized through
 // the widths, to keep CI's shards lean (.crew/STATE.md). Named to sort in shard 1, beside the other
-// large-font specs: its three tests push shard 2's tail (Y8, B5.1 to B5.5) to shard 3 for three cheap
+// large-font specs: its tests push shard 2's tail (Y8, B5.1 to B5.5) to shard 3 for three cheap
 // log-entry tests, about 74 test-s out for 5 in (.crew/sprint/72/).
 
 /** Records with both steps: the contract's three, early, middle and late in the yard. */
@@ -226,3 +226,145 @@ for (const route of PAGES)
       }
     }
   });
+
+// T33b, Iris's finding on the fix's first round (.crew/sprint/72/): a visitor walks the yard by
+// clicking Next where it was, again and again. Where the steps stack at a large font and the stack
+// lines up at its end, Next on one record and ← Sprint p on the next sit at one point once the
+// numbers grow a place or the words a line (/log/9 to /log/10 webfont blocked, /log/10 to /log/11
+// with the face, at 1536 x 24), so the second click goes back a record. On consecutive records that
+// straddle that wrap, and one pair past it, the centre of Next's box and its arrow's point on record
+// n must not hit ← Sprint p on record n + 1 (Next there, or nothing, is fine), each page scrolled as
+// far as a visitor scrolls to see Next whole on record n (at 1792 x 28 it starts under the fold).
+// Both with the face and without it, since each moves the wrap; one test, one context per window
+// and face.
+
+/** Consecutive records, each walked from the one before: the wrap's boundary, then a later pair. */
+const WALKS = [
+  [8, 9, 10, 11],
+  [23, 24],
+] as const;
+/** The windows and fonts where the steps stack: Very large at 1536, 28 px at 1792. */
+const STACKED = [
+  [1536, 24],
+  [1792, 28],
+] as const;
+
+type Point = { name: string; x: number; y: number };
+/** Where a visitor clicks: points in the window with the page scrolled to `scroll`. */
+type Clicks = { scroll: number; points: Point[] };
+
+/** The step link (its data-step) each point hits with the page at `scroll`, null where none. */
+function stepsAt(page: Page, clicks: Clicks) {
+  return page.evaluate(({ scroll, points }) => {
+    window.scrollTo({ top: scroll, behavior: "instant" });
+    return {
+      scroll: window.scrollY,
+      hits: points.map(
+        (p) =>
+          document
+            .elementFromPoint(p.x, p.y)
+            ?.closest("a[data-step]")
+            ?.getAttribute("data-step") ?? null,
+      ),
+    };
+  }, clicks);
+}
+
+/**
+ * Next's centre and its arrow's point, with the page scrolled as a visitor would to see Next whole
+ * (at 1792 x 28 it starts under the fold), or null where there is no Next.
+ */
+function nextClicks(page: Page): Promise<Clicks | null> {
+  return page.evaluate(() => {
+    const next = document.querySelector('.record-steps a[data-step="next"]');
+    const arrow = next?.querySelector(".step-arrow");
+    if (!next || !arrow) return null;
+    const below = next.getBoundingClientRect().bottom + 16 - innerHeight;
+    if (below > 0)
+      window.scrollTo({ top: scrollY + below, behavior: "instant" });
+    const box = next.getBoundingClientRect();
+    const tip = arrow.getBoundingClientRect();
+    return {
+      scroll: scrollY,
+      points: [
+        {
+          name: "Next's centre",
+          x: box.left + box.width / 2,
+          y: box.top + box.height / 2,
+        },
+        {
+          name: "its arrow's point",
+          x: tip.right - 1,
+          y: tip.top + tip.height / 2,
+        },
+      ],
+    };
+  });
+}
+
+const T33B =
+  "T33b a repeated click on Next walks on: at 1536 x 900 with a 24 px and 1792 x 900 with a 28 px default font, with the webfont and without it, on /log/8 to /log/11 and /log/23 to /log/24, the centre of Next's box and its arrow's point on record n hit Next there, and on record n + 1 never ← Sprint p";
+
+test(T33B, async ({ browser }) => {
+  test.setTimeout(90_000);
+  for (const [width, size] of STACKED)
+    for (const blocked of [true, false]) {
+      const { context, page } = await contextOf(browser, {
+        width,
+        height: HEIGHT,
+        blocked,
+      });
+      const where = `at ${width} x ${HEIGHT}, ${size} px default font, ${blocked ? "fonts blocked" : "with the webfont"}`;
+      try {
+        await setDefaultFont(context, page, size);
+        for (const walk of WALKS) {
+          let clicks: Clicks | null = null;
+          let from = 0;
+          for (const n of walk) {
+            const route = recordOf(n);
+            const response = await page.goto(route);
+            expect(response?.status(), `status of ${route}`).toBe(200);
+            await page.evaluate(() => document.fonts.ready);
+            expect(
+              await page.evaluate(
+                () => getComputedStyle(document.documentElement).fontSize,
+              ),
+              `the root's font on ${route} ${where}`,
+            ).toBe(`${size}px`);
+            if (clicks) {
+              const again = await stepsAt(page, clicks);
+              expect
+                .soft(
+                  again.scroll,
+                  `${route} scrolled where ${recordOf(from)} was ${where}`,
+                )
+                .toBe(clicks.scroll);
+              for (const [i, p] of clicks.points.entries())
+                expect
+                  .soft(
+                    again.hits[i],
+                    `${p.name} on ${recordOf(from)} (${Math.round(p.x)}, ${Math.round(p.y)}, scrolled ${Math.round(clicks.scroll)}), clicked again on ${route} ${where}`,
+                  )
+                  .not.toBe("previous");
+            }
+            if (n === walk[walk.length - 1]) break;
+            // The points a visitor clicks here, each proved on Next before it is tried on the next.
+            clicks = await nextClicks(page);
+            expect
+              .soft(clicks, `Next and its arrow on ${route} ${where}`)
+              .not.toBeNull();
+            if (clicks)
+              expect
+                .soft(
+                  (await stepsAt(page, clicks)).hits,
+                  `what Next's centre and its arrow's point hit on ${route} ${where}`,
+                )
+                .toEqual(["next", "next"]);
+            from = n;
+          }
+        }
+      } finally {
+        await context.close();
+      }
+    }
+});
