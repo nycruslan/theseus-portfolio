@@ -2479,11 +2479,19 @@ main:has(> [data-model]) {
 /* The number at the left, the steps at the right (.crew/sprint/53/placement.md): in one row they
    cost nothing above the h2, 283 px at their widest against 310 at 1024. Below 768 the steps stand
    under the ghost (below), and the row holds the number alone; below 20rem they stay here, on a
-   row of their own. */
+   row of their own. From 64rem the record's column is a fixed 360 px (444 from 80rem) while the
+   number and the steps grow with the reader's font, so from a 20 px default font the one row
+   outgrew it: the number split onto two lines and the steps ran past the record, and from 1536 x
+   24 past the window (.crew/sprint/72/contract.md). The row wraps instead: the steps take the row
+   under the number, still at its right, and where the two links can't share that row ← Sprint p
+   stands at the start under the number and Next at the end, as on phones, so a click repeated on
+   Next never lands on ← Sprint p when the next record's links take its place (Iris, sprint 72).
+   At the default font they always share one row, so nothing moves. */
 .record-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 0 16px;
 }
 
 .record-rev {
@@ -2494,7 +2502,13 @@ main:has(> [data-model]) {
 
 .record-steps {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 16px;
+  margin-left: auto;
+}
+
+.record-steps [data-step="next"] {
   margin-left: auto;
 }
 
@@ -2637,19 +2651,8 @@ main:has(> [data-model]) {
    under it where the two don't fit side by side; on the newest step the hint stands under ← Sprint
    p, as it does when placed. */
 @media (width < 20rem) {
-  .record-top {
-    flex-wrap: wrap;
-    row-gap: 0;
-  }
-
   .record-steps {
-    flex-wrap: wrap;
     flex-basis: 100%;
-    justify-content: space-between;
-  }
-
-  .record-steps [data-step="next"] {
-    margin-left: auto;
   }
 
   .record:not(:has([data-step="next"])) .record-hint {
@@ -2774,6 +2777,13 @@ main:has(> [data-model]) {
   .record-steps a,
   .record-hand-off a {
     min-height: 24px;
+  }
+
+  /* Where Next takes the row under ← Sprint p at a large font (above), 4 px between the rows, as
+     the hint keeps under them: a focused link's ring (2 px at 2 px) clears the other's words, and
+     the number and the two steps read as three lines rather than two blocks. */
+  .record-steps {
+    row-gap: 4px;
   }
 }
 

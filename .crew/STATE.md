@@ -34,6 +34,9 @@ makes stale.
   From sprint 50 it also exits 1, after writing the records, naming any merged sprint whose squash
   touched an owner path while its retro's `outcome` lacks `needs-owner` (so `/log` reads Gate):
   commit the records anyway and put the token in that retro; `--retros HEAD` re-checks the edit.
+- **When `lens` or `gate` doesn't start, the sprint holds unmerged** (sprint 72): on 2026-11-16
+  every `pull_request_target` run ended in `startup_failure` for five hours while CI passed. Put it
+  on Owner chores; the next run removes and re-adds `review` once, which started them again.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
   contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
   none to the overlap).
