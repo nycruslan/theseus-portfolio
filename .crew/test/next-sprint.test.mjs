@@ -735,6 +735,20 @@ test("for half an hour after a sprint merges, only the run its merge started tak
   assert.equal(runWithGoal(table).state.action.do, "start");
 });
 
+test("the handover only stands in for a start: beside a waiting PR it holds the start, and the cap keeps its own reason", () => {
+  const waiting = pr(12, "sprint/2-dark-mode", ["needs-owner"]);
+  const beside = preflight(
+    github({ pulls: [waiting], closed: [merged(41, 4 / 60)] }),
+  ).state;
+  assert.equal(beside.action.do, "stand down");
+  assert.match(beside.action.say, /^PR #41 merged 4 min ago/);
+  const capped = preflight(
+    github({ pulls: [waiting], closed: [...today(), merged(41, 4 / 60)] }),
+  ).state;
+  assert.equal(capped.action.do, "stand down");
+  assert.match(capped.action.say, /^PR #12 .+ the daily cap \(6\)/);
+});
+
 test("a merge more than half an hour old holds nothing up", () => {
   const { state } = preflight(github({ closed: [merged(41, 31 / 60)] }));
   assert.equal(state.action.do, "start");

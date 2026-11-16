@@ -321,7 +321,16 @@ function ownerQueue(repo, open) {
 function action(open, unopened, next, daily, ownerGoal, handover) {
   const capped = daily.merged >= daily.cap && !ownerGoal;
   const [busy] = unopened;
-  const current = open.find(({ waitsForOwner }) => !waitsForOwner);
+  // A merge's own run takes the next sprint, so any other run stands down wherever it would
+  // start one (handover).
+  const start = (fields) =>
+    handover
+      ? {
+          do: "stand down",
+          pr: handover.number,
+          say: `PR #${handover.number} merged ${minutesSince(handover.merged_at)} min ago, and its merge started a run of its own that takes sprint ${next}. Don't start it here: stand down with a short report.`,
+        }
+      : { do: "start", sprint: next, ...fields };
   if (busy) {
     const minutes = minutesSince(busy.committedAt);
     return {
@@ -337,20 +346,12 @@ function action(open, unopened, next, daily, ownerGoal, handover) {
       say: `${daily.merged} ${sprints} merged in the last 24 hours, the daily cap (${daily.cap}); the next run picks up after ${daily.reopens}. Don't start a new sprint: stand down with a short report.`,
     };
   }
-  if (handover && !current) {
-    return {
-      do: "stand down",
-      pr: handover.number,
-      say: `PR #${handover.number} merged ${minutesSince(handover.merged_at)} min ago, and its merge started a run of its own that takes sprint ${next}. Don't start it here: stand down with a short report.`,
-    };
-  }
   if (!open.length) {
-    return {
-      do: "start",
-      sprint: next,
+    return start({
       say: `No sprint is open. Start sprint ${next} on a branch named sprint/${next}-<slug>.`,
-    };
+    });
   }
+  const current = open.find(({ waitsForOwner }) => !waitsForOwner);
   const others = (shown) => {
     const rest = open.filter((one) => one !== shown);
     return rest.length
@@ -367,12 +368,10 @@ function action(open, unopened, next, daily, ownerGoal, handover) {
       };
     }
     if (open.length <= WAITING_CAP) {
-      return {
-        do: "start",
-        sprint: next,
+      return start({
         waiting: first.number,
         say: `PR #${first.number} (${first.branch}) waits for the owner. Start sprint ${next} on a branch named sprint/${next}-<slug>, on work that neither repeats nor builds on #${first.number}; if every candidate does, stand down with a short report.`,
-      };
+      });
     }
     return {
       do: "stand down",
