@@ -68,6 +68,13 @@ display word split at 60 px or more reads as a defect. The /evals case titles' r
 at 320 × 24 px drops to 1.25 (1.73 at 16 px). That's acceptable, and she'd rather not shrink the
 reader's text to win it back. She gave the direction for the rail fix at 1024 (above).
 
+## Lens
+
+Verdict: ship on e1fe482, two nits that ride along with the next sprint on this code: record in
+the token check's comment (`e2e/invariants.spec.ts:320`) that `/evals`' rail heads and the
+large-font caps are off-token by design, and note at the break-word backstop that a new widest
+word raises the cap's divisor instead.
+
 ## Decisions
 
 1. **The overprint at 1024 rides along** (Atlas). It's a fact hidden at the default font, in this

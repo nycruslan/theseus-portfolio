@@ -1,0 +1,36 @@
+{
+  "sprint": 69,
+  "pr": 138,
+  "goal": "A long word in a heading stays inside a small phone's window",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Lens ship on e1fe482, 2 nits",
+  "fixRounds": 0,
+  "minutes": 60,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 473003, "minutes": 60 },
+    { "role": "qa-engineer", "model": "opus", "tokens": 239392, "minutes": 13 },
+    { "role": "design-director", "model": "opus", "tokens": 96823, "minutes": 5 }
+  ],
+  "lens": { "runs": 1, "tokens": 467998, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "Sprint 68's sweep visited four pages, so a case study's title still ran off a phone",
+      "evidence": "Atlas's sweep of every route family on production: 'orchestration' to 324 at 320 wide and 20 px, 'Groundedness' to 348 at 24 px (contract.md)"
+    },
+    {
+      "what": "The evaluations page printed a heading over its own result on a laptop",
+      "evidence": "Forge, at 1024 and the default font: 'Groundedness' to 311 over 'Failed, 6 of 10' from 282; T29 red on main at 1024, 1180 and 1280 (contract.md, Contract change)"
+    },
+    {
+      "what": "The evaluation headings a check needs exist only on the live site",
+      "evidence": "/evals' category h2s come from the weekly Blob report, absent in local and CI builds, so T28 and T29 draw them with the real Schedule (pr.md, Evidence)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Record in invariants.spec.ts:320's comment that /evals' rail heads (1024 to 1433) and the large-font caps are off-token by design (Lens's nit, app/globals.css:2935)" },
+    { "who": "Forge", "what": "Note at the break-word backstop that a new widest title word raises the cap's divisor, not the backstop (Lens's nit, app/globals.css:2787)" },
+    { "who": "Forge", "what": "Measure rail heads at 1024 with a 24 px font ('Education' on the sheet, 'Key decisions', 'Questions'); Iris's arithmetic says they may overrun" }
+  ]
+}
