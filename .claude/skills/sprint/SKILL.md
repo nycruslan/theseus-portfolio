@@ -13,7 +13,8 @@ product code yourself.
 ## Pre-flight, before anything else
 
 Run `node .crew/next-sprint.mjs` from the repository root, adding `--owner-goal` when the owner
-gave this run a goal. A sprint's folder reaches main only when its PR merges, so main alone can't
+gave this run a goal, and `--after-merge` when a sprint PR's merge started this run (a
+github-trigger-context block names it). A sprint's folder reaches main only when its PR merges, so main alone can't
 tell you what's in flight: the script reads GitHub and prints, as JSON, what's open, the next
 sprint number and what to do. `action.do` is `start`, `continue` or `stand down`, and `action.say`
 says why and how. If it exits 1, GitHub couldn't be read: start nothing and report it.

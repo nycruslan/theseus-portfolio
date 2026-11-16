@@ -115,6 +115,16 @@ function runWithGoal(table, env = {}) {
   return { ...result, state: JSON.parse(result.stdout) };
 }
 
+// The pre-flight of the run a sprint PR's merge started.
+function runAfterMerge(table) {
+  const result = runHook("next-sprint.mjs", "", {
+    cwd: repo,
+    args: ["--after-merge"],
+    env: { GH_ROUTES: routes(table) },
+  });
+  return { ...result, state: JSON.parse(result.stdout) };
+}
+
 test("with nothing open, the next sprint is one past the highest anywhere", () => {
   const { code, state } = preflight(
     github({
@@ -687,7 +697,7 @@ test("a just-merged sprint's branch, still listed, doesn't hold up the run its m
       repo: { full_name: REPO },
     },
   };
-  const { state } = preflight(
+  const { state } = runAfterMerge(
     github({
       closed: [done],
       branches: [branch("main"), branch("sprint/8-hero-half-model", head)],
@@ -699,7 +709,7 @@ test("a just-merged sprint's branch, still listed, doesn't hold up the run its m
   assert.equal(state.next, 9);
   // A commit pushed after the PR closed is new work, and holds the run up again.
   const later = "5".repeat(40);
-  const reopened = preflight(
+  const reopened = runAfterMerge(
     github({
       closed: [done],
       branches: [branch("main"), branch("sprint/8-hero-half-model", later)],
@@ -707,6 +717,38 @@ test("a just-merged sprint's branch, still listed, doesn't hold up the run its m
     }),
   ).state;
   assert.equal(reopened.action.do, "stand down");
+});
+
+test("for half an hour after a sprint merges, only the run its merge started takes the next sprint", () => {
+  // The merge's run pushes its branch some minutes in; a scheduled run in between saw nothing in
+  // flight and started the same sprint (#142 and #143).
+  const table = github({ closed: [merged(41, 4 / 60)] });
+  const scheduled = preflight(table).state;
+  assert.equal(scheduled.action.do, "stand down");
+  assert.equal(scheduled.action.pr, 41);
+  assert.match(
+    scheduled.action.say,
+    /^PR #41 merged 4 min ago, and its merge started a run of its own that takes sprint 2\. Don't start it here/,
+  );
+  assert.equal(runAfterMerge(table).state.action.do, "start");
+  // The owner's goal is the owner's own run, and is never held.
+  assert.equal(runWithGoal(table).state.action.do, "start");
+});
+
+test("a merge more than half an hour old holds nothing up", () => {
+  const { state } = preflight(github({ closed: [merged(41, 31 / 60)] }));
+  assert.equal(state.action.do, "start");
+});
+
+test("a just-merged sprint doesn't hold up an open PR's run: only starting a sprint waits", () => {
+  const { state } = preflight(
+    github({
+      closed: [merged(41, 4 / 60)],
+      pulls: [pr(50, "sprint/50-finish")],
+    }),
+  );
+  assert.equal(state.action.do, "continue");
+  assert.equal(state.action.pr, 50);
 });
 
 // A PR body with the sprint skill's "Owner's pick" blocks.
