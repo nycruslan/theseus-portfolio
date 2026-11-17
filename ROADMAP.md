@@ -136,6 +136,11 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   words wrap below 20rem. Nothing moves at 16 px (0 of 14,100 boxes). T35 is new. Left open: Lens's
   shard-comment nit, Iris on the eight-line status at 320 × 24, and the Next.js advisory that stops
   builds (`.crew/sprint/74/retro.json`).
+- [x] Sprint 75 (S, PR #152): sprint 74's advisory follow-up. Production's Next.js 16.4.3 sat inside
+  a moderate security advisory (GHSA-mfr8-8qww-v76h), and its upgrade notice failed every other
+  build. `next` is 16.4.6: the audit is clean, the notice and the alternating failures are gone,
+  and the route table, the pages and all 467 checks are unchanged. Left open: a real streamed
+  `/api/chat` answer on 16.4.6, which e2e mocks (`.crew/sprint/75/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
