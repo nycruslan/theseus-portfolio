@@ -1,0 +1,10 @@
+# Next.js: version quirks under cacheComponents
+
+Moved here from MEMORY.md in sprint 75, when it neared its 25 KB load limit. One line each, with
+the reason. Each line names the version it was proven on; sprint 75 moved `next` to 16.4.6, where
+only what the e2e suite guards was proven again.
+
+- Next 16.4 under `cacheComponents` and `ensureStatic = "navigation"`: a `"use cache"` read with `cacheLife({ stale: 30, revalidate: 30, expire: 300 })` keeps the route static (`○ 30s 5m`), `Date.now()` must sit inside that cache scope, the 30 s counts from the build's prerender (not the server's start), and the first request past it is served stale while one background regeneration reads the source again (`.crew/sprint/31/`).
+- Next 16.4.2 under cacheComponents sends a page's `notFound()` as its error shell (`html#__next_error__`, an empty body, the not-found page only in the flight data for the browser to draw), in dev and build alike and with a segment `not-found.tsx` too: 404 and `noindex` hold, but without scripts the page is blank; only an address no route matches gets the root not-found server-rendered. Call `notFound()` in `generateMetadata` as well, or the shell carries the site's title (`.crew/sprint/30/`).
+- Per-param cards in Next 16.4: `generateImageMetadata` moves the image under `[__metadata_id__]`, whose generated `generateStaticParams` shadows the file's and gets no parent params, so nothing prerenders. A plain `opengraph-image.tsx` exporting `generateStaticParams` prerenders every param (●), and the page's `generateMetadata` gives each its alt via `openGraph.images`, which at the same level replaces the file's tags in 16.4.3 (the docs say the file wins; Y10 guards it) (`app/log/[n]/`, `.crew/sprint/54/`).
+- Next 16.4, on a dynamic page's first (cache-miss) on-demand render: `redirect()` sends its `location` header twice (Playwright's request reads "a, a") and `notFound()` sends the blank error shell with no `<title>`; a hit sends one header. Answer an address's redirects and 404s in `proxy.ts` with a narrow matcher, rewriting a 404 to a path no route matches so the server draws the not-found page (proxy.ts, `.crew/sprint/63/`).
