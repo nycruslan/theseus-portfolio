@@ -10,7 +10,7 @@
   "agents": [
     { "role": "engineer", "model": "opus", "tokens": 134553, "minutes": 55 }
   ],
-  "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": { "runs": 1, "tokens": 95406, "important": 0, "actedOn": 0, "nits": 0 },
   "wentWrong": [
     {
       "what": "Production ran a framework version inside a published security advisory",
