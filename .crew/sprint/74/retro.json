@@ -1,0 +1,35 @@
+{
+  "sprint": 74,
+  "pr": 151,
+  "goal": "The crew panel keeps whole words at a large font on a phone",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 100,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 108355, "minutes": 16 },
+    { "role": "engineer", "model": "opus", "tokens": 245729, "minutes": 78 }
+  ],
+  "lens": { "runs": 1, "tokens": 537411, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "At a large font on a phone, the crew's status broke inside every word",
+      "evidence": "Atlas's sweep of production at 320 x 28: 'Pause updates' left the status 62 px, so it read 'Cre / w / resti / ng.'; T35 red on main in 11 cases (pr.md, The defect)"
+    },
+    {
+      "what": "The roadmap pointed at the crew's table, but the status was the worse break",
+      "evidence": "The live table fit at 320 x 28 in Atlas's sweep; it scrolled only with the feed down, from one nowrap role word (decisions.md 1 and 4)"
+    },
+    {
+      "what": "Next.js's security notice stopped the build about half the time",
+      "evidence": "Probe's and Forge's reports: pnpm build exited on the 16.4.3 advisory notice and passed on a retry (decisions.md 6)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nit: T34's and T35's shard comments name log-dates tests that the shard listing may not show; rerun the listing and write each header from its own diff" },
+    { "who": "Iris", "what": "At 320 x 24 the status sits beside 'Pause updates' as eight short lines; say whether it should drop under sooner (decisions.md 5)" },
+    { "who": "Forge", "what": "Upgrade Next.js past the 16.4.3 advisory that intermittently stops pnpm build" }
+  ]
+}
