@@ -1,0 +1,33 @@
+{
+  "sprint": 75,
+  "pr": 152,
+  "goal": "The site's framework moves past a security advisory, the pages unchanged",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 75,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 134553, "minutes": 55 }
+  ],
+  "lens": { "runs": 1, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "Production ran a framework version inside a published security advisory",
+      "evidence": "pnpm audit --prod: GHSA-mfr8-8qww-v76h, next 16.3.0 to 16.4.4, on main's 16.4.3 (Dependabot alert 1); none on 16.4.6"
+    },
+    {
+      "what": "The framework's upgrade notice failed every other build",
+      "evidence": "Forge reproduced it on 16.4.3: SecurityFatalError, then a five-minute retry receipt let the next build pass (pr.md, The change)"
+    },
+    {
+      "what": "Atlas's first verify collided with the builder's own verify",
+      "evidence": "next build: 'Another next build process is already running', from Forge's stop-hook build in the same checkout; the rerun passed"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Forge", "what": "Read a real streamed /api/chat answer on 16.4.6, which e2e mocks" },
+    { "who": "Atlas", "what": "Wait for a builder's stop-hook verify to end before running pnpm verify in the same checkout" }
+  ]
+}
