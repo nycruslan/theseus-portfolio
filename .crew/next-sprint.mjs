@@ -1,6 +1,7 @@
-// The sprint pre-flight: `node .crew/next-sprint.mjs [--owner-goal]`, run by Atlas before anything
-// else (the sprint skill). A sprint's folder reaches main only when its PR merges, so main alone
-// can't tell what's in flight. This reads GitHub, through REST alone (github.mjs), and prints JSON:
+// The sprint pre-flight: `node .crew/next-sprint.mjs [--owner-goal] [--after-merge]`, run by Atlas
+// before anything else (the sprint skill). A sprint's folder reaches main only when its PR merges,
+// so main alone can't tell what's in flight. This reads GitHub, through REST alone (github.mjs),
+// and prints JSON:
 // - actingAs: who GitHub thinks is calling. In a cloud session that's always the owner, since the
 //   cloud's GitHub proxy swaps any token for the owner's connection, so the rules hold through gate,
 //   Lens, merge.mjs and the guard rather than a separate account.
@@ -27,7 +28,9 @@
 //   start the next sprint. A PR or branch a run worked on in the last ACTIVE_HOURS (a commit, or a
 //   PR marked ready or for review) is left to the run most likely still on it, since two runs on
 //   one branch collide. While one PR waits for the owner a new sprint may start beside it; a second
-//   waiting PR stops new work.
+//   waiting PR stops new work. A sprint PR's merge starts a run of its own (--after-merge), and its
+//   branch reaches GitHub only minutes later, so for HANDOVER_MINUTES after a merge any other run
+//   leaves the next sprint to it. The owner's goal isn't held.
 // It fails closed: when GitHub can't be read it exits 1, since a sprint started blind may duplicate
 // one.
 
@@ -50,9 +53,14 @@ const DAILY_DEFAULT = 6;
 const ACTIVE_HOURS = 2;
 const ACTIVE_MS = ACTIVE_HOURS * 60 * 60 * 1000;
 const WAITING_CAP = 1;
+// How long a merge's own run has to push its sprint's branch, which takes it 5 to 10 minutes. On
+// 2026-11-16 a scheduled run 4 minutes after a merge started the same sprint (#142, #143).
+const HANDOVER_MINUTES = 30;
 configure({ timeout: 20_000 });
 
-const ownerGoal = process.argv.slice(2).includes("--owner-goal");
+const flags = process.argv.slice(2);
+const ownerGoal = flags.includes("--owner-goal");
+const afterMerge = flags.includes("--after-merge");
 
 let repo;
 try {
@@ -108,6 +116,7 @@ function preflight(repo) {
   const unopened = freshBranches(repo, branches, open, closed);
   const daily = mergedToday(closed, base);
   const merged = closed.filter((pr) => pr.base.ref === base && pr.merged_at);
+  const handover = ownerGoal || afterMerge ? null : justMerged(merged);
   // A pick on an open PR that a run worked on within ACTIVE_HOURS is that run's to build, as
   // `update` leaves such a PR alone: two runs would build it twice.
   const quiet = new Set(
@@ -128,8 +137,19 @@ function preflight(repo) {
       ...pulls.filter(({ number }) => quiet.has(number)),
       ...merged,
     ]),
-    action: action(open, unopened, next, daily, ownerGoal),
+    action: action(open, unopened, next, daily, ownerGoal, handover),
   };
+}
+
+// The newest sprint PR merged within HANDOVER_MINUTES: its own run may not have pushed the next
+// sprint's branch yet.
+function justMerged(merged) {
+  const [newest] = merged.toSorted(
+    (a, b) => Date.parse(b.merged_at) - Date.parse(a.merged_at),
+  );
+  return newest && minutesSince(newest.merged_at) < HANDOVER_MINUTES
+    ? newest
+    : null;
 }
 
 // The picks the owner answered that the team still has to build: open PRs first, then merged ones,
@@ -298,9 +318,19 @@ function ownerQueue(repo, open) {
 
 // One open sprint PR at a time is worked on: the oldest one that doesn't wait for the owner. The
 // daily cap holds back new sprints, but never the owner's goal or the finishing of an open one.
-function action(open, unopened, next, daily, ownerGoal) {
+function action(open, unopened, next, daily, ownerGoal, handover) {
   const capped = daily.merged >= daily.cap && !ownerGoal;
   const [busy] = unopened;
+  // A merge's own run takes the next sprint, so any other run stands down wherever it would
+  // start one (handover).
+  const start = (fields) =>
+    handover
+      ? {
+          do: "stand down",
+          pr: handover.number,
+          say: `PR #${handover.number} merged ${minutesSince(handover.merged_at)} min ago, and its merge started a run of its own that takes sprint ${next}. Don't start it here: stand down with a short report.`,
+        }
+      : { do: "start", sprint: next, ...fields };
   if (busy) {
     const minutes = minutesSince(busy.committedAt);
     return {
@@ -317,11 +347,9 @@ function action(open, unopened, next, daily, ownerGoal) {
     };
   }
   if (!open.length) {
-    return {
-      do: "start",
-      sprint: next,
+    return start({
       say: `No sprint is open. Start sprint ${next} on a branch named sprint/${next}-<slug>.`,
-    };
+    });
   }
   const current = open.find(({ waitsForOwner }) => !waitsForOwner);
   const others = (shown) => {
@@ -340,12 +368,10 @@ function action(open, unopened, next, daily, ownerGoal) {
       };
     }
     if (open.length <= WAITING_CAP) {
-      return {
-        do: "start",
-        sprint: next,
+      return start({
         waiting: first.number,
         say: `PR #${first.number} (${first.branch}) waits for the owner. Start sprint ${next} on a branch named sprint/${next}-<slug>, on work that neither repeats nor builds on #${first.number}; if every candidate does, stand down with a short report.`,
-      };
+      });
     }
     return {
       do: "stand down",
