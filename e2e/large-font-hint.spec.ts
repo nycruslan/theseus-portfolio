@@ -3,22 +3,24 @@ import { recordOf } from "./log";
 import { contextOf, setDefaultFont } from "./reader-font";
 import { NEWEST_STEP } from "./retros";
 
-// Sprint 73 (.crew/sprint/73/contract.md, T34): the yard's hint stays clear of the step links at a
-// large font. Atlas's sweep of production on 2026-11-16 (WebGL on, the hint shows only while the
-// yard plays) found `.record-hint`'s line a fixed 14 px under type of `--step-sm`: at 320 x 24 and
-// 28 it wraps to two lines 14 px apart whose text is 24 and 27 px tall, "Hold to flip through"
-// printed over "the sprints" on every record; on the newest record its text runs into the hand-off
-// ("Watch the crew build the next one on Crew") and ← Sprint p from 20 px at 320, at 390 x 24 and
-// 28, and at 1440 and 1920; on /log/70 at 1920 x 24 and 28 it runs into Next.
+// Sprint 73 (.crew/sprint/73/contract.md, T34): the yard's hint stays clear of the words around it
+// at a large font. Atlas's sweep of production on 2026-11-16 (WebGL on, the hint shows only while
+// the yard plays) found `.record-hint`'s line a fixed 14 px under type of `--step-sm`: at 320 x 24
+// and 28 it wraps to two lines 14 px apart whose text is 24 and 27 px tall, "Hold to flip through"
+// printed over "the sprints" on every record. The sweep measured the hint against the step links'
+// 44 px boxes; read word on word, its text never touches ← Sprint p or Next, but on the newest
+// record it runs into the hand-off ("Watch the crew build the next one on Crew"), and on /log/70
+// into the goal's h2 (.crew/sprint/73/decisions.md 1).
 //
 // Each record at each window and font, webfont blocked, the hint shown by setting data-yard on the
 // model by hand as H3 does (checks refuse WebGL): the hint's lines (its text's client rects) don't
 // print over one another; its text overlaps the text of a step link, the hand-off, or any other
-// words on the page by no more than it does at 16 px at the same width (measured here: at 16 px a
-// 14 px line under a 16 px text box already touches by a pixel or two, which reads clean); the page
-// doesn't scroll sideways; the hint is whole inside the window. One test per record, one context
-// per font, the page resized through the windows, to keep CI's shards lean (.crew/STATE.md); named
-// to sort with the other large-font specs in shard 1.
+// words on the page by no more than it does at 16 px at the same width (measured here: 0 px word
+// on word, decision 2); the page doesn't scroll sideways; the hint is whole inside the window. One
+// test per record, one context per font, the page resized through the windows, to keep CI's shards
+// lean (.crew/STATE.md). Named to sort with the other large-font specs in shard 1; its two tests
+// still moved shard 2's edges, which split by count: two cheap log-dates tests came in from shard
+// 1 and one log-yard test went out to shard 3 (.crew/sprint/73/pr.md).
 
 /** A middle record with both steps, and the newest, with ← Sprint p and the hand-off. */
 const PAGES = [

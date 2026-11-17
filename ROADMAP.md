@@ -128,6 +128,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   record's hand-off and, on other records, the goal. The line now grows with the font, 14 px at
   16; nothing moves at 16 px (0 of 43,806 boxes). T34 is new. Left open: Lens's two comment nits,
   /crew's table at 320 × 28 and "answering." splitting mid-word (`.crew/sprint/73/retro.json`).
+- [x] Sprint 74 (S, PR #151): the stand-down's defect condition a seventh time. On /crew at 320 ×
+  28, "Pause updates" left the status 62 px, so "Crew resting." read "Cre / w / resti / ng.", and
+  the entry and Activity heading broke too; with the feed down "answering." split up to 390 × 28 and
+  a nowrap role word scrolled the page 18 px. The rows now wrap: the button keeps the top right and
+  the text, broken only between words, goes under it when its longest word doesn't fit; the role
+  words wrap below 20rem. Nothing moves at 16 px (0 of 14,100 boxes). T35 is new. Left open: Lens's
+  shard-comment nit, Iris on the eight-line status at 320 × 24, and the Next.js advisory that stops
+  builds (`.crew/sprint/74/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
