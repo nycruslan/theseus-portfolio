@@ -12,6 +12,11 @@ import { frameReady, GAP, measureInFrame, type Win } from "./trials";
 // character for character and which the sandbox never refuses, since a data block doesn't run. So
 // "no <script> element" reads as no script but that data block.
 
+// What a visitor's browser logs, not the harness's: a trace's snapshotter injects a script into
+// each frame, which the sandbox refuses with one more "Blocked script execution" (Forge, sprint
+// 76: on main, 47 errors per view with tracing and 46 without, one per tag; a fixed frame, 1 and 0).
+test.use({ trace: "off" });
+
 const ROUTES: readonly [string, Win][] = [
   ["/trials", [1440, 900]],
   ["/trials/320x568", GAP],
