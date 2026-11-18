@@ -1978,7 +1978,7 @@ main:has(> [data-model]) {
 /* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
    phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
    the count line and the question or the chapter line, Start again, the lines figure, the record,
-   Every revision. The DOM keeps the reading order, header first; only the drawings, hidden from
+   Every revision; on a record, the lines figure after the record (`.log-open .log-lines`). The DOM keeps the reading order, header first; only the drawings, hidden from
    assistive tech, and the row move up, and below 768 the step links stand under the ghost by
    position, not order (`.log-open .record-steps`). The Theseus over the ghost: two drawings at one
    size, the Theseus's caption under it in the header's type, one line at every width, 6 px from
@@ -2122,6 +2122,15 @@ main:has(> [data-model]) {
 .log-head .log-lines {
   max-width: none;
   padding-right: max(0px, 100% - 66ch);
+}
+
+/* On a record the lines figure follows the record (.crew/sprint/76/): it is the whole Log's, the
+   same on every step, and above the record its 104 px held a phone's h2 under the fold (B5.7 at
+   390 x 844), with a chapter line, the newest step's hand-off or a four-line goal. The count line
+   and the chapter line, which are the step's, stay with the drawings. From 1024 the header is a
+   block, where `order` does nothing. */
+.log-open .log-lines {
+  order: 9;
 }
 
 /* Read as page and the motion control below 768 px (components/log.tsx says why here): the foot's
