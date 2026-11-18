@@ -1,0 +1,35 @@
+{
+  "sprint": 76,
+  "pr": 153,
+  "goal": "The trials page logs no errors to a visitor's console",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 175,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 84302, "minutes": 7 },
+    { "role": "engineer", "model": "opus", "tokens": 376024, "minutes": 123 }
+  ],
+  "lens": { "runs": 1, "tokens": 443127, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [
+    {
+      "what": "Every trials view logged 48 console errors, one per script the sandboxed frame refused",
+      "evidence": "Chromium on production, 2026-11-18: 48 'Blocked script execution' errors on /trials and /trials/320x568 at 1440 x 900; 0 on /, /log, /crew, /ask, /evals"
+    },
+    {
+      "what": "The test's own trace recorder added one refused script per view",
+      "evidence": "T36 on main: 47 errors per view with trace on, 46 with --trace off (Probe, Forge); T36 now runs with trace off"
+    },
+    {
+      "what": "The first frame copied the text face's call, which a kept check forbids",
+      "evidence": "B1.10 (sheet.spec.ts) wants one Sofia_Sans call in app/; the full suite went red there, and the call moved to app/document.ts, shared"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Forge", "what": "Read /trials on production after the merge: the frame served from the Pages Router, 0 console errors (the preview was out of this session's network)" },
+    { "who": "Forge", "what": "The cold-load caption jump on /trials (T8's CLS on production), the trials' next open defect" },
+    { "who": "Forge", "what": "unstable_runtimeJS is undocumented: on any Next upgrade, read T36 first" }
+  ]
+}
