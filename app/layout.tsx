@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Sofia_Sans } from "next/font/google";
+import { bodyAttributes, htmlAttributes } from "@/app/document";
 import { profile } from "@/content/profile";
 import { openGraph, title } from "@/lib/metadata";
 import { DARK, LIGHT, SITE_URL } from "@/lib/site";
@@ -10,23 +10,6 @@ import "./globals.css";
 // address no page was prerendered for renders on the server, to answer 404: an unknown record's
 // (/log/999) reads the sprint folders to find out (app/log/[n]/page.tsx).
 export const ensureStatic = "navigation";
-
-// The text face on every route (.crew/sprint/22/notes-iris.md, section 2). The condensed display
-// face is set by /, /read, /crew and /log alone (app/fonts.ts). `optional`: the face is used only if
-// it is there for the first paint, so it never swaps in later and shifts the page; a fallback sized
-// to its metrics holds the lines meanwhile. Not next/font's, whose one source is local Arial, which
-// Android and Linux lack, but the one app/fonts.ts uses for the display face: "Sofia Sans Local" in
-// app/globals.css carries next/font's metrics over Arial and its metric twins
-// (.crew/sprint/41/contract.md, P16). Under Turbopack a `fallback` list replaces next/font's sized
-// fallback rather than following it, hence `adjustFontFallback: false` with it; app/globals.css
-// adds the generic family.
-const sofiaSans = Sofia_Sans({
-  subsets: ["latin"],
-  display: "optional",
-  variable: "--font-sofia",
-  adjustFontFallback: false,
-  fallback: ["Sofia Sans Local"],
-});
 
 // Every route gets these, unless it sets its own `openGraph` or `twitter`: those replace the objects
 // below whole, and with them the social image from app/opengraph-image.tsx, so such a route needs an
@@ -52,10 +35,11 @@ export const viewport: Viewport = {
   ],
 };
 
+// The root and body come from app/document.ts, which the trials' frame's document shares.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${sofiaSans.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">
+    <html {...htmlAttributes}>
+      <body {...bodyAttributes}>
         {children}
         {/* Its script is served by Vercel alone, so anywhere else it would only log a 404. */}
         {process.env.VERCEL ? <Analytics /> : null}
