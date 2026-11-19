@@ -413,7 +413,33 @@ function readSeat(page: Page): Promise<SeatRead> {
       const ring = chart?.querySelector("circle[data-ring]");
       const ringAt = ring ? pointOf(ring) : null;
       const ringOn = `${ring?.getAttribute("cx")}x${ring?.getAttribute("cy")}`;
-      const film = strokeOf(chart?.querySelector(".trials-ring-film")) / 2;
+      const filmEl = chart?.querySelector(".trials-ring-film");
+      const film = strokeOf(filmEl) / 2;
+      // A copy of the dots drawn above the ring's film (Iris's seat, .crew/sprint/79/seat.md, 4):
+      // a shown `use` after the film in paint order, of the dot or a group holding it, in the dot's
+      // own ink and at least its width. Such a dot is hidden only where the ring's hole, the mask
+      // that keeps the copy off the ring's centre, reaches it (decisions.md, 5).
+      const copies = [...(chart?.querySelectorAll("use") ?? [])].filter(
+        (use) =>
+          filmEl &&
+          filmEl.compareDocumentPosition(use) &
+            Node.DOCUMENT_POSITION_FOLLOWING &&
+          use.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+          }),
+      );
+      const copiedAbove = (pin: Element) =>
+        copies.some((use) => {
+          const id = use.getAttribute("href")?.replace(/^#/, "");
+          const of = id ? document.getElementById(id) : null;
+          return (
+            of?.contains(pin) &&
+            getComputedStyle(use).stroke === getComputedStyle(pin).stroke &&
+            strokeOf(use) >= strokeOf(pin)
+          );
+        });
+      const hole = strokeOf(chart?.querySelector(".trials-ring-hole")) / 2;
       // What can hide a dot: the gap's pad and text, and each sounding's pad and number.
       const covers: { what: string; box: Box }[] = [];
       if (pad) covers.push({ what: "the gap's pad", box: boxOf(pad) });
@@ -451,10 +477,14 @@ function readSeat(page: Page): Promise<SeatRead> {
         }
         const on = `${pin.getAttribute("cx")}x${pin.getAttribute("cy")}`;
         if (ringAt && on !== ringOn) {
-          const into = r + film - Math.hypot(at.x - ringAt.x, at.y - ringAt.y);
+          const above = copiedAbove(pin);
+          const into =
+            r +
+            (above ? hole : film) -
+            Math.hypot(at.x - ringAt.x, at.y - ringAt.y);
           if (into > tol)
             covered.push(
-              `${name}'s dot under the ring's film (the ring at ${ringOn}) by ${into.toFixed(1)} px`,
+              `${name}'s dot under the ring's ${above ? "hole" : "film"} (the ring at ${ringOn}) by ${into.toFixed(1)} px`,
             );
         }
         if (text) {
@@ -538,7 +568,7 @@ async function sweepT39(
 }
 
 const T39A =
-  "T39a every crew pin shows: on /trials and /trials/320x568, at 320 x 568, 390 x 844, 1024 x 768, 1280 x 800 and 1440 x 900 and from 1024 to 1440 wide in 16 px steps at 768 tall, with a 16, 20, 24 and 28 px default font, every crew pin's dot (circle[data-pin], its 5 px ink) is wholly uncovered by the gap label's pad and text, every sounding's pad and number, and the ring's film where the ring isn't on that pin";
+  "T39a every crew pin shows: on /trials and /trials/320x568, at 320 x 568, 390 x 844, 1024 x 768, 1280 x 800 and 1440 x 900 and from 1024 to 1440 wide in 16 px steps at 768 tall, with a 16, 20, 24 and 28 px default font, every crew pin's dot (circle[data-pin], its 5 px ink) is wholly uncovered by the gap label's pad and text, every sounding's pad and number, and the ring's film where the ring isn't on that pin; a dot with a copy in its own ink drawn above the film (a shown use after .trials-ring-film) counts covered only where the ring's hole (half .trials-ring-hole's stroke) reaches it";
 
 test(T39A, async ({ browser }) => {
   test.setTimeout(150_000);
