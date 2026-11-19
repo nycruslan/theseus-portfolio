@@ -308,11 +308,51 @@ test("app/ and components/ use the tokens: no color literal or palette utility",
   // tokens --pencil, --card and --card-old, and sprint 30 the ghost hull's --vellum.
   const declaration =
     /--(?:background|foreground|muted|accent|rule|pencil|card|card-old|vellum)\s*:[^;]*;/g;
+  // A CSS named colour is a literal too (Lens on sprint 79): in a CSS declaration, a word not
+  // joined to a name by "-" or called as a function (tan()), with quoted strings left out; in a TSX
+  // file, the value of a colour prop or style key. The one record is the trials ring's mask, whose
+  // white and black are luminance, shown and hidden, not colours, so no token or forced palette may
+  // change them (app/globals.css, .crew/sprint/79/decisions.md, 6).
+  const NAMED_COLOURS =
+    "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen".split(
+      " ",
+    );
+  const named = new RegExp(
+    `(?<![\\w-])(?:${NAMED_COLOURS.join("|")})(?![\\w(-])`,
+    "i",
+  );
+  const MASK_LUMINANCE = [
+    "app/globals.css: .trials-ring-reach { stroke: white }",
+    "app/globals.css: .trials-ring-hole { stroke: black }",
+  ];
+  const colourProp =
+    /\b(?:fill|stroke|color|stopColor|floodColor|lightingColor|background|backgroundColor|border\w*Color|outlineColor|caretColor|accentColor)\s*[:=]\s*\{?\s*["'`]([^"'`]*)/g;
+  const namedIn = (file: string, code: string) =>
+    file.endsWith(".css")
+      ? [
+          ...code
+            .replace(/"[^"]*"|'[^']*'/g, '""')
+            .matchAll(/([^{};]+)\{([^{}]*)\}/g),
+        ].flatMap(([, selector = "", body = ""]) =>
+          [...body.matchAll(/(-{0,2}[a-z][\w-]*)\s*:\s*([^;]*)/g)]
+            .filter(([, , value = ""]) => named.test(value))
+            .map(
+              ([, prop, value = ""]) =>
+                `${file}: ${selector.trim()} { ${prop}: ${value.trim()} }`,
+            ),
+        )
+      : [...code.matchAll(colourProp)]
+          .filter(([, value = ""]) => named.test(value))
+          .map(([match]) => `${file}: ${match}`);
   const hits = [...sources("app"), ...sources("components")].flatMap(
-    ({ file, code }) =>
-      rules
+    ({ file, code }) => [
+      ...rules
         .filter(([, pattern]) => pattern.test(code.replace(declaration, "")))
         .map(([name]) => `${file}: ${name}`),
+      ...namedIn(file, code.replace(declaration, "")).filter(
+        (hit) => !MASK_LUMINANCE.includes(hit),
+      ),
+    ],
   );
   expect(hits).toEqual([]);
 });
