@@ -20,3 +20,6 @@
 5. **T39a's ring clause follows the paint order (Atlas, on Iris's rule).** With the dots drawn above
    the ring's film, the film can't hide them; the clause now counts a dot covered only where the
    ring's hole (`.trials-ring-hole`, 3.5 px) reaches it. Probe edits the check; no clause retires.
+6. **Lens's fix is built as he proposed (Atlas).** The dots' copies show only within the ring's
+   reach; Forge also put both copies under one mask, so no seam shows where the reach's edge
+   crosses a dot. Lens's nit (white and black past the tokens invariant) is Probe's follow-up.
