@@ -19,3 +19,7 @@
 5. **Follow-ups, not this sprint:** the two crew pins under the gap's pad at every width (both are
    links in the page's list, and showing them re-seats "−6.2" everywhere); the soundings' own
    px-sized pads at 24–28 px; the 12 px default-font layout from 768.
+6. **The focused ring just past the switch stays (Atlas).** From 1196 to about 1206 at 16 px a
+   focused 456 × 465's ring reaches 0.94 px into "−6.2"'s box, as it does on main at 1200
+   (0.61 px). Stretching the switch to about 1218 would run the move zone further past the
+   contract's budget for a focus-only touch that reads whole; it's a follow-up for Iris.
