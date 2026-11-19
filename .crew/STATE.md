@@ -70,6 +70,10 @@ makes stale.
   It reads text against text, not only against the window's edge, and once with WebGL on: sprint
   70's record printed "Approved" over its fact well inside the window, and the yard's hint shows
   only while the model plays (`.crew/sprint/70/retro.json`).
+- **Measure a tight fit in the suite's browser, not only `/opt/pw-browsers/chromium`.** That
+  binary is Chrome 153, and Playwright's default headless shell (156, the suite's and CI's) sets
+  glyphs 1 to 5% wider: sprint 77's placement matched to the tenth in 153, then the shell wrapped
+  a chapter line at 320 and put two goals past the fold (`.crew/sprint/77/decisions.md` 3).
 - **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
   code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
 - **The fixtures' unmerged sprint 999 pencils the next seat, which walks the hull one seat per
