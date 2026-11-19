@@ -100,3 +100,4 @@
 - Shrink a lettered drawing only down to the size its lettering was tuned for (the lifts at 768, 46rem), never by the window alone, or the fixed-px numbers outgrow their lifts (sprint 77).
 - Measure every record, not a sample, before a fold call: the worst cases were the question step, the chapter steps, the newest (hand-off row) and five-line goals, each a different record (sprint 77).
 - Three hull lessons (numbers on a turned hull, marks below its edge, close-ups with one end) moved to `hull.md` (sprint 77, for room).
+- When a chart's lettering crowds its marks, seat the label in the chart's own grammar first (a number on its dot), then a pocket tied by a leader where the plot can't hold that; anchor the pocket at a window point (a `g` with `transform-box: view-box` and a % translate, since Chromium 156 ignores CSS x/y on a nested svg), and let the plot's px height grow with rem, or vertical gaps fall behind large text (sprint 79, `.crew/sprint/79/seat.md`).

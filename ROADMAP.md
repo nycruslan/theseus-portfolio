@@ -169,6 +169,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   else moves at 16 px. T38 is new. Left open: two crew pins hidden under the gap's pad, Lens's two
   nits (the moved number's underline at 1x, a memory pointer), the soundings' px pads at 24 to
   28 px (`.crew/sprint/78/retro.json`).
+- [x] Sprint 79 (S, PR #156): sprint 78's pin follow-up, a production defect that hid facts. The
+  trials chart hid crew windows under its own labels: 360 × 560 and 375 × 548 under "−6.2" at every
+  width, 1366 × 625 half under 1366 × 595's number, others at some widths and fonts, and 360 × 560
+  under the ring at 320 (T39a red at 248 of 248 reads). "−6.2" now sits on its dot, or from 64rem in
+  a pocket with a leader; three soundings take new seats; the crew's dots are drawn again over the
+  ring within its reach (Lens's fix round kept focus rings whole). T39 is new. Left open: Lens's
+  two check nits (Probe), the sticky side at 24 to 28 px (Iris), and a focus ring within the ring's
+  reach on /trials/1366x595 (`.crew/sprint/79/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
