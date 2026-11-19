@@ -18,3 +18,10 @@
    lists `frame` as a sibling. The static `500.html` is now the Pages Router's default `_error`
    instead of the App Router's built-in: both are unstyled Next defaults, shown only on a server
    fault. Apart from these, 960 App Router files are identical.
+4. **B5.7's red is a real defect, fixed in this sprint** (Atlas, fix round 1). The close-out's row
+   made `/log/67` B5.7's tenth row, and its heading opened at 782.9 to 877.4 under a phone's
+   844 px fold. That was already true on production for 13 of the 75 records (chapter steps, the
+   newest step, and four-line goals). Below 1024 a record page now puts the Log's lines figure
+   after the record (`.log-open .log-lines { order: 9 }`). Every record's h2 opens in view at
+   390 × 844 (0 of 75 out of view, against 13), and nothing moves at 1440. B5.7 stays unedited.
+   The visible reorder on phones and tablets is Iris's call, asked as advice.

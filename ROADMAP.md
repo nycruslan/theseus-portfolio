@@ -144,7 +144,9 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
 - [x] Sprint 76 (S, PR #153): the stand-down's open frame console. Every trials view logged 48
   console errors in Chromium, one per script of `/`'s that the sandboxed frame refused. The frame is
   now a static Pages Router page that ships no JavaScript (`unstable_runtimeJS: false`; its only
-  script is `/`'s JSON-LD), its `<main>` byte for byte the same; the trials log 0. T36 is new. Left
+  script is `/`'s JSON-LD), its `<main>` byte for byte the same; the trials log 0. T36 is new. A fix
+  round put the Log's lines figure after a record below 1024, so every record's heading opens in a
+  phone's first screen (B5.7 had gone red on /log/67; 13 of 75 were under the fold). Left
   open: a read of production after the merge (the preview was out of reach), the cold-load caption
   jump (T8's CLS on production), and the undocumented flag on the next Next upgrade
   (`.crew/sprint/76/retro.json`).
