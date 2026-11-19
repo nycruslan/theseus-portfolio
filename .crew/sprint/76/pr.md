@@ -27,6 +27,9 @@ execution in '…/trials/frame' because the document's frame is sandboxed…"). 
   under a phone's fold (877 px against 844). That was already true on production for 13 of 75
   records. On a record page below 1024, the Log's lines figure now follows the record. Every
   record's h2 opens in view at 390 × 844, and nothing moves at 1440 (`decisions.md` 4).
+- **Fix round 2, Iris's verdict:** the placement is right. Below 1024 the figure on a record drops
+  its top rule, which had doubled the record box's edge, and Lens's two comment nits rode along
+  (`decisions.md` 5).
 
 ### Results
 
@@ -42,7 +45,7 @@ execution in '…/trials/frame' because the document's frame is sandboxed…"). 
 ### Decisions
 
 `.crew/sprint/76/decisions.md`: T36 allows the JSON-LD block (1), the Pages Router (2), and the
-accepted side effects (3), and the B5.7 fix (4). No Owner's pick: nothing here touches an owner path or `content/`.
+accepted side effects (3), and the B5.7 fix (4), and Iris's change (5). No Owner's pick: nothing here touches an owner path or `content/`.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 

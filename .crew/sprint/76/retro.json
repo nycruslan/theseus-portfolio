@@ -5,7 +5,7 @@
   "goalFrom": "roadmap",
   "size": "S",
   "outcome": "merged",
-  "fixRounds": 1,
+  "fixRounds": 2,
   "minutes": 175,
   "agents": [
     {
@@ -17,16 +17,22 @@
     {
       "role": "engineer",
       "model": "opus",
-      "tokens": 376024,
+      "tokens": 465362,
       "minutes": 123
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 101233,
+      "minutes": 7
     }
   ],
   "lens": {
-    "runs": 1,
-    "tokens": 443127,
+    "runs": 2,
+    "tokens": 1506314,
     "important": 0,
-    "actedOn": 0,
-    "nits": 0
+    "actedOn": 2,
+    "nits": 2
   },
   "wentWrong": [
     {
@@ -57,12 +63,12 @@
       "what": "unstable_runtimeJS is undocumented: on any Next upgrade, read T36 first"
     },
     {
-      "who": "Iris",
-      "what": "Below 1024 a record page now shows the Log's lines figure after the record; say whether it belongs there (decisions.md 4)"
-    },
-    {
       "who": "Probe",
       "what": "B5.7 samples one row, so the data decides what it sees; read every record's h2 at 390 x 844"
+    },
+    {
+      "who": "Forge",
+      "what": "At 1023 x 768 and 320 x 568 a record's heading still opens below the fold, on production too; B5.7 reads only 390 and 1440 (Iris)"
     }
   ]
 }

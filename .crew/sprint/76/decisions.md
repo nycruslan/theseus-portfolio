@@ -25,3 +25,8 @@
    after the record (`.log-open .log-lines { order: 9 }`). Every record's h2 opens in view at
    390 × 844 (0 of 75 out of view, against 13), and nothing moves at 1440. B5.7 stays unedited.
    The visible reorder on phones and tablets is Iris's call, asked as advice.
+5. **Iris on the reorder: the figure belongs after the record** (Verdict: changes, 7.8/10). Below
+   1024 it already introduces Every revision on `/log`. Her one change, made in fix round 2: on a
+   record below 1024 the figure drops its 1 px rule, which had doubled the record box's edge 16 px
+   above, and sits 24 px under the box. Lens's two comment nits rode along: the order comment
+   names the figure's move, and `.log-revs` is `order: 10`, so DOM order no longer breaks a tie.
