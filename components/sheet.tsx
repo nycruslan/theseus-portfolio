@@ -34,7 +34,7 @@ const person = {
 
 /**
  * The sheet: Ruslan's first page, as / renders it and as the trials page frames it
- * (app/trials/frame/page.tsx, in the feed's down state). One component, so the frame is / as the
+ * (pages/trials/frame.tsx, in the feed's down state). One component, so the frame is / as the
  * site builds it, never a copy that drifts. `entries` is the sprint log, newest first; the planks
  * are seated oldest first. The layer decides only pencil, copper and the rest line.
  */

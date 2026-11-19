@@ -141,6 +141,15 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   build. `next` is 16.4.6: the audit is clean, the notice and the alternating failures are gone,
   and the route table, the pages and all 467 checks are unchanged. Left open: a real streamed
   `/api/chat` answer on 16.4.6, which e2e mocks (`.crew/sprint/75/retro.json`).
+- [x] Sprint 76 (S, PR #153): the stand-down's open frame console. Every trials view logged 48
+  console errors in Chromium, one per script of `/`'s that the sandboxed frame refused. The frame is
+  now a static Pages Router page that ships no JavaScript (`unstable_runtimeJS: false`; its only
+  script is `/`'s JSON-LD), its `<main>` byte for byte the same; the trials log 0. T36 is new. A fix
+  round put the Log's lines figure after a record below 1024, so every record's heading opens in a
+  phone's first screen (B5.7 had gone red on /log/67; 13 of 75 were under the fold). Left
+  open: a read of production after the merge (the preview was out of reach), the cold-load caption
+  jump (T8's CLS on production), and the undocumented flag on the next Next upgrade
+  (`.crew/sprint/76/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

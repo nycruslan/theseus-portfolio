@@ -1978,12 +1978,14 @@ main:has(> [data-model]) {
 /* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
    phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
    the count line and the question or the chapter line, Start again, the lines figure, the record,
-   Every revision. The DOM keeps the reading order, header first; only the drawings, hidden from
-   assistive tech, and the row move up, and below 768 the step links stand under the ghost by
-   position, not order (`.log-open .record-steps`). The Theseus over the ghost: two drawings at one
-   size, the Theseus's caption under it in the header's type, one line at every width, 6 px from
-   its drawing and 14 from the ghost. Below 768 these margins and the h1's are terms of the step
-   links' place (`--yard-row`): change one and change it. */
+   Every revision. The DOM keeps the reading order, header first; three things move out of it.
+   The drawings, hidden from assistive tech, and the row move up. On a record the lines figure,
+   the whole Log's figure and no step's, moves down past the record (`.log-open .log-lines`).
+   Below 768 the step links stand under the ghost by position, not order (`.log-open
+   .record-steps`). The Theseus over the ghost: two drawings at one size, the Theseus's caption
+   under it in the header's type, one line at every width, 6 px from its drawing and 14 from the
+   ghost. Below 768 these margins and the h1's are terms of the step links' place (`--yard-row`):
+   change one and change it. */
 .log-theseus {
   order: 3;
   margin-top: 16px;
@@ -2124,6 +2126,21 @@ main:has(> [data-model]) {
   padding-right: max(0px, 100% - 66ch);
 }
 
+/* On a record, below 1024, the lines figure follows the record (.crew/sprint/76/): it is the whole
+   Log's, the same on every step, and above the record its 104 px held a phone's h2 under the fold
+   (B5.7 at 390 x 844), with a chapter line, the newest step's hand-off or a four-line goal. The
+   count line and the chapter line, the step's, stay with the drawings. Under the record box its
+   rule drew a second line 16 px below the box's own edge, so it goes, and the figure stands 24 px
+   under the box (Iris). From 1024 the figure keeps its place and its rule. */
+@media (width < 64rem) {
+  .log-open .log-lines {
+    order: 9;
+    margin-top: 24px;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
 /* Read as page and the motion control below 768 px (components/log.tsx says why here): the foot's
    44 px row, 12 px under the h1, at the drawings' head as on /, Read as page at the left and the
    group at the right, on the Log's own 16 px text edge. The drawing's-foot margins and 16 px of
@@ -2139,8 +2156,9 @@ main:has(> [data-model]) {
   margin-top: 24px;
 }
 
+/* Last below 1024, after the record and, on a record, the lines figure (order 9). */
 .log-revs {
-  order: 9;
+  order: 10;
   margin: 24px -16px 0;
   padding: 14px 16px 32px;
   border-top: 2px solid var(--foreground);
