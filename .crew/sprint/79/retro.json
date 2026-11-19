@@ -1,0 +1,32 @@
+{
+  "sprint": 79,
+  "pr": 156,
+  "goal": "Every crew window shows as a pin on the trials chart, beside the gap too",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 160,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 280136, "minutes": 19 },
+    { "role": "design-director", "model": "opus", "tokens": 560445, "minutes": 36 },
+    { "role": "engineer", "model": "opus", "tokens": 680685, "minutes": 104 }
+  ],
+  "lens": { "runs": 2, "tokens": 1976751, "important": 1, "actedOn": 1, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The trials chart hid seven of the crew's windows under its own labels",
+      "evidence": "Production, 2026-11-19: T39a red at 248 of 248 reads; 360 x 560 and 375 x 548 under the gap's label at every width, 1366 x 625 half under 1366 x 595's number, others at some widths and fonts; Iris's sweep, 1,467 failing reads"
+    },
+    {
+      "what": "The dots drawn over the ring first covered a window's keyboard focus ring",
+      "evidence": "Lens on bdd44ca: the copies were masked only at the ring's centre, so 1366 x 625's halo cut 1366 x 595's focus ring at every width; Forge's pixel check found 4 to 10 gap pixels before the fix, 0 after"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nits: T39a should read the mask's reach as well as its hole; the tokens invariant should record the mask's white and black and reject named colours" },
+    { "who": "Iris", "what": "The trials' sticky side runs 31 to 118 px past the window at a 24 to 28 px default font (on main too)" },
+    { "who": "Forge", "what": "On /trials/1366x595 the dots' copy can cut that sounding's focus ring within the ring's reach, as main's film already did; next dev logs a params-outside-Suspense error on /trials/[window] (on main too)" }
+  ]
+}
