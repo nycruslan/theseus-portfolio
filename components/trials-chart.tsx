@@ -430,16 +430,12 @@ function Ring({ win }: { win: Win }) {
           />
         </g>
         <use href="#trials-ring" className="trials-ring-film" />
-        <use
-          href="#trials-pin-dots"
-          mask="url(#trials-ring-hole)"
-          className="trials-pins-over-halo"
-        />
-        <use
-          href="#trials-pin-dots"
-          mask="url(#trials-ring-hole)"
-          className="trials-pins-over"
-        />
+        {/* One mask over both copies: masked apart, the reach's soft edge let a halo through
+          over a dot's ink, a light arc across it. */}
+        <g mask="url(#trials-ring-hole)">
+          <use href="#trials-pin-dots" className="trials-pins-over-halo" />
+          <use href="#trials-pin-dots" className="trials-pins-over" />
+        </g>
         <use href="#trials-ring" className="trials-ring-dot" />
       </g>
     </svg>
