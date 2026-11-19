@@ -340,6 +340,17 @@ const GAP_SEATS: CSSProperties & Record<`--${string}`, string> = {
   "--to-pocket-y": TO_POCKET.y,
 };
 
+/**
+ * The ring's mask's region, in window px: the plot's box and a tenth of it beyond every side, more
+ * than the ring's reach at any stretch, so a ring at the plot's edge keeps its whole reach.
+ */
+const MASK_BOX = {
+  x: X0 - (X1 - X0) / 10,
+  y: Y0 - (Y1 - Y0) / 10,
+  width: ((X1 - X0) * 12) / 10,
+  height: ((Y1 - Y0) * 12) / 10,
+};
+
 /** The bounding-box matrix that lays window px over the plot's box, 0 to 1 each way. */
 const BOX_MATRIX = [
   1 / (X1 - X0),
@@ -386,8 +397,10 @@ function GapLabel() {
  * The ring: one circle at the shown window, which the controller moves by cx and cy, and two
  * copies of it that draw the film inside and the dot, as non-scaling strokes on a near-zero circle,
  * so it stays a round 16 px. Between them the crew's dots are drawn again, halo and ink, so the
- * film hides none beside the ring, less the ring's own window: the mask's hole is a copy of the
- * ring too, so it follows the controller (.crew/sprint/79/seat.md, 4).
+ * film hides none beside the ring (.crew/sprint/79/seat.md, 4). The mask that shows them is copies
+ * of the ring too, so it follows the controller: a reach as wide as the film and a dot's halo, so
+ * the copies cover nothing but near the ring (a sounding's pad or focus ring elsewhere keeps main's
+ * paint order, Lens), less a hole at the ring's own window.
  */
 function Ring({ win }: { win: Win }) {
   return (
@@ -401,13 +414,10 @@ function Ring({ win }: { win: Win }) {
         <mask
           id="trials-ring-hole"
           maskUnits="userSpaceOnUse"
-          x={X0}
-          y={Y0}
-          width={X1 - X0}
-          height={Y1 - Y0}
+          {...MASK_BOX}
           className="trials-ring-mask"
         >
-          <rect x={X0} y={Y0} width={X1 - X0} height={Y1 - Y0} />
+          <use href="#trials-ring" className="trials-ring-reach" />
           <use href="#trials-ring" className="trials-ring-hole" />
         </mask>
         <g className="trials-ring">

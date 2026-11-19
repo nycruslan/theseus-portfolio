@@ -5877,9 +5877,11 @@ circle[data-pin],
   stroke-width: 3px;
 }
 
-/* The crew's dots again, halo and ink, over the ring's film, so it hides none beside the ring; the
-   mask's hole, a 7 px disc on the ring's point, keeps them off the ring's own window, which looks
-   as it did (.crew/sprint/79/seat.md, 4). White and black are the mask's luminance, shown and
+/* The crew's dots again, halo and ink, over the ring's film, so it hides none beside the ring
+   (.crew/sprint/79/seat.md, 4). The mask shows them only within the ring's reach, a 20 px disc on
+   its point, the film's 6 px and a halo's 4 each way, so elsewhere a sounding's pad, number and
+   focus ring keep their place over the dots (Lens); its hole, a 7 px disc, keeps them off the
+   ring's own window, which looks as it did. White and black are the mask's luminance, shown and
    hidden, not colours: no token or forced palette may change them. */
 .trials-pins-over-halo {
   stroke: var(--background);
@@ -5895,8 +5897,9 @@ circle[data-pin],
   forced-color-adjust: none;
 }
 
-.trials-ring-mask rect {
-  fill: white;
+.trials-ring-reach {
+  stroke: white;
+  stroke-width: 20px;
 }
 
 .trials-ring-hole {
