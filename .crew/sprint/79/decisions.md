@@ -23,3 +23,6 @@
 6. **Lens's fix is built as he proposed (Atlas).** The dots' copies show only within the ring's
    reach; Forge also put both copies under one mask, so no seam shows where the reach's edge
    crosses a dot. Lens's nit (white and black past the tokens invariant) is Probe's follow-up.
+7. **The retro's goal is shorter (Atlas).** CI's T37 found /log/79's goal wrapping to three lines at
+   320 × 568, its heading ending 13 px under the window; at 52 characters it fits, as the other
+   records' goals do. A retro's goal is a heading on a phone, so it is sized for one.

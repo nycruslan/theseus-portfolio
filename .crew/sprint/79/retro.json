@@ -1,7 +1,7 @@
 {
   "sprint": 79,
   "pr": 156,
-  "goal": "Every crew window shows as a pin on the trials chart, beside the gap too",
+  "goal": "Every crew window shows as a pin on the trials chart",
   "goalFrom": "roadmap",
   "size": "S",
   "outcome": "merged",
