@@ -1947,12 +1947,14 @@ main:has(> [data-model]) {
  * motion control (below 768), the Theseus and its caption, the ghost, on a step page below 768 the
  * step links and their hint under it (.crew/sprint/59/placement.md), the ghost's caption, the count
  * line and the question or the chapter line, Start again, the lines figure, the record when one is
- * open, then Every revision, its 2 px rule edge to edge as the facts' are. The row and the drawings
- * follow the header in the DOM and are set after the h1 here; the drawings are hidden from
- * assistive tech, so the reading order is the DOM's. From
- * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
- * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
- * the model layer's (above).
+ * open, then Every revision, its 2 px rule edge to edge as the facts' are. On a record the lines
+ * figure follows the record (.crew/sprint/76/), and in a window under 60rem tall the ghost's
+ * caption and the count line go after the record too, ahead of the figure, so a short window
+ * opens on the record's goal (.crew/sprint/77/placement.md). The row and the drawings follow the
+ * header in the DOM and are set after the h1 here; the drawings are hidden from assistive tech, so
+ * the reading order is the DOM's. From 1024 the sheet's inset box as a two-column grid: the
+ * drawings stacked beside the header and the record, then Every revision, across both columns on
+ * /log. Nothing here moves: the ghost's 3D is the model layer's (above).
  */
 .log {
   display: flex;
@@ -1978,14 +1980,16 @@ main:has(> [data-model]) {
 /* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
    phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
    the count line and the question or the chapter line, Start again, the lines figure, the record,
-   Every revision. The DOM keeps the reading order, header first; three things move out of it.
-   The drawings, hidden from assistive tech, and the row move up. On a record the lines figure,
-   the whole Log's figure and no step's, moves down past the record (`.log-open .log-lines`).
-   Below 768 the step links stand under the ghost by position, not order (`.log-open
-   .record-steps`). The Theseus over the ghost: two drawings at one size, the Theseus's caption
-   under it in the header's type, one line at every width, 6 px from its drawing and 14 from the
-   ghost. Below 768 these margins and the h1's are terms of the step links' place (`--yard-row`):
-   change one and change it. */
+   Every revision. The DOM keeps the reading order, header first; three moves take things out of
+   it. The drawings, hidden from assistive tech, and the row move up. On a record the lines
+   figure, the whole Log's figure and no step's, moves down past the record (`.log-open
+   .log-lines`), and in a window under 60rem tall the ghost's caption, the whole Log's too, and
+   its tally, the count line, go down ahead of it, so there the question or the chapter line, then
+   the record, follow the ghost (.crew/sprint/77/placement.md). Below 768 the step links stand
+   under the ghost by position, not order (`.log-open .record-steps`). The Theseus over the ghost:
+   two drawings at one size, the Theseus's caption under it in the header's type, one line at
+   every width, 6 px from its drawing and 14 from the ghost. Below 768 these margins and the h1's
+   are terms of the step links' place (`--yard-row`): change one and change it. */
 .log-theseus {
   order: 3;
   margin-top: 16px;
@@ -2131,7 +2135,9 @@ main:has(> [data-model]) {
    (B5.7 at 390 x 844), with a chapter line, the newest step's hand-off or a four-line goal. The
    count line and the chapter line, the step's, stay with the drawings. Under the record box its
    rule drew a second line 16 px below the box's own edge, so it goes, and the figure stands 24 px
-   under the box (Iris). From 1024 the figure keeps its place and its rule. */
+   under the box (Iris). That holds in a window 60rem tall or more; under it the ghost's caption
+   and the count line stand between the box and the figure, which takes its rule back (sprint 77,
+   below the step links' placement). From 1024 the figure keeps its place and its rule. */
 @media (width < 64rem) {
   .log-open .log-lines {
     order: 9;
@@ -2156,7 +2162,8 @@ main:has(> [data-model]) {
   margin-top: 24px;
 }
 
-/* Last below 1024, after the record and, on a record, the lines figure (order 9). */
+/* Last below 1024, after the record and, on a record, the lines figure (order 9), with the ghost's
+   caption and the count line ahead of it in a window under 60rem tall. */
 .log-revs {
   order: 10;
   margin: 24px -16px 0;
@@ -2594,7 +2601,9 @@ main:has(> [data-model]) {
    default font print the text into the hand-off and the goal (never the step links' words,
    .crew/sprint/73/decisions.md 1), and a wrapped hint's two lines over each other; from 20 px the
    line holds the text whole (.crew/sprint/73/contract.md).
-   The ghost's caption below 48rem stands under it, so the line is a term of its margin. */
+   Below 48rem what stands under it, the ghost's caption or, in a window under 60rem tall, the
+   question, the chapter line or the record, clears it by a margin the line is a term of
+   (`--yard-band`). */
 .log-open {
   --hint-line: max(14px, 1.5rem - 10px);
 }
@@ -2638,6 +2647,12 @@ main:has(> [data-model]) {
     --yard-lines: calc(var(--step-2xl) * 0.95 + var(--step-base) * 1.45);
     --yard-drawings: calc((100% - 32px) * 252 / 632);
     --yard-row: calc(116px + var(--yard-lines) + var(--yard-drawings));
+    /* The band under the ghost the step row and the hint take: the gap (4), the row (44), 4, the
+       hint's line (14 at the default font), 10. One line here at any font: the hint's width and
+       this block's 20rem floor grow together. The first thing under the ghost stands this far
+       under it: the ghost's caption, or, in a window under 60rem tall, the question, the chapter
+       line or the record (.crew/sprint/77/placement.md). */
+    --yard-band: calc(62px + var(--hint-line));
   }
 
   .log-open .record-steps {
@@ -2662,10 +2677,8 @@ main:has(> [data-model]) {
     text-align: start;
   }
 
-  /* The gap (4), the row (44), 4, the hint's line (14 at the default font), 10. One line here at
-     any font: the hint's width and this block's 20rem floor grow together. */
   .log-open [data-ghost-caption] {
-    margin-top: calc(62px + var(--hint-line));
+    margin-top: var(--yard-band);
   }
 }
 
@@ -2680,6 +2693,80 @@ main:has(> [data-model]) {
 
   .record:not(:has([data-step="next"])) .record-hint {
     text-align: start;
+  }
+}
+
+/* A record in a short window (.crew/sprint/77/placement.md): below 1024 px and under 60rem tall,
+   where every record opened with its goal under the fold (320 x 568 to 375 x 667, 900 x 700,
+   1023 x 768), the record follows the yard. The ghost's caption, the whole Log's and the same on
+   every step, and the count line, its tally, go after the record, ahead of the lines figure,
+   which takes back its rule and its 16 px: the box's edge no longer stands above it. The question
+   and the chapter line, the step's payoff, keep their slot under the drawings, the first thing
+   under the ghost at the caption's old 14 px, and the record 16 under them. 60rem tall and up
+   keeps the page above, which there shows the ghost's caption and the goal both; every phone in a
+   browser is under it, so every phone gets one order. Later than the step links' placement, which
+   sets the caption's margin at the same specificity. */
+@media (width < 64rem) and (height < 60rem) {
+  .log-open :is([data-ghost-caption], [data-ghost-count]) {
+    order: 9;
+  }
+
+  .log-open [data-ghost-caption] {
+    margin-top: 24px;
+  }
+
+  .log-open .log-lines {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--foreground);
+  }
+
+  .log-open .log-head :is(.log-question, .log-chapter) {
+    margin-top: 14px;
+  }
+
+  .log-open:has(.log-head :is(.log-question, .log-chapter)) .record {
+    margin-top: 16px;
+  }
+}
+
+/* Below 768 the first thing under the ghost clears the step row and the hint as the ghost's
+   caption did. */
+@media screen and (20rem <= width < 48rem) and (height < 60rem) {
+  .log-open .log-head :is(.log-question, .log-chapter),
+  .log-open:not(:has(.log-head :is(.log-question, .log-chapter))) .record {
+    margin-top: var(--yard-band);
+  }
+}
+
+/* Below 768 the number line holds Rev n alone (the steps stand under the ghost, or below 20rem on
+   a row of their own), so it takes its text's height: 6.5 px back, which a five-line goal at
+   360 x 640 needs. */
+@media (width < 48rem) and (height < 60rem) {
+  .log-open .record-rev {
+    line-height: 1;
+  }
+}
+
+/* From 768 to 1023 the drawings as wide as the window's height lets the record's head open in
+   view, never narrower than at 768 (46rem, where the 13 px numbers keep their lifts) nor wider
+   than the column: 736 px at 900 x 700, 800 at 1023 x 768, where the column is 868 and 991. The
+   two drawings stand 252/632 of their width tall, so 2.5 times the height left over is their
+   width; 28rem is the rest of that first screen: the bar, the h1, the Theseus's caption and the
+   record down to its goal's foot, 698 px at most at 1023 x 768. Side by side they would be 418 to
+   480 px wide, too narrow for the numbers' lifts. svh, so a toolbar sliding away never resizes
+   them; the 3D lays itself on the drawings' boxes. */
+@media (48rem <= width < 64rem) and (height < 60rem) {
+  .log-open :is(.log-theseus-drawing, .log-ghost) {
+    max-width: clamp(46rem, (100svh - 28rem) * 2.5, 100%);
+  }
+}
+
+/* Below 22.5rem the goal a step smaller, 24 px, the lines figure's size, about 25 characters a
+   line: at 30 in a 254 px measure it set 15 to 18, and five goals on five lines. */
+@media (width < 22.5rem) and (height < 60rem) {
+  .log-open .record h2 {
+    font-size: var(--step-xl);
   }
 }
 

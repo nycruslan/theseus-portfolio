@@ -150,6 +150,16 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   open: a read of production after the merge (the preview was out of reach), the cold-load caption
   jump (T8's CLS on production), and the undocumented flag on the next Next upgrade
   (`.crew/sprint/76/retro.json`).
+- [x] Sprint 77 (S, PR #154): sprint 76's fold follow-up. On production every Log record opened
+  with its goal below the fold at 320 × 568, 360 × 640, 375 × 667, 900 × 700 and 1023 × 768 (75 of
+  75). On a record below 1024 wide and under 60rem tall, the ghost's caption and count line now
+  follow the record, the drawings cap their width to the window's height from 768, and the goal is
+  24 px below 22.5rem (Iris's `placement.md`). Every goal opens in view there, except that at 320 ×
+  568 the question's and chapter steps' goals start in view (decisions 2 and 3); nothing moves from
+  1024, on `/log`, or in tall windows. T37 is new. Sprint 76's production read is done: /trials
+  logs 0 errors and the cold-load caption jump didn't reproduce (CLS 0). Left open: Lens's memory
+  nit, the newest step's hand-off in the step row (Iris), 5 px of spare at 320 and 360, real
+  Safari and iPadOS (`.crew/sprint/77/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
