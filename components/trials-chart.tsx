@@ -271,8 +271,8 @@ const heard = ([w, h]: Win) => `${w} by ${h}`;
 function Sounding({ win, side, byGap }: (typeof SOUNDINGS)[number]) {
   const signed = signedOf(sweptTrial(win));
   const at = percentOf(win);
-  // The target, pad, focus ring and number are placed in CSS by side and width, so the chart's
-  // width can change a seat; the dot is the point.
+  // The target, pad and focus ring are sized in CSS by side and width, and `byGap`'s seat, number
+  // too, by the chart's width; the dot is the point.
   return (
     <a
       href={addressOf(win)}
@@ -288,7 +288,11 @@ function Sounding({ win, side, byGap }: (typeof SOUNDINGS)[number]) {
         <rect className="trials-sounding-pad" />
         <rect className="trials-sounding-ring" />
         <circle r="1.5" className="trials-sounding-dot" />
-        <text y="-10.5" className="trials-sounding-number">
+        <text
+          x={side === "right" ? 3 : 0}
+          y="-10.5"
+          className="trials-sounding-number"
+        >
           {signed}
         </text>
       </svg>
@@ -299,7 +303,7 @@ function Sounding({ win, side, byGap }: (typeof SOUNDINGS)[number]) {
 /**
  * The width labels; 1440 is left out, 29 px from 1280 at 320 (placement.md, 4). Where a large
  * default font leaves the axis too narrow for its labels in a row, 1024's, between the two it would
- * meet, steps down one (app/globals.css; .crew/sprint/78/contract.md).
+ * meet, steps down one, a leader in place of its tick (app/globals.css; .crew/sprint/78/).
  */
 const WIDTH_LABELS = [320, 768, 1024, 1280, 1920];
 const STEPPED_LABEL = 1024;
@@ -436,6 +440,9 @@ export function TrialsChart({ win }: { win: Win }) {
               data-stepped={w === STEPPED_LABEL ? "" : undefined}
             >
               <path d="M0 0V4" />
+              {w === STEPPED_LABEL ? (
+                <rect className="trials-axis-leader" />
+              ) : null}
               <text y="15">{w}</text>
             </svg>
           ))}
