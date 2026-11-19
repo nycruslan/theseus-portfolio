@@ -5641,9 +5641,13 @@ a[data-replay]:not([data-ready]) {
  * window px, and every mark with a size is drawn in px, a dot as a near-zero circle with a round
  * non-scaling stroke. Ink, graphite and pencil: nothing on the chart is live, so nothing is copper.
  */
+/* A container, so a label can change seats by the chart's own width (.crew/sprint/78/contract.md).
+   The left gutter grows with the height axis's widest label, "1100", about 1.8rem, from a 20 px
+   default font, where it starts 6 px inside the window, so a larger one keeps it there. */
 .trials-chart {
+  container: trials-chart / inline-size;
   --plot-h: 176px;
-  --yg: 30px;
+  --yg: max(30px, 1.8rem - 6px);
   --xr: 8px;
   --xl: 20px;
   margin-top: 28px;
@@ -5875,11 +5879,13 @@ circle[data-pin],
   fill: var(--background);
 }
 
+/* 28 × 15 at a 16 px default font; from about 20 px it grows with "−6.2" (2.125em, 1.2em tall), so
+   no crew pin's dot near the gap shows through its digits (.crew/sprint/78/, Iris). */
 .trials-gap rect {
   x: 5px;
-  y: -7.5px;
-  width: 28px;
-  height: 15px;
+  y: calc(max(15px, 1.2em) / -2);
+  width: max(28px, 2.125em + 4px);
+  height: max(15px, 1.2em);
 }
 
 .trials-gap text {
@@ -5917,6 +5923,16 @@ circle[data-pin],
 .trials-axis path {
   stroke: currentColor;
   stroke-width: 1px;
+}
+
+/* The stepped label's leader, 1 px from the axis to 3 px above its digits: drawn only while the
+   label is stepped down, in place of its tick. */
+.trials-axis-leader {
+  display: none;
+  x: -0.5px;
+  width: 1px;
+  height: calc(15px + 0.5em);
+  fill: currentColor;
 }
 
 /* A sounding: its number above its dot (1366 × 595's above and to the right), on a film pad,
@@ -6032,6 +6048,61 @@ circle[data-pin],
     y: -22.25px;
     width: 32px;
     height: 24.5px;
+  }
+}
+
+/* 456 × 465 takes a seat right of its point, 1366 × 595's 2 px further right so its focused ring
+   clears "−6.2" at 1024 (Iris), while its number above would meet the gap's label
+   (.crew/sprint/78/contract.md): its ring, hidden until focus, starts 17 px left of its point and
+   2 px above the gap's, whose label ends 7 px and its text, about 1.5rem, right of the gap's point.
+   456 × 465's point is 136/1616 of the plot further right, and from 64rem the plot is the chart
+   less 109 px (its gutters and the axis's 1 px), so they meet below 394px + 17.82rem: from 1024 to
+   1195 wide at a 16 px default font, from 1280 to 1365 at 20. Below 64rem the plot is 176 px tall,
+   and the number passes under the label. The number's 5 px is a translate, since a text's x isn't
+   a CSS property; 1366 × 595's 3 px stays in its x attribute, where its underline keeps both rows
+   at 1x (a translate dropped the lower one). */
+@media (width >= 64rem) {
+  @container trials-chart (width < calc(394px + 17.82rem)) {
+    .trials-sounding[data-by-gap="right"] .trials-sounding-hit {
+      x: -2px;
+    }
+
+    .trials-sounding[data-by-gap="right"] .trials-sounding-pad {
+      x: 3px;
+    }
+
+    .trials-sounding[data-by-gap="right"] .trials-sounding-ring {
+      x: 0;
+    }
+
+    .trials-sounding[data-by-gap="right"] .trials-sounding-number {
+      text-anchor: start;
+      translate: 5px 0;
+    }
+  }
+}
+
+/* Where a large default font leaves the width axis too narrow for its labels in a row, 1024's steps
+   down one, its box's height and 3 px, and the gutter under the axis grows by as much. 1024's and
+   1280's points are 256/1616 of the plot apart and each label is about 1.8rem wide; the plot is
+   the chart less --yg and 9 px, so the row holds them 3 px apart from max(58px + 11.36rem, 22px +
+   13.16rem): it always does at a 16 or 20 px default font, and from 24 px it steps at 320 wide,
+   from 28 px at 390 (.crew/sprint/78/contract.md). Its leader takes its tick's place. */
+@container trials-chart (width < max(58px + 11.36rem, 22px + 13.16rem)) {
+  .trials-chart-svg {
+    margin-bottom: calc(var(--xl) + 1.2em + 3px);
+  }
+
+  .trials-axis svg[data-stepped] text {
+    translate: 0 calc(1.2em + 3px);
+  }
+
+  .trials-axis svg[data-stepped] path {
+    display: none;
+  }
+
+  .trials-axis svg[data-stepped] .trials-axis-leader {
+    display: inline;
   }
 }
 

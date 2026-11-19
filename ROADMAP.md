@@ -160,6 +160,15 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   logs 0 errors and the cold-load caption jump didn't reproduce (CLS 0). Left open: Lens's memory
   nit, the newest step's hand-off in the step row (Iris), 5 px of spare at 320 and 360, real
   Safari and iPadOS (`.crew/sprint/77/retro.json`).
+- [x] Sprint 78 (S, PR #155): the stand-down's defect condition, from Probe's production sweep
+  (414 loads, 23 routes). At 1024 × 768 and the default font the 456 × 465 sounding's pad hid the
+  decimal point of the crew's accepted gap, so the trials chart read "−6 2"; from a 20 px font a
+  crew pin printed on its digits ("−6,2" at 1440 × 28), and at 24 and 28 px the width axis ran
+  together at 320 and "1100" left the window. The sounding now takes its above-right seat while it
+  would meet the gap, the gap's pad grows in em, and "1024" steps down a row with a leader; nothing
+  else moves at 16 px. T38 is new. Left open: two crew pins hidden under the gap's pad, Lens's two
+  nits (the moved number's underline at 1x, a memory pointer), the soundings' px pads at 24 to
+  28 px (`.crew/sprint/78/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

@@ -250,13 +250,16 @@ function Pin({ wins }: { wins: readonly Win[] }) {
   );
 }
 
+type Side = "above" | "right";
+
 /**
  * The four named windows, the chart's close calls (placement.md, 4): each number sits above its
  * dot, and 1366 × 595's to the right, its target starting 4 px left of the point, so the four 44 px
- * targets clear each other at 320.
+ * targets clear each other at 320. 456 × 465 takes the right seat too where its number above would
+ * meet the gap's label (`byGap`, app/globals.css; .crew/sprint/78/contract.md).
  */
-const SOUNDINGS: readonly { win: Win; side: "above" | "right" }[] = [
-  { win: [456, 465], side: "above" },
+const SOUNDINGS: readonly { win: Win; side: Side; byGap?: Side }[] = [
+  { win: [456, 465], side: "above", byGap: "right" },
   { win: [792, 575], side: "above" },
   { win: [1160, 635], side: "above" },
   { win: [1366, 595], side: "right" },
@@ -265,15 +268,17 @@ const SOUNDINGS: readonly { win: Win; side: "above" | "right" }[] = [
 /** A window as it is heard: `1366 by 595` (Tb's rule). */
 const heard = ([w, h]: Win) => `${w} by ${h}`;
 
-function Sounding({ win, side }: (typeof SOUNDINGS)[number]) {
+function Sounding({ win, side, byGap }: (typeof SOUNDINGS)[number]) {
   const signed = signedOf(sweptTrial(win));
   const at = percentOf(win);
-  // The target, pad and focus ring are sized in CSS by side and width; the dot is the point.
+  // The target, pad and focus ring are sized in CSS by side and width, and `byGap`'s seat, number
+  // too, by the chart's width; the dot is the point.
   return (
     <a
       href={addressOf(win)}
       data-sounding={keyOf(win)}
       data-side={side}
+      data-by-gap={byGap}
       aria-label={`${signed} pixels at ${heard(win)}`}
       className="trials-sounding"
     >
@@ -295,8 +300,13 @@ function Sounding({ win, side }: (typeof SOUNDINGS)[number]) {
   );
 }
 
-/** The width labels; 1440 is left out, 29 px from 1280 at 320 (placement.md, 4). */
+/**
+ * The width labels; 1440 is left out, 29 px from 1280 at 320 (placement.md, 4). Where a large
+ * default font leaves the axis too narrow for its labels in a row, 1024's, between the two it would
+ * meet, steps down one, a leader in place of its tick (app/globals.css; .crew/sprint/78/).
+ */
 const WIDTH_LABELS = [320, 768, 1024, 1280, 1920];
+const STEPPED_LABEL = 1024;
 const HEIGHT_LABELS = [460, 780, 1100];
 
 /** The bounding-box matrix that lays window px over the plot's box, 0 to 1 each way. */
@@ -427,8 +437,12 @@ export function TrialsChart({ win }: { win: Win }) {
               data-end={
                 w === WIDTH.from ? "start" : w === WIDTH.to ? "end" : undefined
               }
+              data-stepped={w === STEPPED_LABEL ? "" : undefined}
             >
               <path d="M0 0V4" />
+              {w === STEPPED_LABEL ? (
+                <rect className="trials-axis-leader" />
+              ) : null}
               <text y="15">{w}</text>
             </svg>
           ))}

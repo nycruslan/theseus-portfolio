@@ -192,7 +192,7 @@ makes stale.
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
 - **CI's `check` passes when `verify` and four e2e shards pass (`ci.yml`, since 2026-11-07), and
-  a shard has a 20-minute cap.** The split is by test count, so every heavy Log spec lands in
+  a shard has a 30-minute cap (`ci.yml`'s e2e job, read 2026-11-19).** The split is by test count, so every heavy Log spec lands in
   shard 2: it ran 3 s over on sprint 56 with all 96 tests green, and 18 min 56 s once log-riffle's
   own time was halved; the other shards took 6 to 11. A sprint that adds a 3D spec on the Log
   measures it against shard 2's time before the label (`.crew/sprint/56/decisions.md` 12). One job ran the whole suite in 33.8 of its 35 minutes on #114
