@@ -22,3 +22,7 @@
    line smaller still left `/log/67` 8 px out, and moving it after the record takes the stop's
    reason off the first screen (Forge's options b). Every other record and window keeps "wholly in
    view".
+4. **The tablet cap stays `svh`-only** (Atlas, on Iris's optional nit). A second `max-width` with
+   `100vh` fails biome's `noDuplicateProperties`, every browser Next 16 supports (Chrome, Edge and
+   Firefox 111, Safari 16.4) reads `svh`, and `app/globals.css` already uses it with no fallback in
+   eight places. A browser without it gets today's full-width drawings, nothing broken.
