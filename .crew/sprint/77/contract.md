@@ -17,8 +17,9 @@ follow-ups, Iris and Probe).
   568, 360 × 640, 375 × 667, 390 × 844, 900 × 700, 1023 × 768, 1024 × 768 and 1440 × 900 at the
   default font: the record's `h2` lies wholly inside the window and clear of the sticky bar
   (B5.7's `inView`). It fails on main at 320 × 568, 360 × 640, 375 × 667, 900 × 700 and 1023 × 768.
-  One exception, `decisions.md` 2: at 320 × 568 the question's step (`/log/23`), whose question H1
-  keeps above the record, needs its h2 only to start in view.
+  One exception, `decisions.md` 2 and 3: at 320 × 568, on the question's step (`/log/23`) and the
+  chapter steps, whose question or chapter line H1 keeps above the record, the h2 needs only to
+  start in view.
 
 ## Budgets
 

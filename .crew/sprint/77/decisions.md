@@ -12,3 +12,13 @@
    heading under it, so the visitor sees the goal begin. Every other record and window keeps
    "wholly in view". This is a contract change made before the build, not a check eased to pass
    it: the contract's line for 320 × 568 now names it.
+3. **Decision 2 covers the chapter steps too** (Atlas, after Forge's first build). In the headless
+   shell the suite and CI run (156), glyphs set 1 to 5% wider than in Chrome 153, so at 320 × 568
+   the chapter line "Every plank up to sprint 23 is out too." takes two lines (290 px in a 288 px
+   column) and the chapter steps' goals end past the fold: `/log/45` 6.5 px, `/log/67` 31.7 px,
+   the same box as `/log/23`'s. The chapter line stands in the question's slot, which H1, B5.1 and
+   B5.25 pin, and gives the reason the yard stops there. So at 320 × 568, on the question's step
+   and each chapter step, the h2 needs only to start in view; it starts at 524. Making the chapter
+   line smaller still left `/log/67` 8 px out, and moving it after the record takes the stop's
+   reason off the first screen (Forge's options b). Every other record and window keeps "wholly in
+   view".
