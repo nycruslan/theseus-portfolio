@@ -6,7 +6,7 @@
    pins: production's `/` and `/crew` read "Crew resting. Sprint 32 merged." and "Replay sprint
    32" after sprint 82 merged. Production's `/api/crew` (2026-11-20, read with curl) carries
    `"sprint": 32` beside the goal "Sprint 82 (S): the Log gives sprint 40's real merge time", PR
-   #159 and `"mergedAt": null`. Sprint 32 merged on 31 Oct as #85; the site states a false fact on
+   #159 and `"mergedAt": null`. Sprint 32 merged on 25 Oct as #82 (`.crew/sprint/32/merge.json`); the site states a false fact on
    its first screen.
 
 2. **The number comes from the Studio; the fix is ours to make (Atlas).** The crew doesn't work
@@ -16,3 +16,22 @@
    sprint 82's run touched `.crew/sprint/32/merge-record.mjs` before any `.crew/sprint/82/` path,
    as `.crew/STATE.md` tells every run to, and the feed seems to have taken its number from that
    path. Not verified: the Studio's code is outside this repository.
+
+3. **The rule, in one place (Forge).** `lib/crew-feed.ts`'s `sprintOf`, applied in `crewOf`
+   before the run's rules read the run: a run whose pull request the record holds (a retro's `pr`)
+   is that sprint; one whose pull request the record doesn't hold keeps its number unless the
+   record has that sprint under another pull request, and then the site tells no number (the
+   existing paths: "Crew resting." without a replay, no pencil on `/`). Only a pull request the
+   site would link counts (`pullHref`), so the suite's fixtures, which name other repositories'
+   numbers, keep theirs. The browser reads `/api/crew`, which goes through `readCrew`, so the poll
+   can't bring the wrong number back. No goal text is parsed.
+
+4. **Accepted gap (Atlas).** A live run before its pull request opens has no PR to check, so a
+   merged sprint's number from the feed still draws a pencil on that merged plank for those
+   minutes. Closing it would mean moving the fixtures' in-progress numbers off merged sprints
+   (live.json's 31, crew-model's and window's patches): an M with Probe, not this S. Follow-up.
+
+5. **No new check in this S (Atlas).** The kept suite stays green; Forge proved the rule on real
+   builds against a stub serving production's saved answer, before and after. A check pinning it
+   is Probe's follow-up, with Forge's two variants (a held PR with a wrong number, an unknown PR
+   with a merged number).
