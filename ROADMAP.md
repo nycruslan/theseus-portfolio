@@ -200,6 +200,13 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   commit was stamped across the 1 Nov 2026 US fall-back. The record now holds GitHub's
   `merged_at`, and the merge-record script's header names the exception. Nothing else
   qualified. Lens: ship, one nit (the header comment's wrap). Left open: that nit and sprint 81's follow-ups (`.crew/sprint/82/retro.json`).
+- [x] Sprint 83 (S, PR #160): the stand-down's defect condition, read on the live layer. After
+  sprint 82 merged, production's `/` and `/crew` read "Crew resting. Sprint 32 merged." and
+  "Replay sprint 32": the Studio's feed named sprint 32 beside PR #159, and the site repeated it.
+  The feed's number is now checked against the record (`lib/crew-feed.ts`, `sprintOf`): a PR the
+  record holds gives its sprint, and a number the record has under another PR is told as none.
+  Lens: ship, two nits. Left open: a check pinning the rule (Probe), a live run before its PR opens
+  (Forge), the Studio's numbering itself (the owner's repository) (`.crew/sprint/83/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

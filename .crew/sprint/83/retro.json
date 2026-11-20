@@ -1,0 +1,28 @@
+{
+  "sprint": 83,
+  "pr": 160,
+  "goal": "The rest line names the sprint that merged, not one the feed misnumbered",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 55,
+  "agents": [
+    { "role": "engineer", "model": "opus", "tokens": 272455, "minutes": 41 }
+  ],
+  "lens": { "runs": 1, "tokens": 362135, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "The first screen named the wrong sprint as the last one merged",
+      "evidence": "Production, 2026-11-20: / and /crew read \"Crew resting. Sprint 32 merged.\" and \"Replay sprint 32\" after sprint 82 merged as #159; /api/crew carried sprint 32 beside PR #159, and sprint 32 merged on 25 Oct as #82"
+    }
+  ],
+  "proposals": [
+    { "change": "The Studio (the owner's repository) takes a run's sprint number from its branch or PR, not the first .crew/sprint/<n>/ path a run touches; every run touches .crew/sprint/32/merge-record.mjs first", "moves": "Misnumbered runs in the feed, 1 seen (sprint 82 told as 32)" }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "Pin the feed's renumbering in e2e: a held PR with a wrong number, and an unknown PR with a merged number (Lens's nit)" },
+    { "who": "Forge", "what": "A live run before its PR opens can still draw a pencil on a merged plank; moving the fixtures' in-progress numbers off merged sprints closes it" },
+    { "who": "Forge", "what": "Lens's nit: numbered() parses the whole run to read two fields; a narrow helper would say so" }
+  ]
+}
