@@ -13,7 +13,7 @@ sticky `top` (88 px under a 3.5rem bar) and the 52.5rem threshold each tracked o
 budget now subtracts the side's type growth (`--side-type`) and a rem-aware `--side-top`; the
 sticky query adds `height >= 840px` for fonts below 16 px. CSS only, in `app/globals.css`.
 
-**Results**
+**Results** (Lens: ship on abf83ef, one nit; Iris: ship, 8.0, posted as advice)
 - T40a red on main in the suite's browser: 24 px at 1536 × 1260 (16.9 px), 1920 × 1400 and
   1920 × 1600 (7.0); 28 px at 1792 × 1470 (47.8), 1920 × 1600 (13.6), 2560 × 1600 (33.6). Green
   on this head. T40b (16 px sticky wherever main is) green on both.
