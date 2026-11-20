@@ -1,0 +1,26 @@
+{
+  "sprint": 82,
+  "pr": 159,
+  "goal": "The Log gives sprint 40's real merge time",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 60,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 125024, "minutes": 17 }
+  ],
+  "lens": { "runs": 1, "tokens": 145023, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "A record of the crew's work gave a merge time an hour early",
+      "evidence": "Production, 2026-11-20: /log/40 read 08:03 UTC while GitHub's merged_at for #99 is 09:03:09Z; the squash commit was stamped 08:03:08Z across the 1 Nov 2026 US fall-back, and the merge record takes the commit's date"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Forge", "what": "A ring can still be clipped 4 px at the window's bottom on Tab forward (sprint 81)" },
+    { "who": "Atlas", "what": "Lens's nit: rewrap merge-record.mjs's header so line 14 ends near 100 columns" },
+    { "who": "Probe", "what": "Lens's two T41 nits (sprint 81): the replay read at large fonts and T41b's two left-out windows" }
+  ]
+}

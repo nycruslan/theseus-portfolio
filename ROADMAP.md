@@ -194,6 +194,12 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   sticky drawing follows the bar too; nothing moves at 16 px (0 boxes, 0 of 147 landings). T41 is
   new; Lens's T39a nit rode along. Left open: Lens's two T41 nits (Probe), a ring clipped at the
   window's foot on Tab forward (Forge) (`.crew/sprint/81/retro.json`).
+- [x] Sprint 82 (S, PR #159): the stand-down's defect condition, from Probe's read-only production
+  sweep (92 sitemap URLs, 565 hrefs, 84 default-font loads, every merge record against GitHub).
+  /log/40 gave PR #99's merge an hour early, at 08:03 UTC instead of 09:03, because the squash
+  commit was stamped across the 1 Nov 2026 US fall-back. The record now holds GitHub's
+  `merged_at`, and the merge-record script's header names the exception. Nothing else
+  qualified. Lens: ship, one nit (the header comment's wrap). Left open: that nit and sprint 81's follow-ups (`.crew/sprint/82/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
