@@ -2,6 +2,7 @@ import { cacheLife } from "next/cache";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import {
   type Crew,
+  type Fields,
   isRecord,
   isRunFrame,
   isTime,
@@ -18,9 +19,9 @@ import { readSprintLog, type SprintEntry } from "@/lib/sprint-log";
 // frame reads as the feed being down, while a bad part inside a sound answer (a role or a moment
 // this site doesn't know, a field of the wrong type) is dropped, so the Studio can grow without
 // taking /crew down. Only the fields /crew shows are kept. A run's own rules are lib/crew-run.ts's,
-// which the browser applies again to /api/crew's answer. Then the run's number is checked against
-// the build's record (`checked`), so the pages and /api/crew, and through it the browser's poll,
-// tell the same number.
+// which the browser applies again to /api/crew's answer. Before those rules read a run, its number
+// is checked against the build's record (`sprintOf`), so the pages and /api/crew, and through it
+// the browser's poll, tell the same number.
 
 const DOWN: Crew = { state: "down" };
 const UNREAD: Crew = { state: "down", unread: true };
@@ -51,23 +52,6 @@ function isFeedRun(value: unknown): value is Record<string, unknown> {
   return isRunFrame(value) && typeof value.live === "boolean";
 }
 
-/** The four states from one answer, judged against the clock it is read at. */
-function crewOf(answer: unknown, feed: URL, now: number): Crew {
-  if (!isRecord(answer) || answer.version !== 1 || !isTime(answer.asOf)) {
-    return DOWN;
-  }
-  if (now - Date.parse(answer.asOf) > STALE_MS) return DOWN;
-  const { current, last } = answer;
-  if (current !== null && !isFeedRun(current)) return DOWN;
-  if (last !== null && !isFeedRun(last)) return DOWN;
-  if (current) {
-    const state = current.live ? "live" : "open";
-    return { state, run: runOf(current, feed.origin) };
-  }
-  // Only a resting run offers a replay, of the sprint it last merged (.crew/sprint/37/contract.md).
-  return last ? { state: "resting", run: restingOf(last, feed.origin) } : DOWN;
-}
-
 /** What the record says of a sprint: its number and, when the retro names one, its pull request. */
 type Recorded = Pick<SprintEntry, "sprint" | "pr">;
 
@@ -91,23 +75,39 @@ function sprintOf(run: Run, record: readonly Recorded[]): number | null {
 }
 
 /**
- * The told crew with its run's number checked against the build's retros (sprintOf). A run left
- * without a number takes the paths every unnumbered run takes: "Crew resting." with no replay, and
- * no pencil on / (lib/live-layer.ts).
+ * The feed's run with its number as sprintOf tells it, before the run's rules read it, so every
+ * rule sees the checked number: a run left without one takes the paths every unnumbered run takes,
+ * "Crew resting." with no replay (restingOf) and no pencil on / (lib/live-layer.ts).
  */
-function checked(crew: Crew): Crew {
-  if (crew.state === "down") return crew;
-  const sprint = sprintOf(crew.run, readSprintLog());
-  if (sprint === crew.run.sprint) return crew;
-  const { replay, ...run } = crew.run;
-  return {
-    state: crew.state,
-    // Only a run with a number offers a replay (restingOf).
-    run:
-      replay && sprint !== null
-        ? { ...run, sprint, replay }
-        : { ...run, sprint },
-  };
+function numbered(run: Fields, record: readonly Recorded[]): Fields {
+  return { ...run, sprint: sprintOf(runOf(run, null), record) };
+}
+
+/**
+ * The four states from one answer, judged against the clock it is read at, the run's number
+ * checked against the record.
+ */
+function crewOf(
+  answer: unknown,
+  feed: URL,
+  now: number,
+  record: readonly Recorded[],
+): Crew {
+  if (!isRecord(answer) || answer.version !== 1 || !isTime(answer.asOf)) {
+    return DOWN;
+  }
+  if (now - Date.parse(answer.asOf) > STALE_MS) return DOWN;
+  const { current, last } = answer;
+  if (current !== null && !isFeedRun(current)) return DOWN;
+  if (last !== null && !isFeedRun(last)) return DOWN;
+  if (current) {
+    const state = current.live ? "live" : "open";
+    return { state, run: runOf(numbered(current, record), feed.origin) };
+  }
+  // Only a resting run offers a replay, of the sprint it last merged (.crew/sprint/37/contract.md).
+  return last
+    ? { state: "resting", run: restingOf(numbered(last, record), feed.origin) }
+    : DOWN;
 }
 
 /** The feed's parsed answer, or FAILED. */
@@ -148,8 +148,9 @@ export async function readCrew(): Promise<Crew> {
   if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) return UNREAD;
   const feed = new URL(address);
   const answer = await fetchAnswer(feed);
-  if (answer === FAILED) return checked(crewOf(kept, feed, Date.now()));
-  const crew = crewOf(answer, feed, Date.now());
+  const record = readSprintLog();
+  if (answer === FAILED) return crewOf(kept, feed, Date.now(), record);
+  const crew = crewOf(answer, feed, Date.now(), record);
   kept = crew.state === "down" ? undefined : answer;
-  return checked(crew);
+  return crew;
 }
