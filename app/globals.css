@@ -5543,12 +5543,21 @@ a[data-replay]:not([data-ready]) {
     grid-column: 2;
   }
 
-  /* The left column: the drawing and the chart (.crew/sprint/65/placement.md, 1 and 2). Its
-     --chart-block is what the chart takes under the drawing's caption, its margin included, which
-     the frame's height budget gives up so both are in the first screen; it grows by what the plot
-     grows from a 24 px default font (.trials-chart's --plot-h). */
+  /* The left column: the drawing and the chart (.crew/sprint/65/placement.md, 1 and 2). The frame's
+     height budget (--frame-max) gives up the rest of the side, so the side ends in the first screen
+     and, stuck, in the window: --side-top, where it sticks, the bar's height (3.5rem from 1024, at
+     least 52 px; components/bar.tsx) and the 32 px it sits under the bar at rest; 116 px for the
+     drawing's gutters and caption; and --chart-block, what the chart takes under that caption, its
+     margin included, which grows by what the plot grows from a 24 px default font (.trials-chart's
+     --plot-h). --side-type is what the side's type grows by over a 16 px default font: the drawing's
+     caption and the chart's head and caption at their most lines (three, the head and three, 8.9em
+     in the suite's browser), and the 1rem the bar sits on at rest. Held in px, the type outgrew the
+     budget at every window height from 24 px and the stuck side's foot ran past the window
+     (.crew/sprint/80/); at 16 px both growths are 0, so nothing there moves. */
   .trials > .trials-side {
+    --side-top: calc(max(52px, 3.5rem) + 32px);
     --chart-block: calc(274px + max(0px, 5rem - 100px));
+    --side-type: max(0px, 10rem - 160px);
     grid-area: 1 / 1 / -1 / 2;
   }
 
@@ -5564,7 +5573,16 @@ a[data-replay]:not([data-ready]) {
     --gl: 28px;
     --gr: 80px;
     --gt: 28px;
-    --frame-max: max(360px, calc(100svh - 204px - var(--chart-block)));
+    --frame-max: max(
+      360px,
+      calc(
+        100svh -
+        var(--side-top) -
+        116px -
+        var(--chart-block) -
+        var(--side-type)
+      )
+    );
     font-size: var(--step-sm);
   }
 
@@ -5592,26 +5610,33 @@ a[data-replay]:not([data-ready]) {
     column-gap: 64px;
   }
 
-  /* The drawing's caption takes two lines from 1280, three below. */
+  /* From 1280 the chart's caption takes two lines at most, one fewer than below, so the side's type
+     is 7.7em at its most lines (.crew/sprint/80/). */
   .trials > .trials-side {
     --chart-block: calc(256px + max(0px, 5rem - 100px));
+    --side-type: max(0px, 8.75rem - 140px);
   }
 }
 
-/* Sticky only where it fits: below 840 tall the frame's 360 px floor binds, the side is taller than
-   the window less the bar, and a sticky side would hide its own foot until the page ends. */
-@media (width >= 64rem) and (height >= 52.5rem) {
+/* Sticky only where it fits: the frame's budget keeps the stuck side in the window wherever it
+   holds above its 360 px floor, so the side sticks only where the floor can't bind. That is under
+   838 px of window at a 16 px default font, 966 at 24 and 1040 at 28 (360 px, --side-top, 116 px,
+   --chart-block and --side-type), which 52.5rem stays over from 16 px; under 16 a rem shrinks faster
+   than the side's px, and 840 px holds it there. Past the floor the side is taller than the window
+   less the bar, and a sticky side would hide its own foot until the page ends (.crew/sprint/80/). */
+@media (width >= 64rem) and (height >= 52.5rem) and (height >= 840px) {
   .trials > .trials-side {
     position: sticky;
-    top: 88px;
+    top: var(--side-top);
   }
-}
 
-/* While the side is sticky the drawing holds the field's full height, so a frame that changes
-   height never moves the chart under it; it is also the room the corner drags in (placement.md, 2). */
-@media (width >= 64rem) and (height >= 52.5rem) and (scripting: enabled) {
-  .trials-drawing {
-    min-height: calc(var(--gt) + var(--frame-max) + 14px);
+  /* While the side is sticky the drawing holds the field's full height, so a frame that changes
+     height never moves the chart under it; it is also the room the corner drags in (placement.md,
+     2). */
+  @media (scripting: enabled) {
+    .trials-drawing {
+      min-height: calc(var(--gt) + var(--frame-max) + 14px);
+    }
   }
 }
 

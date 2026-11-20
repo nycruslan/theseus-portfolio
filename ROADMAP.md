@@ -177,6 +177,15 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   ring within its reach (Lens's fix round kept focus rings whole). T39 is new. Left open: Lens's
   two check nits (Probe), the sticky side at 24 to 28 px (Iris), and a focus ring within the ring's
   reach on /trials/1366x595 (`.crew/sprint/79/retro.json`).
+- [x] Sprint 80 (S, PR #157): sprint 79's sticky-side follow-up, a production defect that hid a
+  fact. From a 24 px default font on a big screen the trials' stuck side ran past the window,
+  hiding the chart's caption until the page ended (47.8 px at 1792 × 1470 at 28 px), and from
+  26 px the bar covered the frame's width dimension. The frame's height budget now takes out the
+  side's type growth and the sticky top follows the 3.5rem bar, so the stuck side ends inside the
+  window 32 px under the bar at every font; nothing moves at 16 px (0 of 6,360 boxes). T40 is new;
+  Lens's two T39 nits rode along. Left open: Lens's nit on T39a's mask lookup, Iris's memory lines
+  and the side sticking from the frame's floor point, the 56 px `scroll-padding-top` under the rem
+  bar (`.crew/sprint/80/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
