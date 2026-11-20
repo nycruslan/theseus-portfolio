@@ -35,3 +35,8 @@
    builds against a stub serving production's saved answer, before and after. A check pinning it
    is Probe's follow-up, with Forge's two variants (a held PR with a wrong number, an unknown PR
    with a merged number).
+
+6. **The retro's goal, shortened (Atlas).** CI's T37 went red on the close-out: the first goal,
+   72 characters, wrapped /log/83's heading to 580.9 px in a 568 px window at 320. The goal is now
+   "The first screen names the sprint that really merged"; T37 and P11 pass locally (21 passed). A
+   B3.9 layout shift in shard 3 passed 3 of 3 locally on the same head and was re-run once.

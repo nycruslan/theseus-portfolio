@@ -1,7 +1,7 @@
 {
   "sprint": 83,
   "pr": 160,
-  "goal": "The rest line names the sprint that merged, not one the feed misnumbered",
+  "goal": "The first screen names the sprint that really merged",
   "goalFrom": "roadmap",
   "size": "S",
   "outcome": "merged",
