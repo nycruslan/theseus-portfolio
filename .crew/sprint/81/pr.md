@@ -36,3 +36,10 @@ by up to 46.5 px at 28 px.
 - Riding along: Lens's T39a nit, the mask lookup now starts at the copy itself.
 
 No check is retired. No owner path or `content/` is touched.
+
+### Lens: ship (8bc8ced), two nits for the next sprint on this spec
+
+- T41b walks four of the contract's six windows (1024 × 768, 1536 × 864, 1920 × 1080, 2560 ×
+  1440); 1280 × 800 and 1440 × 900 are left out to keep the spec near five test-minutes, and the
+  four still meet each font on both sides of 64rem (the spec's header).
+- /crew#replay's pressed-entry read at large fonts should assert the replay played first.
