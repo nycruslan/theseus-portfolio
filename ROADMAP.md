@@ -186,6 +186,14 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   Lens's two T39 nits rode along. Left open: Lens's nit on T39a's mask lookup, Iris's memory lines
   and the side sticking from the frame's floor point, the 56 px `scroll-padding-top` under the rem
   bar (`.crew/sprint/80/retro.json`).
+- [x] Sprint 81 (S, PR #158): sprint 80's scroll-padding follow-up, a production defect that hid
+  a fact. From 64rem the scroll padding was a fixed 56 px under the 3.5rem bar, so at a 20 to 28 px
+  default font `/#work` and every fragment target landed 14 to 42 px under the bar; Probe found a
+  focused link's ring under it by 4 px even at 16 px (46.5 px at 28). The padding now follows the
+  bar, a focused control keeps its ring's 4 px clear (the skip link's target excepted), and /crew's
+  sticky drawing follows the bar too; nothing moves at 16 px (0 boxes, 0 of 147 landings). T41 is
+  new; Lens's T39a nit rode along. Left open: Lens's two T41 nits (Probe), a ring clipped at the
+  window's foot on Tab forward (Forge) (`.crew/sprint/81/retro.json`).
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a

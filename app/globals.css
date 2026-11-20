@@ -180,9 +180,14 @@ html {
   }
 }
 
+/* From 1024 px the bar is one row of a fixed 3.5rem, its rule inside it (components/bar.tsx,
+   lg:h-14), so the padding is that height in rem and grows with a large default font as the bar
+   does. Held at 56 px it left the top 14 px of a fragment target, or of a focused link, under the
+   bar at a 20 px font and 42 at 28 (.crew/sprint/81/contract.md). At 16 px it is 56 px, as it was,
+   so nothing there moves. */
 @media (width >= 64rem) {
   html {
-    scroll-padding-top: 56px;
+    scroll-padding-top: 3.5rem;
   }
 }
 
@@ -356,16 +361,24 @@ nav > [data-motion] {
    purpose: an unlayered rule would outrank every Tailwind utility, and a component could then never
    move or drop its own ring with one. */
 @layer base {
+  /* The ring is drawn 4 px outside the box, which the browser doesn't count when focus scrolls a
+     control in: Shift+Tab set a link's box on the scroll padding's edge and its ring's top 4 px
+     under the bar, at every font (Probe, .crew/sprint/81/). The scroll margin is the ring's reach,
+     so the whole ring lands below the bar. It moves only where focus scrolls, never a layout box
+     or a fragment landing. */
   :focus-visible {
     outline: 2px solid var(--foreground);
     outline-offset: 2px;
+    scroll-margin-top: 4px;
   }
 
   /* main takes focus only as the skip link's landing spot; it is not a control, so no ring (Chrome
-     would otherwise draw its own once the skip link is used from the keyboard). Only main: anything
-     else made focusable from script keeps its ring. */
+     would otherwise draw its own once the skip link is used from the keyboard), and no ring's
+     margin, so the skip link still lands main on the bar's edge. Only main: anything else made
+     focusable from script keeps its ring. */
   #main:focus {
     outline: none;
+    scroll-margin-top: 0;
   }
 }
 
@@ -4192,9 +4205,12 @@ a[data-replay]:not([data-ready]) {
     margin: 0 16px;
   }
 
+  /* Stuck 16 px under the bar, whose 3.5rem it follows: at 72 px the bar covered the box's top 12 px
+     at a 24 px default font and 26 at 28, the drawing's first 2 px among them (.crew/sprint/81/).
+     72 px at 16 px, as it was. */
   .crew-drawing {
     position: sticky;
-    top: 72px;
+    top: calc(3.5rem + 16px);
     padding-top: 24px;
   }
 
@@ -4266,7 +4282,7 @@ a[data-replay]:not([data-ready]) {
 /* "his rules" on / and the panel's Approval land here (.crew/sprint/48/contract.md, K11). The
    page's scroll padding clears the bar; this margin adds the section's own 2 px rule and padding
    and 16 px more, so the keel lands with its rule 16 px under the bar, where the drawing's box
-   sticks from 1024 (72 px), and its h2 where the panel's h1 sits at load. */
+   sticks from 1024 (72 px at a 16 px font), and its h2 where the panel's h1 sits at load. */
 .keel h2 {
   scroll-margin-top: calc(16px + 2px + 16px);
   font-family: var(--font-sofia-cond), sans-serif;

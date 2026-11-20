@@ -446,13 +446,14 @@ function readSeat(page: Page): Promise<SeatRead> {
       // The mask a copy is drawn under, read by its luminance, not its class (Lens on sprint 79):
       // its white parts are the reach the copy shows within, its black the hole it hides, each a
       // disc about the ring, half its stroke. A copy under no mask shows everywhere, a mask with no
-      // white nowhere.
+      // white nowhere. The lookup starts at the copy itself, so a mask set on the `use` counts as
+      // one on a group around it (Lens's nit, .crew/sprint/80/retro.json).
       const WHITE = "rgb(255, 255, 255)";
       const BLACK = "rgb(0, 0, 0)";
       const maskOf = (use: Element) => {
         let reach = Number.POSITIVE_INFINITY;
         let hole = 0;
-        for (let up = use.parentElement; up; up = up.parentElement) {
+        for (let up: Element | null = use; up; up = up.parentElement) {
           const ref = (
             up.getAttribute("mask") ?? getComputedStyle(up).maskImage
           ).match(/url\(["']?#([^"')]+)["']?\)/);
