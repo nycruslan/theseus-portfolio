@@ -8,3 +8,9 @@
    padding and the fragment landings at 16 px, so where Tab scrolls at 16 px may change. Forge
    adds a focus-only `scroll-margin-top` the size of the ring, which Probe found clears every case
    as injected CSS on a main build.
+
+2. **The ring's scroll margin stays on bare `:focus-visible`** (Forge's call, Atlas agrees). It
+   covers every ringed control, `<summary>` and the trials and /ask inputs included, which
+   `:is(a, button)` would leave out. The skip link's target is excluded by the more specific
+   `#main:focus { scroll-margin-top: 0 }` in the same layer. Probe's scratch build, without that
+   exception, had moved /#main to 60 px at 16 px; T41c on Forge's build decides.
