@@ -8,6 +8,8 @@ import type { ReactNode } from "react";
 // the sheet's sections, and the page's own place is current: Log on the Log and its records, Crew
 // on /crew, whose bar is the Log's. It sticks to the top while the page scrolls, so html's
 // scroll-padding-top in app/globals.css keeps every fragment target and focused link clear of it.
+// From 1024 px that padding, and the sticky tops of /crew's drawing and the trials' side, repeat
+// its height, lg:h-14 (3.5rem): change them with it (.crew/sprint/81/contract.md).
 // It isn't printed: on paper it is a strip of links nobody can follow. After the links, a page with
 // a model passes the motion control into its slot, shown from 768 px: from 1024 at the bar's right
 // end after Read as page, as the approved frame draws it. The sheet, the Log and /crew have one
