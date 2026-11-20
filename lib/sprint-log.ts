@@ -7,9 +7,10 @@ import { dirname, join } from "node:path";
 // `turbopackIgnore`: the folder is a run-time argument, and without it the bundler traces the
 // whole project into the server output. The build doesn't warn on `readFileSync`. The pages are
 // prerendered, but the server runs the reader again after the build: / and /crew regenerate in the
-// background as the crew feed's cached read expires (lib/crew-feed.ts), and an unknown record's
-// address (/log/999) runs it at request time to answer 404. So the retros and records stay traced
-// into the function (next.config.ts).
+// background as the crew feed's cached read expires, that read checks the feed's sprint number
+// against the retros, for /api/crew too (lib/crew-feed.ts), and an unknown record's address
+// (/log/999) runs it at request time to answer 404. So the retros and records stay traced into the
+// function (next.config.ts).
 // The rules (what throws, what is tolerated) are in .crew/sprint/12/contract.md, "The data rules";
 // the merge record's in .crew/sprint/32/contract.md.
 
