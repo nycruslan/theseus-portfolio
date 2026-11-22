@@ -27,10 +27,14 @@ makes stale.
   - Role branches are `<role>/<n>`, never `sprint/<n>-<role>`: the pre-flight reads any
     `sprint/…` branch without a PR as a run in flight, and sprint 66's `sprint/66-probe` and
     `sprint/66-forge` told the run its own merge started to stand down (`.crew/sprint/67/decisions.md` 1).
-- **The merge records (sprint 32).** At the start of every run, after the pre-flight, run
-  `node .crew/sprint/32/merge-record.mjs` from the repository root and commit any record it writes
-  with the sprint: `/log`'s dates and lines figure read them. It writes only for merged sprints
-  without one, and checks its calibration first. It moves to `.crew/` once the owner takes it in.
+- **The merge records (sprint 32).** Once the run starts or continues a sprint, run
+  `node .crew/sprint/32/merge-record.mjs` from the repository root on that sprint's branch and
+  commit any record it writes with the sprint: `/log`'s dates and lines figure read them. A run
+  that stands down doesn't run it, even after the pre-flight said `start`: the record has no sprint
+  to go with, and the cloud's stop hook asks for the untracked file to be committed and pushed. The
+  15:08 and 18:08 UTC runs of 2026-11-22 each left sprint 85's `merge.json` that way and spent
+  turns deleting it; the next sprint writes it. It writes only for merged sprints without one, and
+  checks its calibration first. It moves to `.crew/` once the owner takes it in.
   From sprint 50 it also exits 1, after writing the records, naming any merged sprint whose squash
   touched an owner path while its retro's `outcome` lacks `needs-owner` (so `/log` reads Gate):
   commit the records anyway and put the token in that retro; `--retros HEAD` re-checks the edit.
@@ -177,7 +181,15 @@ makes stale.
 - **Publishing team files.** Retro fields turn public on merge, but `outcome` is written before
   it: check that a field stays true after the merge before publishing it.
 - **The environment.**
-  - Production is reachable from cloud sessions: compare against it.
+  - Production is reachable from cloud sessions: compare against it. A 403 with
+    `x-vercel-mitigated: deny` is Vercel's own DDoS mitigation, not a rule of the project's: its
+    Firewall has no deny rule, and the Hobby plan can't exempt a client from it. It refused the
+    09:08 UTC run of 2026-11-21 and had lifted by 18:08, when all 94 sitemap URLs answered 200.
+    Report it and compare on the next run; it's no owner chore (#161).
+  - A production read of `/api/chat` sends `Origin: https://<the host it calls>`. Without it the
+    route's own same-site guard (`fromThisSite`) answers 403, not the Firewall, whose limit answers
+    429: the 15:08 and 18:08 UTC runs of 2026-11-22 called the assistant unverifiable on that 403.
+    The Firewall allows 20 POSTs an hour per IP there, so a sweep asks only a few questions.
   - Check the cloud browser's Chromium against CI's before trusting a browser-sensitive readout.
   - A fresh worktree has no `node_modules`: run `pnpm install --frozen-lockfile` first.
   - A run's worktrees go with its container: sprint 25 lost its 3D build twice before a commit
