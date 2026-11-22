@@ -133,9 +133,11 @@ export function Log({ entries, open }: LogProps) {
         header and the record, so a first paint of HTML cut before them would draw the header
         without them, and their arrival would push the caption down: B5.25's layout shift of
         0.0699 on /log/13 at 320 (.crew/sprint/33/). The page paints only once the parser is past
-        both drawings and the model's layer, whose next element is Every revision's heading.
+        both drawings, the model's layer and Every revision's head row: a table cut inside its head
+        row has fewer columns, and the rest of its heads would move the ones drawn. Chromium paints
+        once the target's start tag is in, so the target is the first row group, after the heads.
         React puts the link in the head; Chromium honours it, other browsers paint as before. */}
-      <link rel="expect" href="#every-revision" blocking="render" />
+      <link rel="expect" href="#every-revision-rows" blocking="render" />
       <SkipLink />
       <Bar
         at={record ? "record" : "log"}
@@ -278,9 +280,12 @@ export function Log({ entries, open }: LogProps) {
                 </th>
               </tr>
             </thead>
-            {dayGroups(entries).map(({ day, entries: group }) => (
+            {dayGroups(entries).map(({ day, entries: group }, index) => (
               // A day or "Undated" can head two runs, so the run's first sprint keys it.
-              <tbody key={group[0]?.sprint}>
+              <tbody
+                key={group[0]?.sprint}
+                id={index === 0 ? "every-revision-rows" : undefined}
+              >
                 <tr className="rev-day">
                   <th scope="rowgroup" colSpan={7}>
                     {day && group[0]?.merge ? (

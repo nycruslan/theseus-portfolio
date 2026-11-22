@@ -2413,9 +2413,9 @@ main:has(> [data-model]) {
 
   /* The right column is the header, then the record: one item, so the drawings' height moves
      neither, and its height, which varies by step, moves neither drawing: the drawings' rows are
-     the drawings' own, and the ghost's, the flexible one, takes any slack under the ghost. On /log
-     it spans the drawings' rows and Every revision runs under both columns; on a record it runs
-     down beside Every revision too. */
+     the drawings' own. On /log it spans the drawings' rows, the ghost's row is the flexible one and
+     takes any slack under the ghost, and Every revision runs under both columns; on a record it
+     runs down beside Every revision too, whose row takes the slack instead (.log-open below). */
   .log-side {
     display: block;
     grid-column: 2;
@@ -2424,6 +2424,15 @@ main:has(> [data-model]) {
 
   .log-open .log-side {
     grid-row: 1 / 4;
+  }
+
+  /* On a record the right column runs down beside Every revision, so Every revision's row is the
+     flexible one and takes the column's slack, and both drawings' rows stay the drawings' own.
+     When the ghost's row was the flexible one, a first paint with the table only partly parsed
+     gave it the column's slack, and Every revision jumped up from below the fold once the rows
+     arrived: B5.25's shift on /log/13. */
+  .log-open {
+    grid-template-rows: auto auto 1fr;
   }
 
   /* The header's text edge is the record box's below it; the drawings' transoms stand on the
