@@ -1,0 +1,33 @@
+{
+  "sprint": 78,
+  "pr": 155,
+  "goal": "The trials chart's labels read whole, the gap's −6.2 included",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 1,
+  "minutes": 115,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 337200, "minutes": 27 },
+    { "role": "engineer", "model": "opus", "tokens": 530455, "minutes": 43 },
+    { "role": "design-director", "model": "opus", "tokens": 188572, "minutes": 16 }
+  ],
+  "lens": { "runs": 1, "tokens": 544525, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "On a laptop-width window the chart's gap read \"−6 2\", its decimal point covered",
+      "evidence": "Production, 2026-11-19: at 1024 x 768 and a 16 px font the 456 x 465 sounding's pad sat 9.9 x 5.0 px over \"−6.2\" on every trials page, 1024 to 1184 wide; T38a red there on main"
+    },
+    {
+      "what": "At a larger default font a crew pin printed on the gap's digits",
+      "evidence": "Iris's review: the gap's pad stayed 28 x 15 px while the label grew, so from 20 px a pin's dot reached the digits in 247 width and font cases, \"−6,2\" at 1440 x 900 at 28 px; T38a's pin clause red at 219"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Iris", "what": "Two crew pins, 360 x 560 and 375 x 548, sit hidden under the gap's pad at every width (on main too)" },
+    { "who": "Forge", "what": "Lens's nit: pixel-diff 456 x 465's underline at 1x from 1024 to 1195, where its number moves by translate; and the soundings' px-sized pads at 24 to 28 px" },
+    { "who": "Probe", "what": "Lens's nit: the QA memory line on T38a still names trials-labels.spec.ts, renamed chart-labels.spec.ts" },
+    { "who": "Iris", "what": "A focused 456 x 465's ring touches \"−6.2\" by 0.94 px from 1196 to 1206 (0.61 px on main at 1200)" }
+  ]
+}
