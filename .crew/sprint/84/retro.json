@@ -1,0 +1,20 @@
+{
+  "sprint": 84,
+  "pr": 162,
+  "goal": "Production was swept, and nothing it says was false",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: notes only; Probe's sweep of the agent surfaces, every stated figure and WebGL on found nothing that qualifies",
+  "fixRounds": 0,
+  "minutes": 40,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 117757, "minutes": 8 }
+  ],
+  "lens": { "runs": 1, "tokens": 82462, "important": 0, "actedOn": 0, "nits": 0 },
+  "wentWrong": [],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Read /ask's live answers against content/, the one surface no sweep has read" },
+    { "who": "Probe", "what": "Sprint 83's: pin the feed's renumbering in e2e (Lens's nit)" }
+  ]
+}

@@ -37,6 +37,10 @@ makes stale.
 - **When `lens` or `gate` doesn't start, the sprint holds unmerged** (sprint 72): on 2026-11-16
   every `pull_request_target` run ended in `startup_failure` for five hours while CI passed. Put it
   on Owner chores; the next run removes and re-adds `review` once, which started them again.
+- **A sweep that finds nothing still ships, notes only** (sprint 84): its decisions name what
+  was read so the next sweep doesn't repeat it, and the PR carries the pre-flight's merge record.
+  Read so far: layout at every font, links, merge times (82), the live feed (83), the agent
+  surfaces, every stated figure and WebGL on (84). Unread: `/ask`'s live answers.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
   contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
   none to the overlap).
