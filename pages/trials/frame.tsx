@@ -8,7 +8,7 @@ import { readSprintLog, type SprintEntry } from "@/lib/sprint-log";
 
 // The frame's address (.crew/sprint/63/decisions.md, 2): / as the site builds it, in the feed's
 // down state, for the trials page to frame at any window. The frame's size is the iframe's box, so
-// one address serves every window. Only this path may be framed, and only by the site
+// one address serves every window. Like every page, only the site and the Studio may frame it
 // (next.config.ts).
 //
 // It is framed sandboxed without allow-scripts, so its document must carry no script: the sandbox
