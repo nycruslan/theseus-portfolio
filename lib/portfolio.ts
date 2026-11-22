@@ -47,12 +47,18 @@ export function resumeAsText() {
   const education = profile.education.map(
     (entry) => `- ${entry.school}, ${entry.credential} (${entry.period}).`,
   );
+  // The assistant knows only what's here: without the links it tells visitors he has none.
+  const contact = profile.links.map(
+    (link) => `- ${link.label}: ${link.href.replace(/^mailto:/, "")}`,
+  );
   const projects = profile.projects.map(
-    (project) => `- ${project.name}: ${project.description}`,
+    (project) =>
+      `- ${project.name}${project.href ? ` (${project.href})` : ""}: ${project.description}`,
   );
   return [
     `# ${profile.name}, ${profile.headline}`,
     `${profile.location}. ${profile.bio}`,
+    `## Contact\n${contact.join("\n")}`,
     `## Work\n${roles.join("\n")}`,
     `## Projects\n${projects.join("\n")}`,
     `## Stack\n${profile.stack.join(", ")}`,
