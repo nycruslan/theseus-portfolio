@@ -10,7 +10,7 @@
   "agents": [
     { "role": "qa-engineer", "model": "opus", "tokens": 117757, "minutes": 8 }
   ],
-  "lens": { "runs": 0, "tokens": 0, "important": 0, "actedOn": 0, "nits": 0 },
+  "lens": { "runs": 1, "tokens": 82462, "important": 0, "actedOn": 0, "nits": 0 },
   "wentWrong": [],
   "proposals": [],
   "followUps": [
