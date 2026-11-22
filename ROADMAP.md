@@ -212,6 +212,13 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   WebGL on no text prints over text: nothing qualifies, so nothing in the product changes. Sprint
   83's merge record rides along. Left open: `/ask`'s live answers, unread
   (`.crew/sprint/84/decisions.md`).
+- [x] Sprint 85 (S, PR #163): the stand-down's defect condition, on `/ask`'s live answers. Of 13
+  questions to production's assistant, one qualified: asked for his links, it said the record
+  lists no LinkedIn or GitHub, which `content/profile.ts` lists. `resumeAsText()`, the record the
+  assistant and MCP read, now carries every link and project URL, and `/llms.txt`'s Contact lists
+  them all. T42 is new. Lens: ship, one nit. Left open: that nit, a live answer once deployed
+  (Probe), an evals case for links (Forge) (`.crew/sprint/85/retro.json`). Every surface has now
+  been swept once.
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
