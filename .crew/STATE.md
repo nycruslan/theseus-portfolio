@@ -37,6 +37,13 @@ makes stale.
 - **When `lens` or `gate` doesn't start, the sprint holds unmerged** (sprint 72): on 2026-11-16
   every `pull_request_target` run ended in `startup_failure` for five hours while CI passed. Put it
   on Owner chores; the next run removes and re-adds `review` once, which started them again.
+- **A sweep that finds nothing still ships, notes only** (sprint 84): its decisions name what
+  was read so the next sweep doesn't repeat it, and the PR carries the pre-flight's merge record.
+  Read so far: layout at every font, links, merge times (82), the live feed (83), the agent
+  surfaces, every stated figure and WebGL on (84), `/ask`'s live answers (85, which found the
+  assistant denying links it was never given: read each surface for what it leaves out, not
+  only for what it gets wrong). With every surface read once, the next run with no goal and
+  no new defect stands down without a PR, rather than sweeping again.
 - **A resumed sprint starts the build at once,** notes, checks and build in parallel from the
   contract, cherry-picking Probe's commits as they land (sprint 23: four hours lost to the gap,
   none to the overlap).
@@ -70,6 +77,10 @@ makes stale.
   It reads text against text, not only against the window's edge, and once with WebGL on: sprint
   70's record printed "Approved" over its fact well inside the window, and the yard's hint shows
   only while the model plays (`.crew/sprint/70/retro.json`).
+- **Measure a tight fit in the suite's browser, not only `/opt/pw-browsers/chromium`.** That
+  binary is Chrome 153, and Playwright's default headless shell (156, the suite's and CI's) sets
+  glyphs 1 to 5% wider: sprint 77's placement matched to the tenth in 153, then the shell wrapped
+  a chapter line at 320 and put two goals past the fold (`.crew/sprint/77/decisions.md` 3).
 - **Goals are a visitor's words** (from sprint 38, P11 in `e2e/plain-words.spec.ts`): no milestone
   code ("B4e", "Pa"), no URL path ("/crew"), at most 78 characters. `/`'s rows print them.
 - **The fixtures' unmerged sprint 999 pencils the next seat, which walks the hull one seat per
@@ -188,7 +199,7 @@ makes stale.
     its `/api/ingest`, so checks run on fixtures of the contract's shape, and only the owner sees
     the feed on a preview.
 - **CI's `check` passes when `verify` and four e2e shards pass (`ci.yml`, since 2026-11-07), and
-  a shard has a 20-minute cap.** The split is by test count, so every heavy Log spec lands in
+  a shard has a 30-minute cap (`ci.yml`'s e2e job, read 2026-11-19).** The split is by test count, so every heavy Log spec lands in
   shard 2: it ran 3 s over on sprint 56 with all 96 tests green, and 18 min 56 s once log-riffle's
   own time was halved; the other shards took 6 to 11. A sprint that adds a 3D spec on the Log
   measures it against shard 2's time before the label (`.crew/sprint/56/decisions.md` 12). One job ran the whole suite in 33.8 of its 35 minutes on #114

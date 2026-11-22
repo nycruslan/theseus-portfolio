@@ -12,3 +12,9 @@ the sprint that set each.
 - A close-up of the hull reads as a ship only with one end in the crop; a mid-hull crop at 2.5× read as a wall of planks. Anchor the crop to the end nearer the plank and swing that end toward the camera (yaw sign by half), or stern seats foreshorten to slivers (sprint 36, 2 and 3).
 - The settled turn foreshortens stern planks under the bilge to slivers (4.0: about 80 × 8 px at 1440, 3 px deep at 390), where any hatch reads as tone; on the hull a plank's state needs a mark that holds its size in px (the copper dot, a label), not a texture alone (sprint 34).
 - The pencil number's chip is HTML above the canvas, so where it would cover the copper dot it takes a mask hole the dot's size at the dot's centre, moved every frame, matching Off's pen over the chip (Pixel's W12, sprint 44); a led-out number (5.0) slides sternward instead (sprint 43).
+
+## Moved from MEMORY.md (sprint 77, for room)
+
+- Fixed-px numbers on a turned hull crowd where a tapering end foreshortens: count clashes per pose, judge touches on the digits' ink, bound clearance searches to the middle half of the body, and lead out only a plank with no clear spot (5.0, 3.0) (sprint 33; `hull.md`).
+- A mark that must read on the turned hull can't share the pencil plank's hatched ground, so B4d's ticks hang below the lower edge on plain card (sprint 36; `hull.md`).
+- A hull close-up reads as a ship only with one end in the crop: anchor to the nearer end and swing it toward the camera (sprint 36).

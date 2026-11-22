@@ -9,7 +9,9 @@
 // origin/main's first-parent line whose subject ends in "(#<pr>)": keyed on the retro's `pr`, never
 // the subject's sprint, since sprint 14 has #43 and its close-out notes, #44. GitHub stamps a
 // squash merge's committer date with the merge time, so that date, in UTC with a "Z", is
-// `mergedAt`. With no such commit, or more than one, it writes nothing for that sprint and says so.
+// `mergedAt`. Once it didn't: across the 1 Nov 2026 fall-back, #99's commit reads 08:03:08Z while
+// GitHub's merged_at is 09:03:09Z, so sprint 40's record was corrected by hand (sprint 82); check a
+// new record made across a clock change against `gh api …/pulls/<pr>`. With no such commit, or more than one, it writes nothing for that sprint and says so.
 // It never rewrites a record (it skips one that exists and creates each file exclusively), so a
 // second run writes nothing.
 // Only Node's built-ins, git and the crew's scope.mjs; it deepens a shallow clone first, since

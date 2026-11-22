@@ -1,0 +1,28 @@
+{
+  "sprint": 85,
+  "pr": 163,
+  "goal": "The assistant now gives Ruslan's LinkedIn and GitHub when asked",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged: Probe's sweep of /ask's live answers found it saying he has no LinkedIn or GitHub; the record it reads now carries every link",
+  "fixRounds": 0,
+  "minutes": 55,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 105544, "minutes": 9 },
+    { "role": "engineer", "model": "opus", "tokens": 92845, "minutes": 7 }
+  ],
+  "lens": { "runs": 1, "tokens": 247131, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "The assistant told visitors he has no LinkedIn or GitHub, because its record left out his links",
+      "evidence": "Probe's Q9 and browser answers on production; resumeAsText omitted profile.links (.crew/sprint/85/decisions.md 1)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Forge", "what": "Lens's nit: get_resume's MCP description should mention its Contact section" },
+    { "who": "Probe", "what": "Ask production's /api/chat for his links once this deploys, to see the live answer" },
+    { "who": "Forge", "what": "An evals groundedness case for his links and the MCP servers' user count (decisions.md 2)" },
+    { "who": "Probe", "what": "Sprint 83's: pin the feed's renumbering in e2e (Lens's nit)" }
+  ]
+}
