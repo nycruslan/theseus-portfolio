@@ -181,7 +181,11 @@ makes stale.
 - **Publishing team files.** Retro fields turn public on merge, but `outcome` is written before
   it: check that a field stays true after the merge before publishing it.
 - **The environment.**
-  - Production is reachable from cloud sessions: compare against it.
+  - Production is reachable from cloud sessions: compare against it. A 403 with
+    `x-vercel-mitigated: deny` is Vercel's own DDoS mitigation, not a rule of the project's: its
+    Firewall has no deny rule, and the Hobby plan can't exempt a client from it. It refused the
+    09:08 UTC run of 2026-11-21 and had lifted by 18:08, when all 94 sitemap URLs answered 200.
+    Report it and compare on the next run; it's no owner chore (#161).
   - A production read of `/api/chat` sends `Origin: https://<the host it calls>`. Without it the
     route's own same-site guard (`fromThisSite`) answers 403, not the Firewall, whose limit answers
     429: the 15:08 and 18:08 UTC runs of 2026-11-22 called the assistant unverifiable on that 403.
