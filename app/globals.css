@@ -180,9 +180,14 @@ html {
   }
 }
 
+/* From 1024 px the bar is one row of a fixed 3.5rem, its rule inside it (components/bar.tsx,
+   lg:h-14), so the padding is that height in rem and grows with a large default font as the bar
+   does. Held at 56 px it left the top 14 px of a fragment target, or of a focused link, under the
+   bar at a 20 px font and 42 at 28 (.crew/sprint/81/contract.md). At 16 px it is 56 px, as it was,
+   so nothing there moves. */
 @media (width >= 64rem) {
   html {
-    scroll-padding-top: 56px;
+    scroll-padding-top: 3.5rem;
   }
 }
 
@@ -356,16 +361,24 @@ nav > [data-motion] {
    purpose: an unlayered rule would outrank every Tailwind utility, and a component could then never
    move or drop its own ring with one. */
 @layer base {
+  /* The ring is drawn 4 px outside the box, which the browser doesn't count when focus scrolls a
+     control in: Shift+Tab set a link's box on the scroll padding's edge and its ring's top 4 px
+     under the bar, at every font (Probe, .crew/sprint/81/). The scroll margin is the ring's reach,
+     so the whole ring lands below the bar. It moves only where focus scrolls, never a layout box
+     or a fragment landing. */
   :focus-visible {
     outline: 2px solid var(--foreground);
     outline-offset: 2px;
+    scroll-margin-top: 4px;
   }
 
   /* main takes focus only as the skip link's landing spot; it is not a control, so no ring (Chrome
-     would otherwise draw its own once the skip link is used from the keyboard). Only main: anything
-     else made focusable from script keeps its ring. */
+     would otherwise draw its own once the skip link is used from the keyboard), and no ring's
+     margin, so the skip link still lands main on the bar's edge. Only main: anything else made
+     focusable from script keeps its ring. */
   #main:focus {
     outline: none;
+    scroll-margin-top: 0;
   }
 }
 
@@ -1947,12 +1960,14 @@ main:has(> [data-model]) {
  * motion control (below 768), the Theseus and its caption, the ghost, on a step page below 768 the
  * step links and their hint under it (.crew/sprint/59/placement.md), the ghost's caption, the count
  * line and the question or the chapter line, Start again, the lines figure, the record when one is
- * open, then Every revision, its 2 px rule edge to edge as the facts' are. The row and the drawings
- * follow the header in the DOM and are set after the h1 here; the drawings are hidden from
- * assistive tech, so the reading order is the DOM's. From
- * 1024 the sheet's inset box as a two-column grid: the drawings stacked beside the header and the
- * record, then Every revision, across both columns on /log. Nothing here moves: the ghost's 3D is
- * the model layer's (above).
+ * open, then Every revision, its 2 px rule edge to edge as the facts' are. On a record the lines
+ * figure follows the record (.crew/sprint/76/), and in a window under 60rem tall the ghost's
+ * caption and the count line go after the record too, ahead of the figure, so a short window
+ * opens on the record's goal (.crew/sprint/77/placement.md). The row and the drawings follow the
+ * header in the DOM and are set after the h1 here; the drawings are hidden from assistive tech, so
+ * the reading order is the DOM's. From 1024 the sheet's inset box as a two-column grid: the
+ * drawings stacked beside the header and the record, then Every revision, across both columns on
+ * /log. Nothing here moves: the ghost's 3D is the model layer's (above).
  */
 .log {
   display: flex;
@@ -1978,12 +1993,16 @@ main:has(> [data-model]) {
 /* Below 1024 the flex column's order (.crew/sprint/53/placement.md, the addendum): the h1, the
    phone's row (`.log-side > .foot`, below 768), the Theseus and the ghost, the ghost's caption,
    the count line and the question or the chapter line, Start again, the lines figure, the record,
-   Every revision. The DOM keeps the reading order, header first; only the drawings, hidden from
-   assistive tech, and the row move up, and below 768 the step links stand under the ghost by
-   position, not order (`.log-open .record-steps`). The Theseus over the ghost: two drawings at one
-   size, the Theseus's caption under it in the header's type, one line at every width, 6 px from
-   its drawing and 14 from the ghost. Below 768 these margins and the h1's are terms of the step
-   links' place (`--yard-row`): change one and change it. */
+   Every revision. The DOM keeps the reading order, header first; three moves take things out of
+   it. The drawings, hidden from assistive tech, and the row move up. On a record the lines
+   figure, the whole Log's figure and no step's, moves down past the record (`.log-open
+   .log-lines`), and in a window under 60rem tall the ghost's caption, the whole Log's too, and
+   its tally, the count line, go down ahead of it, so there the question or the chapter line, then
+   the record, follow the ghost (.crew/sprint/77/placement.md). Below 768 the step links stand
+   under the ghost by position, not order (`.log-open .record-steps`). The Theseus over the ghost:
+   two drawings at one size, the Theseus's caption under it in the header's type, one line at
+   every width, 6 px from its drawing and 14 from the ghost. Below 768 these margins and the h1's
+   are terms of the step links' place (`--yard-row`): change one and change it. */
 .log-theseus {
   order: 3;
   margin-top: 16px;
@@ -2124,6 +2143,23 @@ main:has(> [data-model]) {
   padding-right: max(0px, 100% - 66ch);
 }
 
+/* On a record, below 1024, the lines figure follows the record (.crew/sprint/76/): it is the whole
+   Log's, the same on every step, and above the record its 104 px held a phone's h2 under the fold
+   (B5.7 at 390 x 844), with a chapter line, the newest step's hand-off or a four-line goal. The
+   count line and the chapter line, the step's, stay with the drawings. Under the record box its
+   rule drew a second line 16 px below the box's own edge, so it goes, and the figure stands 24 px
+   under the box (Iris). That holds in a window 60rem tall or more; under it the ghost's caption
+   and the count line stand between the box and the figure, which takes its rule back (sprint 77,
+   below the step links' placement). From 1024 the figure keeps its place and its rule. */
+@media (width < 64rem) {
+  .log-open .log-lines {
+    order: 9;
+    margin-top: 24px;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
 /* Read as page and the motion control below 768 px (components/log.tsx says why here): the foot's
    44 px row, 12 px under the h1, at the drawings' head as on /, Read as page at the left and the
    group at the right, on the Log's own 16 px text edge. The drawing's-foot margins and 16 px of
@@ -2139,8 +2175,10 @@ main:has(> [data-model]) {
   margin-top: 24px;
 }
 
+/* Last below 1024, after the record and, on a record, the lines figure (order 9), with the ghost's
+   caption and the count line ahead of it in a window under 60rem tall. */
 .log-revs {
-  order: 9;
+  order: 10;
   margin: 24px -16px 0;
   padding: 14px 16px 32px;
   border-top: 2px solid var(--foreground);
@@ -2580,11 +2618,22 @@ main:has(> [data-model]) {
 /* The hint, under the step links (.crew/sprint/59/placement.md, section 3): its line held in every
    mode, shown only while the yard plays them, 4 px under their boxes so a focused link's ring
    clears its ascenders. Visibility, never display: B5.6 (C5.2) holds a record to no display-none
-   element. */
+   element. Its line is 14 px at the default font, and grows 1.5 px with each px of a larger one:
+   its text's box is 1rem tall (1.23 of --step-sm), so a fixed 14 px line let a 20 to 28 px
+   default font print the text into the hand-off and the goal (never the step links' words,
+   .crew/sprint/73/decisions.md 1), and a wrapped hint's two lines over each other; from 20 px the
+   line holds the text whole (.crew/sprint/73/contract.md).
+   Below 48rem what stands under it, the ghost's caption or, in a window under 60rem tall, the
+   question, the chapter line or the record, clears it by a margin the line is a term of
+   (`--yard-band`). */
+.log-open {
+  --hint-line: max(14px, 1.5rem - 10px);
+}
+
 .record-hint {
   margin-top: 4px;
   font-size: var(--step-sm);
-  line-height: 14px;
+  line-height: var(--hint-line);
   color: var(--muted);
   text-align: end;
   text-wrap: balance;
@@ -2620,6 +2669,12 @@ main:has(> [data-model]) {
     --yard-lines: calc(var(--step-2xl) * 0.95 + var(--step-base) * 1.45);
     --yard-drawings: calc((100% - 32px) * 252 / 632);
     --yard-row: calc(116px + var(--yard-lines) + var(--yard-drawings));
+    /* The band under the ghost the step row and the hint take: the gap (4), the row (44), 4, the
+       hint's line (14 at the default font), 10. One line here at any font: the hint's width and
+       this block's 20rem floor grow together. The first thing under the ghost stands this far
+       under it: the ghost's caption, or, in a window under 60rem tall, the question, the chapter
+       line or the record (.crew/sprint/77/placement.md). */
+    --yard-band: calc(62px + var(--hint-line));
   }
 
   .log-open .record-steps {
@@ -2629,11 +2684,6 @@ main:has(> [data-model]) {
     left: 16px;
     z-index: 1;
     margin: var(--yard-row) 0 0;
-    justify-content: space-between;
-  }
-
-  .log-open .record-steps [data-step="next"] {
-    margin-left: auto;
   }
 
   .log-open .record-hint {
@@ -2649,9 +2699,8 @@ main:has(> [data-model]) {
     text-align: start;
   }
 
-  /* The gap (4), the row (44), 4, the hint's line (14), 10. */
   .log-open [data-ghost-caption] {
-    margin-top: 76px;
+    margin-top: var(--yard-band);
   }
 }
 
@@ -2666,6 +2715,80 @@ main:has(> [data-model]) {
 
   .record:not(:has([data-step="next"])) .record-hint {
     text-align: start;
+  }
+}
+
+/* A record in a short window (.crew/sprint/77/placement.md): below 1024 px and under 60rem tall,
+   where every record opened with its goal under the fold (320 x 568 to 375 x 667, 900 x 700,
+   1023 x 768), the record follows the yard. The ghost's caption, the whole Log's and the same on
+   every step, and the count line, its tally, go after the record, ahead of the lines figure,
+   which takes back its rule and its 16 px: the box's edge no longer stands above it. The question
+   and the chapter line, the step's payoff, keep their slot under the drawings, the first thing
+   under the ghost at the caption's old 14 px, and the record 16 under them. 60rem tall and up
+   keeps the page above, which there shows the ghost's caption and the goal both; every phone in a
+   browser is under it, so every phone gets one order. Later than the step links' placement, which
+   sets the caption's margin at the same specificity. */
+@media (width < 64rem) and (height < 60rem) {
+  .log-open :is([data-ghost-caption], [data-ghost-count]) {
+    order: 9;
+  }
+
+  .log-open [data-ghost-caption] {
+    margin-top: 24px;
+  }
+
+  .log-open .log-lines {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--foreground);
+  }
+
+  .log-open .log-head :is(.log-question, .log-chapter) {
+    margin-top: 14px;
+  }
+
+  .log-open:has(.log-head :is(.log-question, .log-chapter)) .record {
+    margin-top: 16px;
+  }
+}
+
+/* Below 768 the first thing under the ghost clears the step row and the hint as the ghost's
+   caption did. */
+@media screen and (20rem <= width < 48rem) and (height < 60rem) {
+  .log-open .log-head :is(.log-question, .log-chapter),
+  .log-open:not(:has(.log-head :is(.log-question, .log-chapter))) .record {
+    margin-top: var(--yard-band);
+  }
+}
+
+/* Below 768 the number line holds Rev n alone (the steps stand under the ghost, or below 20rem on
+   a row of their own), so it takes its text's height: 6.5 px back, which a five-line goal at
+   360 x 640 needs. */
+@media (width < 48rem) and (height < 60rem) {
+  .log-open .record-rev {
+    line-height: 1;
+  }
+}
+
+/* From 768 to 1023 the drawings as wide as the window's height lets the record's head open in
+   view, never narrower than at 768 (46rem, where the 13 px numbers keep their lifts) nor wider
+   than the column: 736 px at 900 x 700, 800 at 1023 x 768, where the column is 868 and 991. The
+   two drawings stand 252/632 of their width tall, so 2.5 times the height left over is their
+   width; 28rem is the rest of that first screen: the bar, the h1, the Theseus's caption and the
+   record down to its goal's foot, 698 px at most at 1023 x 768. Side by side they would be 418 to
+   480 px wide, too narrow for the numbers' lifts. svh, so a toolbar sliding away never resizes
+   them; the 3D lays itself on the drawings' boxes. */
+@media (48rem <= width < 64rem) and (height < 60rem) {
+  .log-open :is(.log-theseus-drawing, .log-ghost) {
+    max-width: clamp(46rem, (100svh - 28rem) * 2.5, 100%);
+  }
+}
+
+/* Below 22.5rem the goal a step smaller, 24 px, the lines figure's size, about 25 characters a
+   line: at 30 in a 254 px measure it set 15 to 18, and five goals on five lines. */
+@media (width < 22.5rem) and (height < 60rem) {
+  .log-open .record h2 {
+    font-size: var(--step-xl);
   }
 }
 
@@ -3561,35 +3684,54 @@ main:has(> [data-model]) {
 
 /* The status, and "Pause updates" at the row's right end on the panel's content edge, Close's
    (.crew/sprint/35/notes-iris.md, section 1). The button's top is the row's, so a status that
-   changes or wraps never moves it; the status's first line is centred on it. */
+   changes or wraps never moves it; the status's first line is centred on it.
+   The row is laid from its right end, the button first, and wraps: the status takes what the
+   button leaves while its longest word fits there, and where it doesn't, the status takes a line
+   of its own under the button, which keeps the row's top and right end either way. A grid kept
+   the button's whole width at any font, so a 28 px default font at 320 left the status 56 px and
+   split every word in it, the entry's too (.crew/sprint/74/contract.md). */
 .crew-status-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-flow: row-reverse wrap;
   column-gap: 16px;
-  align-items: start;
+  align-items: flex-start;
   margin-top: 8px;
 }
 
+/* `break-word`, not the panel's `anywhere`, so the status's narrowest is its longest word, which
+   is what the row wraps on: with `anywhere` it was one letter and the status never wrapped under.
+   A word wider than the whole row still breaks, within it (max-width). */
 .crew-status {
+  flex: 1 1 0;
+  max-width: 100%;
   padding-top: calc((44px - 1lh) / 2);
   font-size: var(--step-base);
   font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.crew-status-row > [data-pause] {
+  flex: none;
+  order: -1;
 }
 
 /* At rest with a replay to offer, its entry is the status's own next line, under the sentence
    (.crew/sprint/37/contract.md, amendment 1): Pause updates keeps the row's first line, and the
-   entry the left cell's second. */
-.crew-status-row > [data-pause] {
-  grid-area: 1 / 2;
+   entry the status's second, at the row's left, since a line of its own would set it at the
+   right. The empty item ends the status's line, so the entry never joins it where there's room. */
+.crew-status-row::after {
+  content: "";
+  flex-basis: 100%;
+  order: 1;
 }
 
 /* A link, since it lands on the anchor: ink, underlined as /'s are, a 44 px target below 1024 and
    24 from it, never copper. The triangle says it plays rather than navigates. */
 .crew-entry {
   display: inline-flex;
-  grid-column: 1;
-  justify-self: start;
+  order: 2;
+  margin-right: auto;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -3746,6 +3888,21 @@ a[data-replay]:not([data-ready]) {
   white-space: nowrap;
 }
 
+/* Below 20rem, which 16 px never reaches from 320, a phone has a 20 px default font or more, and
+   the role words show only with the feed down, where the table is the roster. On one line, "Roadmap,
+   AI agent" made the table 322 px at 320 with a 28 px font and the page scrolled sideways
+   (.crew/sprint/74/contract.md). Here they wrap between words where the table needs it, never
+   inside one (`break-word`), and the column takes what they need: a fixed 60 px would make every
+   phrase wrap, room or not. */
+@media (width < 20rem) {
+  .crew-word {
+    width: auto;
+    white-space: normal;
+    overflow-wrap: break-word;
+    text-wrap: balance;
+  }
+}
+
 .crew-line,
 .crew-absent {
   padding-right: 0;
@@ -3856,15 +4013,27 @@ a[data-replay]:not([data-ready]) {
 
 /* With a replay offered, the heading and "Pause replay" share the head as the status shares its
    row with Pause updates: the button at the row's end, top-aligned, the heading's first line
-   centred on it, so the heading's word can change or wrap and the button never moves. */
+   centred on it, so the heading's word can change or wrap and the button never moves. As there,
+   the heading takes a line of its own under the button where its longest word doesn't fit beside
+   it (a grid left it 64 px at 320 with a 28 px font, "Activi / ty"), and the button keeps the
+   head's top: its box is held, unseen, until a replay plays, and that space reads as the gap
+   before the section rather than one between the heading and its moments. */
 .crew-activity-head:has(> [data-replay-pause]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-flow: row-reverse wrap;
   column-gap: 16px;
-  align-items: start;
+  align-items: flex-start;
 
   & .crew-activity {
+    flex: 1 1 0;
+    max-width: 100%;
     padding-top: calc((44px - 1lh) / 2);
+    overflow-wrap: break-word;
+  }
+
+  & > [data-replay-pause] {
+    flex: none;
+    order: -1;
   }
 }
 
@@ -4045,9 +4214,12 @@ a[data-replay]:not([data-ready]) {
     margin: 0 16px;
   }
 
+  /* Stuck 16 px under the bar, whose 3.5rem it follows: at 72 px the bar covered the box's top 12 px
+     at a 24 px default font and 26 at 28, the drawing's first 2 px among them (.crew/sprint/81/).
+     72 px at 16 px, as it was. */
   .crew-drawing {
     position: sticky;
-    top: 72px;
+    top: calc(3.5rem + 16px);
     padding-top: 24px;
   }
 
@@ -4119,7 +4291,7 @@ a[data-replay]:not([data-ready]) {
 /* "his rules" on / and the panel's Approval land here (.crew/sprint/48/contract.md, K11). The
    page's scroll padding clears the bar; this margin adds the section's own 2 px rule and padding
    and 16 px more, so the keel lands with its rule 16 px under the bar, where the drawing's box
-   sticks from 1024 (72 px), and its h2 where the panel's h1 sits at load. */
+   sticks from 1024 (72 px at a 16 px font), and its h2 where the panel's h1 sits at load. */
 .keel h2 {
   scroll-margin-top: calc(16px + 2px + 16px);
   font-family: var(--font-sofia-cond), sans-serif;
@@ -5396,11 +5568,21 @@ a[data-replay]:not([data-ready]) {
     grid-column: 2;
   }
 
-  /* The left column: the drawing and the chart (.crew/sprint/65/placement.md, 1 and 2). Its
-     --chart-block is what the chart takes under the drawing's caption, its margin included, which
-     the frame's height budget gives up so both are in the first screen. */
+  /* The left column: the drawing and the chart (.crew/sprint/65/placement.md, 1 and 2). The frame's
+     height budget (--frame-max) gives up the rest of the side, so the side ends in the first screen
+     and, stuck, in the window: --side-top, where it sticks, the bar's height (3.5rem from 1024, at
+     least 52 px; components/bar.tsx) and the 32 px it sits under the bar at rest; 116 px for the
+     drawing's gutters and caption; and --chart-block, what the chart takes under that caption, its
+     margin included, which grows by what the plot grows from a 24 px default font (.trials-chart's
+     --plot-h). --side-type is what the side's type grows by over a 16 px default font: the drawing's
+     caption and the chart's head and caption at their most lines (three, the head and three, 8.9em
+     in the suite's browser), and the 1rem the bar sits on at rest. Held in px, the type outgrew the
+     budget at every window height from 24 px and the stuck side's foot ran past the window
+     (.crew/sprint/80/); at 16 px both growths are 0, so nothing there moves. */
   .trials > .trials-side {
-    --chart-block: 274px;
+    --side-top: calc(max(52px, 3.5rem) + 32px);
+    --chart-block: calc(274px + max(0px, 5rem - 100px));
+    --side-type: max(0px, 10rem - 160px);
     grid-area: 1 / 1 / -1 / 2;
   }
 
@@ -5416,7 +5598,16 @@ a[data-replay]:not([data-ready]) {
     --gl: 28px;
     --gr: 80px;
     --gt: 28px;
-    --frame-max: max(360px, calc(100svh - 204px - var(--chart-block)));
+    --frame-max: max(
+      360px,
+      calc(
+        100svh -
+        var(--side-top) -
+        116px -
+        var(--chart-block) -
+        var(--side-type)
+      )
+    );
     font-size: var(--step-sm);
   }
 
@@ -5444,26 +5635,33 @@ a[data-replay]:not([data-ready]) {
     column-gap: 64px;
   }
 
-  /* The drawing's caption takes two lines from 1280, three below. */
+  /* From 1280 the chart's caption takes two lines at most, one fewer than below, so the side's type
+     is 7.7em at its most lines (.crew/sprint/80/). */
   .trials > .trials-side {
-    --chart-block: 256px;
+    --chart-block: calc(256px + max(0px, 5rem - 100px));
+    --side-type: max(0px, 8.75rem - 140px);
   }
 }
 
-/* Sticky only where it fits: below 840 tall the frame's 360 px floor binds, the side is taller than
-   the window less the bar, and a sticky side would hide its own foot until the page ends. */
-@media (width >= 64rem) and (height >= 52.5rem) {
+/* Sticky only where it fits: the frame's budget keeps the stuck side in the window wherever it
+   holds above its 360 px floor, so the side sticks only where the floor can't bind. That is under
+   838 px of window at a 16 px default font, 966 at 24 and 1040 at 28 (360 px, --side-top, 116 px,
+   --chart-block and --side-type), which 52.5rem stays over from 16 px; under 16 a rem shrinks faster
+   than the side's px, and 840 px holds it there. Past the floor the side is taller than the window
+   less the bar, and a sticky side would hide its own foot until the page ends (.crew/sprint/80/). */
+@media (width >= 64rem) and (height >= 52.5rem) and (height >= 840px) {
   .trials > .trials-side {
     position: sticky;
-    top: 88px;
+    top: var(--side-top);
   }
-}
 
-/* While the side is sticky the drawing holds the field's full height, so a frame that changes
-   height never moves the chart under it; it is also the room the corner drags in (placement.md, 2). */
-@media (width >= 64rem) and (height >= 52.5rem) and (scripting: enabled) {
-  .trials-drawing {
-    min-height: calc(var(--gt) + var(--frame-max) + 14px);
+  /* While the side is sticky the drawing holds the field's full height, so a frame that changes
+     height never moves the chart under it; it is also the room the corner drags in (placement.md,
+     2). */
+  @media (scripting: enabled) {
+    .trials-drawing {
+      min-height: calc(var(--gt) + var(--frame-max) + 14px);
+    }
   }
 }
 
@@ -5494,9 +5692,16 @@ a[data-replay]:not([data-ready]) {
  * window px, and every mark with a size is drawn in px, a dot as a near-zero circle with a round
  * non-scaling stroke. Ink, graphite and pencil: nothing on the chart is live, so nothing is copper.
  */
+/* A container, so a label can change seats by the chart's own width (.crew/sprint/78/contract.md).
+   Below 64rem the plot is 176 px tall and from about a 20 px default font grows with it (180, 206
+   and 232 px at 20, 24 and 28), so "−6.2" stays under 393 × 659 and 456 × 465's number under
+   375 × 548 (.crew/sprint/79/seat.md, 3). The left gutter grows with the height axis's widest
+   label, "1100", about 1.8rem, from a 20 px default font, where it starts 6 px inside the window,
+   so a larger one keeps it there. */
 .trials-chart {
-  --plot-h: 176px;
-  --yg: 30px;
+  container: trials-chart / inline-size;
+  --plot-h: max(176px, 6.5rem + 50px);
+  --yg: max(30px, 1.8rem - 6px);
   --xr: 8px;
   --xl: 20px;
   margin-top: 28px;
@@ -5722,17 +5927,53 @@ circle[data-pin],
   stroke-width: 3px;
 }
 
-/* Lettering on a film pad: the gap's label, 5 px right of its dot, and the soundings' numbers. */
+/* The crew's dots again, halo and ink, over the ring's film, so it hides none beside the ring
+   (.crew/sprint/79/seat.md, 4). The mask shows them only within the ring's reach, a 20 px disc on
+   its point, the film's 6 px and a halo's 4 each way, so elsewhere a sounding's pad, number and
+   focus ring keep their place over the dots (Lens); its hole, a 7 px disc, keeps them off the
+   ring's own window, which looks as it did. White and black are the mask's luminance, shown and
+   hidden, not colours: no token or forced palette may change them. */
+.trials-pins-over-halo {
+  stroke: var(--background);
+  stroke-width: 8px;
+}
+
+.trials-pins-over {
+  stroke: var(--foreground);
+  stroke-width: 5px;
+}
+
+.trials-ring-mask {
+  forced-color-adjust: none;
+}
+
+.trials-ring-reach {
+  stroke: white;
+  stroke-width: 20px;
+}
+
+.trials-ring-hole {
+  stroke: black;
+  stroke-width: 7px;
+}
+
+/* Lettering on a film pad: the gap's label and the soundings' numbers. */
 .trials-gap rect,
 .trials-sounding-pad {
   fill: var(--background);
 }
 
+/* "−6.2" on its dot, in the soundings' grammar, so it reads as the gap's own (.crew/sprint/79/seat.md,
+   1): its text starts at the dot's centre, and its pad 2 px left of that, never over the axis
+   (--to-axis, the markup's share of the plot), and ends 3 px above the point. The pad is 28 × 15 at
+   a 16 px default font and from about 20 px grows with the text (2.125em, 1.2em tall), so no crew
+   pin's dot shows through its digits (.crew/sprint/78/). The text has no underline to lose, so a
+   translate may seat it at any px. */
 .trials-gap rect {
-  x: 5px;
-  y: -7.5px;
-  width: 28px;
-  height: 15px;
+  x: max(-2px, var(--to-axis));
+  y: calc(-3px - max(15px, 1.2em));
+  width: max(28px, 2.125em + 4px);
+  height: max(15px, 1.2em);
 }
 
 .trials-gap text {
@@ -5740,6 +5981,14 @@ circle[data-pin],
   fill: currentColor;
   font-weight: 700;
   dominant-baseline: central;
+  translate: 0 calc(-3px - max(7.5px, 0.6em));
+}
+
+/* Shown only while the label is in the pocket: 1 px from the dot's centre to the pad's left edge. */
+.trials-gap-leader {
+  display: none;
+  stroke: var(--foreground);
+  stroke-width: 1px;
 }
 
 .trials-axis {
@@ -5772,9 +6021,31 @@ circle[data-pin],
   stroke-width: 1px;
 }
 
-/* A sounding: its number above its dot (1366 × 595's above and to the right), on a film pad,
-   underlined as a link; its target, 44 px below 1024 and 32 × 24 from it, runs from just under its
-   point upward (placement.md, 4). Its focus ring is the site's, around the pad, not the target. */
+/* The stepped label's leader, 1 px from the axis to 3 px above its digits: drawn only while the
+   label is stepped down, in place of its tick. */
+.trials-axis-leader {
+  display: none;
+  x: -0.5px;
+  width: 1px;
+  height: calc(15px + 0.5em);
+  fill: currentColor;
+}
+
+/* A sounding: its number on a film pad beside its dot, underlined as a link, in one of three seats
+   (components/trials-chart.tsx, SOUNDINGS): above, to the right (1366 × 595), or below (1160 × 635).
+   Its target, 44 px below 1024 and 32 × 24 from it, runs from just past its point away from it
+   (placement.md, 4). Its focus ring is the site's, around the pad, not the target. */
+/* The number's box is 24 × 13 at a 16 px default font (step-xs, 600, tabular), and its pad 2 px
+   wider each side, 1 px taller: the site's film pad, 1 px by 2 px. From about 20 px the pad grows
+   with the digits in em, as the gap's does (.crew/sprint/79/seat.md, 2), and the number keeps to
+   its middle by a lift rounded to the whole px, 0 at 16 px: at 1x its underline draws the same
+   rows as the offset in its y attribute would (.crew/sprint/79/). */
+.trials-sounding {
+  --sw: max(28px, 2.125em + 4px);
+  --sh: max(15px, 1.2em);
+  --lift: round(nearest, calc(7.5px - var(--sh) / 2), 1px);
+}
+
 /* A quarter px over each side: placed at a percentage, its box reads 43.99 px across otherwise. */
 .trials-sounding-hit {
   x: -22.25px;
@@ -5788,24 +6059,32 @@ circle[data-pin],
   x: -4px;
 }
 
-/* The number's box is 24 × 13 (step-xs, 600, tabular), and its pad 2 px wider each side, 1 px
-   taller: the site's film pad, 1 px by 2 px. */
-.trials-sounding-pad {
-  x: -14px;
-  y: -18px;
-  width: 28px;
-  height: 15px;
+.trials-sounding[data-side="below"] .trials-sounding-hit {
+  y: -6.25px;
 }
 
+.trials-sounding-pad {
+  x: calc(var(--sw) / -2);
+  y: calc(-3px - var(--sh));
+  width: var(--sw);
+  height: var(--sh);
+}
+
+/* 4 px right of the point, its foot 1 px under it, so the 1366 × 625 dot clears it. */
 .trials-sounding[data-side="right"] .trials-sounding-pad {
-  x: 1px;
+  x: 4px;
+  y: calc(1px - var(--sh));
+}
+
+.trials-sounding[data-side="below"] .trials-sounding-pad {
+  y: 3px;
 }
 
 .trials-sounding-ring {
-  x: -17px;
-  y: -21px;
-  width: 34px;
-  height: 21px;
+  x: calc(var(--sw) / -2 - 3px);
+  y: calc(-6px - var(--sh));
+  width: calc(var(--sw) + 6px);
+  height: calc(var(--sh) + 6px);
   fill: none;
   stroke: var(--foreground);
   stroke-width: 2px;
@@ -5813,7 +6092,12 @@ circle[data-pin],
 }
 
 .trials-sounding[data-side="right"] .trials-sounding-ring {
-  x: -2px;
+  x: 1px;
+  y: calc(-2px - var(--sh));
+}
+
+.trials-sounding[data-side="below"] .trials-sounding-ring {
+  y: 0;
 }
 
 .trials-sounding:focus-visible {
@@ -5837,10 +6121,15 @@ circle[data-pin],
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  translate: 0 var(--lift);
 }
 
 .trials-sounding[data-side="right"] .trials-sounding-number {
   text-anchor: start;
+}
+
+.trials-sounding[data-side="below"] .trials-sounding-number {
+  translate: 0 calc(-1 * var(--lift));
 }
 
 @media (hover: hover) {
@@ -5859,8 +6148,10 @@ circle[data-pin],
 }
 
 @media (width >= 64rem) {
+  /* 120 px through a 20 px default font, 140 and 160 at 24 and 28, which the frame's height budget
+     gives up (--chart-block). */
   .trials-chart {
-    --plot-h: 120px;
+    --plot-h: max(120px, 5rem + 20px);
     --yg: 28px;
     --xr: 80px;
     --xl: 18px;
@@ -5886,6 +6177,65 @@ circle[data-pin],
     width: 32px;
     height: 24.5px;
   }
+
+  .trials-sounding[data-side="below"] .trials-sounding-hit {
+    y: -2.25px;
+  }
+}
+
+/* The pocket (.crew/sprint/79/seat.md, 1): from 64rem, while the plot can't hold "−6.2" on its dot
+   left of 390 × 664 with 2 px clear, the label moves whole to the empty pocket right of 390 × 664
+   and 393 × 659, its pad's left edge on the pocket's point, and the leader joins it to its dot.
+   390 × 664 is 70/1616 of the plot right of the gap, so the label fits while the plot is at least
+   23.09 times its pad's width (2.125em + 4px, at least 28px) and 2.5 px, and from 64rem the plot is
+   the chart less 109 px (its gutters and the axis's 1 px): it moves below max(813px, 259px +
+   33.73rem), from 1024 to 1344 wide at a 16 px default font, at every width to 1440 at 20, and near
+   the 64rem switch at 24 and 28. The seat moves by a view-box translate, as shares of the plot:
+   Chromium ignores CSS x and y on a nested svg. */
+@media (width >= 64rem) {
+  @container trials-chart (width < max(813px, 259px + 33.73rem)) {
+    .trials-gap-seat {
+      transform-box: view-box;
+      translate: var(--to-pocket-x) var(--to-pocket-y);
+    }
+
+    .trials-gap rect {
+      x: 0;
+      y: calc(max(15px, 1.2em) / -2);
+    }
+
+    .trials-gap text {
+      translate: 2px 0;
+    }
+
+    .trials-gap-leader {
+      display: inline;
+    }
+  }
+}
+
+/* Where a large default font leaves the width axis too narrow for its labels in a row, 1024's steps
+   down one, its box's height and 3 px, and the gutter under the axis grows by as much. 1024's and
+   1280's points are 256/1616 of the plot apart and each label is about 1.8rem wide; the plot is
+   the chart less --yg and 9 px, so the row holds them 3 px apart from max(58px + 11.36rem, 22px +
+   13.16rem): it always does at a 16 or 20 px default font, and from 24 px it steps at 320 wide,
+   from 28 px at 390 (.crew/sprint/78/contract.md). Its leader takes its tick's place. */
+@container trials-chart (width < max(58px + 11.36rem, 22px + 13.16rem)) {
+  .trials-chart-svg {
+    margin-bottom: calc(var(--xl) + 1.2em + 3px);
+  }
+
+  .trials-axis svg[data-stepped] text {
+    translate: 0 calc(1.2em + 3px);
+  }
+
+  .trials-axis svg[data-stepped] path {
+    display: none;
+  }
+
+  .trials-axis svg[data-stepped] .trials-axis-leader {
+    display: inline;
+  }
 }
 
 @media (forced-colors: active) {
@@ -5893,13 +6243,16 @@ circle[data-pin],
   .trials-edge,
   .trials-region,
   .trials-pins-ink,
+  .trials-pins-over,
   .trials-ring,
   .trials-ring-dot,
+  .trials-gap-leader,
   .trials-sounding-ring {
     stroke: CanvasText;
   }
 
   .trials-pins-halo,
+  .trials-pins-over-halo,
   .trials-ring-film {
     stroke: Canvas;
   }

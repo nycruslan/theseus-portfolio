@@ -1,0 +1,33 @@
+{
+  "sprint": 80,
+  "pr": 157,
+  "goal": "The trials' side keeps its whole chart in the window at large fonts",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 150,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 139155, "minutes": 17 },
+    { "role": "engineer", "model": "opus", "tokens": 253624, "minutes": 58 },
+    { "role": "design-director", "model": "opus", "tokens": 86622, "minutes": 5 }
+  ],
+  "lens": { "runs": 1, "tokens": 555648, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "At a large default font the trials' stuck side hid the foot of its chart",
+      "evidence": "Production, 2026-11-19: T40a red at 24 px (16.9 px past the window at 1536 x 1260, 7.0 at 1920 x 1400 and 1920 x 1600) and at 28 px (47.8 at 1792 x 1470, 13.6 at 1920 x 1600, 33.6 at 2560 x 1600); from 26 px the bar covered the frame's width dimension"
+    }
+  ],
+  "proposals": [
+    {
+      "change": "Allow the PR's Vercel preview host through the cloud session's network policy",
+      "moves": "Iris's preview reads: the proxy refused the preview host, so she built the head locally instead"
+    }
+  ],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nit: T39a's mask lookup starts at the copy's parent, so a mask set on the copy itself isn't read (e2e/chart-labels.spec.ts:455)" },
+    { "who": "Iris", "what": "Her three memory lines from sprint 80 (the sticky budget in the content's units, the foot's room, a rem bar's sticky top), and the side sticking from the frame's floor point rather than 52.5rem, after the stand-down" },
+    { "who": "Forge", "what": "scroll-padding-top is 56 px under the 3.5rem bar from 64rem, so focus and fragment targets land under the bar at large fonts; the focus ring on /trials/1366x595 (sprint 79)" }
+  ]
+}

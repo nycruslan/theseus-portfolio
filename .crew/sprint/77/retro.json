@@ -1,0 +1,33 @@
+{
+  "sprint": 77,
+  "pr": 154,
+  "goal": "A Log record opens with its heading in view on a short screen",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 125,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 118949, "minutes": 25 },
+    { "role": "design-director", "model": "opus", "tokens": 342583, "minutes": 35 },
+    { "role": "engineer", "model": "opus", "tokens": 239354, "minutes": 66 }
+  ],
+  "lens": { "runs": 1, "tokens": 842434, "important": 0, "actedOn": 0, "nits": 1 },
+  "wentWrong": [
+    {
+      "what": "On a short phone or tablet, every Log record opened with its heading below the fold",
+      "evidence": "Production, 2026-11-19: 75 of 75 records' h2 past the window at 320 x 568, 360 x 640, 375 x 667, 900 x 700 and 1023 x 768; T37 red on main at those five, green on the head"
+    },
+    {
+      "what": "The test browser sets type wider than the one the placement was measured in",
+      "evidence": "Headless shell 156 wraps the chapter line at 320 (290 px in a 288 px column) where Chrome 153 doesn't, putting two chapter steps' goals 6.5 and 31.7 px past the fold (decisions.md 3)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Iris", "what": "Lens's nit: two lines moved into design-director/hull.md still point to hull.md" },
+    { "who": "Iris", "what": "On the newest step below 768 the hand-off could take Next's empty place in the step row, giving the goal 44 px back" },
+    { "who": "Probe", "what": "T37's spare is 5 px at 320 x 568 and 360 x 640: a goal one line longer goes red there, a real fold failure" },
+    { "who": "Forge", "what": "Safari, Firefox and real phones are unmeasured, including the 60rem height gate under iPadOS's toolbar" }
+  ]
+}

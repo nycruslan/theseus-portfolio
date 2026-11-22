@@ -2,12 +2,16 @@ import { cacheLife } from "next/cache";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import {
   type Crew,
+  type Fields,
   isRecord,
   isRunFrame,
   isTime,
+  pullHref,
+  type Run,
   restingOf,
   runOf,
 } from "@/lib/crew-run";
+import { readSprintLog, type SprintEntry } from "@/lib/sprint-log";
 
 // The crew feed (.crew/sprint/28/feed-contract.md): what the Studio says the crew is doing, read on
 // this site's server alone, never by the browser. The answer is checked by the data rules in
@@ -15,7 +19,9 @@ import {
 // frame reads as the feed being down, while a bad part inside a sound answer (a role or a moment
 // this site doesn't know, a field of the wrong type) is dropped, so the Studio can grow without
 // taking /crew down. Only the fields /crew shows are kept. A run's own rules are lib/crew-run.ts's,
-// which the browser applies again to /api/crew's answer.
+// which the browser applies again to /api/crew's answer. Before those rules read a run, its number
+// is checked against the build's record (`sprintOf`), so the pages and /api/crew, and through it
+// the browser's poll, tell the same number.
 
 const DOWN: Crew = { state: "down" };
 const UNREAD: Crew = { state: "down", unread: true };
@@ -46,8 +52,47 @@ function isFeedRun(value: unknown): value is Record<string, unknown> {
   return isRunFrame(value) && typeof value.live === "boolean";
 }
 
-/** The four states from one answer, judged against the clock it is read at. */
-function crewOf(answer: unknown, feed: URL, now: number): Crew {
+/** What the record says of a sprint: its number and, when the retro names one, its pull request. */
+type Recorded = Pick<SprintEntry, "sprint" | "pr">;
+
+/**
+ * The run's sprint as the build's record lets the site tell it (.crew/sprint/83/decisions.md). The
+ * number is the Studio's, and after sprint 82 merged as #159 the feed said sprint 32, which / and
+ * /crew repeated. The record knows which sprint each of this repository's pull requests was: a run
+ * whose pull request it holds is that sprint. One whose pull request it doesn't hold keeps its
+ * number, unless the record has that sprint under another pull request: then the site tells none.
+ * Only a pull request the site would link is checked (pullHref), since a number whose page is
+ * another repository's, or names another number, isn't this record's to judge; without one, the
+ * number stands as told.
+ */
+function sprintOf(run: Run, record: readonly Recorded[]): number | null {
+  const pr = run.pr && pullHref(run.pr) ? run.pr.number : null;
+  if (pr === null) return run.sprint;
+  const merged = record.find((entry) => entry.pr === pr);
+  if (merged) return merged.sprint;
+  const seated = record.find((entry) => entry.sprint === run.sprint);
+  return seated?.pr === undefined ? run.sprint : null;
+}
+
+/**
+ * The feed's run with its number as sprintOf tells it, before the run's rules read it, so every
+ * rule sees the checked number: a run left without one takes the paths every unnumbered run takes,
+ * "Crew resting." with no replay (restingOf) and no pencil on / (lib/live-layer.ts).
+ */
+function numbered(run: Fields, record: readonly Recorded[]): Fields {
+  return { ...run, sprint: sprintOf(runOf(run, null), record) };
+}
+
+/**
+ * The four states from one answer, judged against the clock it is read at, the run's number
+ * checked against the record.
+ */
+function crewOf(
+  answer: unknown,
+  feed: URL,
+  now: number,
+  record: readonly Recorded[],
+): Crew {
   if (!isRecord(answer) || answer.version !== 1 || !isTime(answer.asOf)) {
     return DOWN;
   }
@@ -57,10 +102,12 @@ function crewOf(answer: unknown, feed: URL, now: number): Crew {
   if (last !== null && !isFeedRun(last)) return DOWN;
   if (current) {
     const state = current.live ? "live" : "open";
-    return { state, run: runOf(current, feed.origin) };
+    return { state, run: runOf(numbered(current, record), feed.origin) };
   }
   // Only a resting run offers a replay, of the sprint it last merged (.crew/sprint/37/contract.md).
-  return last ? { state: "resting", run: restingOf(last, feed.origin) } : DOWN;
+  return last
+    ? { state: "resting", run: restingOf(numbered(last, record), feed.origin) }
+    : DOWN;
 }
 
 /** The feed's parsed answer, or FAILED. */
@@ -87,6 +134,8 @@ async function fetchAnswer(url: URL): Promise<unknown> {
  * (`kept`) while it is fresh, and down after, and either is retried on the first request 30 s
  * after it. An answer the data rules refuse reads as down at once. The clock is read inside the
  * cache, since a prerender can't read it outside one, so an answer's age is judged when it is read.
+ * Whichever answer is told, its run's number is checked against the retros here, the one place
+ * every reader of the crew goes through.
  */
 export async function readCrew(): Promise<Crew> {
   "use cache";
@@ -99,8 +148,9 @@ export async function readCrew(): Promise<Crew> {
   if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) return UNREAD;
   const feed = new URL(address);
   const answer = await fetchAnswer(feed);
-  if (answer === FAILED) return crewOf(kept, feed, Date.now());
-  const crew = crewOf(answer, feed, Date.now());
+  const record = readSprintLog();
+  if (answer === FAILED) return crewOf(kept, feed, Date.now(), record);
+  const crew = crewOf(answer, feed, Date.now(), record);
   kept = crew.state === "down" ? undefined : answer;
   return crew;
 }
