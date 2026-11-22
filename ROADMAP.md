@@ -207,7 +207,7 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   record holds gives its sprint, and a number the record has under another PR is told as none.
   Lens: ship, two nits. Left open: a check pinning the rule (Probe), a live run before its PR opens
   (Forge), the Studio's numbering itself (the owner's repository) (`.crew/sprint/83/retro.json`).
-- [x] Sprint 84 (S, notes only, PR #PRNUM): the stand-down's sweep, on what 82 and 83 didn't read.
+- [x] Sprint 84 (S, notes only, PR #162): the stand-down's sweep, on what 82 and 83 didn't read.
   The agent surfaces equal `content/`, every figure the pages state matches its source, and with
   WebGL on no text prints over text: nothing qualifies, so nothing in the product changes. Sprint
   83's merge record rides along. Left open: `/ask`'s live answers, unread
