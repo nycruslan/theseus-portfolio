@@ -1,0 +1,74 @@
+{
+  "sprint": 76,
+  "pr": 153,
+  "goal": "The trials page logs no errors to a visitor's console",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 2,
+  "minutes": 175,
+  "agents": [
+    {
+      "role": "qa-engineer",
+      "model": "opus",
+      "tokens": 84302,
+      "minutes": 7
+    },
+    {
+      "role": "engineer",
+      "model": "opus",
+      "tokens": 465362,
+      "minutes": 123
+    },
+    {
+      "role": "design-director",
+      "model": "opus",
+      "tokens": 101233,
+      "minutes": 7
+    }
+  ],
+  "lens": {
+    "runs": 2,
+    "tokens": 1506314,
+    "important": 0,
+    "actedOn": 2,
+    "nits": 2
+  },
+  "wentWrong": [
+    {
+      "what": "Every trials view logged 48 console errors, one per script the sandboxed frame refused",
+      "evidence": "Chromium on production, 2026-11-18: 48 'Blocked script execution' errors on /trials and /trials/320x568 at 1440 x 900; 0 on /, /log, /crew, /ask, /evals"
+    },
+    {
+      "what": "The test's own trace recorder added one refused script per view",
+      "evidence": "T36 on main: 47 errors per view with trace on, 46 with --trace off (Probe, Forge); T36 now runs with trace off"
+    },
+    {
+      "what": "A Log record's heading could open below a phone's fold",
+      "evidence": "B5.7 red at 390 x 844 once /log/67 became its tenth row: h2 at 782.9 to 877.4, viewport 844; 13 of 75 records out of view before the fix, 0 after"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    {
+      "who": "Forge",
+      "what": "Read /trials on production after the merge: the frame served from the Pages Router, 0 console errors (the preview was out of this session's network)"
+    },
+    {
+      "who": "Forge",
+      "what": "The cold-load caption jump on /trials (T8's CLS on production), the trials' next open defect"
+    },
+    {
+      "who": "Forge",
+      "what": "unstable_runtimeJS is undocumented: on any Next upgrade, read T36 first"
+    },
+    {
+      "who": "Probe",
+      "what": "B5.7 samples one row, so the data decides what it sees; read every record's h2 at 390 x 844"
+    },
+    {
+      "who": "Forge",
+      "what": "At 1023 x 768 and 320 x 568 a record's heading still opens below the fold, on production too; B5.7 reads only 390 and 1440 (Iris)"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { profile } from "@/content/profile";
 import { caseStudies } from "@/content/work";
-import { OWNER_EMAIL, studyPath } from "@/lib/portfolio";
+import { studyPath } from "@/lib/portfolio";
 import { SITE_URL, STUDIO_URL } from "@/lib/site";
 
 // A map of the site for AI agents (https://llmstxt.org).
@@ -8,6 +8,9 @@ export function GET() {
   const studies = caseStudies.map(
     (study) =>
       `- [${study.title}](${SITE_URL}${studyPath(study)}): ${study.blurb}`,
+  );
+  const contact = profile.links.map(
+    (link) => `- [${link.label}](${link.href})`,
   );
   const body = `# ${profile.name}
 
@@ -27,7 +30,7 @@ ${studies.join("\n")}
 
 ## Contact
 
-- [Email](mailto:${OWNER_EMAIL})
+${contact.join("\n")}
 `;
   return new Response(body, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

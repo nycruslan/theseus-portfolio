@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { type CSSProperties, Fragment } from "react";
 import { signatures } from "@/components/revisions";
 import {
   addressOf,
@@ -58,6 +58,10 @@ const percentOf = ([w, h]: Win) => ({
   x: `${round(((w - X0) / (X1 - X0)) * 100, 3)}%`,
   y: `${round(((Y1 - h) / (Y1 - Y0)) * 100, 3)}%`,
 });
+
+/** A run across the plot and a rise up it, in window px, as shares of the plot's box. */
+const acrossOf = (w: number) => `${round((w / (X1 - X0)) * 100, 3)}%`;
+const riseOf = (h: number) => `${round((-h / (Y1 - Y0)) * 100, 3)}%`;
 
 /** `hidden`, which React's SVG props don't name, on an svg element the window doesn't enter. */
 const hiddenUnless = (shown: boolean) => (shown ? {} : { hidden: true });
@@ -217,10 +221,9 @@ const RUN_MARK: readonly Win[] = [
       win[0] === (RUN_WINDOWS.at(-1)?.[0] ?? 0) + 1,
   ),
 ].toSorted((a, b) => a[0] - b[0]);
-const MARKS: readonly (readonly Win[])[] = [
-  ...PIN_WINDOWS.filter((win) => !RUN_MARK.includes(win)).map((win) => [win]),
-  RUN_MARK,
-];
+const DOT_MARKS: readonly (readonly Win[])[] = PIN_WINDOWS.filter(
+  (win) => !RUN_MARK.includes(win),
+).map((win) => [win]);
 
 /** The freeboard as data, to one decimal with an ASCII minus: "-6.2". */
 const freeboardOf = (win: Win) => sweptTrial(win).freeboard.toFixed(1);
@@ -250,17 +253,33 @@ function Pin({ wins }: { wins: readonly Win[] }) {
   );
 }
 
+type Side = "above" | "right" | "below";
+
 /**
- * The four named windows, the chart's close calls (placement.md, 4): each number sits above its
- * dot, and 1366 × 595's to the right, its target starting 4 px left of the point, so the four 44 px
- * targets clear each other at 320.
+ * The four named windows, the chart's close calls (placement.md, 4), each seated where no crew pin
+ * lies under its pad at any width or font (.crew/sprint/79/seat.md, 2): above its dot, 1366 × 595's
+ * to the right, its target starting 4 px left of the point, so the four 44 px targets clear each
+ * other at 320, and 1160 × 635's below, the one seat 1180 × 740, 1280 × 680 and 1024 × 640 never
+ * reach.
  */
-const SOUNDINGS: readonly { win: Win; side: "above" | "right" }[] = [
+const SOUNDINGS: readonly { win: Win; side: Side }[] = [
   { win: [456, 465], side: "above" },
   { win: [792, 575], side: "above" },
-  { win: [1160, 635], side: "above" },
+  { win: [1160, 635], side: "below" },
   { win: [1366, 595], side: "right" },
 ];
+
+/**
+ * Each seat's number from its point, in px, at its pad's middle at a 16 px default font. They stay
+ * attributes, since a text's x and y aren't CSS and a px translate on a text at a fractional px
+ * once dropped a row of its 1 px underline at 1x (.crew/sprint/78/); CSS adds only the whole-px
+ * lift a large font's taller pad needs.
+ */
+const NUMBER_AT: Record<Side, { x: number; y: number }> = {
+  above: { x: 0, y: -10.5 },
+  right: { x: 6, y: -6.5 },
+  below: { x: 0, y: 10.5 },
+};
 
 /** A window as it is heard: `1366 by 595` (Tb's rule). */
 const heard = ([w, h]: Win) => `${w} by ${h}`;
@@ -284,8 +303,8 @@ function Sounding({ win, side }: (typeof SOUNDINGS)[number]) {
         <rect className="trials-sounding-ring" />
         <circle r="1.5" className="trials-sounding-dot" />
         <text
-          x={side === "right" ? 3 : 0}
-          y="-10.5"
+          x={NUMBER_AT[side].x}
+          y={NUMBER_AT[side].y}
           className="trials-sounding-number"
         >
           {signed}
@@ -295,9 +314,42 @@ function Sounding({ win, side }: (typeof SOUNDINGS)[number]) {
   );
 }
 
-/** The width labels; 1440 is left out, 29 px from 1280 at 320 (placement.md, 4). */
+/**
+ * The width labels; 1440 is left out, 29 px from 1280 at 320 (placement.md, 4). Where a large
+ * default font leaves the axis too narrow for its labels in a row, 1024's, between the two it would
+ * meet, steps down one, a leader in place of its tick (app/globals.css; .crew/sprint/78/).
+ */
 const WIDTH_LABELS = [320, 768, 1024, 1280, 1920];
+const STEPPED_LABEL = 1024;
 const HEIGHT_LABELS = [460, 780, 1100];
+
+/**
+ * Where "−6.2" sits while the plot is too narrow to seat it on its dot clear of 390 × 664: the
+ * empty pocket right of 390 × 664 and 393 × 659, a leader joining it to the dot
+ * (.crew/sprint/79/seat.md, 1). The leader's end and CSS's seats read one offset from the gap's
+ * point, and the axis's, as shares of the plot.
+ */
+const POCKET: Win = [416, 638];
+const TO_POCKET = {
+  x: acrossOf(POCKET[0] - GAP[0]),
+  y: riseOf(POCKET[1] - GAP[1]),
+};
+const GAP_SEATS: CSSProperties & Record<`--${string}`, string> = {
+  "--to-axis": acrossOf(X0 - GAP[0]),
+  "--to-pocket-x": TO_POCKET.x,
+  "--to-pocket-y": TO_POCKET.y,
+};
+
+/**
+ * The ring's mask's region, in window px: the plot's box and a tenth of it beyond every side, more
+ * than the ring's reach at any stretch, so a ring at the plot's edge keeps its whole reach.
+ */
+const MASK_BOX = {
+  x: X0 - (X1 - X0) / 10,
+  y: Y0 - (Y1 - Y0) / 10,
+  width: ((X1 - X0) * 12) / 10,
+  height: ((Y1 - Y0) * 12) / 10,
+};
 
 /** The bounding-box matrix that lays window px over the plot's box, 0 to 1 each way. */
 const BOX_MATRIX = [
@@ -311,11 +363,89 @@ const BOX_MATRIX = [
   .map((v) => String(round(v, 10)))
   .join(" ");
 
+/**
+ * The record's own gap, the one pin labelled: on its dot, or in the pocket, its seat moved whole
+ * and the leader shown (app/globals.css).
+ */
+function GapLabel() {
+  const gap = percentOf(GAP);
+  return (
+    <svg
+      x={gap.x}
+      y={gap.y}
+      overflow="visible"
+      aria-hidden="true"
+      style={GAP_SEATS}
+      className="trials-gap"
+    >
+      <line
+        x1="0"
+        y1="0"
+        x2={TO_POCKET.x}
+        y2={TO_POCKET.y}
+        className="trials-gap-leader"
+      />
+      <g className="trials-gap-seat">
+        <rect />
+        <text>{signedOf(sweptTrial(GAP))}</text>
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * The ring: one circle at the shown window, which the controller moves by cx and cy, and two
+ * copies of it that draw the film inside and the dot, as non-scaling strokes on a near-zero circle,
+ * so it stays a round 16 px. Between them the crew's dots are drawn again, halo and ink, so the
+ * film hides none beside the ring (.crew/sprint/79/seat.md, 4). The mask that shows them is copies
+ * of the ring too, so it follows the controller: a reach as wide as the film and a dot's halo, so
+ * the copies cover nothing but near the ring (a sounding's pad or focus ring elsewhere keeps main's
+ * paint order, Lens), less a hole at the ring's own window.
+ */
+function Ring({ win }: { win: Win }) {
+  return (
+    <svg
+      viewBox={VIEW_BOX}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      className="trials-chart-plot trials-chart-top"
+    >
+      <g transform={FLIPPED}>
+        <mask
+          id="trials-ring-hole"
+          maskUnits="userSpaceOnUse"
+          {...MASK_BOX}
+          className="trials-ring-mask"
+        >
+          <use href="#trials-ring" className="trials-ring-reach" />
+          <use href="#trials-ring" className="trials-ring-hole" />
+        </mask>
+        <g className="trials-ring">
+          <circle
+            id="trials-ring"
+            data-ring=""
+            cx={win[0]}
+            cy={win[1]}
+            r="0.01"
+          />
+        </g>
+        <use href="#trials-ring" className="trials-ring-film" />
+        {/* One mask over both copies: masked apart, the reach's soft edge let a halo through
+          over a dot's ink, a light arc across it. */}
+        <g mask="url(#trials-ring-hole)">
+          <use href="#trials-pin-dots" className="trials-pins-over-halo" />
+          <use href="#trials-pin-dots" className="trials-pins-over" />
+        </g>
+        <use href="#trials-ring" className="trials-ring-dot" />
+      </g>
+    </svg>
+  );
+}
+
 export function TrialsChart({ win }: { win: Win }) {
   const entered = fitsAt(win);
   const here = new Set(entered.map((fit) => fit.n));
   const k = entered.length;
-  const gap = percentOf(GAP);
   return (
     <figure className="trials-chart" aria-labelledby="trials-chart-title">
       <div className="trials-chart-head">
@@ -399,13 +529,19 @@ export function TrialsChart({ win }: { win: Win }) {
             ))}
             <path d={EDGE} className="trials-edge" />
             {/* The pins' film halo is a copy of them; the ink is set on the group around the
-              originals, so the copy can take the film. */}
+              originals, so the copy can take the film. The dots are a group of their own, which
+              the top svg draws again over the ring's film. */}
             <use href="#trials-pins" className="trials-pins-halo" />
             <g className="trials-pins-ink">
               <g id="trials-pins">
-                {MARKS.map((wins) => (
-                  <Pin key={keyOf(wins[0] ?? [0, 0])} wins={wins} />
-                ))}
+                <g id="trials-pin-dots">
+                  {DOT_MARKS.map((wins) => (
+                    <Pin key={keyOf(wins[0] ?? [0, 0])} wins={wins} />
+                  ))}
+                </g>
+                {/* H10's run stays under the ring's film: the ring at /trials sits on the bar,
+                  which drawn over the film would run through the ring. */}
+                <Pin wins={RUN_MARK} />
               </g>
             </g>
           </g>
@@ -427,49 +563,22 @@ export function TrialsChart({ win }: { win: Win }) {
               data-end={
                 w === WIDTH.from ? "start" : w === WIDTH.to ? "end" : undefined
               }
+              data-stepped={w === STEPPED_LABEL ? "" : undefined}
             >
               <path d="M0 0V4" />
+              {w === STEPPED_LABEL ? (
+                <rect className="trials-axis-leader" />
+              ) : null}
               <text y="15">{w}</text>
             </svg>
           ))}
         </svg>
-        {/* The record's own gap, the one pin labelled. */}
-        <svg
-          x={gap.x}
-          y={gap.y}
-          overflow="visible"
-          aria-hidden="true"
-          className="trials-gap"
-        >
-          <rect />
-          <text x="7">{signedOf(sweptTrial(GAP))}</text>
-        </svg>
+        <GapLabel />
         {SOUNDINGS.map((sounding) => (
           <Sounding key={keyOf(sounding.win)} {...sounding} />
         ))}
-        {/* The ring, last so nothing covers the frame's window: one circle at the shown window,
-          which the controller moves by cx and cy, and two copies of it that draw the film inside
-          and the dot, as non-scaling strokes on a near-zero circle, so it stays a round 16 px. */}
-        <svg
-          viewBox={VIEW_BOX}
-          preserveAspectRatio="none"
-          aria-hidden="true"
-          className="trials-chart-plot trials-chart-top"
-        >
-          <g transform={FLIPPED}>
-            <g className="trials-ring">
-              <circle
-                id="trials-ring"
-                data-ring=""
-                cx={win[0]}
-                cy={win[1]}
-                r="0.01"
-              />
-            </g>
-            <use href="#trials-ring" className="trials-ring-film" />
-            <use href="#trials-ring" className="trials-ring-dot" />
-          </g>
-        </svg>
+        {/* Last, so nothing covers the frame's window. */}
+        <Ring win={win} />
       </svg>
       <figcaption>
         {`Width across, height up, hatched where the contact links sink: ${counted(SUNK.size)} of the ${counted(TOTAL)} windows swept. Dots are the crew's windows, the ring is the frame's, the numbers are close calls.`}

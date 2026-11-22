@@ -1,0 +1,31 @@
+{
+  "sprint": 81,
+  "pr": 158,
+  "goal": "Links and focus land below the bar at large fonts on big screens",
+  "goalFrom": "roadmap",
+  "size": "S",
+  "outcome": "merged",
+  "fixRounds": 0,
+  "minutes": 135,
+  "agents": [
+    { "role": "qa-engineer", "model": "opus", "tokens": 182331, "minutes": 68 },
+    { "role": "engineer", "model": "opus", "tokens": 217009, "minutes": 86 }
+  ],
+  "lens": { "runs": 1, "tokens": 625903, "important": 0, "actedOn": 0, "nits": 2 },
+  "wentWrong": [
+    {
+      "what": "At a large default font a link's target landed under the bar on big screens",
+      "evidence": "Production, 2026-11-20: from 64rem the scroll padding was a fixed 56 px under a 3.5rem bar, so /#work landed at 56 under a bar ending at 70, 84 and 98 at 20, 24 and 28 px (1920 x 1200), up to 42 px of the section hidden"
+    },
+    {
+      "what": "A focused link's ring sat under the bar even at the default font",
+      "evidence": "Probe's T41b on main: Shift+Tab scrolled the link's box to the padding, so its 4 px ring was 3.7 to 4.5 px under the bar at 16 px and up to 46.5 px at 28 px (/log at 2560 x 1440)"
+    }
+  ],
+  "proposals": [],
+  "followUps": [
+    { "who": "Probe", "what": "Lens's nit: /crew#replay's pressed-entry read at large fonts doesn't assert the replay played before measuring (e2e/bar-landing.spec.ts:541)" },
+    { "who": "Probe", "what": "Lens's nit: T41b walks four of the contract's six windows (1280 x 800 and 1440 x 900 left out, reasoned in the spec's header)" },
+    { "who": "Forge", "what": "A ring can still be clipped 4 px at the window's bottom on Tab forward (no bottom margin); B5.23's model mount timed out twice in a loaded full local run, passed alone" }
+  ]
+}

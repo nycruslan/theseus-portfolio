@@ -122,6 +122,103 @@ milestone. No sprint needs an owner answer to start, touches an owner path or ed
   (Owner chores #144), then Lens said ship. Left open: at 16 px /log/70's Next lands on the newest
   record's ← Sprint 70 (on main too), and the large-font hand-off and fold Iris named
   (`.crew/sprint/72/retro.json`).
+- [x] Sprint 73 (S, PR #145): the stand-down's defect condition a sixth time. With the yard playing,
+  from a 20 px default font the hint "Hold to flip through the sprints" outgrew its fixed 14 px
+  line: at 320 × 24 and 28 its two lines printed over each other, and its text ran into the newest
+  record's hand-off and, on other records, the goal. The line now grows with the font, 14 px at
+  16; nothing moves at 16 px (0 of 43,806 boxes). T34 is new. Left open: Lens's two comment nits,
+  /crew's table at 320 × 28 and "answering." splitting mid-word (`.crew/sprint/73/retro.json`).
+- [x] Sprint 74 (S, PR #151): the stand-down's defect condition a seventh time. On /crew at 320 ×
+  28, "Pause updates" left the status 62 px, so "Crew resting." read "Cre / w / resti / ng.", and
+  the entry and Activity heading broke too; with the feed down "answering." split up to 390 × 28 and
+  a nowrap role word scrolled the page 18 px. The rows now wrap: the button keeps the top right and
+  the text, broken only between words, goes under it when its longest word doesn't fit; the role
+  words wrap below 20rem. Nothing moves at 16 px (0 of 14,100 boxes). T35 is new. Left open: Lens's
+  shard-comment nit, Iris on the eight-line status at 320 × 24, and the Next.js advisory that stops
+  builds (`.crew/sprint/74/retro.json`).
+- [x] Sprint 75 (S, PR #152): sprint 74's advisory follow-up. Production's Next.js 16.4.3 sat inside
+  a moderate security advisory (GHSA-mfr8-8qww-v76h), and its upgrade notice failed every other
+  build. `next` is 16.4.6: the audit is clean, the notice and the alternating failures are gone,
+  and the route table, the pages and all 467 checks are unchanged. Left open: a real streamed
+  `/api/chat` answer on 16.4.6, which e2e mocks (`.crew/sprint/75/retro.json`).
+- [x] Sprint 76 (S, PR #153): the stand-down's open frame console. Every trials view logged 48
+  console errors in Chromium, one per script of `/`'s that the sandboxed frame refused. The frame is
+  now a static Pages Router page that ships no JavaScript (`unstable_runtimeJS: false`; its only
+  script is `/`'s JSON-LD), its `<main>` byte for byte the same; the trials log 0. T36 is new. A fix
+  round put the Log's lines figure after a record below 1024, so every record's heading opens in a
+  phone's first screen (B5.7 had gone red on /log/67; 13 of 75 were under the fold). Left
+  open: a read of production after the merge (the preview was out of reach), the cold-load caption
+  jump (T8's CLS on production), and the undocumented flag on the next Next upgrade
+  (`.crew/sprint/76/retro.json`).
+- [x] Sprint 77 (S, PR #154): sprint 76's fold follow-up. On production every Log record opened
+  with its goal below the fold at 320 × 568, 360 × 640, 375 × 667, 900 × 700 and 1023 × 768 (75 of
+  75). On a record below 1024 wide and under 60rem tall, the ghost's caption and count line now
+  follow the record, the drawings cap their width to the window's height from 768, and the goal is
+  24 px below 22.5rem (Iris's `placement.md`). Every goal opens in view there, except that at 320 ×
+  568 the question's and chapter steps' goals start in view (decisions 2 and 3); nothing moves from
+  1024, on `/log`, or in tall windows. T37 is new. Sprint 76's production read is done: /trials
+  logs 0 errors and the cold-load caption jump didn't reproduce (CLS 0). Left open: Lens's memory
+  nit, the newest step's hand-off in the step row (Iris), 5 px of spare at 320 and 360, real
+  Safari and iPadOS (`.crew/sprint/77/retro.json`).
+- [x] Sprint 78 (S, PR #155): the stand-down's defect condition, from Probe's production sweep
+  (414 loads, 23 routes). At 1024 × 768 and the default font the 456 × 465 sounding's pad hid the
+  decimal point of the crew's accepted gap, so the trials chart read "−6 2"; from a 20 px font a
+  crew pin printed on its digits ("−6,2" at 1440 × 28), and at 24 and 28 px the width axis ran
+  together at 320 and "1100" left the window. The sounding now takes its above-right seat while it
+  would meet the gap, the gap's pad grows in em, and "1024" steps down a row with a leader; nothing
+  else moves at 16 px. T38 is new. Left open: two crew pins hidden under the gap's pad, Lens's two
+  nits (the moved number's underline at 1x, a memory pointer), the soundings' px pads at 24 to
+  28 px (`.crew/sprint/78/retro.json`).
+- [x] Sprint 79 (S, PR #156): sprint 78's pin follow-up, a production defect that hid facts. The
+  trials chart hid crew windows under its own labels: 360 × 560 and 375 × 548 under "−6.2" at every
+  width, 1366 × 625 half under 1366 × 595's number, others at some widths and fonts, and 360 × 560
+  under the ring at 320 (T39a red at 248 of 248 reads). "−6.2" now sits on its dot, or from 64rem in
+  a pocket with a leader; three soundings take new seats; the crew's dots are drawn again over the
+  ring within its reach (Lens's fix round kept focus rings whole). T39 is new. Left open: Lens's
+  two check nits (Probe), the sticky side at 24 to 28 px (Iris), and a focus ring within the ring's
+  reach on /trials/1366x595 (`.crew/sprint/79/retro.json`).
+- [x] Sprint 80 (S, PR #157): sprint 79's sticky-side follow-up, a production defect that hid a
+  fact. From a 24 px default font on a big screen the trials' stuck side ran past the window,
+  hiding the chart's caption until the page ended (47.8 px at 1792 × 1470 at 28 px), and from
+  26 px the bar covered the frame's width dimension. The frame's height budget now takes out the
+  side's type growth and the sticky top follows the 3.5rem bar, so the stuck side ends inside the
+  window 32 px under the bar at every font; nothing moves at 16 px (0 of 6,360 boxes). T40 is new;
+  Lens's two T39 nits rode along. Left open: Lens's nit on T39a's mask lookup, Iris's memory lines
+  and the side sticking from the frame's floor point, the 56 px `scroll-padding-top` under the rem
+  bar (`.crew/sprint/80/retro.json`).
+- [x] Sprint 81 (S, PR #158): sprint 80's scroll-padding follow-up, a production defect that hid
+  a fact. From 64rem the scroll padding was a fixed 56 px under the 3.5rem bar, so at a 20 to 28 px
+  default font `/#work` and every fragment target landed 14 to 42 px under the bar; Probe found a
+  focused link's ring under it by 4 px even at 16 px (46.5 px at 28). The padding now follows the
+  bar, a focused control keeps its ring's 4 px clear (the skip link's target excepted), and /crew's
+  sticky drawing follows the bar too; nothing moves at 16 px (0 boxes, 0 of 147 landings). T41 is
+  new; Lens's T39a nit rode along. Left open: Lens's two T41 nits (Probe), a ring clipped at the
+  window's foot on Tab forward (Forge) (`.crew/sprint/81/retro.json`).
+- [x] Sprint 82 (S, PR #159): the stand-down's defect condition, from Probe's read-only production
+  sweep (92 sitemap URLs, 565 hrefs, 84 default-font loads, every merge record against GitHub).
+  /log/40 gave PR #99's merge an hour early, at 08:03 UTC instead of 09:03, because the squash
+  commit was stamped across the 1 Nov 2026 US fall-back. The record now holds GitHub's
+  `merged_at`, and the merge-record script's header names the exception. Nothing else
+  qualified. Lens: ship, one nit (the header comment's wrap). Left open: that nit and sprint 81's follow-ups (`.crew/sprint/82/retro.json`).
+- [x] Sprint 83 (S, PR #160): the stand-down's defect condition, read on the live layer. After
+  sprint 82 merged, production's `/` and `/crew` read "Crew resting. Sprint 32 merged." and
+  "Replay sprint 32": the Studio's feed named sprint 32 beside PR #159, and the site repeated it.
+  The feed's number is now checked against the record (`lib/crew-feed.ts`, `sprintOf`): a PR the
+  record holds gives its sprint, and a number the record has under another PR is told as none.
+  Lens: ship, two nits. Left open: a check pinning the rule (Probe), a live run before its PR opens
+  (Forge), the Studio's numbering itself (the owner's repository) (`.crew/sprint/83/retro.json`).
+- [x] Sprint 84 (S, notes only, PR #162): the stand-down's sweep, on what 82 and 83 didn't read.
+  The agent surfaces equal `content/`, every figure the pages state matches its source, and with
+  WebGL on no text prints over text: nothing qualifies, so nothing in the product changes. Sprint
+  83's merge record rides along. Left open: `/ask`'s live answers, unread
+  (`.crew/sprint/84/decisions.md`).
+- [x] Sprint 85 (S, PR #163): the stand-down's defect condition, on `/ask`'s live answers. Of 13
+  questions to production's assistant, one qualified: asked for his links, it said the record
+  lists no LinkedIn or GitHub, which `content/profile.ts` lists. `resumeAsText()`, the record the
+  assistant and MCP read, now carries every link and project URL, and `/llms.txt`'s Contact lists
+  them all. T42 is new. Lens: ship, one nit. Left open: that nit, a live answer once deployed
+  (Probe), an evals case for links (Forge) (`.crew/sprint/85/retro.json`). Every surface has now
+  been swept once.
 - **Then the crew stands down.** Neither the scripted frame nor the yard in the trials earned a
   sprint at the demo (`demo.md`, "What's next"). Work reopens when the owner sets a goal or
   answers a pick, when a defect on production makes the site say something false or hides a
